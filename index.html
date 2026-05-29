@@ -401,18 +401,25 @@ let S={
   view:'setup',step:1,
   cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},eveningMins:null,eveningLocation:null,
 };
 let timerIv=null;
 
 function save(){
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-60),active:S.active,weekPlan:S.weekPlan,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation}));}catch(e){}
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null});
+      // Migrate old logs into lastWeights if empty
+      if(!Object.keys(S.lastWeights).length){
+        S.logs.forEach(log=>log.exercises?.forEach(e=>{
+          const sets=e.sets?.filter(s=>s&&s.reps>0);
+          if(sets?.length&&!S.lastWeights[e.id]){const l=sets[sets.length-1];S.lastWeights[e.id]={weight:l.weight,reps:l.reps};}
+        }));
+      }
       // migrate old calEntry format
       if(d.calEntry&&!S.weekPlan){
         S.weekPlan={weekOf:thisMonday(),skipDays:[],calGoal:{cals:d.calEntry.cals,startDate:d.calEntry.date||todayStr(),endDate:nextSunday()}};
@@ -528,20 +535,10 @@ function pickEveningExercises(day,sessionMins){
   return exs;
 }
 
-function lastLog(exId){
-  for(let i=S.logs.length-1;i>=0;i--){
-    const e=S.logs[i].exercises?.find(x=>x.id===exId);
-    if(e?.sets?.length)return e;
-  }return null;
-}
-function progression(exId,rMax){
-  const l=lastLog(exId);if(!l)return null;
-  const done=l.sets.filter(s=>s.reps>0);if(!done.length)return null;
-  const w=done[0].weight;
-  const minR=Math.min(...done.map(s=>s.reps));
-  const maxR=Math.max(...done.map(s=>s.reps));
-  const ready=minR>=rMax;
-  return{weight:w,minR,maxR,suggest:ready?r5(w*1.04):w,ready,summary:`${w} lb × ${minR===maxR?minR:minR+'–'+maxR}`};
+function progression(exId){
+  const lw=S.lastWeights?.[exId];
+  if(!lw||lw.weight==null)return null;
+  return{weight:lw.weight,suggest:lw.weight+5,summary:`${lw.weight} lb`};
 }
 function fmtDate(iso){
   const d=new Date(iso);
@@ -560,17 +557,25 @@ function cardioOptions(cals,bodyLbs){
   if(cals<=0)return[];
   const m=(cpm)=>Math.round(cals/cpm);
   const mi=(mph,min)=>((mph*min)/60).toFixed(1);
-  const walkCpm=bodyLbs*0.028;
-  const stairCpm=bodyLbs*0.060;
-  const ellCpm=bodyLbs*0.040;
-  const runCpm=bodyLbs*0.065;
+  // 3 mph walk: MET ~3.5, cals = MET * bodyKg * hrs
+  const walkCpm=bodyLbs*0.0245; // 3 mph
+  // Stair stepper: MET ~9, resistance level 8-12 typical YMCA
+  const stairCpm=bodyLbs*0.063;
+  // Elliptical: MET ~5.5, resistance 10-14 typical
+  const ellCpm=bodyLbs*0.038;
+  // Run 9-10 min/mile = ~6-6.7 mph, use 6.3 mph midpoint: MET ~10
+  const runCpm=bodyLbs*0.070;
   const wm=m(walkCpm),sm=m(stairCpm),em=m(ellCpm),rm=m(runCpm);
+  // Stair stepper resistance: rough scale based on calorie target/body weight
+  const stairRes=Math.min(20,Math.max(8,Math.round(8+(bodyLbs-150)/25)));
+  // Elliptical resistance: similar scale
+  const ellRes=Math.min(20,Math.max(10,Math.round(10+(bodyLbs-150)/20)));
   return[
-    {name:'Walk Outside',icon:'🚶',min:wm,dist:`${mi(3.5,wm)} mi`,note:'3.5 mph · priority 1',busy:false},
-    {name:'Stair Stepper',icon:'🪜',min:sm,dist:'—',note:'High intensity',busy:true},
-    {name:'Elliptical',icon:'⚡',min:em,dist:'—',note:'Moderate pace',busy:false},
-    {name:'Treadmill Walk',icon:'🏃',min:wm,dist:`${mi(3.5,wm)} mi`,note:'3.5 mph',busy:false},
-    {name:'Run Outside',icon:'🏃‍♂️',min:rm,dist:`${mi(6,rm)} mi`,note:'6 mph · priority 5',busy:false},
+    {name:'Walk Outside',icon:'🚶',min:wm,dist:`${mi(3,wm)} mi`,note:'3 mph · flat ground',busy:false},
+    {name:'Stair Stepper',icon:'🪜',min:sm,dist:'—',note:`Resistance level ${stairRes}`,busy:true},
+    {name:'Elliptical',icon:'⚡',min:em,dist:'—',note:`Resistance level ${ellRes} · moderate stride`,busy:false},
+    {name:'Treadmill Walk',icon:'🏃',min:wm,dist:`${mi(3,wm)} mi`,note:'3 mph · 0% incline',busy:false},
+    {name:'Run Outside',icon:'🏃‍♂️',min:rm,dist:`${mi(6.3,rm)} mi`,note:'9–10 min/mile pace',busy:false},
   ];
 }
 
@@ -609,15 +614,29 @@ function startRest(secs,exName){
   const C=339;
   timerIv=setInterval(()=>{
     const rem=Math.ceil((S.active.restEndsAt-Date.now())/1000);
-    if(rem<=0){stopRest();return;}
+    if(rem<=0){stopRest(true);return;}
     const m=Math.floor(rem/60),ss=rem%60;
     num.textContent=`${m}:${String(ss).padStart(2,'0')}`;
     const pct=(S.active.restTotal-rem)/S.active.restTotal;
     ring.style.strokeDashoffset=(C*pct).toFixed(1);
   },250);
 }
-function stopRest(){
+function playAlarm(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [[880,0],[880,0.3],[1100,0.6]].forEach(([f,t])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sine';o.frequency.value=f;
+      g.gain.setValueAtTime(0.35,ctx.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.22);
+      o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+0.25);
+    });
+  }catch(e){}
+}
+function stopRest(alarm){
   if(timerIv){clearInterval(timerIv);timerIv=null;}
+  if(alarm)playAlarm();
   S.active&&(delete S.active.restEndsAt)&&(delete S.active.restTotal);
   document.getElementById('rest-ov').classList.remove('on');
   document.getElementById('t-ring').style.strokeDashoffset='0';
@@ -657,7 +676,8 @@ function completeSet(exIdx,setIdx){
   const row=document.getElementById(`sr-${exIdx}-${setIdx}`);
   if(row){
     row.classList.add('done');
-    const db=row.querySelector('.done-btn');if(db){db.innerHTML='✓';db.disabled=true;}
+    const db=row.querySelector('.done-btn');
+    if(db){db.innerHTML='↩';db.dataset.action='undo-set';}
     row.querySelectorAll('.ni').forEach(inp=>inp.disabled=true);
   }
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
@@ -675,12 +695,13 @@ function updateWarmup(exIdx,weight){
 function goToEx(idx){S.active.exIdx=idx;save();render();}
 
 function finishWorkout(){
-  const log={
-    id:Date.now().toString(),date:new Date().toISOString(),
-    dayName:S.active.dayName,isLunch:S.active.isLunch,
-    duration:Math.round((Date.now()-S.active.startTime)/60000),
-    exercises:S.active.exercises.map(e=>({id:e.id,name:e.name,muscle:e.muscle,sets:e.done.filter(Boolean)})),
-  };
+  const exData=S.active.exercises.map(e=>({id:e.id,name:e.name,muscle:e.muscle,sets:e.done.filter(Boolean)}));
+  // Update lastWeights — only last set's weight per exercise, that's all we need
+  exData.forEach(e=>{
+    const working=e.sets.filter(s=>s&&s.reps>0&&!e.isMakeup);
+    if(working.length){const last=working[working.length-1];S.lastWeights[e.id]={weight:last.weight,reps:last.reps};}
+  });
+  const log={id:Date.now().toString(),date:new Date().toISOString(),dayName:S.active.dayName,isLunch:S.active.isLunch,duration:Math.round((Date.now()-S.active.startTime)/60000),exercises:exData};
   S.logs.push(log);S.active=null;S.view='dash';
   stopRest();save();render();
 }
@@ -909,7 +930,7 @@ function renderWorkout(){
   const{exercises,exIdx,dayName,isLunch}=S.active;
   const ex=exercises[exIdx];
   const total=exercises.length;
-  const prog=progression(ex.id,ex.rMax);
+  const prog=progression(ex.id);
   const mcolor=MCOL[ex.muscle]||'var(--acc)';
 
   const sessionTag=ex.isMakeup
@@ -926,15 +947,24 @@ function renderWorkout(){
 
   const warmupHTML=ex.isFirst?`<div class='wu-box'>
     <div class='wu-title'>⚡ Warm-up Sets (do these first)</div>
-    <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>~50%</span><span style='color:var(--mut);font-size:13px'> × 8 reps</span></div>
-    <div class='wu-row'><span class='wu-set'>WU2</span><span class='wu-val' id='wu2-${exIdx}'>~75%</span><span style='color:var(--mut);font-size:13px'> × 3 reps</span></div>
-    <div class='wu-row'><span class='wu-set'>WU3</span><span class='wu-val' id='wu3-${exIdx}'>~90%</span><span style='color:var(--mut);font-size:13px'> × 1 rep</span></div>
-    <div class='wu-note'>Enter your working weight below → warm-up weights calculate automatically</div>
+    <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>~50%</span><span style='color:var(--mut);font-size:13px'> × 8 reps</span><button data-action='start-wu-rest' data-secs='60' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>60s rest</button></div>
+    <div class='wu-row'><span class='wu-set'>WU2</span><span class='wu-val' id='wu2-${exIdx}'>~75%</span><span style='color:var(--mut);font-size:13px'> × 3 reps</span><button data-action='start-wu-rest' data-secs='90' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>90s rest</button></div>
+    <div class='wu-row'><span class='wu-set'>WU3</span><span class='wu-val' id='wu3-${exIdx}'>~90%</span><span style='color:var(--mut);font-size:13px'> × 1 rep</span><button data-action='start-wu-rest' data-secs='120' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>2 min rest</button></div>
+    <div class='wu-note'>Enter your working weight below → warm-up weights update automatically</div>
   </div>`:'';
 
-  const progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
-    ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} lb today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Same weight — hit those reps first</div>`}`
+  const progHTML=prog
+    ?`<div class='last-info'>Last: <strong>${prog.summary}</strong></div><div class='prog-hint'>🎯 Goal today: <strong>${prog.suggest} lb</strong> (+5 from last)</div>`
     :'<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative, leave 1–2 reps in the tank.</div>';
+
+  const swapOpen=S.active.swapMode===exIdx;
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&e.eq.some(q=>[...YMCA_EQUIP,'bodyweight'].includes(q))).slice(0,5):[];
+  const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
+    <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
+    ${alts.map(a=>`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.type}</span></button>`).join('')}
+    ${!alts.length?`<div style='font-size:13px;color:var(--mut)'>No alternatives found for this slot.</div>`:''}
+    <button class='btn btn-g btn-sm' style='margin-top:4px' data-action='toggle-swap'>Cancel</button>
+  </div>`:'';
 
   const repRange=`${ex.rMin}–${ex.rMax}`;
   const setsRows=Array.from({length:ex.sets},(_,i)=>{
@@ -946,7 +976,7 @@ function renderWorkout(){
       <div class='st'>${repRange}</div>
       <input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>
       <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='reps' value='${done?done.reps:sugR}' min='0' max='50' ${done?'disabled':''}>
-      <button class='done-btn' id='db-${exIdx}-${i}' data-action='done-set' data-ex='${exIdx}' data-set='${i}' ${done?'disabled':''}>${done?'✓':'→'}</button>
+      <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
     </div>`;
   }).join('');
 
@@ -971,8 +1001,12 @@ function renderWorkout(){
       ${sessionTag}
       <div class='ex-name'>${ex.name}</div>
       <span class='m-tag' style='background:${mcolor}22;color:${mcolor}'>${MNAME[ex.muscle]||ex.muscle} · ${ex.type}</span>
-      <button class='cue-btn' data-action='toggle-cue' data-id='cue-${exIdx}'>💡 Technique tip</button>
+      <div style='display:flex;gap:8px;align-items:center;margin-bottom:10px'>
+        <button class='cue-btn' data-action='toggle-cue' data-id='cue-${exIdx}' style='margin-bottom:0'>💡 Technique tip</button>
+        <button class='cue-btn' data-action='toggle-swap' style='margin-bottom:0;margin-left:auto;color:var(--mut)'>↕ Swap</button>
+      </div>
       <div class='cue-txt' id='cue-${exIdx}'>${ex.cue||''}</div>
+      ${swapPanel}
       ${warmupHTML}
       ${progHTML}
       <div class='sets-hdr'>
@@ -1179,6 +1213,26 @@ document.addEventListener('click',e=>{
   if(a==='prev-ex'){goToEx(S.active.exIdx-1);return;}
   if(a==='finish-workout'){finishWorkout();return;}
   if(a==='abandon'){abandonWorkout();return;}
+  if(a==='undo-set'){
+    const ei=parseInt(btn.dataset.ex),si=parseInt(btn.dataset.set);
+    if(S.active?.exercises[ei]){S.active.exercises[ei].done[si]=null;save();render();}
+    return;
+  }
+  if(a==='start-wu-rest'){startRest(parseInt(btn.dataset.secs),'Warm-up rest');return;}
+  if(a==='toggle-swap'){
+    S.active.swapMode=S.active.swapMode===S.active.exIdx?null:S.active.exIdx;
+    render();return;
+  }
+  if(a==='swap-ex'){
+    const idx=parseInt(btn.dataset.idx),newId=btn.dataset.id;
+    const newEx=EX.find(e=>e.id===newId);
+    if(newEx&&S.active.exercises[idx]){
+      const old=S.active.exercises[idx];
+      S.active.exercises[idx]={...newEx,sets:old.sets,sessionMins:old.sessionMins,done:[],isFirst:old.isFirst};
+      S.active.swapMode=null;save();render();
+    }
+    return;
+  }
   if(a==='toggle-cue'){
     const el=document.getElementById(btn.dataset.id);
     if(el)el.classList.toggle('open');return;
