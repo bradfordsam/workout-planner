@@ -535,10 +535,20 @@ function pickEveningExercises(day,sessionMins){
   return exs;
 }
 
-function progression(exId){
-  const lw=S.lastWeights?.[exId];
-  if(!lw||lw.weight==null)return null;
-  return{weight:lw.weight,suggest:lw.weight+5,summary:`${lw.weight} lb`};
+function lastLog(exId){
+  for(let i=S.logs.length-1;i>=0;i--){
+    const e=S.logs[i].exercises?.find(x=>x.id===exId);
+    if(e?.sets?.length)return e;
+  }return null;
+}
+function progression(exId,rMax){
+  const l=lastLog(exId);if(!l)return null;
+  const done=l.sets.filter(s=>s.reps>0);if(!done.length)return null;
+  const w=done[0].weight;
+  const minR=Math.min(...done.map(s=>s.reps));
+  const maxR=Math.max(...done.map(s=>s.reps));
+  const ready=minR>=rMax;
+  return{weight:w,minR,maxR,suggest:ready?r5(w*1.04):w,ready,summary:`${w} lb × ${minR===maxR?minR:minR+'–'+maxR}`};
 }
 function fmtDate(iso){
   const d=new Date(iso);
@@ -930,7 +940,7 @@ function renderWorkout(){
   const{exercises,exIdx,dayName,isLunch}=S.active;
   const ex=exercises[exIdx];
   const total=exercises.length;
-  const prog=progression(ex.id);
+  const prog=progression(ex.id,ex.rMax);
   const mcolor=MCOL[ex.muscle]||'var(--acc)';
 
   const sessionTag=ex.isMakeup
@@ -953,8 +963,8 @@ function renderWorkout(){
     <div class='wu-note'>Enter your working weight below → warm-up weights update automatically</div>
   </div>`:'';
 
-  const progHTML=prog
-    ?`<div class='last-info'>Last: <strong>${prog.summary}</strong></div><div class='prog-hint'>🎯 Goal today: <strong>${prog.suggest} lb</strong> (+5 from last)</div>`
+  const progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
+    ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} lb today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Same weight — hit those reps first</div>`}`
     :'<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative, leave 1–2 reps in the tank.</div>';
 
   const swapOpen=S.active.swapMode===exIdx;
