@@ -228,6 +228,8 @@ const EX = [
   {id:'half_kneel_press',name:'Half-kneeling Press',muscle:'core',type:'rotational',eq:['dumbbells','cables'],rMin:10,rMax:15,rest:90,cue:'Down knee is the loaded side. Tall posture. Press without leaning — core fights lateral forces. Per side.',tags:['asymmetrical']},
   {id:'sa_cable_row',name:'Single-arm Cable Row',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:12,rest:90,cue:'Core resists rotation as you row. Back AND anti-rotation in one. Count per side.',tags:['unilateral']},
   {id:'sa_db_row',name:'Single-arm DB Row (Standing)',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:8,rMax:12,rest:90,cue:'No bench support. Bent over. Core braces hard against rotation on every rep. Count per side.',tags:['unilateral']},
+  {id:'dead_bug',name:'Dead Bug',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:8,rMax:12,rest:60,cue:'Lower opposite arm and leg simultaneously, back stays flat. Exhale on the way down. Slow and controlled — speed kills the point of this exercise. Count per side.',tags:['anti-rotation']},
+  {id:'side_plank_dip',name:'Side Plank Hip Dips',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:10,rMax:15,rest:60,cue:'Full side plank. Dip hip to floor and drive back up. Resist lateral flexion the whole time. Count per side.',tags:['lateral']},
 ];
 
 // ─────────────────────────────────────────────
@@ -377,18 +379,18 @@ let S={
   view:'setup',step:1,
   cfg:{days:3,mins:60,lunchDays:1,equip:['dumbbells','pullup_bar'],goal:'hyp',bodyLbs:175},
   program:null,logs:[],active:null,openLogs:{},
-  calEntry:null,eveningMins:null,
+  calEntry:null,eveningMins:null,eveningLocation:null,
 };
 let timerIv=null;
 
 function save(){
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-60),active:S.active,calEntry:S.calEntry,eveningMins:S.eveningMins}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-60),active:S.active,calEntry:S.calEntry,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation}));}catch(e){}
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,calEntry:d.calEntry||null,eveningMins:d.eveningMins||null});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,calEntry:d.calEntry||null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null});
       S.view=S.active?'workout':'dash';
     }
   }catch(e){}
@@ -417,7 +419,7 @@ function genProgram(cfg){
     const tk=split[si];
     const isLunch=si<lunchDays;
     const tmpl=isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
-    const equip=isLunch?YMCA_EQUIP:cfg.equip;
+    const equip=YMCA_EQUIP; // always gen with full gym; home exercises re-picked at workout start
     const limit=isLunch?3:(EX_LIMIT[90]||7);
     const slots=tmpl.slots.slice(0,limit);
     const used=[];
@@ -451,7 +453,28 @@ function getCalEntry(){
 
 function getEveningMins(){
   if(S.eveningMins&&S.eveningMins.date===todayStr())return S.eveningMins.mins;
-  return S.cfg.mins; // fallback to configured default
+  return S.cfg.mins;
+}
+
+function getEveningLocation(){
+  if(S.eveningLocation&&S.eveningLocation.date===todayStr())return S.eveningLocation.loc;
+  return 'home'; // default conservative — less equipment
+}
+
+function pickEveningExercises(day,sessionMins){
+  const limit=EX_LIMIT[sessionMins]||5;
+  const loc=getEveningLocation();
+  const equip=loc==='ymca'?YMCA_EQUIP:['pullup_bar'];
+  const tmpl=TMPLS[day.tk];
+  if(!tmpl)return day.exercises.slice(0,limit);
+  const used=[];
+  const exs=tmpl.slots.slice(0,limit).map(sl=>{
+    const e=pickEx(sl,equip,used);
+    if(e)used.push(e.id);
+    return e?{...e,sets:3,sessionMins}:null;
+  }).filter(Boolean);
+  let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
+  return exs;
 }
 
 function lastLog(exId){
@@ -552,11 +575,14 @@ function stopRest(){
 // ─────────────────────────────────────────────
 function startWorkout(day){
   const sessionMins=day.isLunch?45:getEveningMins();
-  const exLimit=day.isLunch?3:(EX_LIMIT[sessionMins]||5);
+  const loc=day.isLunch?'ymca':getEveningLocation();
+  const rawExs=day.isLunch
+    ?day.exercises.slice(0,3)
+    :pickEveningExercises(day,sessionMins);
   S.active={
     dayName:day.name,dow:day.dow,startTime:Date.now(),isLunch:day.isLunch||false,
-    sessionMins,exIdx:0,
-    exercises:day.exercises.slice(0,exLimit).map(e=>({...e,done:[]})),
+    sessionMins,loc,exIdx:0,
+    exercises:rawExs.map(e=>({...e,done:[]})),
   };
   S.view='workout';save();render();
 }
@@ -613,15 +639,6 @@ function renderSetup(){
   const daysOpts=[2,3,4,5].map(d=>`<div class='opt${cfg.days===d?' on':''}' data-action='set-days' data-val='${d}'><div class='opt-v'>${d}</div><div class='opt-l'>${d===2?'Full Body':'days'}</div></div>`).join('');
   const lunchOpts=[0,1,2,3].map(n=>`<div class='opt${(cfg.lunchDays||0)===n?' on':''}' data-action='set-lunch-days' data-val='${n}'><div class='opt-v'>${n}</div><div class='opt-l'>${n===0?'none':n===1?'session':'sessions'}</div></div>`).join('');
   const eveOpts=[45,60,75,90].map(m=>`<div class='opt${cfg.mins===m?' on':''}' data-action='set-mins' data-val='${m}'><div class='opt-v'>${m}</div><div class='opt-l'>min</div></div>`).join('');
-  const equipList=[
-    {id:'barbell',ico:'🏋️',name:'Barbell + Rack'},
-    {id:'dumbbells',ico:'💪',name:'Dumbbells'},
-    {id:'cables',ico:'🔗',name:'Cables'},
-    {id:'pullup_bar',ico:'🔝',name:'Pull-up Bar'},
-    {id:'machine',ico:'⚙️',name:'Machines'},
-    {id:'dip_station',ico:'🤸',name:'Dip Station'},
-  ];
-  const eqOpts=equipList.map(e=>`<div class='eq-item${cfg.equip.includes(e.id)?' on':''}' data-action='toggle-eq' data-val='${e.id}'><span class='eq-ico'>${e.ico}</span><span class='eq-name'>${e.name}</span><div class='eq-chk'>${cfg.equip.includes(e.id)?'<svg width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'><polyline points=\'2,6 5,9 10,3\' fill=\'none\' stroke=\'#0a0a12\' stroke-width=\'2\' stroke-linecap=\'round\'/></svg>':''}</div></div>`).join('');
   const goalOpts=[
     {id:'hyp',label:'Hypertrophy',sub:'Size + definition'},
     {id:'str',label:'Strength',sub:'Max force output'},
@@ -634,15 +651,11 @@ function renderSetup(){
      <div class='opts'>${daysOpts}</div>`,
 
     `<div class='s-title'>Session structure</div>
-     <div class='s-sub'>Lunch sessions are 45 min at the YMCA — compounds only, full gym equipment. Each evening the app asks how long you have, so sessions flex to your schedule.</div>
+     <div class='s-sub'>Lunch = 45 min at YMCA, compounds only. Each evening you choose: Home (pull-up bar) or YMCA (full gym). App asks every night.</div>
      <div class='sec-lbl' style='margin-bottom:8px'>YMCA lunch sessions per week</div>
      <div class='opts col4' style='margin-bottom:20px'>${lunchOpts}</div>
-     <div class='sec-lbl' style='margin-bottom:8px'>Typical evening length (for calorie estimates)</div>
+     <div class='sec-lbl' style='margin-bottom:8px'>Typical evening length (for weekly calorie estimates)</div>
      <div class='opts'>${eveOpts}</div>`,
-
-    `<div class='s-title'>Evening equipment</div>
-     <div class='s-sub'>Select what you reliably have available for your evening sessions. YMCA sessions always use full gym equipment.</div>
-     <div class='eq-grid'>${eqOpts}</div>`,
 
     `<div class='s-title'>Primary goal?</div>
      <div class='s-sub'>Sets your default rep ranges and intensity targets.</div>
@@ -655,8 +668,8 @@ function renderSetup(){
        <span style='font-size:20px;font-weight:600;color:var(--mut)'>lbs</span>
      </div>`,
   ];
-  const dots=[1,2,3,4,5].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
-  const isLast=step===5;
+  const dots=[1,2,3,4].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
+  const isLast=step===4;
   return`<div class='setup'>
     ${step>1?`<button class='s-back' data-action='setup-back'><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back</button>`:'<div style="height:40px"></div>'}
     ${steps[step-1]}
@@ -698,20 +711,39 @@ function renderDash(){
     }
   } else {
     const eveMins=getEveningMins();
-    const exToShow=today.isLunch?3:(EX_LIMIT[eveMins]||5);
-    const exList=today.exercises.slice(0,Math.min(exToShow,4)).map(e=>`<div class='t-ex'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]};flex-shrink:0;display:inline-block'></span>${e.name}</div>`).join('');
-    const more=exToShow>4?`<div class='t-ex' style='color:var(--mut)'>+${exToShow-4} more exercise${exToShow-4>1?'s':''}</div>`:'';
-    const sessionBadge=today.isLunch?`<span class='badge badge-lunch' style='margin-left:8px'>YMCA Lunch · 45 min</span>`:`<span class='badge badge-eve'>Evening · ${eveMins} min</span>`;
-    const eveMinsPicker=!today.isLunch?`<div class='eve-mins-picker'>
-      <div class='sec-lbl' style='margin-bottom:8px'>How long do you have tonight?</div>
-      <div class='eve-mins-opts'>${[30,45,60,75,90].map(m=>`<div class='opt${(S.eveningMins&&S.eveningMins.date===todayStr()&&S.eveningMins.mins===m)||((!S.eveningMins||S.eveningMins.date!==todayStr())&&m===S.cfg.mins)?' on':''}' data-action='set-evening-mins' data-val='${m}'><div class='opt-v'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
+    const eveLoc=getEveningLocation();
+    const locSet=S.eveningLocation&&S.eveningLocation.date===todayStr();
+    const minsSet=S.eveningMins&&S.eveningMins.date===todayStr();
+    let previewExs,sessionBadge;
+    if(today.isLunch){
+      previewExs=today.exercises.slice(0,3);
+      sessionBadge=`<span class='badge badge-lunch' style='margin-left:8px'>YMCA Lunch · 45 min</span>`;
+    } else {
+      previewExs=pickEveningExercises(today,eveMins);
+      const locLabel=eveLoc==='ymca'?'YMCA · full gym':'Home · pull-up bar';
+      sessionBadge=`<span class='badge badge-eve' style='margin-left:8px'>${locLabel} · ${eveMins} min</span>`;
+    }
+    const exList=previewExs.slice(0,4).map(e=>`<div class='t-ex'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]};flex-shrink:0;display:inline-block'></span>${e.name}</div>`).join('');
+    const more=previewExs.length>4?`<div class='t-ex' style='color:var(--mut)'>+${previewExs.length-4} more</div>`:'';
+    const eveControls=!today.isLunch?`<div style='margin-bottom:14px'>
+      <div class='sec-lbl' style='margin-bottom:8px'>Where tonight?</div>
+      <div style='display:flex;gap:8px;margin-bottom:14px'>
+        <div class='opt${eveLoc==='home'?' on':''}' data-action='set-evening-location' data-val='home' style='flex:1;flex-direction:row;gap:10px;justify-content:flex-start;padding:12px 14px'>
+          <span style='font-size:22px'>🏠</span><div style='text-align:left'><div style='font-size:13px;font-weight:700'>Home</div><div class='opt-l' style='text-align:left'>Pull-up bar only</div></div>
+        </div>
+        <div class='opt${eveLoc==='ymca'?' on':''}' data-action='set-evening-location' data-val='ymca' style='flex:1;flex-direction:row;gap:10px;justify-content:flex-start;padding:12px 14px'>
+          <span style='font-size:22px'>🏋️</span><div style='text-align:left'><div style='font-size:13px;font-weight:700'>YMCA</div><div class='opt-l' style='text-align:left'>Full gym</div></div>
+        </div>
+      </div>
+      <div class='sec-lbl' style='margin-bottom:8px'>How long do you have?</div>
+      <div class='eve-mins-opts'>${[30,45,60,75,90].map(m=>`<div class='opt${minsSet&&S.eveningMins.mins===m||(!minsSet&&m===S.cfg.mins)?' on':''}' data-action='set-evening-mins' data-val='${m}'><div class='opt-v'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
     </div>`:'';
     todayHTML=`<div class='today'>
       <div class='t-lbl' style='display:flex;align-items:center;flex-wrap:wrap;gap:4px'>Today · ${DOW[dow]}${sessionBadge}</div>
       <div class='t-name'>${today.name}</div>
       <div class='t-desc'>${today.desc}</div>
       <div class='t-exlist'>${exList}${more}</div>
-      ${eveMinsPicker}
+      ${eveControls}
       <button class='btn btn-p' data-action='start-workout'>Start Workout →</button>
     </div>`;
   }
@@ -784,9 +816,10 @@ function renderWorkout(){
   const prog=progression(ex.id,ex.rMax);
   const mcolor=MCOL[ex.muscle]||'var(--acc)';
 
+  const locLabel=S.active.loc==='ymca'?'YMCA · Full Gym':'Home · Pull-up Bar';
   const sessionTag=isLunch
     ?`<span class='badge badge-lunch' style='margin-bottom:12px;display:inline-block'>YMCA Lunch · 45 min · Compounds</span>`
-    :`<span class='badge badge-eve' style='margin-bottom:12px;display:inline-block'>Evening · ${S.active.sessionMins} min</span>`;
+    :`<span class='badge badge-eve' style='margin-bottom:12px;display:inline-block'>${locLabel} · ${S.active.sessionMins} min</span>`;
 
   const warmupHTML=ex.isFirst?`<div class='wu-box'>
     <div class='wu-title'>⚡ Warm-up Sets (do these first)</div>
@@ -906,7 +939,7 @@ function renderProgram(){
 
   return`<div class='view'>
     <div class='hdg'>Weekly Program</div>
-    <div class='sub'>Same exercises every week for the full training cycle. Yellow = YMCA lunch (compounds only). Set your calorie goal on the Home tab to see cardio targets.</div>
+    <div class='sub'>Same template every week. Yellow = YMCA lunch (compounds only). Evening sessions re-pick exercises each night based on where you're working out — YMCA (full gym) or Home (pull-up bar). Set calorie goal on Home tab for cardio targets.</div>
     ${calSummary}
     ${days}
     <div class='mt16'>
@@ -983,7 +1016,7 @@ document.addEventListener('click',e=>{
     else S.view=v;
     render();return;
   }
-  if(a==='setup-next'){S.step=Math.min(5,S.step+1);render();return;}
+  if(a==='setup-next'){S.step=Math.min(4,S.step+1);render();return;}
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
   if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);render();return;}
   if(a==='set-mins'){S.cfg.mins=parseInt(btn.dataset.val);render();return;}
@@ -1008,6 +1041,10 @@ document.addEventListener('click',e=>{
   }
   if(a==='set-evening-mins'){
     S.eveningMins={mins:parseInt(btn.dataset.val),date:todayStr()};
+    save();render();return;
+  }
+  if(a==='set-evening-location'){
+    S.eveningLocation={loc:btn.dataset.val,date:todayStr()};
     save();render();return;
   }
   if(a==='reset-program'){
