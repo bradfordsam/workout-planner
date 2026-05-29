@@ -130,6 +130,8 @@ body{
 .log-ex{font-size:13px;margin-bottom:6px}
 .log-sets{font-size:12px;color:var(--mut)}
 .empty{text-align:center;padding:60px 16px;color:var(--mut)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.shake{animation:shake .35s ease;border-color:var(--bad)!important}
 .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb8{margin-bottom:8px}
 .hdg{font-size:20px;font-weight:800;margin-bottom:16px}
 .sub{font-size:13px;color:var(--mut);margin-bottom:16px;line-height:1.5}
@@ -809,7 +811,20 @@ function renderDash(){
 // RENDER – WORKOUT
 // ─────────────────────────────────────────────
 function renderWorkout(){
-  if(!S.active)return renderDash();
+  if(!S.active){
+    const today=todayDay();
+    const canStart=today&&!today.rest;
+    return`<div class='view'>
+      <div class='hdg'>Workout</div>
+      <div class='empty'>
+        <span style='font-size:48px;display:block;margin-bottom:16px'>${canStart?'⏱️':'😴'}</span>
+        ${canStart
+          ?`<div style='margin-bottom:20px'>No workout in progress.<br><span style='font-size:13px'>Start today's session to track your sets.</span></div>
+             <button class='btn btn-p' data-action='start-workout' style='max-width:240px;margin:0 auto'>Start Today's Session →</button>`
+          :`Rest day.<br><span style='font-size:13px'>Recovery is where the growth happens.</span>`}
+      </div>
+    </div>${renderNav('workout')}`;
+  }
   const{exercises,exIdx,dayName,isLunch}=S.active;
   const ex=exercises[exIdx];
   const total=exercises.length;
@@ -1037,6 +1052,7 @@ document.addEventListener('click',e=>{
     const el=document.getElementById('cal-input');
     const cals=parseInt(el?.value)||0;
     if(cals>0){S.calEntry={cals,date:todayStr()};save();render();}
+    else if(el){el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),400);}
     return;
   }
   if(a==='set-evening-mins'){
