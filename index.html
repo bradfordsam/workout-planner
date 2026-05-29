@@ -158,6 +158,17 @@ body{
 .eve-mins-opts .opt-v{font-size:16px}
 .bw-input-wrap{display:flex;align-items:center;gap:12px;margin-bottom:24px}
 .bw-big{max-width:130px;font-size:28px !important;padding:14px 8px !important}
+/* plan screen */
+.plan-days{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px}
+.plan-day{background:var(--surf);border:2px solid rgba(251,191,36,.4);border-radius:12px;padding:10px 4px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s,opacity .15s;user-select:none}
+.plan-day.plan-skip{border-color:var(--bdr);opacity:.5}
+.plan-day-name{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--txt);margin-bottom:3px}
+.plan-day-tmpl{font-size:10px;color:var(--mut);margin-bottom:3px;line-height:1.3}
+.plan-day-status{font-size:10px;font-weight:700;color:var(--warn)}
+.plan-day.plan-skip .plan-day-status{color:var(--mut)}
+.badge-makeup{background:rgba(248,113,113,.15);color:var(--bad)}
+.pg-day.pg-skip{opacity:.45;border-style:dashed}
+.pg-day.pg-missed{border-color:rgba(248,113,113,.4)}
 </style>
 </head>
 <body>
@@ -379,20 +390,24 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 // ─────────────────────────────────────────────
 let S={
   view:'setup',step:1,
-  cfg:{days:3,mins:60,lunchDays:1,equip:['dumbbells','pullup_bar'],goal:'hyp',bodyLbs:175},
+  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175},
   program:null,logs:[],active:null,openLogs:{},
-  calEntry:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,eveningMins:null,eveningLocation:null,
 };
 let timerIv=null;
 
 function save(){
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-60),active:S.active,calEntry:S.calEntry,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-60),active:S.active,weekPlan:S.weekPlan,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation}));}catch(e){}
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,calEntry:d.calEntry||null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null});
+      // migrate old calEntry format
+      if(d.calEntry&&!S.weekPlan){
+        S.weekPlan={weekOf:thisMonday(),skipDays:[],calGoal:{cals:d.calEntry.cals,startDate:d.calEntry.date||todayStr(),endDate:nextSunday()}};
+      }
       S.view=S.active?'workout':'dash';
     }
   }catch(e){}
@@ -412,22 +427,18 @@ function pickEx(slot,equip,used){
 }
 
 function genProgram(cfg){
-  const split=SPLITS[cfg.days]||SPLITS[3];
-  const dows=DAY_ASSIGN[cfg.days]||DAY_ASSIGN[3];
-  const lunchDays=cfg.lunchDays||0;
+  const days=cfg.days||5;
+  const split=SPLITS[days]||SPLITS[5];
+  const dows=DAY_ASSIGN[days]||DAY_ASSIGN[5];
   const week=Array.from({length:7},(_,dow)=>{
     const si=dows.indexOf(dow);
     if(si===-1)return{dow,rest:true};
     const tk=split[si];
-    const isLunch=si<lunchDays;
-    const tmpl=isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
-    const equip=YMCA_EQUIP; // always gen with full gym; home exercises re-picked at workout start
-    const limit=isLunch?3:(EX_LIMIT[90]||7);
-    const slots=tmpl.slots.slice(0,limit);
+    const tmpl=LUNCH_TMPLS[tk]||TMPLS[tk];
     const used=[];
-    const exs=slots.map(sl=>{const e=pickEx(sl,equip,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:isLunch?45:cfg.mins}:null}).filter(Boolean);
+    const exs=tmpl.slots.slice(0,3).map(sl=>{const e=pickEx(sl,YMCA_EQUIP,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:45}:null}).filter(Boolean);
     let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
-    return{dow,rest:false,name:tmpl.name,desc:tmpl.desc,tk,isLunch,exercises:exs};
+    return{dow,rest:false,name:tmpl.name,desc:tmpl.desc,tk,isLunch:true,exercises:exs};
   });
   return{at:Date.now(),week};
 }
@@ -439,18 +450,46 @@ function r5(n){return Math.round(n/5)*5;}
 function todayDow(){return new Date().getDay();}
 function todayDay(){return S.program?S.program.week[todayDow()]:null;}
 function todayStr(){return new Date().toISOString().slice(0,10);}
+function addDays(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function daysBetween(a,b){return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000);}
 
 function thisMonday(){
   const d=new Date();const dow=d.getDay();
-  const monday=new Date(d);
-  monday.setDate(d.getDate()-(dow===0?6:dow-1));
-  return monday.toISOString().slice(0,10);
+  const m=new Date(d);m.setDate(d.getDate()-(dow===0?6:dow-1));
+  return m.toISOString().slice(0,10);
 }
+function planMonday(){return todayDow()===0?addDays(todayStr(),1):thisMonday();}
+function nextSunday(){const dow=todayDow();return addDays(todayStr(),dow===0?7:7-dow);}
 
+// ─── Week Plan helpers ───
+function getWeekPlan(){
+  if(!S.weekPlan)return null;
+  if(S.weekPlan.weekOf<thisMonday())return null;
+  return S.weekPlan;
+}
 function getCalEntry(){
-  if(!S.calEntry)return null;
-  if(S.calEntry.date<thisMonday())return null;
-  return S.calEntry;
+  const plan=getWeekPlan();
+  if(!plan?.calGoal?.cals)return null;
+  const today=todayStr();
+  if(today<plan.calGoal.startDate||today>plan.calGoal.endDate)return null;
+  return plan.calGoal;
+}
+function isDaySkipped(dow){
+  const plan=getWeekPlan();
+  return plan?(plan.skipDays||[]).includes(dow):false;
+}
+function getMissedDays(){
+  const plan=getWeekPlan();
+  if(!plan||!S.program)return[];
+  const today=todayDow();
+  const mon=plan.weekOf;
+  const weekEnd=addDays(mon,7);
+  const weekLogs=S.logs.filter(l=>l.date.slice(0,10)>=mon&&l.date.slice(0,10)<weekEnd);
+  const completedDates=new Set(weekLogs.map(l=>l.date.slice(0,10)));
+  return S.program.week.filter(d=>{
+    if(d.rest||(plan.skipDays||[]).includes(d.dow)||d.dow===0||d.dow>=today)return false;
+    return!completedDates.has(addDays(mon,d.dow-1));
+  }).map(d=>d.dow);
 }
 
 function getEveningMins(){
@@ -528,17 +567,19 @@ function cardioOptions(cals,bodyLbs){
 function calcWeekCardio(){
   const entry=getCalEntry();
   if(!entry||!S.program)return null;
+  const plan=getWeekPlan();
+  if(!plan)return null;
   const bodyLbs=S.cfg.bodyLbs||175;
-  const dow=todayDow();
-  const startDow=dow===0?1:dow;
-  const remaining=S.program.week.filter(d=>!d.rest&&d.dow>=startDow&&d.dow<=6);
-  const todayEveMins=getEveningMins();
-  const strengthCals=remaining.reduce((sum,d)=>{
-    const mins=d.isLunch?45:(d.dow===dow&&!d.isLunch?todayEveMins:S.cfg.mins);
-    return sum+estimateStrengthCals(mins,bodyLbs);
-  },0);
+  const today=todayStr();
+  const rangeStart=today>entry.startDate?today:entry.startDate;
+  const daysLeft=Math.max(1,daysBetween(rangeStart,entry.endDate)+1);
+  const mondayDate=plan.weekOf;
+  const strengthCals=S.program.week.filter(d=>{
+    if(d.rest||isDaySkipped(d.dow)||d.dow===0||d.dow===6)return false;
+    const dayDate=addDays(mondayDate,d.dow-1);
+    return dayDate>=rangeStart&&dayDate<=entry.endDate;
+  }).reduce((sum)=>sum+estimateStrengthCals(45,bodyLbs),0);
   const cardioCalsNeeded=Math.max(0,entry.cals-strengthCals);
-  const daysLeft=dow===0?6:Math.max(1,7-dow);
   const calsPerDay=Math.round(cardioCalsNeeded/daysLeft);
   return{strengthCals,cardioCalsNeeded,calsPerDay,daysLeft,options:cardioOptions(calsPerDay,bodyLbs)};
 }
@@ -576,14 +617,20 @@ function stopRest(){
 // ACTIVE WORKOUT LOGIC
 // ─────────────────────────────────────────────
 function startWorkout(day){
-  const sessionMins=day.isLunch?45:getEveningMins();
-  const loc=day.isLunch?'ymca':getEveningLocation();
-  const rawExs=day.isLunch
-    ?day.exercises.slice(0,3)
-    :pickEveningExercises(day,sessionMins);
+  let rawExs=day.exercises.slice(0,3);
+  const missed=getMissedDays();
+  if(missed.length>0){
+    const todayMuscles=new Set(rawExs.map(e=>e.muscle));
+    missed.forEach(missedDow=>{
+      const md=S.program.week[missedDow];
+      if(!md||md.rest)return;
+      const mu=md.exercises.find(e=>!todayMuscles.has(e.muscle));
+      if(mu){rawExs=[...rawExs,{...mu,sets:2,isMakeup:true,makeupFrom:md.name}];todayMuscles.add(mu.muscle);}
+    });
+  }
   S.active={
-    dayName:day.name,dow:day.dow,startTime:Date.now(),isLunch:day.isLunch||false,
-    sessionMins,loc,exIdx:0,
+    dayName:day.name,dow:day.dow,startTime:Date.now(),isLunch:true,
+    sessionMins:45,loc:'ymca',exIdx:0,
     exercises:rawExs.map(e=>({...e,done:[]})),
   };
   S.view='workout';save();render();
@@ -634,44 +681,88 @@ function abandonWorkout(){
 }
 
 // ─────────────────────────────────────────────
+// RENDER – PLAN SCREEN
+// ─────────────────────────────────────────────
+function renderPlan(){
+  const isSunday=todayDow()===0;
+  if(!S.weekPlan)S.weekPlan={weekOf:planMonday(),skipDays:[],calGoal:null};
+  const plan=S.weekPlan;
+  const skipDays=plan.skipDays||[];
+  const calGoal=plan.calGoal||{};
+  const dayNames=['Mon','Tue','Wed','Thu','Fri'];
+  const dayCards=dayNames.map((dn,i)=>{
+    const dow=i+1;
+    const dd=S.program?.week[dow];
+    const isSkipped=skipDays.includes(dow);
+    const tmpl=(dd?.name||dn).replace(' · Lunch','').replace('Upper Push','U.Push').replace('Upper Pull','U.Pull');
+    return`<div class='plan-day${isSkipped?' plan-skip':''}' data-action='toggle-plan-day' data-val='${dow}'>
+      <div class='plan-day-name'>${dn}</div>
+      <div class='plan-day-tmpl'>${tmpl}</div>
+      <div class='plan-day-status'>${isSkipped?'skip':'lunch'}</div>
+    </div>`;
+  }).join('');
+  const startVal=calGoal.startDate||todayStr();
+  const endVal=calGoal.endDate||nextSunday();
+  const calVal=calGoal.cals||'';
+  return`<div class='view'>
+    <button class='s-back' data-action='plan-back' style='margin-bottom:20px;margin-top:0'>
+      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
+    </button>
+    <div class='hdg'>Plan This Week</div>
+    <div class='sub'>${isSunday?'Set up the coming week. Tap any day to mark as skip.':'Adjust your plan any time. Skipped days are treated as rest.'}</div>
+    <div class='sec-lbl'>Lifting Days (Mon–Fri)</div>
+    <div class='plan-days'>${dayCards}</div>
+    <div style='font-size:11px;color:var(--mut);margin-bottom:20px'>Tap to toggle. All on = 45 min YMCA lunch every weekday.</div>
+    <div class='sec-lbl'>Calorie Goal</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div style='display:flex;align-items:center;gap:8px;margin-bottom:12px'>
+        <span style='font-size:13px;color:var(--mut);white-space:nowrap'>Burn</span>
+        <input type='number' class='ni' id='plan-cal' placeholder='e.g. 2000' value='${calVal}' min='0' step='50' style='width:110px'>
+        <span style='font-size:13px;color:var(--mut);white-space:nowrap'>calories</span>
+      </div>
+      <div style='display:grid;grid-template-columns:1fr 1fr;gap:8px'>
+        <div>
+          <div class='sec-lbl' style='margin-bottom:4px'>From</div>
+          <input type='date' class='ni' id='plan-start' value='${startVal}' style='font-size:13px;padding:8px;text-align:left'>
+        </div>
+        <div>
+          <div class='sec-lbl' style='margin-bottom:4px'>Through</div>
+          <input type='date' class='ni' id='plan-end' value='${endVal}' style='font-size:13px;padding:8px;text-align:left'>
+        </div>
+      </div>
+    </div>
+    <button class='btn btn-ok' data-action='save-plan'>Save Plan →</button>
+    ${plan.calGoal?`<button class='btn btn-g btn-sm' data-action='clear-plan-goal' style='margin-top:8px'>Clear calorie goal</button>`:''}
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
 // RENDER – SETUP
 // ─────────────────────────────────────────────
 function renderSetup(){
   const{step,cfg}=S;
   const daysOpts=[2,3,4,5].map(d=>`<div class='opt${cfg.days===d?' on':''}' data-action='set-days' data-val='${d}'><div class='opt-v'>${d}</div><div class='opt-l'>${d===2?'Full Body':'days'}</div></div>`).join('');
-  const lunchOpts=[0,1,2,3].map(n=>`<div class='opt${(cfg.lunchDays||0)===n?' on':''}' data-action='set-lunch-days' data-val='${n}'><div class='opt-v'>${n}</div><div class='opt-l'>${n===0?'none':n===1?'session':'sessions'}</div></div>`).join('');
-  const eveOpts=[45,60,75,90].map(m=>`<div class='opt${cfg.mins===m?' on':''}' data-action='set-mins' data-val='${m}'><div class='opt-v'>${m}</div><div class='opt-l'>min</div></div>`).join('');
   const goalOpts=[
     {id:'hyp',label:'Hypertrophy',sub:'Size + definition'},
     {id:'str',label:'Strength',sub:'Max force output'},
     {id:'bal',label:'Balanced',sub:'Size and strength'},
   ].map(g=>`<div class='opt col1 ${cfg.goal===g.id?'on':''}' data-action='set-goal' data-val='${g.id}'><div class='opt-v' style='font-size:18px'>${g.label}</div><div class='opt-l'>${g.sub}</div></div>`).join('');
-
   const steps=[
     `<div class='s-title'>How many days per week?</div>
-     <div class='s-sub'>Total lifting sessions — lunch + evening combined.</div>
+     <div class='s-sub'>All sessions are 45 min at YMCA. You'll customize each week's schedule in the plan screen.</div>
      <div class='opts'>${daysOpts}</div>`,
-
-    `<div class='s-title'>Session structure</div>
-     <div class='s-sub'>Lunch = 45 min at YMCA, compounds only. Each evening you choose: Home (pull-up bar) or YMCA (full gym). App asks every night.</div>
-     <div class='sec-lbl' style='margin-bottom:8px'>YMCA lunch sessions per week</div>
-     <div class='opts col4' style='margin-bottom:20px'>${lunchOpts}</div>
-     <div class='sec-lbl' style='margin-bottom:8px'>Typical evening length (for weekly calorie estimates)</div>
-     <div class='opts'>${eveOpts}</div>`,
-
     `<div class='s-title'>Primary goal?</div>
      <div class='s-sub'>Sets your default rep ranges and intensity targets.</div>
      <div class='opts col1'>${goalOpts}</div>`,
-
     `<div class='s-title'>Your body weight?</div>
-     <div class='s-sub'>Used to estimate calorie burn from workouts and prescribe daily cardio targets.</div>
+     <div class='s-sub'>Used to estimate calorie burn from workouts and cardio prescriptions.</div>
      <div class='bw-input-wrap'>
        <input type='number' class='ni bw-big' id='bw-input' value='${cfg.bodyLbs||175}' min='80' max='400' step='5'>
        <span style='font-size:20px;font-weight:600;color:var(--mut)'>lbs</span>
      </div>`,
   ];
-  const dots=[1,2,3,4].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
-  const isLast=step===4;
+  const dots=[1,2,3].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
+  const isLast=step===3;
   return`<div class='setup'>
     ${step>1?`<button class='s-back' data-action='setup-back'><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back</button>`:'<div style="height:40px"></div>'}
     ${steps[step-1]}
@@ -688,103 +779,83 @@ function renderSetup(){
 // RENDER – DASHBOARD
 // ─────────────────────────────────────────────
 function renderDash(){
-  const today=todayDay();const dow=todayDow();
+  const today=todayDay();const dow=todayDow();const isSunday=dow===0;
+  const missed=getMissedDays();
   const wkGrid=S.program.week.map((d,i)=>{
     const isToday=i===dow;
-    const dotStyle=d.rest?'background:var(--bdr)':isToday?'background:var(--ok)':'background:var(--acc)';
-    const dotStyle2=d.isLunch?'background:var(--warn)':dotStyle;
+    const isSkipped=!d.rest&&isDaySkipped(i);
+    const isMissed=missed.includes(i);
+    let dot;
+    if(d.rest||isSkipped)dot='background:var(--bdr)';
+    else if(isMissed)dot='background:var(--bad)';
+    else if(isToday)dot='background:var(--ok)';
+    else dot='background:var(--warn)';
     return`<div class='wk-day${isToday?' today':''}'>
       <div class='wk-dn'>${DOW[i].slice(0,1)}</div>
-      <div class='wk-dot' style='${d.rest?dotStyle:dotStyle2}'></div>
+      <div class='wk-dot' style='${dot}'></div>
     </div>`;
   }).join('');
 
+  const isSkippedToday=today&&!today.rest&&isDaySkipped(dow);
   let todayHTML='';
   if(!today||today.rest){
-    const isSunday=dow===0;
     if(isSunday){
       todayHTML=`<div class='today' style='border-color:rgba(251,191,36,.35);background:linear-gradient(135deg,var(--surf2) 0%,rgba(251,191,36,.04) 100%)'>
         <div class='t-lbl' style='color:var(--warn)'>Sunday · Plan Your Week</div>
-        <div class='t-name'>Set This Week's Goal</div>
-        <div class='t-desc'>Enter your extra calorie target below, then check the Program tab to see your full Mon–Sat plan with cardio prescriptions.</div>
+        <div class='t-name'>Set Up This Week</div>
+        <div class='t-desc'>Tap "Edit →" below to pick lifting days and set your calorie goal.</div>
       </div>`;
     } else {
       todayHTML=`<div class='today'><div class='t-lbl'>Today</div><div class='t-name'>Rest Day 😴</div><div class='t-desc'>Recovery is where the growth happens. Sleep, eat, hydrate.</div></div>`;
     }
+  } else if(isSkippedToday){
+    todayHTML=`<div class='today' style='border-color:rgba(100,116,139,.3)'>
+      <div class='t-lbl' style='color:var(--mut)'>Today · ${DOW[dow]}</div>
+      <div class='t-name'>Skipped 📋</div>
+      <div class='t-desc'>You marked today as skip in your weekly plan.</div>
+      <button class='btn btn-g btn-sm' data-action='unskip-today' style='width:auto;margin-top:4px'>Un-skip today</button>
+    </div>`;
   } else {
-    const eveMins=getEveningMins();
-    const eveLoc=getEveningLocation();
-    const locSet=S.eveningLocation&&S.eveningLocation.date===todayStr();
-    const minsSet=S.eveningMins&&S.eveningMins.date===todayStr();
-    let previewExs,sessionBadge;
-    if(today.isLunch){
-      previewExs=today.exercises.slice(0,3);
-      sessionBadge=`<span class='badge badge-lunch' style='margin-left:8px'>YMCA Lunch · 45 min</span>`;
-    } else {
-      previewExs=pickEveningExercises(today,eveMins);
-      const locLabel=eveLoc==='ymca'?'YMCA · full gym':'Home · pull-up bar';
-      sessionBadge=`<span class='badge badge-eve' style='margin-left:8px'>${locLabel} · ${eveMins} min</span>`;
-    }
-    const exList=previewExs.slice(0,4).map(e=>`<div class='t-ex'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]};flex-shrink:0;display:inline-block'></span>${e.name}</div>`).join('');
-    const more=previewExs.length>4?`<div class='t-ex' style='color:var(--mut)'>+${previewExs.length-4} more</div>`:'';
-    const eveControls=!today.isLunch?`<div style='margin-bottom:14px'>
-      <div class='sec-lbl' style='margin-bottom:8px'>Where tonight?</div>
-      <div style='display:flex;gap:8px;margin-bottom:14px'>
-        <div class='opt${eveLoc==='home'?' on':''}' data-action='set-evening-location' data-val='home' style='flex:1;flex-direction:row;gap:10px;justify-content:flex-start;padding:12px 14px'>
-          <span style='font-size:22px'>🏠</span><div style='text-align:left'><div style='font-size:13px;font-weight:700'>Home</div><div class='opt-l' style='text-align:left'>Pull-up bar only</div></div>
-        </div>
-        <div class='opt${eveLoc==='ymca'?' on':''}' data-action='set-evening-location' data-val='ymca' style='flex:1;flex-direction:row;gap:10px;justify-content:flex-start;padding:12px 14px'>
-          <span style='font-size:22px'>🏋️</span><div style='text-align:left'><div style='font-size:13px;font-weight:700'>YMCA</div><div class='opt-l' style='text-align:left'>Full gym</div></div>
-        </div>
-      </div>
-      <div class='sec-lbl' style='margin-bottom:8px'>How long do you have?</div>
-      <div class='eve-mins-opts'>${[30,45,60,75,90].map(m=>`<div class='opt${minsSet&&S.eveningMins.mins===m||(!minsSet&&m===S.cfg.mins)?' on':''}' data-action='set-evening-mins' data-val='${m}'><div class='opt-v'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
-    </div>`:'';
+    const previewExs=today.exercises.slice(0,3);
+    const exList=previewExs.map(e=>`<div class='t-ex'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]};flex-shrink:0;display:inline-block'></span>${e.name}</div>`).join('');
+    const makeupNote=missed.length>0?`<div style='font-size:12px;color:var(--bad);margin-bottom:10px'>⚡ +${missed.length} make-up exercise${missed.length>1?'s':''} added (${missed.map(d=>DOW[d]).join(', ')} missed)</div>`:'';
     todayHTML=`<div class='today'>
-      <div class='t-lbl' style='display:flex;align-items:center;flex-wrap:wrap;gap:4px'>Today · ${DOW[dow]}${sessionBadge}</div>
+      <div class='t-lbl' style='display:flex;align-items:center;flex-wrap:wrap;gap:4px'>Today · ${DOW[dow]}<span class='badge badge-lunch' style='margin-left:8px'>YMCA Lunch · 45 min</span></div>
       <div class='t-name'>${today.name}</div>
       <div class='t-desc'>${today.desc}</div>
-      <div class='t-exlist'>${exList}${more}</div>
-      ${eveControls}
+      <div class='t-exlist'>${exList}</div>
+      ${makeupNote}
       <button class='btn btn-p' data-action='start-workout'>Start Workout →</button>
     </div>`;
   }
 
-  // Calorie / cardio widget
   const entry=getCalEntry();
   const cardio=calcWeekCardio();
   let cardioHTML='';
   if(cardio){
     if(cardio.cardioCalsNeeded<=0){
-      cardioHTML=`<div class='prog-hint' style='margin-top:10px'>✅ Strength work covers your calorie goal this week!</div>`;
+      cardioHTML=`<div class='prog-hint' style='margin-top:10px'>✅ Strength covers your goal!</div>`;
     } else {
       const rows=cardio.options.map(o=>`<div class='cardio-row${o.busy?' cardio-busy':''}'>
         <div class='cr-icon'>${o.icon}</div>
-        <div class='cr-body'>
-          <div class='cr-name'>${o.name}${o.busy?`<span class='cr-busy-tag'>often busy</span>`:''}</div>
-          <div class='cr-note'>${o.note}</div>
-        </div>
-        <div class='cr-right'>
-          <div class='cr-dur'>${o.min} min</div>
-          <div class='cr-dist'>${o.dist}</div>
-        </div>
+        <div class='cr-body'><div class='cr-name'>${o.name}${o.busy?`<span class='cr-busy-tag'>often busy</span>`:''}</div><div class='cr-note'>${o.note}</div></div>
+        <div class='cr-right'><div class='cr-dur'>${o.min} min</div><div class='cr-dist'>${o.dist}</div></div>
       </div>`).join('');
-      cardioHTML=`<div style='margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)'>
+      cardioHTML=`<div style='margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)'>
         <div class='sec-lbl' style='margin-bottom:6px'>Daily Cardio · ${cardio.calsPerDay} cal/day</div>
         <div class='cardio-list'>${rows}</div>
-        <div style='font-size:11px;color:var(--mut);margin-top:8px'>
-          ${cardio.cardioCalsNeeded} cardio cal needed · ${cardio.daysLeft} days left · strength burns ~${cardio.strengthCals} cal
-        </div>
+        <div style='font-size:11px;color:var(--mut);margin-top:8px'>${cardio.cardioCalsNeeded} cardio cal needed · ${cardio.daysLeft} days left · strength ~${cardio.strengthCals} cal</div>
       </div>`;
     }
   }
-  const calWidget=`<div class='card' style='margin-bottom:14px'>
-    <div class='sec-lbl'>Weekly Calorie Goal</div>
-    <div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Extra calories to burn over the rest of this week?${entry?`<span style='color:var(--ok);margin-left:6px'>· set ${entry.date}</span>`:''}</div>
-    <div style='display:flex;gap:8px;align-items:center'>
-      <input type='number' class='ni' style='flex:1;max-width:110px' id='cal-input' placeholder='e.g. 800' value='${entry?.cals||''}' min='0' step='50'>
-      <button class='btn btn-p btn-sm' data-action='save-cals'>Set Goal</button>
+  const planCard=`<div class='card' style='margin-bottom:14px'>
+    <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>
+      <div class='sec-lbl' style='margin-bottom:0'>Weekly Goal</div>
+      <button class='btn btn-s btn-sm' data-action='go-plan' style='width:auto'>${isSunday?'Plan Week →':'Edit →'}</button>
     </div>
+    ${entry
+      ?`<div style='font-size:13px;color:var(--mut)'>Burn <strong style='color:var(--txt)'>${entry.cals.toLocaleString()}</strong> cal &nbsp;·&nbsp; ${entry.startDate} → ${entry.endDate}</div>`
+      :`<div style='font-size:13px;color:var(--mut)'>No goal set — tap ${isSunday?'"Plan Week"':'"Edit"'} to configure.</div>`}
     ${cardioHTML}
   </div>`;
 
@@ -802,7 +873,7 @@ function renderDash(){
     <div class='sec-lbl'>This Week</div>
     <div class='wk-grid'>${wkGrid}</div>
     ${todayHTML}
-    ${calWidget}
+    ${planCard}
     ${recentLogs?`<div class='sec-lbl mt16'>Recent</div>${recentLogs}`:''}
   </div>${renderNav('dash')}`;
 }
@@ -831,10 +902,9 @@ function renderWorkout(){
   const prog=progression(ex.id,ex.rMax);
   const mcolor=MCOL[ex.muscle]||'var(--acc)';
 
-  const locLabel=S.active.loc==='ymca'?'YMCA · Full Gym':'Home · Pull-up Bar';
-  const sessionTag=isLunch
-    ?`<span class='badge badge-lunch' style='margin-bottom:12px;display:inline-block'>YMCA Lunch · 45 min · Compounds</span>`
-    :`<span class='badge badge-eve' style='margin-bottom:12px;display:inline-block'>${locLabel} · ${S.active.sessionMins} min</span>`;
+  const sessionTag=ex.isMakeup
+    ?`<span class='badge badge-makeup' style='margin-bottom:12px;display:inline-block'>⚡ Make-up · ${ex.makeupFrom}</span>`
+    :`<span class='badge badge-lunch' style='margin-bottom:12px;display:inline-block'>YMCA Lunch · 45 min</span>`;
 
   const warmupHTML=ex.isFirst?`<div class='wu-box'>
     <div class='wu-title'>⚡ Warm-up Sets (do these first)</div>
@@ -904,57 +974,59 @@ function renderWorkout(){
 function renderProgram(){
   const dow=todayDow();
   const cardio=calcWeekCardio();
-
+  const missed=getMissedDays();
   const cardioBlurb=cardio&&cardio.calsPerDay>0
     ?cardio.options.slice(0,3).map(o=>`${o.icon} ${o.name}: ${o.min} min${o.dist&&o.dist!=='—'?' · '+o.dist:''}`).join(' · ')
     :'';
 
   const days=S.program.week.map(d=>{
-    if(d.rest){
-      if(d.dow===0||d.dow>6)return'';
-      const isToday=d.dow===dow;
-      let cardioNote='';
-      if(cardio&&cardio.calsPerDay>0){
-        cardioNote=`<div style='margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)'>
+    if(d.dow===0||d.dow===6)return''; // skip Sun/Sat header rows
+    const isToday=d.dow===dow;
+    const isSkipped=!d.rest&&isDaySkipped(d.dow);
+    const isMissed=!d.rest&&!isSkipped&&missed.includes(d.dow);
+    if(d.rest||isSkipped){
+      let cn='';
+      if(cardio&&cardio.calsPerDay>0&&!isSkipped){
+        cn=`<div style='margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)'>
           <div style='font-size:11px;color:var(--warn);font-weight:700;margin-bottom:4px'>+ Daily Cardio · ${cardio.calsPerDay} cal</div>
           <div style='font-size:11px;color:var(--mut)'>${cardioBlurb}</div>
         </div>`;
       }
-      return`<div class='pg-day${isToday?' today-day':''}'>
-        <div class='pg-dh'><div class='pg-dn' style='color:var(--mut)'>${DOW[d.dow]}</div><span style='font-size:12px;color:var(--mut)'>Rest${cardio&&cardio.calsPerDay>0?' + Cardio':''}</span></div>
-        ${cardioNote}
+      return`<div class='pg-day${isToday?' today-day':''}${isSkipped?' pg-skip':''}'>
+        <div class='pg-dh'><div class='pg-dn' style='color:var(--mut)'>${DOW[d.dow]}</div><span style='font-size:12px;color:var(--mut)'>${isSkipped?'Skipped this week':'Rest'}${!isSkipped&&cardio&&cardio.calsPerDay>0?' + Cardio':''}</span></div>
+        ${cn}
       </div>`;
     }
-    const isToday=d.dow===dow;
-    const badge=d.isLunch?`<span class='badge badge-lunch'>YMCA · 45 min</span>`:`<span class='badge badge-eve'>${S.cfg.mins} min</span>`;
+    const badge=`<span class='badge badge-lunch'>YMCA · 45 min</span>`;
+    const missedTag=isMissed?`<span style='font-size:11px;color:var(--bad);font-weight:700;margin-left:6px'>⚠️ missed</span>`:'';
     const exList=d.exercises.map(e=>`<div class='pg-ex'><div class='pg-dot' style='background:${MCOL[e.muscle]}'></div>${e.name} <span style='color:var(--mut);font-size:12px'>· ${e.sets}×${e.rMin}–${e.rMax}</span></div>`).join('');
-    let cardioNote='';
+    let cn='';
     if(cardio&&cardio.calsPerDay>0){
-      cardioNote=`<div style='margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)'>
+      cn=`<div style='margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)'>
         <div style='font-size:11px;color:var(--warn);font-weight:700;margin-bottom:4px'>+ Daily Cardio · ${cardio.calsPerDay} cal</div>
         <div style='font-size:11px;color:var(--mut)'>${cardioBlurb}</div>
       </div>`;
     }
-    return`<div class='pg-day${isToday?' today-day':''}'>
+    return`<div class='pg-day${isToday?' today-day':''}${isMissed?' pg-missed':''}'>
       <div class='pg-dh'>
-        <div><div class='pg-dn' style='display:flex;align-items:center;gap:8px'>${d.name} ${badge}</div><div class='pg-dd'>${DOW[d.dow]}</div></div>
+        <div><div class='pg-dn' style='display:flex;align-items:center;gap:4px;flex-wrap:wrap'>${d.name}${missedTag} ${badge}</div><div class='pg-dd'>${DOW[d.dow]}</div></div>
         ${isToday?`<span style='font-size:11px;font-weight:700;color:var(--acc);background:var(--acc2);padding:3px 8px;border-radius:20px'>TODAY</span>`:''}
       </div>
       <div>${exList}</div>
-      ${cardioNote}
+      ${cn}
     </div>`;
   }).join('');
 
   const calSummary=cardio?`<div class='card' style='margin-bottom:16px'>
-    <div class='sec-lbl'>This Week's Calorie Plan</div>
+    <div class='sec-lbl'>Calorie Plan</div>
     ${cardio.cardioCalsNeeded<=0
-      ?`<div class='prog-hint'>✅ Strength work covers your goal</div>`
-      :`<div style='font-size:13px;color:var(--mut)'>Strength burns ~${cardio.strengthCals} cal · Need ${cardio.cardioCalsNeeded} more from cardio · ${cardio.calsPerDay} cal/day over ${cardio.daysLeft} days</div>`}
+      ?`<div class='prog-hint'>✅ Strength covers your goal</div>`
+      :`<div style='font-size:13px;color:var(--mut)'>Strength ~${cardio.strengthCals} cal · Need ${cardio.cardioCalsNeeded} more from cardio · ${cardio.calsPerDay} cal/day · ${cardio.daysLeft} days left</div>`}
   </div>`:'';
 
   return`<div class='view'>
     <div class='hdg'>Weekly Program</div>
-    <div class='sub'>Same template every week. Yellow = YMCA lunch (compounds only). Evening sessions re-pick exercises each night based on where you're working out — YMCA (full gym) or Home (pull-up bar). Set calorie goal on Home tab for cardio targets.</div>
+    <div class='sub'>All sessions = 45 min YMCA lunch. Skipped days show as rest. Missed days shown in red. Set your goal and plan from the Home tab.</div>
     ${calSummary}
     ${days}
     <div class='mt16'>
@@ -1014,6 +1086,7 @@ function render(){
   if(S.view==='setup'){root.innerHTML=renderSetup();return;}
   if(S.view==='workout'){root.innerHTML=renderWorkout();return;}
   if(S.view==='dash'){root.innerHTML=renderDash();return;}
+  if(S.view==='plan'){root.innerHTML=renderPlan();return;}
   if(S.view==='program'){root.innerHTML=renderProgram();return;}
   if(S.view==='history'){root.innerHTML=renderHistory();return;}
 }
@@ -1031,41 +1104,47 @@ document.addEventListener('click',e=>{
     else S.view=v;
     render();return;
   }
-  if(a==='setup-next'){S.step=Math.min(4,S.step+1);render();return;}
+  if(a==='setup-next'){S.step=Math.min(3,S.step+1);render();return;}
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
   if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);render();return;}
-  if(a==='set-mins'){S.cfg.mins=parseInt(btn.dataset.val);render();return;}
-  if(a==='set-lunch-days'){S.cfg.lunchDays=parseInt(btn.dataset.val);render();return;}
   if(a==='set-goal'){S.cfg.goal=btn.dataset.val;render();return;}
-  if(a==='toggle-eq'){
-    const v=btn.dataset.val;
-    const i=S.cfg.equip.indexOf(v);
-    if(i===-1)S.cfg.equip.push(v);else S.cfg.equip.splice(i,1);
-    render();return;
-  }
   if(a==='generate'){
     const bwEl=document.getElementById('bw-input');
     if(bwEl){const v=parseInt(bwEl.value);if(v>=80&&v<=400)S.cfg.bodyLbs=v;}
     S.program=genProgram(S.cfg);S.view='dash';save();render();return;
   }
-  if(a==='save-cals'){
-    const el=document.getElementById('cal-input');
-    const cals=parseInt(el?.value)||0;
-    if(cals>0){S.calEntry={cals,date:todayStr()};save();render();}
-    else if(el){el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),400);}
+  if(a==='go-plan'){S.view='plan';render();return;}
+  if(a==='plan-back'){S.view='dash';render();return;}
+  if(a==='toggle-plan-day'){
+    const dv=parseInt(btn.dataset.val);
+    if(!S.weekPlan)S.weekPlan={weekOf:planMonday(),skipDays:[],calGoal:null};
+    const idx=S.weekPlan.skipDays.indexOf(dv);
+    if(idx===-1)S.weekPlan.skipDays.push(dv);else S.weekPlan.skipDays.splice(idx,1);
+    save();render();return;
+  }
+  if(a==='save-plan'){
+    const calEl=document.getElementById('plan-cal');
+    const startEl=document.getElementById('plan-start');
+    const endEl=document.getElementById('plan-end');
+    const cals=parseInt(calEl?.value)||0;
+    const startDate=startEl?.value||todayStr();
+    const endDate=endEl?.value||nextSunday();
+    if(!S.weekPlan)S.weekPlan={weekOf:planMonday(),skipDays:[]};
+    S.weekPlan.weekOf=planMonday();
+    S.weekPlan.calGoal=cals>0?{cals,startDate,endDate}:null;
+    save();S.view='dash';render();return;
+  }
+  if(a==='clear-plan-goal'){
+    if(S.weekPlan)S.weekPlan.calGoal=null;
+    save();render();return;
+  }
+  if(a==='unskip-today'){
+    if(S.weekPlan){const dv=todayDow();const idx=S.weekPlan.skipDays.indexOf(dv);if(idx!==-1)S.weekPlan.skipDays.splice(idx,1);save();render();}
     return;
-  }
-  if(a==='set-evening-mins'){
-    S.eveningMins={mins:parseInt(btn.dataset.val),date:todayStr()};
-    save();render();return;
-  }
-  if(a==='set-evening-location'){
-    S.eveningLocation={loc:btn.dataset.val,date:todayStr()};
-    save();render();return;
   }
   if(a==='reset-program'){
     if(!confirm('Reset your program and reconfigure?'))return;
-    S.program=null;S.active=null;S.view='setup';S.step=1;save();render();return;
+    S.program=null;S.active=null;S.weekPlan=null;S.view='setup';S.step=1;save();render();return;
   }
   if(a==='start-workout'){
     const d=todayDay();if(d&&!d.rest)startWorkout(d);return;
