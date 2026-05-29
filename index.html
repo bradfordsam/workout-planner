@@ -223,10 +223,11 @@ const EX = [
   {id:'overhead_ext',name:'Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['cables','dumbbells'],rMin:10,rMax:15,rest:90,cue:'Long head stretched overhead — highest growth potential. Keep elbows forward. Full ROM.'},
   {id:'skull_crushers',name:'DB Skull Crushers',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:90,cue:'Lower DBs toward forehead, elbows slightly flared. Press back up. This is not a speed exercise.'},
   {id:'diamond_pu',name:'Diamond Push-ups',muscle:'triceps',type:'isolation',eq:['bodyweight'],rMin:10,rMax:20,rest:90,cue:'Hands close together. Elbows track backward. Full lockout. Add vest for progression.'},
-  {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Sit back and down, knees track toes. Full depth. Drive the floor away on the way up.',tags:['quad','squat']},
-  {id:'bulgarian',name:'Bulgarian Split Squat',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated. Front foot well forward. Upright torso. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral']},
-  {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:8,rMax:12,rest:150,cue:'Hold DB at chest. Elbows between knees at the bottom. Full depth. Works great with weighted vest.',tags:['quad','squat']},
+  {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Sit back and down, knees track toes. Full depth. Drive the floor away on the way up.',tags:['quad','squat'],hipRisk:true},
+  {id:'bulgarian',name:'Bulgarian Split Squat',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated. Front foot well forward. Upright torso. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral'],hipRisk:true},
+  {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:8,rMax:12,rest:150,cue:'Hold DB at chest. Elbows between knees at the bottom. Full depth. Works great with weighted vest.',tags:['quad','squat'],hipRisk:true},
   {id:'step_ups',name:'Step-ups (Heel Elevated)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:8,rMax:12,rest:150,cue:'Elevate front heel slightly for quad emphasis. Drive through full foot. Hips level. Count per leg.',tags:['quad','unilateral']},
+  {id:'reverse_lunge',name:'Reverse Lunge (DB)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:8,rMax:12,rest:150,cue:'Step BACK — this is more hip-friendly than forward lunges. Keep front shin vertical. Drive through front heel to return. Short ROM is fine. Count per leg.',tags:['quad','unilateral']},
   {id:'rdl',name:'Romanian Deadlift',muscle:'legs',type:'compound',eq:['barbell','dumbbells'],rMin:6,rMax:10,rest:180,cue:'Push hips BACK, feel hamstring stretch. Bar close to legs. Drive hips forward at top. Not a squat.',tags:['hinge','hamstring']},
   {id:'hip_thrust',name:'Hip Thrust',muscle:'legs',type:'compound',eq:['barbell','bodyweight'],rMin:8,rMax:12,rest:150,cue:'Shoulders on bench. Drive to full hip extension. Optional: 20s iso hold at top for extra glute stimulus.',tags:['hinge','glute']},
   {id:'single_rdl',name:'Single-leg RDL',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:8,rMax:12,rest:150,cue:'Hinge at hip, hips square throughout. Soft bend in standing knee. Count per leg. Great for mobility.',tags:['hinge','hamstring','unilateral']},
@@ -243,6 +244,14 @@ const EX = [
   {id:'sa_db_row',name:'Single-arm DB Row (Standing)',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:8,rMax:12,rest:90,cue:'No bench support. Bent over. Core braces hard against rotation on every rep. Count per side.',tags:['unilateral']},
   {id:'dead_bug',name:'Dead Bug',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:8,rMax:12,rest:60,cue:'Lower opposite arm and leg simultaneously, back stays flat. Exhale on the way down. Slow and controlled — speed kills the point of this exercise. Count per side.',tags:['anti-rotation']},
   {id:'side_plank_dip',name:'Side Plank Hip Dips',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:10,rMax:15,rest:60,cue:'Full side plank. Dip hip to floor and drive back up. Resist lateral flexion the whole time. Count per side.',tags:['lateral']},
+  // ─── Hip Health (stability & mobility) ───
+  {id:'clamshell',name:'Clamshell',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,cue:'Side-lying, knees bent ~45°. Rotate top knee up like a clamshell lid. Keep hips stacked — they WILL want to roll back. Squeeze hard at top, slow negative. This is pure glute med. Count per side.',tags:['glute_med']},
+  {id:'fire_hydrant',name:'Fire Hydrant',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:12,rMax:15,rest:60,cue:'Hands and knees (quadruped). Lift one knee out to the side — drive from the hip, not by rotating your torso. Keep hips level and core braced. Slow and controlled. Count per side.',tags:['glute_med']},
+  {id:'side_lying_abduct',name:'Side-lying Hip Abduction',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,cue:'Straight leg lift to ~45°. Foot slightly flexed, toes angled slightly downward (internal rotation targets glute med better). Slow negative — do not drop. Keep lower back out of it. Count per side.',tags:['glute_med']},
+  {id:'copenhagen_plank',name:'Copenhagen Plank',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:20,rMax:40,rest:60,cue:'Side plank with top foot on a bench, bottom leg hanging. Hold. Targets adductors and lateral hip — muscles often neglected with impingement. Build up slowly. Count seconds per side.',tags:['adductor','lateral']},
+  {id:'hip_90_90',name:'90/90 Hip Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,cue:'Sit with both knees at 90°. Front leg externally rotated, back leg internally rotated. Tall spine. Lean forward over your front shin — feel the hip open. Breathe into the stretch, do not force it. This targets hip internal rotation, which is often restricted with impingement. Count seconds per side.',tags:['mobility','internal_rotation']},
+  {id:'hip_flexor_half_kneel',name:'Half-Kneeling Hip Flexor Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,cue:'Down knee on pad, front foot forward. FIRST: posteriorly tilt your pelvis (tuck tailbone). THEN drive hips forward. That pelvic tilt is the key — without it you compress the hip instead of stretching the flexor. Hold, breathe. Count seconds per side.',tags:['mobility','hip_flexor']},
+  {id:'hip_cars',name:'Hip CARs',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:5,rMax:8,rest:30,cue:'Stand near wall for balance. Lift one knee high, then rotate it OUT and sweep the full circle (Controlled Articular Rotation). Goal is to find and explore your full active range. Go slow — speed defeats the purpose. Squeeze glute at the back. Count full circles per side.',tags:['mobility','rotation']},
 ];
 
 // ─────────────────────────────────────────────
@@ -262,10 +271,10 @@ const LUNCH_TMPLS = {
     {muscle:'back',type:'compound',tag:'horizontal'},
     {muscle:'core',type:'rotational'},
   ]},
-  legs:{name:'Legs · Lunch',desc:'Quad + hinge (compound)',slots:[
-    {muscle:'legs',type:'compound',tag:'quad'},
+  legs:{name:'Legs · Lunch',desc:'Hinge + quad + hip stability',slots:[
     {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'core',type:'rotational'},
+    {muscle:'legs',type:'compound',tag:'quad'},
+    {muscle:'hips',type:'stability'},
   ]},
   upper_push:{name:'Upper Push · Lunch',desc:'Chest + back horizontal (compound)',slots:[
     {muscle:'chest',type:'compound'},
@@ -382,15 +391,15 @@ const EX_LIMIT={30:2,45:3,60:5,75:6,90:7};
 const SPLITS={2:['full_a','full_b'],3:['push','pull','legs'],4:['upper_push','lower_a','upper_pull','lower_b'],5:['push','pull','legs','upper_push','upper_pull']};
 const DAY_ASSIGN={1:[1],2:[1,4],3:[1,3,5],4:[1,2,4,5],5:[1,2,3,4,5]};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const MCOL={chest:'var(--chest)',back:'var(--back)',shoulders:'var(--shoulders)',biceps:'var(--biceps)',triceps:'var(--triceps)',legs:'var(--legs)',core:'var(--core)'};
-const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',triceps:'Triceps',legs:'Legs',core:'Core'};
+const MCOL={chest:'var(--chest)',back:'var(--back)',shoulders:'var(--shoulders)',biceps:'var(--biceps)',triceps:'var(--triceps)',legs:'var(--legs)',core:'var(--core)',hips:'#c084fc'};
+const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',triceps:'Triceps',legs:'Legs',core:'Core',hips:'Hip Health'};
 
 // ─────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────
 let S={
   view:'setup',step:1,
-  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175},
+  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,eveningMins:null,eveningLocation:null,
 };
@@ -422,7 +431,8 @@ function pickEx(slot,equip,used){
     e.muscle===slot.muscle&&e.type===slot.type&&
     (!slot.tag||((e.tags||[]).includes(slot.tag)))&&
     !used.includes(e.id)&&
-    e.eq.some(q=>eq.has(q))
+    e.eq.some(q=>eq.has(q))&&
+    !(S.cfg.hipCaution&&e.hipRisk)
   )||null;
 }
 
@@ -906,6 +916,14 @@ function renderWorkout(){
     ?`<span class='badge badge-makeup' style='margin-bottom:12px;display:inline-block'>⚡ Make-up · ${ex.makeupFrom}</span>`
     :`<span class='badge badge-lunch' style='margin-bottom:12px;display:inline-block'>YMCA Lunch · 45 min</span>`;
 
+  const hipPrehabHTML=S.cfg.hipCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
+    <div class='wu-title' style='color:#c084fc'>🦋 Hip Activation (do these before lifting)</div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>1</span><span class='wu-val'>Hip CARs</span><span style='color:var(--mut);font-size:12px'> · 5 circles/side · slow, full range</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>2</span><span class='wu-val'>Clamshells</span><span style='color:var(--mut);font-size:12px'> · 15 reps/side · hips stacked</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>3</span><span class='wu-val'>90/90 Hip Stretch</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · breathe into it</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>4</span><span class='wu-val'>Half-Kneeling Hip Flexor Stretch</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · tuck pelvis first</span></div>
+  </div>`:'';
+
   const warmupHTML=ex.isFirst?`<div class='wu-box'>
     <div class='wu-title'>⚡ Warm-up Sets (do these first)</div>
     <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>~50%</span><span style='color:var(--mut);font-size:13px'> × 8 reps</span></div>
@@ -948,6 +966,7 @@ function renderWorkout(){
       </div>
       <button class='abandon' style='width:auto;padding:8px 12px;border-radius:10px' data-action='abandon'>✕ Quit</button>
     </div>
+    ${hipPrehabHTML}
     <div class='ex-card'>
       ${sessionTag}
       <div class='ex-name'>${ex.name}</div>
