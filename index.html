@@ -1420,6 +1420,7 @@ document.addEventListener('click',e=>{
     render();return;
   }
   if(a==='view-ex-detail'){
+    if(e.target.tagName==='INPUT')return;
     const id=btn.dataset.exid;
     S.viewExDetail=(S.viewExDetail===id)?null:id;
     render();return;
