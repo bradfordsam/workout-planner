@@ -801,22 +801,17 @@ function abandonWorkout(){
 }
 
 // ─────────────────────────────────────────────
-// RENDER – PLAN SCREEN
+// SHARED: AVAILABILITY GRID
 // ─────────────────────────────────────────────
-function renderPlan(){
-  if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
-  if(!S.weekPlan.availability)S.weekPlan.availability=defaultAvailability();
-  const av=S.weekPlan.availability;
-  const calGoal=S.weekPlan.calGoal||{};
-  const today=todayDow();const todayDate=todayStr();
-
-  function wkdayRow(dow,dn){
+function renderAvailGrid(av,inSetup){
+  const today=todayDow();
+  const wkdayRow=(dow,dn)=>{
     const d=av[dow]||{};
     const lunchOn=d.lunch!==false;
     const eveOn=!!d.eve?.on;
     const eveCardio=!!d.eve?.cardioOnly;
     const eveMins=d.eve?.mins||60;
-    const isPast=dow>0&&dow<today; // past weekday
+    const isPast=!inSetup&&dow>0&&dow<today;
     return`<div class='plan-slot-row${isPast?' pg-skip':''}'>
       <div class='plan-slot-day'>${dn}${isPast?` <span style='font-size:10px;color:var(--mut)'>(past)</span>`:''}</div>
       <div class='plan-slot-checks'>
@@ -837,13 +832,10 @@ function renderPlan(){
         ${!eveCardio?`<div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${eveMins===m?' on':''}' data-action='set-avail-eve-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>`:''}
       </div>`:''}
     </div>`;
-  }
-
-  function wkndRow(dow,dn){
+  };
+  const wkndRow=(dow,dn)=>{
     const d=av[dow]||{};
-    const on=!!d.on;
-    const cardioOnly=!!d.cardioOnly;
-    const mins=d.mins||60;
+    const on=!!d.on;const cardioOnly=!!d.cardioOnly;const mins=d.mins||60;
     return`<div class='plan-slot-row'>
       <div class='plan-slot-day'>${dn}</div>
       <div class='plan-slot-checks'>
@@ -860,7 +852,22 @@ function renderPlan(){
         ${!cardioOnly?`<div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${mins===m?' on':''}' data-action='set-avail-weekend-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>`:''}
       </div>`:''}
     </div>`;
-  }
+  };
+  return`<div class='sec-lbl'>Weekday Sessions</div>
+    ${wkdayRow(1,'Monday')}${wkdayRow(2,'Tuesday')}${wkdayRow(3,'Wednesday')}${wkdayRow(4,'Thursday')}${wkdayRow(5,'Friday')}
+    <div class='sec-lbl' style='margin-top:16px'>Weekend Sessions</div>
+    ${wkndRow(6,'Saturday')}${wkndRow(0,'Sunday')}`;
+}
+
+// ─────────────────────────────────────────────
+// RENDER – PLAN SCREEN
+// ─────────────────────────────────────────────
+function renderPlan(){
+  if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
+  if(!S.weekPlan.availability)S.weekPlan.availability=defaultAvailability();
+  const av=S.weekPlan.availability;
+  const calGoal=S.weekPlan.calGoal||{};
+  const todayDate=todayStr();
 
   const startVal=calGoal.startDate||todayDate;
   const endVal=calGoal.endDate||nextSunday();
@@ -873,11 +880,7 @@ function renderPlan(){
     <div class='hdg'>Plan This Week</div>
     <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>Schedule applies from <strong style='color:var(--txt)'>${todayDate}</strong> forward. Changes take effect when you tap Save.</div>
 
-    <div class='sec-lbl'>Weekday Sessions</div>
-    ${wkdayRow(1,'Monday')}${wkdayRow(2,'Tuesday')}${wkdayRow(3,'Wednesday')}${wkdayRow(4,'Thursday')}${wkdayRow(5,'Friday')}
-
-    <div class='sec-lbl' style='margin-top:16px'>Weekend Sessions</div>
-    ${wkndRow(6,'Saturday')}${wkndRow(0,'Sunday')}
+    ${renderAvailGrid(av,false)}
 
     <div class='sec-lbl' style='margin-top:16px'>Calorie Goal</div>
     <div class='card' style='margin-bottom:16px'>
@@ -903,16 +906,21 @@ function renderPlan(){
 // ─────────────────────────────────────────────
 function renderSetup(){
   const{step,cfg}=S;
-  const daysOpts=[2,3,4,5].map(d=>`<div class='opt${cfg.days===d?' on':''}' data-action='set-days' data-val='${d}'><div class='opt-v'>${d}</div><div class='opt-l'>${d===2?'Full Body':'days'}</div></div>`).join('');
+  // Ensure weekPlan + availability exist so grid toggles work during setup
+  if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
+  if(!S.weekPlan.availability)S.weekPlan.availability=defaultAvailability();
+  const av=S.weekPlan.availability;
+
   const goalOpts=[
     {id:'hyp',label:'Hypertrophy',sub:'Size + definition'},
     {id:'str',label:'Strength',sub:'Max force output'},
     {id:'bal',label:'Balanced',sub:'Size and strength'},
   ].map(g=>`<div class='opt col1 ${cfg.goal===g.id?'on':''}' data-action='set-goal' data-val='${g.id}'><div class='opt-v' style='font-size:18px'>${g.label}</div><div class='opt-l'>${g.sub}</div></div>`).join('');
+
   const steps=[
-    `<div class='s-title'>How many days per week?</div>
-     <div class='s-sub'>All sessions are 45 min at YMCA. You'll customize each week's schedule in the plan screen.</div>
-     <div class='opts'>${daysOpts}</div>`,
+    `<div class='s-title'>Your available sessions</div>
+     <div class='s-sub'>Tap each window you can train. Lunch = 45 min at YMCA (compounds). After Work sessions are flexible — you pick the length and whether to lift or just do cardio.</div>
+     ${renderAvailGrid(av,true)}`,
     `<div class='s-title'>Primary goal?</div>
      <div class='s-sub'>Sets your default rep ranges and intensity targets.</div>
      <div class='opts col1'>${goalOpts}</div>`,
@@ -1312,7 +1320,10 @@ document.addEventListener('click',e=>{
   if(a==='generate'){
     const bwEl=document.getElementById('bw-input');
     if(bwEl){const v=parseInt(bwEl.value);if(v>=80&&v<=400)S.cfg.bodyLbs=v;}
-    S.program=genProgram(S.cfg);S.view='dash';save();render();return;
+    if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
+    S.weekPlan.weekOf=todayStr();
+    S.program=genProgram(S.cfg,S.weekPlan.availability);
+    S.view='dash';save();render();return;
   }
   if(a==='go-plan'){S.view='plan';render();return;}
   if(a==='plan-back'){S.view='dash';render();return;}
