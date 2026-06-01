@@ -412,7 +412,7 @@ let S={
   view:'setup',step:1,
   cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,lastWeights:{},viewDay:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,eveningMins:null,eveningLocation:null,
 };
 let timerIv=null;
 
@@ -1000,13 +1000,25 @@ function renderDash(){
           </div>`
         :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div></div>`;
     }
-    const exList=d.exercises.slice(0,3).map(e=>`<div class='t-ex'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]};flex-shrink:0;display:inline-block'></span>${e.name}</div>`).join('');
+    const exRow=e=>{
+      const exp=S.viewExDetail===e.id;
+      const prog=progression(e.id,e.rMax);
+      const detail=exp?`<div style='margin:4px 0 2px 14px;padding:6px 8px;background:var(--surf2);border-radius:6px;font-size:12px;color:var(--txt)'>
+        ${prog?`Last: <strong>${prog.summary}</strong><span style='color:var(--acc);margin-left:8px'>Goal: ${prog.suggest} lb</span>`
+              :`<span style='color:var(--mut)'>No history yet — start conservative</span>`}
+      </div>`:'';
+      return`<div class='t-ex' style='flex-direction:column;align-items:flex-start;cursor:pointer' data-action='view-ex-detail' data-exid='${e.id}'>
+        <div style='display:flex;align-items:center;gap:6px'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]};flex-shrink:0;display:inline-block'></span>${e.name}<span style='font-size:11px;color:var(--mut);margin-left:auto'>${prog?prog.weight+' lb':'new'}</span></div>
+        ${detail}
+      </div>`;
+    };
+    const exList=d.exercises.slice(0,3).map(exRow).join('');
     const makeupNote=isActualToday&&missed.length>0?`<div style='font-size:12px;color:var(--bad);margin-bottom:10px'>⚡ +${missed.length} make-up exercise${missed.length>1?'s':''} added (${missed.map(m=>DOW[m]).join(', ')} missed)</div>`:'';
     const lunchBadge=d.isLunch?`<span class='badge badge-lunch' style='margin-left:8px'>YMCA · 45 min</span>`:`<span class='badge badge-eve' style='margin-left:8px'>${d.sessionMins||60} min</span>`;
     // Evening session block
     let eveBlock='';
     if(d.eveningSession){
-      const eveExs=d.eveningSession.exercises.slice(0,3).map(e=>`<div class='t-ex'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]};flex-shrink:0;display:inline-block'></span>${e.name}</div>`).join('');
+      const eveExs=d.eveningSession.exercises.slice(0,3).map(exRow).join('');
       eveBlock=`<div style='margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)'>
         <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px'>After Work · ${d.eveningSession.mins} min</div>
         <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${d.eveningSession.name}</div>
@@ -1398,6 +1410,12 @@ document.addEventListener('click',e=>{
   if(a==='view-day'){
     const dv=parseInt(btn.dataset.dow);
     S.viewDay=(S.viewDay===dv)?null:dv;
+    S.viewExDetail=null;
+    render();return;
+  }
+  if(a==='view-ex-detail'){
+    const id=btn.dataset.exid;
+    S.viewExDetail=(S.viewExDetail===id)?null:id;
     render();return;
   }
   if(a==='done-set'){
