@@ -462,25 +462,29 @@ function pickEx(slot,equip,used){
 
 function genProgram(cfg,av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
-  // Collect all lifting slots in order
-  const slots=[];
+
+  // Collect lunch slots and available evening slots separately
+  const lunchSlots=[];const eveSlots=[];
   [1,2,3,4,5].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.lunch!==false)slots.push({dow,isLunch:true,mins:45,key:`${dow}-lunch`});
-    if(d.eve?.on&&!d.eve?.cardioOnly)slots.push({dow,isLunch:false,mins:d.eve.mins||60,key:`${dow}-eve`});
+    if(d.lunch!==false)lunchSlots.push({dow,isLunch:true,mins:45,key:`${dow}-lunch`});
+    if(d.eve?.on)eveSlots.push({dow,isLunch:false,mins:d.eve.mins||60,key:`${dow}-eve`});
   });
   [6,0].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.on&&!d.cardioOnly)slots.push({dow,isLunch:false,mins:d.mins||60,key:`${dow}-wknd`});
+    if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,key:`${dow}-wknd`});
   });
-  if(!slots.length){
-    // fallback: 5 weekday lunches
-    [1,2,3,4,5].forEach(dow=>slots.push({dow,isLunch:true,mins:45,key:`${dow}-lunch`}));
+  if(!lunchSlots.length&&!eveSlots.length){
+    [1,2,3,4,5].forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:45,key:`${dow}-lunch`}));
   }
-  const count=Math.min(slots.length,5);
+
+  // Split size: lunches fill first, evenings on non-lunch days fill remaining gaps (max 5)
+  const lunchDows=new Set(lunchSlots.map(s=>s.dow));
+  const eveNonLunch=eveSlots.filter(s=>!lunchDows.has(s.dow));
+  const count=Math.max(2,Math.min(lunchSlots.length+eveNonLunch.length,5));
   const split=SPLITS[count]||SPLITS[5];
 
-  // Find which DOWs were already logged this calendar week — preserve those
+  // Completed sessions this calendar week — preserve their templates
   const mon=thisMonday();
   const weekEnd=addDays(mon,7);
   const completedDows=new Set(
@@ -489,37 +493,39 @@ function genProgram(cfg,av){
   );
   const oldWeek=S.program?.week;
 
-  // Assign templates — skip already-done slots but advance split index for them
-  const slotMap={};
-  let splitIdx=0;
-  slots.forEach(slot=>{
-    const done=completedDows.has(slot.dow);
-    if(done&&oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest){
-      // Preserve existing program day — don't regenerate
+  function assignSlot(slot,idx){
+    if(completedDows.has(slot.dow)&&oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest){
       const od=oldWeek[slot.dow];
-      slotMap[slot.key]={tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,preserved:true};
-    } else {
-      const tk=split[splitIdx%split.length];
-      const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
-      const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
-      const used=[];
-      const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,YMCA_EQUIP,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
-      let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
-      slotMap[slot.key]={tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins};
+      return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,preserved:true};
     }
-    splitIdx++; // always advance so split continuity is maintained
+    const tk=split[idx%split.length];
+    const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
+    const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
+    const used=[];
+    const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,YMCA_EQUIP,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
+    let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
+    return{tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins};
+  }
+
+  const slotMap={};let splitIdx=0;
+  // Pass 1: lunches always get lifting
+  lunchSlots.forEach(slot=>{slotMap[slot.key]=assignSlot(slot,splitIdx);splitIdx++;});
+  // Pass 2: evenings — only lift if split not complete AND no lunch that same day
+  eveSlots.forEach(slot=>{
+    if(lunchDows.has(slot.dow))return; // lifted at lunch today → evening = cardio
+    if(splitIdx>=count)return;         // split fully covered → cardio
+    slotMap[slot.key]=assignSlot(slot,splitIdx);splitIdx++;
   });
+
   // Build week array
   const week=Array.from({length:7},(_,dow)=>{
     const lunch=slotMap[`${dow}-lunch`];
     const eve=slotMap[`${dow}-eve`]||slotMap[`${dow}-wknd`];
     if(!lunch&&!eve)return{dow,rest:true};
     const primary=lunch||eve;
-    return{
-      dow,rest:false,name:primary.name,desc:primary.desc,tk:primary.tk,
+    return{dow,rest:false,name:primary.name,desc:primary.desc,tk:primary.tk,
       isLunch:!!lunch,exercises:primary.exercises,sessionMins:primary.mins,
-      eveningSession:lunch&&eve?{name:eve.name,desc:eve.desc,tk:eve.tk,isLunch:false,exercises:eve.exercises,mins:eve.mins}:null,
-    };
+      eveningSession:lunch&&eve?{name:eve.name,desc:eve.desc,tk:eve.tk,isLunch:false,exercises:eve.exercises,mins:eve.mins}:null};
   });
   return{at:Date.now(),week};
 }
@@ -543,20 +549,19 @@ function planMonday(){return todayDow()===0?addDays(todayStr(),1):thisMonday();}
 function nextSunday(){const dow=todayDow();return addDays(todayStr(),dow===0?7:7-dow);}
 
 function defaultAvailability(){
-  const eve=()=>({on:false,cardioOnly:false,mins:60});
+  const eve=()=>({on:false,mins:60});
   return{
     1:{lunch:true,eve:eve()},2:{lunch:true,eve:eve()},3:{lunch:true,eve:eve()},
     4:{lunch:true,eve:eve()},5:{lunch:true,eve:eve()},
-    6:{on:false,cardioOnly:false,mins:60},
-    0:{on:false,cardioOnly:false,mins:60},
+    6:{on:false,mins:60},0:{on:false,mins:60},
   };
 }
 function ensureAv(dow){
   if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
   if(!S.weekPlan.availability)S.weekPlan.availability=defaultAvailability();
   const av=S.weekPlan.availability;
-  if(dow>=1&&dow<=5&&!av[dow])av[dow]={lunch:true,eve:{on:false,cardioOnly:false,mins:60}};
-  if((dow===0||dow===6)&&!av[dow])av[dow]={on:false,cardioOnly:false,mins:60};
+  if(dow>=1&&dow<=5&&!av[dow])av[dow]={lunch:true,eve:{on:false,mins:60}};
+  if((dow===0||dow===6)&&!av[dow])av[dow]={on:false,mins:60};
 }
 
 // ─── Week Plan helpers ───
@@ -844,31 +849,25 @@ function renderAvailGrid(av,inSetup){
         </div>
       </div>
       ${eveOn?`<div class='plan-eve-opts'>
-        <div style='display:flex;gap:6px;margin-bottom:${!eveCardio?'8px':'0'}'>
-          <button class='btn btn-sm ${!eveCardio?'btn-p':'btn-g'}' data-action='set-avail-eve-type' data-dow='${dow}' data-val='lifting' style='flex:1'>Lifting</button>
-          <button class='btn btn-sm ${eveCardio?'btn-p':'btn-g'}' data-action='set-avail-eve-type' data-dow='${dow}' data-val='cardio' style='flex:1'>Cardio only</button>
-        </div>
-        ${!eveCardio?`<div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${eveMins===m?' on':''}' data-action='set-avail-eve-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>`:''}
+        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>App decides lifting vs cardio based on your week. Set max session length:</div>
+        <div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${eveMins===m?' on':''}' data-action='set-avail-eve-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
       </div>`:''}
     </div>`;
   };
   const wkndRow=(dow,dn)=>{
     const d=av[dow]||{};
-    const on=!!d.on;const cardioOnly=!!d.cardioOnly;const mins=d.mins||60;
+    const on=!!d.on;const mins=d.mins||60;
     return`<div class='plan-slot-row'>
       <div class='plan-slot-day'>${dn}</div>
       <div class='plan-slot-checks'>
         <div class='plan-chk${on?' on':''}' data-action='toggle-avail-weekend' data-dow='${dow}'>
           <div class='plan-chk-box'>${on?'✓':''}</div>
-          <div><div style='font-size:12px;font-weight:700'>${on?(cardioOnly?'Cardio only':'Lifting · '+mins+' min'):'Rest'}</div><div style='font-size:11px;color:var(--mut)'>${on?'tap to turn off':'tap to add session'}</div></div>
+          <div><div style='font-size:12px;font-weight:700'>${on?'Available':'Rest'}</div><div style='font-size:11px;color:var(--mut)'>${on?'App decides lifting vs cardio':'tap to add session'}</div></div>
         </div>
       </div>
       ${on?`<div class='plan-eve-opts'>
-        <div style='display:flex;gap:6px;margin-bottom:${!cardioOnly?'8px':'0'}'>
-          <button class='btn btn-sm ${!cardioOnly?'btn-p':'btn-g'}' data-action='set-avail-weekend-type' data-dow='${dow}' data-val='lifting' style='flex:1'>Lifting</button>
-          <button class='btn btn-sm ${cardioOnly?'btn-p':'btn-g'}' data-action='set-avail-weekend-type' data-dow='${dow}' data-val='cardio' style='flex:1'>Cardio only</button>
-        </div>
-        ${!cardioOnly?`<div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${mins===m?' on':''}' data-action='set-avail-weekend-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>`:''}
+        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Max session length if lifting is scheduled:</div>
+        <div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${mins===m?' on':''}' data-action='set-avail-weekend-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
       </div>`:''}
     </div>`;
   };
@@ -1356,11 +1355,6 @@ document.addEventListener('click',e=>{
     S.weekPlan.availability[dv].eve.on=!S.weekPlan.availability[dv].eve.on;
     save();render();return;
   }
-  if(a==='set-avail-eve-type'){
-    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
-    S.weekPlan.availability[dv].eve.cardioOnly=btn.dataset.val==='cardio';
-    save();render();return;
-  }
   if(a==='set-avail-eve-mins'){
     const dv=parseInt(btn.dataset.dow);ensureAv(dv);
     S.weekPlan.availability[dv].eve.mins=parseInt(btn.dataset.val);
@@ -1369,11 +1363,6 @@ document.addEventListener('click',e=>{
   if(a==='toggle-avail-weekend'){
     const dv=parseInt(btn.dataset.dow);ensureAv(dv);
     S.weekPlan.availability[dv].on=!S.weekPlan.availability[dv].on;
-    save();render();return;
-  }
-  if(a==='set-avail-weekend-type'){
-    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
-    S.weekPlan.availability[dv].cardioOnly=btn.dataset.val==='cardio';
     save();render();return;
   }
   if(a==='set-avail-weekend-mins'){
