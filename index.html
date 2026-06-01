@@ -169,6 +169,17 @@ body{
 .badge-makeup{background:rgba(248,113,113,.15);color:var(--bad)}
 .pg-day.pg-skip{opacity:.45;border-style:dashed}
 .pg-day.pg-missed{border-color:rgba(248,113,113,.4)}
+/* availability plan rows */
+.plan-slot-row{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.plan-slot-day{font-size:13px;font-weight:700;margin-bottom:8px}
+.plan-slot-checks{display:flex;gap:8px;flex-wrap:wrap}
+.plan-chk{display:flex;align-items:center;gap:8px;background:var(--surf2);border:2px solid var(--bdr);border-radius:10px;padding:8px 10px;cursor:pointer;flex:1;min-width:105px;transition:border-color .15s,background .15s}
+.plan-chk.on{border-color:var(--acc);background:var(--acc2)}
+.plan-chk-box{width:18px;height:18px;border-radius:4px;border:2px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;color:transparent}
+.plan-chk.on .plan-chk-box{background:var(--acc);border-color:var(--acc);color:#0a0a12}
+.plan-eve-opts{margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)}
+.wk-day{cursor:pointer}
+.wk-day.viewing{background:rgba(129,140,248,.2);border-radius:8px}
 </style>
 </head>
 <body>
@@ -401,7 +412,7 @@ let S={
   view:'setup',step:1,
   cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,lastWeights:{},eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},viewDay:null,eveningMins:null,eveningLocation:null,
 };
 let timerIv=null;
 
@@ -412,7 +423,13 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null});
+      // migrate skipDays → availability
+      if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
+        const av=defaultAvailability();
+        (S.weekPlan.skipDays||[]).forEach(dow=>{if(av[dow])av[dow].lunch=false;});
+        S.weekPlan.availability=av;delete S.weekPlan.skipDays;
+      }
       // Migrate old logs into lastWeights if empty
       if(!Object.keys(S.lastWeights).length){
         S.logs.forEach(log=>log.exercises?.forEach(e=>{
@@ -443,19 +460,47 @@ function pickEx(slot,equip,used){
   )||null;
 }
 
-function genProgram(cfg){
-  const days=cfg.days||5;
-  const split=SPLITS[days]||SPLITS[5];
-  const dows=DAY_ASSIGN[days]||DAY_ASSIGN[5];
-  const week=Array.from({length:7},(_,dow)=>{
-    const si=dows.indexOf(dow);
-    if(si===-1)return{dow,rest:true};
-    const tk=split[si];
-    const tmpl=LUNCH_TMPLS[tk]||TMPLS[tk];
+function genProgram(cfg,av){
+  av=av||(S.weekPlan?.availability)||defaultAvailability();
+  // Collect all lifting slots in order
+  const slots=[];
+  [1,2,3,4,5].forEach(dow=>{
+    const d=av[dow]||{};
+    if(d.lunch!==false)slots.push({dow,isLunch:true,mins:45,key:`${dow}-lunch`});
+    if(d.eve?.on&&!d.eve?.cardioOnly)slots.push({dow,isLunch:false,mins:d.eve.mins||60,key:`${dow}-eve`});
+  });
+  [6,0].forEach(dow=>{
+    const d=av[dow]||{};
+    if(d.on&&!d.cardioOnly)slots.push({dow,isLunch:false,mins:d.mins||60,key:`${dow}-wknd`});
+  });
+  if(!slots.length){
+    // fallback: 5 weekday lunches
+    [1,2,3,4,5].forEach(dow=>slots.push({dow,isLunch:true,mins:45,key:`${dow}-lunch`}));
+  }
+  const count=Math.min(slots.length,5);
+  const split=SPLITS[count]||SPLITS[5];
+  // Assign templates
+  const slotMap={};
+  slots.forEach((slot,i)=>{
+    const tk=split[i%split.length];
+    const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
+    const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
     const used=[];
-    const exs=tmpl.slots.slice(0,3).map(sl=>{const e=pickEx(sl,YMCA_EQUIP,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:45}:null}).filter(Boolean);
+    const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,YMCA_EQUIP,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
     let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
-    return{dow,rest:false,name:tmpl.name,desc:tmpl.desc,tk,isLunch:true,exercises:exs};
+    slotMap[slot.key]={tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins};
+  });
+  // Build week array
+  const week=Array.from({length:7},(_,dow)=>{
+    const lunch=slotMap[`${dow}-lunch`];
+    const eve=slotMap[`${dow}-eve`]||slotMap[`${dow}-wknd`];
+    if(!lunch&&!eve)return{dow,rest:true};
+    const primary=lunch||eve;
+    return{
+      dow,rest:false,name:primary.name,desc:primary.desc,tk:primary.tk,
+      isLunch:!!lunch,exercises:primary.exercises,sessionMins:primary.mins,
+      eveningSession:lunch&&eve?{name:eve.name,desc:eve.desc,tk:eve.tk,isLunch:false,exercises:eve.exercises,mins:eve.mins}:null,
+    };
   });
   return{at:Date.now(),week};
 }
@@ -478,6 +523,23 @@ function thisMonday(){
 function planMonday(){return todayDow()===0?addDays(todayStr(),1):thisMonday();}
 function nextSunday(){const dow=todayDow();return addDays(todayStr(),dow===0?7:7-dow);}
 
+function defaultAvailability(){
+  const eve=()=>({on:false,cardioOnly:false,mins:60});
+  return{
+    1:{lunch:true,eve:eve()},2:{lunch:true,eve:eve()},3:{lunch:true,eve:eve()},
+    4:{lunch:true,eve:eve()},5:{lunch:true,eve:eve()},
+    6:{on:false,cardioOnly:false,mins:60},
+    0:{on:false,cardioOnly:false,mins:60},
+  };
+}
+function ensureAv(dow){
+  if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
+  if(!S.weekPlan.availability)S.weekPlan.availability=defaultAvailability();
+  const av=S.weekPlan.availability;
+  if(dow>=1&&dow<=5&&!av[dow])av[dow]={lunch:true,eve:{on:false,cardioOnly:false,mins:60}};
+  if((dow===0||dow===6)&&!av[dow])av[dow]={on:false,cardioOnly:false,mins:60};
+}
+
 // ─── Week Plan helpers ───
 function getWeekPlan(){
   if(!S.weekPlan)return null;
@@ -492,20 +554,27 @@ function getCalEntry(){
   return plan.calGoal;
 }
 function isDaySkipped(dow){
-  const plan=getWeekPlan();
-  return plan?(plan.skipDays||[]).includes(dow):false;
+  // A day is "skipped" (no lifting) when program says rest
+  if(!S.program)return false;
+  return S.program.week[dow]?.rest===true;
 }
 function getMissedDays(){
   const plan=getWeekPlan();
   if(!plan||!S.program)return[];
   const today=todayDow();
-  const mon=plan.weekOf;
-  const weekEnd=addDays(mon,7);
-  const weekLogs=S.logs.filter(l=>l.date.slice(0,10)>=mon&&l.date.slice(0,10)<weekEnd);
+  const planStart=plan.weekOf;
+  const weekEnd=addDays(planStart,14); // allow up to 2 weeks
+  const weekLogs=S.logs.filter(l=>l.date.slice(0,10)>=planStart&&l.date.slice(0,10)<weekEnd);
   const completedDates=new Set(weekLogs.map(l=>l.date.slice(0,10)));
+  // Find non-rest days in the past (from planStart onward) with no log
   return S.program.week.filter(d=>{
-    if(d.rest||(plan.skipDays||[]).includes(d.dow)||d.dow===0||d.dow>=today)return false;
-    return!completedDates.has(addDays(mon,d.dow-1));
+    if(d.rest||d.dow===0||d.dow>=today)return false;
+    const dayDate=addDays(planStart,daysBetween(planStart,todayStr())-(today-d.dow));
+    // simpler: check if this DOW's date this week has a log
+    const thisMon=thisMonday();
+    const dayDateThisWeek=addDays(thisMon,d.dow-1);
+    if(dayDateThisWeek<planStart)return false; // before plan started
+    return!completedDates.has(dayDateThisWeek);
   }).map(d=>d.dow);
 }
 
@@ -600,10 +669,14 @@ function calcWeekCardio(){
   const daysLeft=Math.max(1,daysBetween(rangeStart,entry.endDate)+1);
   const mondayDate=plan.weekOf;
   const strengthCals=S.program.week.filter(d=>{
-    if(d.rest||isDaySkipped(d.dow)||d.dow===0||d.dow===6)return false;
-    const dayDate=addDays(mondayDate,d.dow-1);
+    if(d.rest)return false;
+    const dayDate=d.dow===0?addDays(mondayDate,6):addDays(mondayDate,d.dow-1);
     return dayDate>=rangeStart&&dayDate<=entry.endDate;
-  }).reduce((sum)=>sum+estimateStrengthCals(45,bodyLbs),0);
+  }).reduce((sum,d)=>{
+    const primary=estimateStrengthCals(d.sessionMins||45,bodyLbs);
+    const eve=d.eveningSession?estimateStrengthCals(d.eveningSession.mins||60,bodyLbs):0;
+    return sum+primary+eve;
+  },0);
   const cardioCalsNeeded=Math.max(0,entry.cals-strengthCals);
   const calsPerDay=Math.round(cardioCalsNeeded/daysLeft);
   return{strengthCals,cardioCalsNeeded,calsPerDay,daysLeft,options:cardioOptions(calsPerDay,bodyLbs)};
@@ -655,21 +728,27 @@ function stopRest(alarm){
 // ─────────────────────────────────────────────
 // ACTIVE WORKOUT LOGIC
 // ─────────────────────────────────────────────
-function startWorkout(day){
-  let rawExs=day.exercises.slice(0,3);
-  const missed=getMissedDays();
-  if(missed.length>0){
-    const todayMuscles=new Set(rawExs.map(e=>e.muscle));
-    missed.forEach(missedDow=>{
-      const md=S.program.week[missedDow];
-      if(!md||md.rest)return;
-      const mu=md.exercises.find(e=>!todayMuscles.has(e.muscle));
-      if(mu){rawExs=[...rawExs,{...mu,sets:2,isMakeup:true,makeupFrom:md.name}];todayMuscles.add(mu.muscle);}
-    });
+function startWorkout(day,sessionType){
+  const isEve=sessionType==='eve'&&day.eveningSession;
+  const src=isEve?day.eveningSession:day;
+  const limit=isEve?(EX_LIMIT[src.mins]||5):3;
+  let rawExs=src.exercises.slice(0,limit);
+  // Makeup logic only for primary (lunch) sessions
+  if(!isEve){
+    const missed=getMissedDays();
+    if(missed.length>0){
+      const todayMuscles=new Set(rawExs.map(e=>e.muscle));
+      missed.forEach(missedDow=>{
+        const md=S.program.week[missedDow];
+        if(!md||md.rest)return;
+        const mu=md.exercises.find(e=>!todayMuscles.has(e.muscle));
+        if(mu){rawExs=[...rawExs,{...mu,sets:2,isMakeup:true,makeupFrom:md.name}];todayMuscles.add(mu.muscle);}
+      });
+    }
   }
   S.active={
-    dayName:day.name,dow:day.dow,startTime:Date.now(),isLunch:true,
-    sessionMins:45,loc:'ymca',exIdx:0,
+    dayName:src.name,dow:day.dow,startTime:Date.now(),isLunch:!isEve,
+    sessionMins:src.mins||45,loc:'ymca',exIdx:0,
     exercises:rawExs.map(e=>({...e,done:[]})),
   };
   S.view='workout';save();render();
@@ -725,36 +804,82 @@ function abandonWorkout(){
 // RENDER – PLAN SCREEN
 // ─────────────────────────────────────────────
 function renderPlan(){
-  const isSunday=todayDow()===0;
-  if(!S.weekPlan)S.weekPlan={weekOf:planMonday(),skipDays:[],calGoal:null};
-  const plan=S.weekPlan;
-  const skipDays=plan.skipDays||[];
-  const calGoal=plan.calGoal||{};
-  const dayNames=['Mon','Tue','Wed','Thu','Fri'];
-  const dayCards=dayNames.map((dn,i)=>{
-    const dow=i+1;
-    const dd=S.program?.week[dow];
-    const isSkipped=skipDays.includes(dow);
-    const tmpl=(dd?.name||dn).replace(' · Lunch','').replace('Upper Push','U.Push').replace('Upper Pull','U.Pull');
-    return`<div class='plan-day${isSkipped?' plan-skip':''}' data-action='toggle-plan-day' data-val='${dow}'>
-      <div class='plan-day-name'>${dn}</div>
-      <div class='plan-day-tmpl'>${tmpl}</div>
-      <div class='plan-day-status'>${isSkipped?'skip':'lunch'}</div>
+  if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
+  if(!S.weekPlan.availability)S.weekPlan.availability=defaultAvailability();
+  const av=S.weekPlan.availability;
+  const calGoal=S.weekPlan.calGoal||{};
+  const today=todayDow();const todayDate=todayStr();
+
+  function wkdayRow(dow,dn){
+    const d=av[dow]||{};
+    const lunchOn=d.lunch!==false;
+    const eveOn=!!d.eve?.on;
+    const eveCardio=!!d.eve?.cardioOnly;
+    const eveMins=d.eve?.mins||60;
+    const isPast=dow>0&&dow<today; // past weekday
+    return`<div class='plan-slot-row${isPast?' pg-skip':''}'>
+      <div class='plan-slot-day'>${dn}${isPast?` <span style='font-size:10px;color:var(--mut)'>(past)</span>`:''}</div>
+      <div class='plan-slot-checks'>
+        <div class='plan-chk${lunchOn?' on':''}' data-action='toggle-avail-lunch' data-dow='${dow}'>
+          <div class='plan-chk-box'>${lunchOn?'✓':''}</div>
+          <div><div style='font-size:12px;font-weight:700'>Lunch</div><div style='font-size:11px;color:var(--mut)'>45 min · YMCA</div></div>
+        </div>
+        <div class='plan-chk${eveOn?' on':''}' data-action='toggle-avail-eve' data-dow='${dow}'>
+          <div class='plan-chk-box'>${eveOn?'✓':''}</div>
+          <div><div style='font-size:12px;font-weight:700'>After Work</div><div style='font-size:11px;color:var(--mut)'>${eveOn?(eveCardio?'Cardio only':'Lifting · '+eveMins+' min'):'Off'}</div></div>
+        </div>
+      </div>
+      ${eveOn?`<div class='plan-eve-opts'>
+        <div style='display:flex;gap:6px;margin-bottom:${!eveCardio?'8px':'0'}'>
+          <button class='btn btn-sm ${!eveCardio?'btn-p':'btn-g'}' data-action='set-avail-eve-type' data-dow='${dow}' data-val='lifting' style='flex:1'>Lifting</button>
+          <button class='btn btn-sm ${eveCardio?'btn-p':'btn-g'}' data-action='set-avail-eve-type' data-dow='${dow}' data-val='cardio' style='flex:1'>Cardio only</button>
+        </div>
+        ${!eveCardio?`<div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${eveMins===m?' on':''}' data-action='set-avail-eve-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>`:''}
+      </div>`:''}
     </div>`;
-  }).join('');
-  const startVal=calGoal.startDate||todayStr();
+  }
+
+  function wkndRow(dow,dn){
+    const d=av[dow]||{};
+    const on=!!d.on;
+    const cardioOnly=!!d.cardioOnly;
+    const mins=d.mins||60;
+    return`<div class='plan-slot-row'>
+      <div class='plan-slot-day'>${dn}</div>
+      <div class='plan-slot-checks'>
+        <div class='plan-chk${on?' on':''}' data-action='toggle-avail-weekend' data-dow='${dow}'>
+          <div class='plan-chk-box'>${on?'✓':''}</div>
+          <div><div style='font-size:12px;font-weight:700'>${on?(cardioOnly?'Cardio only':'Lifting · '+mins+' min'):'Rest'}</div><div style='font-size:11px;color:var(--mut)'>${on?'tap to turn off':'tap to add session'}</div></div>
+        </div>
+      </div>
+      ${on?`<div class='plan-eve-opts'>
+        <div style='display:flex;gap:6px;margin-bottom:${!cardioOnly?'8px':'0'}'>
+          <button class='btn btn-sm ${!cardioOnly?'btn-p':'btn-g'}' data-action='set-avail-weekend-type' data-dow='${dow}' data-val='lifting' style='flex:1'>Lifting</button>
+          <button class='btn btn-sm ${cardioOnly?'btn-p':'btn-g'}' data-action='set-avail-weekend-type' data-dow='${dow}' data-val='cardio' style='flex:1'>Cardio only</button>
+        </div>
+        ${!cardioOnly?`<div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${mins===m?' on':''}' data-action='set-avail-weekend-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>`:''}
+      </div>`:''}
+    </div>`;
+  }
+
+  const startVal=calGoal.startDate||todayDate;
   const endVal=calGoal.endDate||nextSunday();
   const calVal=calGoal.cals||'';
+
   return`<div class='view'>
     <button class='s-back' data-action='plan-back' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
     </button>
     <div class='hdg'>Plan This Week</div>
-    <div class='sub'>${isSunday?'Set up the coming week. Tap any day to mark as skip.':'Adjust your plan any time. Skipped days are treated as rest.'}</div>
-    <div class='sec-lbl'>Lifting Days (Mon–Fri)</div>
-    <div class='plan-days'>${dayCards}</div>
-    <div style='font-size:11px;color:var(--mut);margin-bottom:20px'>Tap to toggle. All on = 45 min YMCA lunch every weekday.</div>
-    <div class='sec-lbl'>Calorie Goal</div>
+    <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>Schedule applies from <strong style='color:var(--txt)'>${todayDate}</strong> forward. Changes take effect when you tap Save.</div>
+
+    <div class='sec-lbl'>Weekday Sessions</div>
+    ${wkdayRow(1,'Monday')}${wkdayRow(2,'Tuesday')}${wkdayRow(3,'Wednesday')}${wkdayRow(4,'Thursday')}${wkdayRow(5,'Friday')}
+
+    <div class='sec-lbl' style='margin-top:16px'>Weekend Sessions</div>
+    ${wkndRow(6,'Saturday')}${wkndRow(0,'Sunday')}
+
+    <div class='sec-lbl' style='margin-top:16px'>Calorie Goal</div>
     <div class='card' style='margin-bottom:16px'>
       <div style='display:flex;align-items:center;gap:8px;margin-bottom:12px'>
         <span style='font-size:13px;color:var(--mut);white-space:nowrap'>Burn</span>
@@ -762,18 +887,14 @@ function renderPlan(){
         <span style='font-size:13px;color:var(--mut);white-space:nowrap'>calories</span>
       </div>
       <div style='display:grid;grid-template-columns:1fr 1fr;gap:8px'>
-        <div>
-          <div class='sec-lbl' style='margin-bottom:4px'>From</div>
-          <input type='date' class='ni' id='plan-start' value='${startVal}' style='font-size:13px;padding:8px;text-align:left'>
-        </div>
-        <div>
-          <div class='sec-lbl' style='margin-bottom:4px'>Through</div>
-          <input type='date' class='ni' id='plan-end' value='${endVal}' style='font-size:13px;padding:8px;text-align:left'>
-        </div>
+        <div><div class='sec-lbl' style='margin-bottom:4px'>From</div>
+          <input type='date' class='ni' id='plan-start' value='${startVal}' style='font-size:13px;padding:8px;text-align:left'></div>
+        <div><div class='sec-lbl' style='margin-bottom:4px'>Through</div>
+          <input type='date' class='ni' id='plan-end' value='${endVal}' style='font-size:13px;padding:8px;text-align:left'></div>
       </div>
     </div>
-    <button class='btn btn-ok' data-action='save-plan'>Save Plan →</button>
-    ${plan.calGoal?`<button class='btn btn-g btn-sm' data-action='clear-plan-goal' style='margin-top:8px'>Clear calorie goal</button>`:''}
+    <button class='btn btn-ok' data-action='save-plan'>Save &amp; Regenerate Program →</button>
+    ${calGoal.cals?`<button class='btn btn-g btn-sm' data-action='clear-plan-goal' style='margin-top:8px'>Clear calorie goal</button>`:''}
   </div>`;
 }
 
@@ -824,50 +945,66 @@ function renderDash(){
   const missed=getMissedDays();
   const wkGrid=S.program.week.map((d,i)=>{
     const isToday=i===dow;
-    const isSkipped=!d.rest&&isDaySkipped(i);
+    const isViewing=S.viewDay===i;
     const isMissed=missed.includes(i);
     let dot;
-    if(d.rest||isSkipped)dot='background:var(--bdr)';
+    if(d.rest)dot='background:var(--bdr)';
     else if(isMissed)dot='background:var(--bad)';
     else if(isToday)dot='background:var(--ok)';
     else dot='background:var(--warn)';
-    return`<div class='wk-day${isToday?' today':''}'>
+    return`<div class='wk-day${isToday?' today':''}${isViewing?' viewing':''}' data-action='view-day' data-dow='${i}'>
       <div class='wk-dn'>${DOW[i].slice(0,1)}</div>
       <div class='wk-dot' style='${dot}'></div>
     </div>`;
   }).join('');
 
-  const isSkippedToday=today&&!today.rest&&isDaySkipped(dow);
-  let todayHTML='';
-  if(!today||today.rest){
-    if(isSunday){
-      todayHTML=`<div class='today' style='border-color:rgba(251,191,36,.35);background:linear-gradient(135deg,var(--surf2) 0%,rgba(251,191,36,.04) 100%)'>
-        <div class='t-lbl' style='color:var(--warn)'>Sunday · Plan Your Week</div>
-        <div class='t-name'>Set Up This Week</div>
-        <div class='t-desc'>Tap "Edit →" below to pick lifting days and set your calorie goal.</div>
-      </div>`;
-    } else {
-      todayHTML=`<div class='today'><div class='t-lbl'>Today</div><div class='t-name'>Rest Day 😴</div><div class='t-desc'>Recovery is where the growth happens. Sleep, eat, hydrate.</div></div>`;
+  // Determine which day to show (viewDay or today)
+  const showDow=S.viewDay!=null?S.viewDay:dow;
+  const showDay=S.program.week[showDow];
+  const isViewingOther=S.viewDay!=null&&S.viewDay!==dow;
+
+  function dayCard(d,displayDow,isActualToday){
+    if(!d||d.rest){
+      const label=isActualToday?(isSunday?'Sunday · Plan Your Week':'Rest Day 😴'):(DOW[displayDow]+' · Rest');
+      return isActualToday&&isSunday
+        ?`<div class='today' style='border-color:rgba(251,191,36,.35);background:linear-gradient(135deg,var(--surf2) 0%,rgba(251,191,36,.04) 100%)'>
+            <div class='t-lbl' style='color:var(--warn)'>Sunday · Plan Your Week</div>
+            <div class='t-name'>Set Up This Week</div>
+            <div class='t-desc'>Tap "Edit" on the Weekly Goal card below to schedule sessions and set your calorie goal.</div>
+          </div>`
+        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div></div>`;
     }
-  } else if(isSkippedToday){
-    todayHTML=`<div class='today' style='border-color:rgba(100,116,139,.3)'>
-      <div class='t-lbl' style='color:var(--mut)'>Today · ${DOW[dow]}</div>
-      <div class='t-name'>Skipped 📋</div>
-      <div class='t-desc'>You marked today as skip in your weekly plan.</div>
-      <button class='btn btn-g btn-sm' data-action='unskip-today' style='width:auto;margin-top:4px'>Un-skip today</button>
-    </div>`;
-  } else {
-    const previewExs=today.exercises.slice(0,3);
-    const exList=previewExs.map(e=>`<div class='t-ex'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]};flex-shrink:0;display:inline-block'></span>${e.name}</div>`).join('');
-    const makeupNote=missed.length>0?`<div style='font-size:12px;color:var(--bad);margin-bottom:10px'>⚡ +${missed.length} make-up exercise${missed.length>1?'s':''} added (${missed.map(d=>DOW[d]).join(', ')} missed)</div>`:'';
-    todayHTML=`<div class='today'>
-      <div class='t-lbl' style='display:flex;align-items:center;flex-wrap:wrap;gap:4px'>Today · ${DOW[dow]}<span class='badge badge-lunch' style='margin-left:8px'>YMCA Lunch · 45 min</span></div>
-      <div class='t-name'>${today.name}</div>
-      <div class='t-desc'>${today.desc}</div>
+    const exList=d.exercises.slice(0,3).map(e=>`<div class='t-ex'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]};flex-shrink:0;display:inline-block'></span>${e.name}</div>`).join('');
+    const makeupNote=isActualToday&&missed.length>0?`<div style='font-size:12px;color:var(--bad);margin-bottom:10px'>⚡ +${missed.length} make-up exercise${missed.length>1?'s':''} added (${missed.map(m=>DOW[m]).join(', ')} missed)</div>`:'';
+    const lunchBadge=d.isLunch?`<span class='badge badge-lunch' style='margin-left:8px'>YMCA · 45 min</span>`:`<span class='badge badge-eve' style='margin-left:8px'>${d.sessionMins||60} min</span>`;
+    // Evening session block
+    let eveBlock='';
+    if(d.eveningSession){
+      const eveExs=d.eveningSession.exercises.slice(0,3).map(e=>`<div class='t-ex'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]};flex-shrink:0;display:inline-block'></span>${e.name}</div>`).join('');
+      eveBlock=`<div style='margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)'>
+        <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px'>After Work · ${d.eveningSession.mins} min</div>
+        <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${d.eveningSession.name}</div>
+        <div class='t-exlist'>${eveExs}</div>
+        ${isActualToday?`<button class='btn btn-s' data-action='start-workout' data-session='eve' style='margin-top:8px'>Start Evening Workout →</button>`:''}
+      </div>`;
+    }
+    return`<div class='today'>
+      <div class='t-lbl' style='display:flex;align-items:center;flex-wrap:wrap;gap:4px'>${isActualToday?'Today':''}${isActualToday?' · ':''}${DOW[displayDow]}${lunchBadge}</div>
+      <div class='t-name'>${d.name}</div>
+      <div class='t-desc'>${d.desc}</div>
       <div class='t-exlist'>${exList}</div>
       ${makeupNote}
-      <button class='btn btn-p' data-action='start-workout'>Start Workout →</button>
+      ${isActualToday?`<button class='btn btn-p' data-action='start-workout' data-session='lunch'>Start${d.eveningSession?' Lunch':''} Workout →</button>`:''}
+      ${eveBlock}
     </div>`;
+  }
+
+  let todayHTML=dayCard(showDay,showDow,!isViewingOther);
+  if(isViewingOther){
+    todayHTML=`<div style='display:flex;align-items:center;gap:8px;margin-bottom:8px'>
+      <button class='btn btn-g btn-sm' data-action='view-day' data-dow='${S.viewDay}' style='width:auto'>← Back to Today</button>
+      <span style='font-size:13px;color:var(--mut)'>Viewing ${DOW[showDow]}</span>
+    </div>${todayHTML}`;
   }
 
   const entry=getCalEntry();
@@ -892,7 +1029,7 @@ function renderDash(){
   const planCard=`<div class='card' style='margin-bottom:14px'>
     <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>
       <div class='sec-lbl' style='margin-bottom:0'>Weekly Goal</div>
-      <button class='btn btn-s btn-sm' data-action='go-plan' style='width:auto'>${isSunday?'Plan Week →':'Edit →'}</button>
+      <button class='btn btn-p btn-sm' data-action='go-plan' style='width:auto'>${isSunday?'Plan Week →':'Edit →'}</button>
     </div>
     ${entry
       ?`<div style='font-size:13px;color:var(--mut)'>Burn <strong style='color:var(--txt)'>${entry.cals.toLocaleString()}</strong> cal &nbsp;·&nbsp; ${entry.startDate} → ${entry.endDate}</div>`
@@ -1165,6 +1302,7 @@ document.addEventListener('click',e=>{
     const v=btn.dataset.view;
     if(v==='workout'){S.active?S.view='workout':S.view='dash';}
     else S.view=v;
+    S.viewDay=null;
     render();return;
   }
   if(a==='setup-next'){S.step=Math.min(3,S.step+1);render();return;}
@@ -1178,11 +1316,39 @@ document.addEventListener('click',e=>{
   }
   if(a==='go-plan'){S.view='plan';render();return;}
   if(a==='plan-back'){S.view='dash';render();return;}
-  if(a==='toggle-plan-day'){
-    const dv=parseInt(btn.dataset.val);
-    if(!S.weekPlan)S.weekPlan={weekOf:planMonday(),skipDays:[],calGoal:null};
-    const idx=S.weekPlan.skipDays.indexOf(dv);
-    if(idx===-1)S.weekPlan.skipDays.push(dv);else S.weekPlan.skipDays.splice(idx,1);
+  if(a==='toggle-avail-lunch'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].lunch=!S.weekPlan.availability[dv].lunch;
+    save();render();return;
+  }
+  if(a==='toggle-avail-eve'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].eve.on=!S.weekPlan.availability[dv].eve.on;
+    save();render();return;
+  }
+  if(a==='set-avail-eve-type'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].eve.cardioOnly=btn.dataset.val==='cardio';
+    save();render();return;
+  }
+  if(a==='set-avail-eve-mins'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].eve.mins=parseInt(btn.dataset.val);
+    save();render();return;
+  }
+  if(a==='toggle-avail-weekend'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].on=!S.weekPlan.availability[dv].on;
+    save();render();return;
+  }
+  if(a==='set-avail-weekend-type'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].cardioOnly=btn.dataset.val==='cardio';
+    save();render();return;
+  }
+  if(a==='set-avail-weekend-mins'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].mins=parseInt(btn.dataset.val);
     save();render();return;
   }
   if(a==='save-plan'){
@@ -1192,25 +1358,28 @@ document.addEventListener('click',e=>{
     const cals=parseInt(calEl?.value)||0;
     const startDate=startEl?.value||todayStr();
     const endDate=endEl?.value||nextSunday();
-    if(!S.weekPlan)S.weekPlan={weekOf:planMonday(),skipDays:[]};
-    S.weekPlan.weekOf=planMonday();
+    if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability()};
+    S.weekPlan.weekOf=todayStr();
     S.weekPlan.calGoal=cals>0?{cals,startDate,endDate}:null;
+    // Regenerate program with new availability
+    S.program=genProgram(S.cfg,S.weekPlan.availability);
     save();S.view='dash';render();return;
   }
   if(a==='clear-plan-goal'){
     if(S.weekPlan)S.weekPlan.calGoal=null;
     save();render();return;
   }
-  if(a==='unskip-today'){
-    if(S.weekPlan){const dv=todayDow();const idx=S.weekPlan.skipDays.indexOf(dv);if(idx!==-1)S.weekPlan.skipDays.splice(idx,1);save();render();}
-    return;
-  }
   if(a==='reset-program'){
     if(!confirm('Reset your program and reconfigure?'))return;
     S.program=null;S.active=null;S.weekPlan=null;S.view='setup';S.step=1;save();render();return;
   }
   if(a==='start-workout'){
-    const d=todayDay();if(d&&!d.rest)startWorkout(d);return;
+    const d=todayDay();if(d&&!d.rest)startWorkout(d,btn.dataset.session||'lunch');return;
+  }
+  if(a==='view-day'){
+    const dv=parseInt(btn.dataset.dow);
+    S.viewDay=(S.viewDay===dv)?null:dv;
+    render();return;
   }
   if(a==='done-set'){
     completeSet(parseInt(btn.dataset.ex),parseInt(btn.dataset.set));return;
