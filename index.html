@@ -495,8 +495,8 @@ function genProgram(cfg,av){
 
   function assignSlot(slot,idx){
     const tk=split[idx%split.length];
-    // Only preserve exercises for days already completed this week
-    if(completedDows.has(slot.dow)&&oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest){
+    // Preserve existing exercises if: (a) already completed this week, OR (b) same template — same exercises, same order every week
+    if(oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest&&(completedDows.has(slot.dow)||oldWeek[slot.dow].tk===tk)){
       const od=oldWeek[slot.dow];
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,preserved:true};
     }
