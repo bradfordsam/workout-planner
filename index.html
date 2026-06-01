@@ -479,16 +479,35 @@ function genProgram(cfg,av){
   }
   const count=Math.min(slots.length,5);
   const split=SPLITS[count]||SPLITS[5];
-  // Assign templates
+
+  // Find which DOWs were already logged this calendar week — preserve those
+  const mon=thisMonday();
+  const weekEnd=addDays(mon,7);
+  const completedDows=new Set(
+    (S.logs||[]).filter(l=>l.date.slice(0,10)>=mon&&l.date.slice(0,10)<weekEnd)
+      .map(l=>new Date(l.date+'T12:00:00').getDay())
+  );
+  const oldWeek=S.program?.week;
+
+  // Assign templates — skip already-done slots but advance split index for them
   const slotMap={};
-  slots.forEach((slot,i)=>{
-    const tk=split[i%split.length];
-    const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
-    const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
-    const used=[];
-    const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,YMCA_EQUIP,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
-    let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
-    slotMap[slot.key]={tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins};
+  let splitIdx=0;
+  slots.forEach(slot=>{
+    const done=completedDows.has(slot.dow);
+    if(done&&oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest){
+      // Preserve existing program day — don't regenerate
+      const od=oldWeek[slot.dow];
+      slotMap[slot.key]={tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,preserved:true};
+    } else {
+      const tk=split[splitIdx%split.length];
+      const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
+      const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
+      const used=[];
+      const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,YMCA_EQUIP,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
+      let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
+      slotMap[slot.key]={tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins};
+    }
+    splitIdx++; // always advance so split continuity is maintained
   });
   // Build week array
   const week=Array.from({length:7},(_,dow)=>{
