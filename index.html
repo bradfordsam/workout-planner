@@ -269,6 +269,7 @@ const EX = [
 // YMCA / LUNCH SESSION CONSTANTS
 // ─────────────────────────────────────────────
 const YMCA_EQUIP = ['barbell','dumbbells','cables','pullup_bar','machine'];
+const HOME_EQUIP  = ['pullup_bar','bodyweight'];
 
 // Compact compound-only templates for 45-min YMCA lunch sessions
 const LUNCH_TMPLS = {
@@ -467,12 +468,12 @@ function genProgram(cfg,av){
   const lunchSlots=[];const eveSlots=[];
   [1,2,3,4,5].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.lunch!==false)lunchSlots.push({dow,isLunch:true,mins:45,key:`${dow}-lunch`});
-    if(d.eve?.on)eveSlots.push({dow,isLunch:false,mins:d.eve.mins||60,key:`${dow}-eve`});
+    if(d.lunch!==false)lunchSlots.push({dow,isLunch:true,mins:45,loc:'ymca',key:`${dow}-lunch`});
+    if(d.eve?.on)eveSlots.push({dow,isLunch:false,mins:d.eve.mins||60,loc:d.eve.loc||'ymca',key:`${dow}-eve`});
   });
   [6,0].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,key:`${dow}-wknd`});
+    if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,loc:d.loc||'ymca',key:`${dow}-wknd`});
   });
   if(!lunchSlots.length&&!eveSlots.length){
     [1,2,3,4,5].forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:45,key:`${dow}-lunch`}));
@@ -495,17 +496,18 @@ function genProgram(cfg,av){
 
   function assignSlot(slot,idx){
     const tk=split[idx%split.length];
-    // Preserve existing exercises if: (a) already completed this week, OR (b) same template — same exercises, same order every week
-    if(oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest&&(completedDows.has(slot.dow)||oldWeek[slot.dow].tk===tk)){
+    const equip=slot.loc==='home'?HOME_EQUIP:YMCA_EQUIP;
+    // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
+    if(oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest&&(completedDows.has(slot.dow)||(oldWeek[slot.dow].tk===tk&&oldWeek[slot.dow].loc===slot.loc))){
       const od=oldWeek[slot.dow];
-      return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,preserved:true};
+      return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,preserved:true};
     }
     const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
     const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
     const used=[];
-    const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,YMCA_EQUIP,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
+    const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,equip,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
     let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
-    return{tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins};
+    return{tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
 
   const slotMap={};let splitIdx=0;
@@ -525,8 +527,8 @@ function genProgram(cfg,av){
     if(!lunch&&!eve)return{dow,rest:true};
     const primary=lunch||eve;
     return{dow,rest:false,name:primary.name,desc:primary.desc,tk:primary.tk,
-      isLunch:!!lunch,exercises:primary.exercises,sessionMins:primary.mins,
-      eveningSession:lunch&&eve?{name:eve.name,desc:eve.desc,tk:eve.tk,isLunch:false,exercises:eve.exercises,mins:eve.mins}:null};
+      isLunch:!!lunch,exercises:primary.exercises,sessionMins:primary.mins,loc:primary.loc||'ymca',
+      eveningSession:lunch&&eve?{name:eve.name,desc:eve.desc,tk:eve.tk,isLunch:false,exercises:eve.exercises,mins:eve.mins,loc:eve.loc||'ymca'}:null};
   });
   return{at:Date.now(),week};
 }
@@ -550,19 +552,19 @@ function planMonday(){return todayDow()===0?addDays(todayStr(),1):thisMonday();}
 function nextSunday(){const dow=todayDow();return addDays(todayStr(),dow===0?7:7-dow);}
 
 function defaultAvailability(){
-  const eve=()=>({on:false,mins:60});
+  const eve=()=>({on:false,mins:60,loc:'ymca'});
   return{
     1:{lunch:true,eve:eve()},2:{lunch:true,eve:eve()},3:{lunch:true,eve:eve()},
     4:{lunch:true,eve:eve()},5:{lunch:true,eve:eve()},
-    6:{on:false,mins:60},0:{on:false,mins:60},
+    6:{on:false,mins:60,loc:'ymca'},0:{on:false,mins:60,loc:'ymca'},
   };
 }
 function ensureAv(dow){
   if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
   if(!S.weekPlan.availability)S.weekPlan.availability=defaultAvailability();
   const av=S.weekPlan.availability;
-  if(dow>=1&&dow<=5&&!av[dow])av[dow]={lunch:true,eve:{on:false,mins:60}};
-  if((dow===0||dow===6)&&!av[dow])av[dow]={on:false,mins:60};
+  if(dow>=1&&dow<=5&&!av[dow])av[dow]={lunch:true,eve:{on:false,mins:60,loc:'ymca'}};
+  if((dow===0||dow===6)&&!av[dow])av[dow]={on:false,mins:60,loc:'ymca'};
 }
 
 // ─── Week Plan helpers ───
@@ -773,7 +775,7 @@ function startWorkout(day,sessionType){
   }
   S.active={
     dayName:src.name,dow:day.dow,startTime:Date.now(),isLunch:!isEve,
-    sessionMins:src.mins||45,loc:'ymca',exIdx:0,
+    sessionMins:src.mins||45,loc:src.loc||'ymca',exIdx:0,
     exercises:rawExs.map(e=>({...e,done:[]})),
   };
   S.view='workout';save();render();
@@ -850,24 +852,32 @@ function renderAvailGrid(av,inSetup){
         </div>
       </div>
       ${eveOn?`<div class='plan-eve-opts'>
-        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>App decides lifting vs cardio based on your week. Set max session length:</div>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Location &amp; max session length:</div>
+        <div style='display:flex;gap:6px;margin-bottom:8px'>
+          <button class='btn btn-sm ${(d.eve?.loc||'ymca')==='home'?'btn-p':'btn-g'}' data-action='set-avail-eve-loc' data-dow='${dow}' data-val='home' style='flex:1'>🏠 Home</button>
+          <button class='btn btn-sm ${(d.eve?.loc||'ymca')==='ymca'?'btn-p':'btn-g'}' data-action='set-avail-eve-loc' data-dow='${dow}' data-val='ymca' style='flex:1'>🏋️ YMCA</button>
+        </div>
         <div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${eveMins===m?' on':''}' data-action='set-avail-eve-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
       </div>`:''}
     </div>`;
   };
   const wkndRow=(dow,dn)=>{
     const d=av[dow]||{};
-    const on=!!d.on;const mins=d.mins||60;
+    const on=!!d.on;const mins=d.mins||60;const loc=d.loc||'ymca';
     return`<div class='plan-slot-row'>
       <div class='plan-slot-day'>${dn}</div>
       <div class='plan-slot-checks'>
         <div class='plan-chk${on?' on':''}' data-action='toggle-avail-weekend' data-dow='${dow}'>
           <div class='plan-chk-box'>${on?'✓':''}</div>
-          <div><div style='font-size:12px;font-weight:700'>${on?'Available':'Rest'}</div><div style='font-size:11px;color:var(--mut)'>${on?'App decides lifting vs cardio':'tap to add session'}</div></div>
+          <div><div style='font-size:12px;font-weight:700'>${on?(loc==='home'?'🏠 Home':'🏋️ YMCA'):'Rest'}</div><div style='font-size:11px;color:var(--mut)'>${on?'App decides lifting vs cardio':'tap to add session'}</div></div>
         </div>
       </div>
       ${on?`<div class='plan-eve-opts'>
-        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Max session length if lifting is scheduled:</div>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Location &amp; max session length:</div>
+        <div style='display:flex;gap:6px;margin-bottom:8px'>
+          <button class='btn btn-sm ${loc==='home'?'btn-p':'btn-g'}' data-action='set-avail-weekend-loc' data-dow='${dow}' data-val='home' style='flex:1'>🏠 Home</button>
+          <button class='btn btn-sm ${loc==='ymca'?'btn-p':'btn-g'}' data-action='set-avail-weekend-loc' data-dow='${dow}' data-val='ymca' style='flex:1'>🏋️ YMCA</button>
+        </div>
         <div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${mins===m?' on':''}' data-action='set-avail-weekend-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
       </div>`:''}
     </div>`;
@@ -1128,9 +1138,12 @@ function renderWorkout(){
   const prog=progression(ex.id,ex.rMax);
   const mcolor=MCOL[ex.muscle]||'var(--acc)';
 
+  const locLabel=S.active.loc==='home'?'🏠 Home · Pull-up Bar':'🏋️ YMCA';
   const sessionTag=ex.isMakeup
     ?`<span class='badge badge-makeup' style='margin-bottom:12px;display:inline-block'>⚡ Make-up · ${ex.makeupFrom}</span>`
-    :`<span class='badge badge-lunch' style='margin-bottom:12px;display:inline-block'>YMCA Lunch · 45 min</span>`;
+    :S.active.isLunch
+      ?`<span class='badge badge-lunch' style='margin-bottom:12px;display:inline-block'>YMCA Lunch · 45 min</span>`
+      :`<span class='badge badge-eve' style='margin-bottom:12px;display:inline-block'>${locLabel} · ${S.active.sessionMins} min</span>`;
 
   const hipPrehabHTML=S.cfg.hipCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:#c084fc'>🦋 Hip Activation (do these before lifting)</div>
@@ -1397,6 +1410,16 @@ document.addEventListener('click',e=>{
   if(a==='set-avail-eve-mins'){
     const dv=parseInt(btn.dataset.dow);ensureAv(dv);
     S.weekPlan.availability[dv].eve.mins=parseInt(btn.dataset.val);
+    save();render();return;
+  }
+  if(a==='set-avail-eve-loc'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].eve.loc=btn.dataset.val;
+    save();render();return;
+  }
+  if(a==='set-avail-weekend-loc'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].loc=btn.dataset.val;
     save();render();return;
   }
   if(a==='toggle-avail-weekend'){
