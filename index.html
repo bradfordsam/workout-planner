@@ -210,8 +210,8 @@ const EX = [
   {id:'cable_fly',name:'Cable Fly',muscle:'chest',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Slight elbow bend. Full stretch at bottom — feel it. Slow eccentric back. Squeeze hard at contraction.'},
   {id:'db_fly',name:'Dumbbell Fly',muscle:'chest',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower only to shoulder level. 2-count descent — slow and controlled. Soft elbows throughout.'},
   {id:'pec_deck',name:'Pec Deck',muscle:'chest',type:'isolation',eq:['machine'],rMin:8,rMax:12,rest:120,cue:'Full ROM, hard squeeze at contraction. Slow negative — resist the weight on the way back. Great for overload tracking.'},
-  {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,rest:180,cue:'Dead hang start. Drive elbows to hips — think about that, not pulling with hands. Full control on the way down. Add weight once you hit 8.',tags:['vertical']},
-  {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,rest:180,cue:'Supinated grip. Full dead hang, drive elbows down and back. Great for both back and biceps.',tags:['vertical']},
+  {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,rest:180,noWeight:true,cue:'Dead hang start. Drive elbows to hips — think about that, not pulling with hands. 3-count descent every rep, no dropping. Progression ladder: (1) build to 8 strict reps → (2) add 1s pause chin-over-bar each rep → (3) slow negative to 4 counts → (4) L-sit pull-ups (legs parallel) → (5) archer pull-ups. Weight is the last tool, not the first.',tags:['vertical']},
+  {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,rest:180,noWeight:true,cue:'Supinated grip. Full dead hang, drive elbows down and back. 3-count descent. Progression: build reps → 1s top pause → 4-count negative → mixed grip → neutral grip → weighted. Great for both back and biceps.',tags:['vertical']},
   {id:'lat_pulldown',name:'Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Slight lean back. Pull to upper chest, feel lat stretch fully at the top. Don\'t let elbows drift forward.',tags:['vertical']},
   {id:'bb_row',name:'Barbell Row',muscle:'back',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Hip hinge, chest up. Bar to lower sternum. Drive elbows back and up. Control the negative — don\'t drop the bar.',tags:['horizontal']},
   {id:'db_row',name:'Dumbbell Row',muscle:'back',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Brace hand on bench. Drive elbow to hip — not to the ceiling. Full stretch at bottom, full row.',tags:['horizontal']},
@@ -1148,9 +1148,23 @@ function renderWorkout(){
     <div class='wu-note'>No cardio, static stretching, or ab work before this. Enter working weight below → warm-up loads calculate automatically.</div>
   </div>`:'';
 
-  const progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
-    ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} lb today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Same weight — hit those reps first</div>`}`
-    :'<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative, leave 1–2 reps in the tank.</div>';
+  const isNoWeight=ex.noWeight===true;
+  let progHTML;
+  if(isNoWeight){
+    if(prog){
+      const repStr=prog.minR===prog.maxR?`${prog.minR} reps`:`${prog.minR}–${prog.maxR} reps`;
+      const tip=prog.ready
+        ?`<div class='prog-hint'>🔼 Hit top range — next: add a 1s pause at the top each rep, or slow your descent to 4 counts</div>`
+        :`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Build to ${ex.rMax} strict reps — same bodyweight</div>`;
+      progHTML=`<div class='last-info'>Last: <strong>${repStr}</strong></div>${tip}`;
+    } else {
+      progHTML=`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — strict form, full dead hang, 3-count descent on every rep.</div>`;
+    }
+  } else {
+    progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
+      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} lb today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Same weight — hit those reps first</div>`}`
+      :'<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative, leave 1–2 reps in the tank.</div>';
+  }
 
   const swapOpen=S.active.swapMode===exIdx;
   const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&e.eq.some(q=>[...YMCA_EQUIP,'bodyweight'].includes(q))).slice(0,5):[];
@@ -1164,12 +1178,15 @@ function renderWorkout(){
   const repRange=`${ex.rMin}–${ex.rMax}`;
   const setsRows=Array.from({length:ex.sets},(_,i)=>{
     const done=ex.done[i];
-    const sugW=prog?prog.suggest:(done?.weight||'');
+    const sugW=isNoWeight?0:(prog?prog.suggest:(done?.weight||''));
     const sugR=done?.reps||ex.rMax;
+    const weightInput=isNoWeight
+      ?`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='+lb' value='${done?done.weight:0}' min='0' step='2.5' ${done?'disabled':''} style='color:var(--mut)' title='Added weight (belt/vest) — leave 0 for bodyweight'>`
+      :`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`;
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}'>
       <div class='sn'>${i+1}</div>
       <div class='st'>${repRange}</div>
-      <input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>
+      ${weightInput}
       <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='reps' value='${done?done.reps:sugR}' min='0' max='50' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
     </div>`;
@@ -1206,7 +1223,7 @@ function renderWorkout(){
       ${progHTML}
       <div class='sets-hdr'>
         <div class='sh'>Set</div><div class='sh'>Target</div>
-        <div class='sh'>Weight</div><div class='sh'>Reps</div><div class='sh'></div>
+        <div class='sh'>${isNoWeight?'+lb':'Weight'}</div><div class='sh'>Reps</div><div class='sh'></div>
       </div>
       ${setsRows}
       ${nextBtn}
