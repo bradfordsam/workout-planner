@@ -789,7 +789,6 @@ function completeSet(exIdx,setIdx){
   const w=ex?.noWeight?0:(parseFloat(wEl?.value)||0);
   const reps=parseInt(rEl?.value)||0;
   if(!reps){if(rEl)rEl.focus();return;}
-  const ex=S.active.exercises[exIdx];
   ex.done[setIdx]={weight:w,reps};
   const row=document.getElementById(`sr-${exIdx}-${setIdx}`);
   if(row){
