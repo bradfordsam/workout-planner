@@ -419,6 +419,7 @@ let timerIv=null;
 
 function save(){
   try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation}));}catch(e){}
+  saveToCloud();
 }
 function load(){
   try{
@@ -782,9 +783,10 @@ function startWorkout(day,sessionType){
 }
 
 function completeSet(exIdx,setIdx){
+  const ex=S.active.exercises[exIdx];
   const wEl=document.getElementById(`w-${exIdx}-${setIdx}`);
   const rEl=document.getElementById(`r-${exIdx}-${setIdx}`);
-  const w=parseFloat(wEl?.value)||0;
+  const w=ex?.noWeight?0:(parseFloat(wEl?.value)||0);
   const reps=parseInt(rEl?.value)||0;
   if(!reps){if(rEl)rEl.focus();return;}
   const ex=S.active.exercises[exIdx];
@@ -794,7 +796,7 @@ function completeSet(exIdx,setIdx){
     row.classList.add('done');
     const db=row.querySelector('.done-btn');
     if(db){db.innerHTML='↩';db.dataset.action='undo-set';}
-    row.querySelectorAll('.ni').forEach(inp=>inp.disabled=true);
+    row.querySelectorAll('.ni').forEach(inp=>{if(inp.id!==`w-${exIdx}-${setIdx}`||wEl)inp.disabled=true;});
   }
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
   if(allDone){const nb=document.getElementById(`next-btn-${exIdx}`);if(nb)nb.style.display='flex';}
@@ -1111,6 +1113,7 @@ function renderDash(){
     ${todayHTML}
     ${planCard}
     ${recentLogs?`<div class='sec-lbl mt16'>Recent</div>${recentLogs}`:''}
+    ${renderCloudCard()}
   </div>${renderNav('dash')}`;
 }
 
@@ -1189,17 +1192,15 @@ function renderWorkout(){
   </div>`:'';
 
   const repRange=`${ex.rMin}–${ex.rMax}`;
+  const rowGrid=isNoWeight?'grid-template-columns:36px 64px 1fr 42px':'';
   const setsRows=Array.from({length:ex.sets},(_,i)=>{
     const done=ex.done[i];
-    const sugW=isNoWeight?0:(prog?prog.suggest:(done?.weight||''));
+    const sugW=prog?prog.suggest:(done?.weight||'');
     const sugR=done?.reps||ex.rMax;
-    const weightInput=isNoWeight
-      ?`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='+lb' value='${done?done.weight:0}' min='0' step='2.5' ${done?'disabled':''} style='color:var(--mut)' title='Added weight (belt/vest) — leave 0 for bodyweight'>`
-      :`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`;
-    return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}'>
+    return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
       <div class='st'>${repRange}</div>
-      ${weightInput}
+      ${isNoWeight?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`}
       <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='reps' value='${done?done.reps:sugR}' min='0' max='50' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
     </div>`;
@@ -1234,9 +1235,9 @@ function renderWorkout(){
       ${swapPanel}
       ${warmupHTML}
       ${progHTML}
-      <div class='sets-hdr'>
+      <div class='sets-hdr' style='${rowGrid}'>
         <div class='sh'>Set</div><div class='sh'>Target</div>
-        <div class='sh'>${isNoWeight?'+lb':'Weight'}</div><div class='sh'>Reps</div><div class='sh'></div>
+        ${isNoWeight?'':`<div class='sh'>Weight</div>`}<div class='sh'>Reps</div><div class='sh'></div>
       </div>
       ${setsRows}
       ${nextBtn}
@@ -1365,6 +1366,7 @@ function render(){
   if(S.view==='workout'){root.innerHTML=renderWorkout();return;}
   if(S.view==='dash'){root.innerHTML=renderDash();return;}
   if(S.view==='plan'){root.innerHTML=renderPlan();return;}
+  if(S.view==='cloud'){root.innerHTML=renderCloudSetup();return;}
   if(S.view==='program'){root.innerHTML=renderProgram();return;}
   if(S.view==='history'){root.innerHTML=renderHistory();return;}
 }
@@ -1394,6 +1396,23 @@ document.addEventListener('click',e=>{
     S.weekPlan.weekOf=todayStr();
     S.program=genProgram(S.cfg,S.weekPlan.availability);
     S.view='dash';save();render();return;
+  }
+  if(a==='go-cloud-setup'){S.view='cloud';render();return;}
+  if(a==='save-fb-config'){
+    const raw=document.getElementById('fb-config-input')?.value?.trim();
+    try{
+      const cfg=JSON.parse(raw);
+      if(!cfg.apiKey||!cfg.projectId)throw new Error('Missing apiKey or projectId');
+      localStorage.setItem('fbConfig',JSON.stringify(cfg));
+      initFirebase(cfg).then(()=>{S.view='dash';render();});
+    }catch(e){alert('Invalid config JSON: '+e.message);}
+    return;
+  }
+  if(a==='clear-fb-config'){
+    localStorage.removeItem('fbConfig');
+    fbReady=false;fbUser=null;fbAuth=null;fbDb=null;
+    if(fbAuth)fbAuth.signOut().catch(()=>{});
+    S.view='dash';render();return;
   }
   if(a==='go-plan'){S.view='plan';render();return;}
   if(a==='plan-back'){S.view='dash';render();return;}
@@ -1530,9 +1549,147 @@ document.addEventListener('input',e=>{
 });
 
 // ─────────────────────────────────────────────
+// CLOUD SYNC (Firebase)
+// ─────────────────────────────────────────────
+let fbAuth=null,fbDb=null,fbUser=null,fbReady=false;
+
+function getStoredFbConfig(){
+  try{return JSON.parse(localStorage.getItem('fbConfig')||'null');}catch(e){return null;}
+}
+
+async function loadFbScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector(`script[src="${src}"]`)){res();return;}
+    const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);
+  });
+}
+
+async function initFirebase(cfg){
+  try{
+    await loadFbScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+    await loadFbScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js');
+    await loadFbScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js');
+    if(!firebase.apps.length)firebase.initializeApp(cfg);
+    fbAuth=firebase.auth();
+    fbDb=firebase.firestore();
+    fbReady=true;
+    fbAuth.onAuthStateChanged(user=>{
+      fbUser=user;
+      if(user)loadFromCloud();
+      else render();
+    });
+  }catch(e){console.error('Firebase init failed',e);fbReady=false;}
+}
+
+async function saveToCloud(){
+  if(!fbReady||!fbUser||!fbDb)return;
+  try{
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,updatedAt:new Date().toISOString()};
+    await fbDb.collection('users').doc(fbUser.uid).set(data);
+  }catch(e){console.error('Cloud save failed',e);}
+}
+
+async function loadFromCloud(){
+  if(!fbReady||!fbUser||!fbDb)return;
+  try{
+    const doc=await fbDb.collection('users').doc(fbUser.uid).get();
+    if(doc.exists){
+      const cloud=doc.data();
+      // Merge logs by ID union — preserves this week's local sessions
+      const localLogs=S.logs||[];
+      const cloudLogs=cloud.logs||[];
+      const merged=[...cloudLogs];
+      localLogs.forEach(l=>{if(!merged.find(c=>c.id===l.id))merged.push(l);});
+      merged.sort((a,b)=>a.id>b.id?1:-1);
+      // Merge lastWeights: local takes precedence (most recent device)
+      const weights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
+      Object.assign(S,{cfg:cloud.cfg||S.cfg,program:cloud.program||S.program,weekPlan:cloud.weekPlan||S.weekPlan,logs:merged.slice(-10),lastWeights:weights});
+      save();
+      await saveToCloud();// upload merged data back
+    }else{
+      await saveToCloud();// first login — push local data up
+    }
+    render();
+  }catch(e){console.error('Cloud load failed',e);render();}
+}
+
+function cloudSignIn(){
+  if(!fbReady||!fbAuth)return;
+  fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>alert('Sign-in failed: '+e.message));
+}
+
+function cloudSignOut(){
+  if(!fbAuth)return;
+  fbAuth.signOut().then(()=>{fbUser=null;render();});
+}
+
+function renderCloudCard(){
+  const cfg=getStoredFbConfig();
+  if(!cfg){
+    return`<div class='card' style='margin-bottom:14px'>
+      <div class='sec-lbl' style='margin-bottom:6px'>☁️ Cloud Sync</div>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Sync your data across devices. Tap to set up — you'll need a free Firebase account.</div>
+      <button class='btn btn-s btn-sm' data-action='go-cloud-setup' style='width:auto'>Set up Cloud Sync →</button>
+    </div>`;
+  }
+  if(!fbReady){
+    return`<div class='card' style='margin-bottom:14px'>
+      <div class='sec-lbl' style='margin-bottom:6px'>☁️ Cloud Sync</div>
+      <div style='font-size:13px;color:var(--mut)'>Connecting…</div>
+    </div>`;
+  }
+  if(!fbUser){
+    return`<div class='card' style='margin-bottom:14px'>
+      <div class='sec-lbl' style='margin-bottom:6px'>☁️ Cloud Sync</div>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Sign in to sync across devices.</div>
+      <button class='btn btn-p btn-sm' onclick='cloudSignIn()' style='width:auto'>Sign in with Google</button>
+    </div>`;
+  }
+  return`<div class='card' style='margin-bottom:14px'>
+    <div style='display:flex;align-items:center;justify-content:space-between'>
+      <div><div class='sec-lbl' style='margin-bottom:2px'>☁️ Cloud Sync</div>
+        <div style='font-size:12px;color:var(--ok)'>✓ Synced · ${fbUser.displayName||fbUser.email}</div></div>
+      <button class='btn btn-g btn-sm' onclick='cloudSignOut()' style='width:auto'>Sign out</button>
+    </div>
+  </div>`;
+}
+
+function renderCloudSetup(){
+  const existing=getStoredFbConfig();
+  const val=existing?JSON.stringify(existing,null,2):'';
+  return`<div class='view'>
+    <button class='s-back' data-action='plan-back' style='margin-bottom:20px;margin-top:0'>
+      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
+    </button>
+    <div class='hdg'>Cloud Sync Setup</div>
+    <div class='sub'>Follow these steps to sync your data across devices. Takes about 5 minutes. Free — no credit card.</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:13px;line-height:1.9'>
+        <div><strong>1.</strong> Go to <strong>console.firebase.google.com</strong></div>
+        <div><strong>2.</strong> Create a new project (any name)</div>
+        <div><strong>3.</strong> In the project: <em>Authentication → Sign-in method → Google → Enable</em></div>
+        <div><strong>4.</strong> In the project: <em>Firestore Database → Create database → Start in production mode → choose a region</em></div>
+        <div><strong>5.</strong> In Firestore: <em>Rules</em> tab → replace with:<br>
+          <code style='font-size:11px;color:var(--acc);display:block;margin:6px 0;background:var(--surf2);padding:8px;border-radius:6px;line-height:1.6'>rules_version = '2';<br>service cloud.firestore {'{'}  match /databases/{'{'}database{'}'}/documents {'{'}    match /users/{'{'}userId{'}'} {'{'}      allow read, write: if request.auth.uid == userId;    {'}'}  {'}'}{'}'}</code>
+          → Publish</div>
+        <div><strong>6.</strong> Go to <em>Project Settings → Your apps → Add app → Web</em> → register an app</div>
+        <div><strong>7.</strong> Copy the <strong>firebaseConfig</strong> object JSON and paste it below</div>
+      </div>
+    </div>
+    <div class='sec-lbl' style='margin-bottom:6px'>Paste your firebaseConfig JSON here:</div>
+    <textarea id='fb-config-input' class='ni' style='width:100%;height:160px;font-size:11px;font-family:monospace;padding:10px;text-align:left;line-height:1.5;resize:vertical' placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'>${val}</textarea>
+    <button class='btn btn-ok' data-action='save-fb-config' style='margin-top:12px'>Connect →</button>
+    ${existing?`<button class='btn btn-g btn-sm' data-action='clear-fb-config' style='margin-top:8px'>Remove config &amp; disconnect</button>`:''}
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
-load();render();
+load();
+const _fbCfg=getStoredFbConfig();
+if(_fbCfg)initFirebase(_fbCfg);
+render();
 </script>
 </body>
 </html>
