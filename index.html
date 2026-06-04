@@ -1470,6 +1470,18 @@ document.addEventListener('click',e=>{
     S.view='dash';save();render();return;
   }
   if(a==='go-cloud-setup'){S.view='cloud';render();return;}
+  if(a==='cloud-sign-in'){
+    if(!fbReady||!fbAuth){alert('Firebase not ready — make sure your config is saved and the page has fully loaded.');return;}
+    // Show redirecting feedback
+    btn.textContent='Redirecting to Google…';btn.disabled=true;
+    fbAuth.signInWithRedirect(new firebase.auth.GoogleAuthProvider())
+      .catch(e=>{btn.textContent='Sign in with Google';btn.disabled=false;alert('Sign-in error: '+e.message);});
+    return;
+  }
+  if(a==='cloud-sign-out'){
+    if(fbAuth)fbAuth.signOut().then(()=>{fbUser=null;render();});
+    return;
+  }
   if(a==='save-fb-config'){
     const raw=document.getElementById('fb-config-input')?.value?.trim();
     try{
@@ -1775,6 +1787,7 @@ async function initFirebase(cfg){
     fbAuth=firebase.auth();
     fbDb=firebase.firestore();
     fbReady=true;
+    render(); // update UI now that Firebase is ready
     fbAuth.onAuthStateChanged(user=>{
       fbUser=user;
       if(user)loadFromCloud();
@@ -1848,14 +1861,14 @@ function renderCloudCard(){
     return`<div class='card' style='margin-bottom:14px'>
       <div class='sec-lbl' style='margin-bottom:6px'>☁️ Cloud Sync</div>
       <div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Sign in to sync across devices.</div>
-      <button class='btn btn-p btn-sm' onclick='cloudSignIn()' style='width:auto'>Sign in with Google</button>
+      <button class='btn btn-p btn-sm' data-action='cloud-sign-in' style='width:auto'>Sign in with Google</button>
     </div>`;
   }
   return`<div class='card' style='margin-bottom:14px'>
     <div style='display:flex;align-items:center;justify-content:space-between'>
       <div><div class='sec-lbl' style='margin-bottom:2px'>☁️ Cloud Sync</div>
         <div style='font-size:12px;color:var(--ok)'>✓ Synced · ${fbUser.displayName||fbUser.email}</div></div>
-      <button class='btn btn-g btn-sm' onclick='cloudSignOut()' style='width:auto'>Sign out</button>
+      <button class='btn btn-g btn-sm' data-action='cloud-sign-out' style='width:auto'>Sign out</button>
     </div>
   </div>`;
 }
