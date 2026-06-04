@@ -262,7 +262,7 @@ const EX = [
   {id:'db_leg_curl',name:'DB Leg Curl',muscle:'legs',type:'isolation',eq:['dumbbells'],rMin:10,rMax:15,rest:120,cue:'Lie face down, hold DB between feet. Curl to 90°. Slow 2-count negative back down.',tags:['hamstring']},
   {id:'calf_raise',name:'Calf Raises',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:60,cue:'Full stretch at bottom (off step edge). Full contraction at top. Slow tempo — calves are resistant to fast reps.',tags:['calf']},
   {id:'hip_abduct',name:'Hip Abduction',muscle:'legs',type:'isolation',eq:['machine'],rMin:15,rMax:20,rest:90,cue:'Slow and controlled. Feel glute med. No momentum or pelvic tilt.',tags:['glute']},
-  {id:'glute_bridge',name:'Single-leg Glute Bridge',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'Single leg raises difficulty. Drive through heel. Full hip extension. 20s iso hold option.',tags:['glute']},
+  {id:'glute_bridge',name:'Single-leg Glute Bridge',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'Single leg raises difficulty. Drive through heel. Full hip extension. Squeeze hard at top.\n\nProgression without bands: (1) Build reps → (2) Add 2s hold at top each rep → (3) Elevate your foot on a bench (increases ROM and difficulty) → (4) Add a backpack or a heavy book on your hip for resistance → (5) Barbell hip thrust when you reach a gym.',tags:['glute']},
   {id:'pallof',name:'Pallof Press',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Press out fully, hold 2s, return. Resist rotation — your core fights the cable the whole time. Count per side.',tags:['anti-rotation']},
   {id:'woodchop',name:'Cable Woodchop',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Rotate from thoracic spine, diagonal plane. Arms stay relatively straight. Count per side.',tags:['rotation']},
   {id:'half_kneel_press',name:'Half-kneeling Press',muscle:'core',type:'rotational',eq:['dumbbells','cables'],rMin:10,rMax:15,rest:90,cue:'Down knee is the loaded side. Tall posture. Press without leaning — core fights lateral forces. Per side.',tags:['asymmetrical']},
@@ -271,12 +271,12 @@ const EX = [
   {id:'dead_bug',name:'Dead Bug',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:8,rMax:12,rest:60,cue:'Lower opposite arm and leg simultaneously, back stays flat. Exhale on the way down. Slow and controlled — speed kills the point of this exercise. Count per side.',tags:['anti-rotation']},
   {id:'side_plank_dip',name:'Side Plank Hip Dips',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:10,rMax:15,rest:60,cue:'Full side plank. Dip hip to floor and drive back up. Resist lateral flexion the whole time. Count per side.',tags:['lateral']},
   // ─── Hip Health (stability & mobility) ───
-  {id:'clamshell',name:'Clamshell',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,cue:'Side-lying, knees bent ~45°. Rotate top knee up like a clamshell lid. Keep hips stacked — they WILL want to roll back. Squeeze hard at top, slow negative. This is pure glute med. Count per side.',tags:['glute_med']},
-  {id:'fire_hydrant',name:'Fire Hydrant',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:12,rMax:15,rest:60,cue:'Hands and knees (quadruped). Lift one knee out to the side — drive from the hip, not by rotating your torso. Keep hips level and core braced. Slow and controlled. Count per side.',tags:['glute_med']},
-  {id:'side_lying_abduct',name:'Side-lying Hip Abduction',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,cue:'Straight leg lift to ~45°. Foot slightly flexed, toes angled slightly downward (internal rotation targets glute med better). Slow negative — do not drop. Keep lower back out of it. Count per side.',tags:['glute_med']},
-  {id:'copenhagen_plank',name:'Copenhagen Plank',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:20,rMax:40,rest:60,cue:'Side plank with top foot on a bench, bottom leg hanging. Hold. Targets adductors and lateral hip — muscles often neglected with impingement. Build up slowly. Count seconds per side.',tags:['adductor','lateral']},
-  {id:'hip_90_90',name:'90/90 Hip Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,cue:'Sit with both knees at 90°. Front leg externally rotated, back leg internally rotated. Tall spine. Lean forward over your front shin — feel the hip open. Breathe into the stretch, do not force it. This targets hip internal rotation, which is often restricted with impingement. Count seconds per side.',tags:['mobility','internal_rotation']},
-  {id:'hip_flexor_half_kneel',name:'Half-Kneeling Hip Flexor Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,cue:'Down knee on pad, front foot forward. FIRST: posteriorly tilt your pelvis (tuck tailbone). THEN drive hips forward. That pelvic tilt is the key — without it you compress the hip instead of stretching the flexor. Hold, breathe. Count seconds per side.',tags:['mobility','hip_flexor']},
+  {id:'clamshell',name:'Clamshell',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,noWeight:true,cue:'Side-lying, knees bent ~45°. Rotate top knee up like a clamshell lid. Keep hips stacked — they WILL want to roll back. Squeeze hard at top, slow negative. This is pure glute med. Count per side.\n\nProgression without bands: (1) Build to 20 strict reps per side → (2) Add a 2s pause at the top of each rep → (3) Slow the negative to 3 counts → (4) Move to straight-leg side-lying abduction (harder leverage) → (5) Ankle weights when available. No band needed to keep progressing for a long time.',tags:['glute_med']},
+  {id:'fire_hydrant',name:'Fire Hydrant',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:12,rMax:15,rest:60,noWeight:true,cue:'Hands and knees (quadruped). Lift one knee out to the side — drive from the hip, not by rotating your torso. Keep hips level and core braced. Slow and controlled. Count per side.\n\nProgression without bands: (1) Build reps → (2) Add a 2s pause at peak → (3) Slow negative to 3 counts → (4) Add small circles at the top → (5) Progress to a higher, fuller ROM → (6) Ankle weights when you have them.',tags:['glute_med']},
+  {id:'side_lying_abduct',name:'Side-lying Hip Abduction',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,noWeight:true,cue:'Straight leg lift to ~45°. Foot slightly flexed, toes angled slightly downward (internal rotation targets glute med better). Slow negative — do not drop. Keep lower back out of it. Count per side.\n\nProgression without bands: (1) Build reps with 2s pause at top → (2) Slow negative to 3 counts → (3) Add small leg circles at peak height → (4) Elevate slightly (lying on bed edge, leg off the side) for more ROM → (5) Ankle weights are the final step.',tags:['glute_med']},
+  {id:'copenhagen_plank',name:'Copenhagen Plank',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:20,rMax:40,rest:60,noWeight:true,isTimed:true,cue:'Side plank with top foot on a bench, bottom leg hanging. Hold for time — count seconds. Targets adductors and lateral hip, muscles often neglected with impingement.\n\nProgression: (1) Start with knee (not foot) on the bench for an easier version → (2) Foot on bench, bottom leg on floor → (3) Foot on bench, bottom leg raised off floor (hardest bodyweight version) → (4) Add a small hip dip at the bottom of each rep → (5) Elevate the bench higher.',tags:['adductor','lateral']},
+  {id:'hip_90_90',name:'90/90 Hip Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Sit with both knees at 90°. Front leg externally rotated, back leg internally rotated. Tall spine. Lean forward over your front shin — feel the hip open. Breathe into the stretch, do not force it. This targets hip internal rotation, which is often restricted with impingement. Count seconds per side.',tags:['mobility','internal_rotation']},
+  {id:'hip_flexor_half_kneel',name:'Half-Kneeling Hip Flexor Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Down knee on pad, front foot forward. FIRST: posteriorly tilt your pelvis (tuck tailbone). THEN drive hips forward. That pelvic tilt is the key — without it you compress the hip instead of stretching the flexor. Hold, breathe. Count seconds per side.',tags:['mobility','hip_flexor']},
   {id:'hip_cars',name:'Hip CARs',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:5,rMax:8,rest:30,cue:'Stand near wall for balance. Lift one knee high, then rotate it OUT and sweep the full circle (Controlled Articular Rotation). Goal is to find and explore your full active range. Go slow — speed defeats the purpose. Squeeze glute at the back. Count full circles per side.',tags:['mobility','rotation']},
 ];
 
@@ -811,7 +811,7 @@ function completeSet(exIdx,setIdx){
   const ex=S.active.exercises[exIdx];
   const wEl=document.getElementById(`w-${exIdx}-${setIdx}`);
   const rEl=document.getElementById(`r-${exIdx}-${setIdx}`);
-  const w=ex?.noWeight?0:(parseFloat(wEl?.value)||0);
+  const w=(ex?.noWeight||ex?.isTimed)?0:(parseFloat(wEl?.value)||0);
   const reps=parseInt(rEl?.value)||0;
   if(!reps){if(rEl)rEl.focus();return;}
   ex.done[setIdx]={weight:w,reps};
@@ -1191,8 +1191,19 @@ function renderWorkout(){
   </div>`:'';
 
   const isNoWeight=ex.noWeight===true;
+  const isTimed=ex.isTimed===true;
   let progHTML;
-  if(isNoWeight){
+  if(isTimed){
+    if(prog){
+      const secStr=prog.minR===prog.maxR?`${prog.minR}s`:`${prog.minR}–${prog.maxR}s`;
+      const tip=prog.ready
+        ?`<div class='prog-hint'>🔼 Hit top time — next: try ${prog.maxR+5}s per side</div>`
+        :`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Build to ${ex.rMax}s — same hold</div>`;
+      progHTML=`<div class='last-info'>Last: <strong>${secStr} per side</strong></div>${tip}`;
+    } else {
+      progHTML=`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservatively, focus on form over duration.</div>`;
+    }
+  } else if(isNoWeight){
     if(prog){
       const repStr=prog.minR===prog.maxR?`${prog.minR} reps`:`${prog.minR}–${prog.maxR} reps`;
       const tip=prog.ready
@@ -1217,8 +1228,8 @@ function renderWorkout(){
     <button class='btn btn-g btn-sm' style='margin-top:4px' data-action='toggle-swap'>Cancel</button>
   </div>`:'';
 
-  const repRange=`${ex.rMin}–${ex.rMax}`;
-  const rowGrid=isNoWeight?'grid-template-columns:36px 64px 1fr 42px':'';
+  const repRange=isTimed?`${ex.rMin}–${ex.rMax}s`:`${ex.rMin}–${ex.rMax}`;
+  const rowGrid=(isNoWeight||isTimed)?'grid-template-columns:36px 64px 1fr 42px':'';
   const setsRows=Array.from({length:ex.sets},(_,i)=>{
     const done=ex.done[i];
     const sugW=prog?prog.suggest:(done?.weight||'');
@@ -1226,8 +1237,8 @@ function renderWorkout(){
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
       <div class='st'>${repRange}</div>
-      ${isNoWeight?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`}
-      <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='reps' value='${done?done.reps:sugR}' min='0' max='50' ${done?'disabled':''}>
+      ${(isNoWeight||isTimed)?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`}
+      <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
     </div>`;
   }).join('');
@@ -1263,7 +1274,7 @@ function renderWorkout(){
       ${progHTML}
       <div class='sets-hdr' style='${rowGrid}'>
         <div class='sh'>Set</div><div class='sh'>Target</div>
-        ${isNoWeight?'':`<div class='sh'>Weight</div>`}<div class='sh'>Reps</div><div class='sh'></div>
+        ${(isNoWeight||isTimed)?'':`<div class='sh'>Weight</div>`}<div class='sh'>${isTimed?'Sec':'Reps'}</div><div class='sh'></div>
       </div>
       ${setsRows}
       ${nextBtn}
@@ -1394,8 +1405,9 @@ function renderHistory(){
   const items=[...S.logs].reverse().map(l=>{
     const id=`log-${l.id}`;const open=S.openLogs[l.id];
     const exSummary=l.exercises.map(e=>{
-      const isNW=EX.find(ex=>ex.id===e.id)?.noWeight;
-      const setStr=e.sets.map(s=>isNW?`${s.reps} reps`:`${s.weight}lb×${s.reps}`).join(' · ');
+      const exDef=EX.find(ex=>ex.id===e.id);
+      const isNW=exDef?.noWeight;const isTm=exDef?.isTimed;
+      const setStr=e.sets.map(s=>isTm?`${s.reps}s`:isNW?`${s.reps} reps`:`${s.weight}lb×${s.reps}`).join(' · ');
       return`<div class='log-ex'><strong>${e.name}</strong><div class='log-sets'>${setStr||'—'}</div></div>`;
     }).join('');
     const badge=l.isLunch?`<span class='badge badge-lunch' style='margin-left:6px'>Lunch</span>`:'';
