@@ -484,7 +484,7 @@ function genProgram(cfg,av){
   const lunchSlots=[];const eveSlots=[];
   [1,2,3,4,5].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.lunch!==false)lunchSlots.push({dow,isLunch:true,mins:45,loc:'ymca',key:`${dow}-lunch`});
+    if(d.lunch!==false)lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`});
     if(d.eve?.on)eveSlots.push({dow,isLunch:false,mins:d.eve.mins||60,loc:d.eve.loc||'ymca',key:`${dow}-eve`});
   });
   [6,0].forEach(dow=>{
@@ -492,7 +492,7 @@ function genProgram(cfg,av){
     if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,loc:d.loc||'ymca',key:`${dow}-wknd`});
   });
   if(!lunchSlots.length&&!eveSlots.length){
-    [1,2,3,4,5].forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:45,key:`${dow}-lunch`}));
+    [1,2,3,4,5].forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`}));
   }
 
   // Split size: lunches fill first, evenings on non-lunch days fill remaining gaps (max 5)
@@ -801,7 +801,7 @@ function startWorkout(day,sessionType){
   }
   S.active={
     dayName:src.name,dow:day.dow,startTime:Date.now(),isLunch:!isEve,
-    sessionMins:src.mins||45,loc:src.loc||'ymca',exIdx:0,
+    sessionMins:src.mins||40,loc:src.loc||'ymca',restCap:(!isEve)?90:null,exIdx:0,
     exercises:rawExs.map(e=>({...e,done:[]})),
   };
   S.view='workout';save();render();
@@ -825,7 +825,8 @@ function completeSet(exIdx,setIdx){
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
   if(allDone){const nb=document.getElementById(`next-btn-${exIdx}`);if(nb)nb.style.display='flex';}
   save();
-  startRest(ex.rest||120,ex.name);
+  const restSecs=S.active.restCap?Math.min(ex.rest||120,S.active.restCap):(ex.rest||120);
+  startRest(restSecs,ex.name);
 }
 
 function updateWarmup(exIdx,weight){
@@ -870,7 +871,7 @@ function renderAvailGrid(av,inSetup){
       <div class='plan-slot-checks'>
         <div class='plan-chk${lunchOn?' on':''}' data-action='toggle-avail-lunch' data-dow='${dow}'>
           <div class='plan-chk-box'>${lunchOn?'✓':''}</div>
-          <div><div style='font-size:12px;font-weight:700'>Lunch</div><div style='font-size:11px;color:var(--mut)'>45 min · YMCA</div></div>
+          <div><div style='font-size:12px;font-weight:700'>Lunch</div><div style='font-size:11px;color:var(--mut)'>35–40 min · YMCA</div></div>
         </div>
         <div class='plan-chk${eveOn?' on':''}' data-action='toggle-avail-eve' data-dow='${dow}'>
           <div class='plan-chk-box'>${eveOn?'✓':''}</div>
@@ -974,7 +975,7 @@ function renderSetup(){
 
   const steps=[
     `<div class='s-title'>Your available sessions</div>
-     <div class='s-sub'>Tap each window you can train. Lunch = 45 min at YMCA (compounds). After Work sessions are flexible — you pick the length and whether to lift or just do cardio.</div>
+     <div class='s-sub'>Tap each window you can train. Lunch = 35–40 min at YMCA (compounds). After Work sessions are flexible — you pick the length and whether to lift or just do cardio.</div>
      ${renderAvailGrid(av,true)}`,
     `<div class='s-title'>Primary goal?</div>
      <div class='s-sub'>Sets your default rep ranges and intensity targets.</div>
@@ -1061,7 +1062,7 @@ function renderDash(){
     };
     const exList=d.exercises.slice(0,3).map(exRow).join('');
     const makeupNote=isActualToday&&missed.length>0?`<div style='font-size:12px;color:var(--bad);margin-bottom:10px'>⚡ +${missed.length} make-up exercise${missed.length>1?'s':''} added (${missed.map(m=>DOW[m]).join(', ')} missed)</div>`:'';
-    const lunchBadge=d.isLunch?`<span class='badge badge-lunch' style='margin-left:8px'>YMCA · 45 min</span>`:`<span class='badge badge-eve' style='margin-left:8px'>${d.sessionMins||60} min</span>`;
+    const lunchBadge=d.isLunch?`<span class='badge badge-lunch' style='margin-left:8px'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve' style='margin-left:8px'>${d.sessionMins||60} min</span>`;
     // Evening session block
     let eveBlock='';
     if(d.eveningSession){
@@ -1170,7 +1171,7 @@ function renderWorkout(){
   const sessionTag=ex.isMakeup
     ?`<span class='badge badge-makeup' style='margin-bottom:12px;display:inline-block'>⚡ Make-up · ${ex.makeupFrom}</span>`
     :S.active.isLunch
-      ?`<span class='badge badge-lunch' style='margin-bottom:12px;display:inline-block'>YMCA Lunch · 45 min</span>`
+      ?`<span class='badge badge-lunch' style='margin-bottom:12px;display:inline-block'>YMCA Lunch · 35–40 min</span>`
       :`<span class='badge badge-eve' style='margin-bottom:12px;display:inline-block'>${locLabel} · ${S.active.sessionMins} min</span>`;
 
   const hipPrehabHTML=S.cfg.hipCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
@@ -1268,7 +1269,7 @@ function renderWorkout(){
       ${nextBtn}
     </div>
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
-    <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${ex.rest>=60?ex.rest/60+' min':ex.rest+'s'} rest between sets · slow eccentric</div>
+    <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s':ex.rest>=60?ex.rest/60+' min':ex.rest+'s'} rest between sets · slow eccentric</div>
   </div>`;
 }
 
@@ -1301,7 +1302,7 @@ function renderProgram(){
         ${cn}
       </div>`;
     }
-    const badge=`<span class='badge badge-lunch'>YMCA · 45 min</span>`;
+    const badge=`<span class='badge badge-lunch'>YMCA · 35–40 min</span>`;
     const missedTag=isMissed?`<span style='font-size:11px;color:var(--bad);font-weight:700;margin-left:6px'>⚠️ missed</span>`:'';
     const exList=d.exercises.map(e=>`<div class='pg-ex'><div class='pg-dot' style='background:${MCOL[e.muscle]}'></div>${e.name} <span style='color:var(--mut);font-size:12px'>· ${e.sets}×${e.rMin}–${e.rMax}</span></div>`).join('');
     let cn='';
@@ -1330,7 +1331,7 @@ function renderProgram(){
 
   return`<div class='view'>
     <div class='hdg'>Weekly Program</div>
-    <div class='sub'>All sessions = 45 min YMCA lunch. Skipped days show as rest. Missed days shown in red. Set your goal and plan from the Home tab.</div>
+    <div class='sub'>All sessions = 35–40 min YMCA lunch. Skipped days show as rest. Missed days shown in red. Set your goal and plan from the Home tab.</div>
     ${calSummary}
     ${days}
     <div class='mt16'>
