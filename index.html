@@ -1780,6 +1780,10 @@ async function initFirebase(cfg){
       if(user)loadFromCloud();
       else render();
     });
+    // Handle redirect result after returning from Google sign-in page
+    fbAuth.getRedirectResult().catch(e=>{
+      if(e.code&&e.code!=='auth/no-auth-event')console.error('Redirect sign-in error:',e.message);
+    });
   }catch(e){console.error('Firebase init failed',e);fbReady=false;}
 }
 
@@ -1817,7 +1821,7 @@ async function loadFromCloud(){
 
 function cloudSignIn(){
   if(!fbReady||!fbAuth)return;
-  fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>alert('Sign-in failed: '+e.message));
+  fbAuth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()).catch(e=>alert('Sign-in failed: '+e.message));
 }
 
 function cloudSignOut(){
