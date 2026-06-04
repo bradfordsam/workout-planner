@@ -1020,13 +1020,14 @@ function renderDash(){
       const lw=S.lastWeights?.[e.id];
       const prog=progression(e.id,e.rMax);
       const detail=exp?`<div style='margin:4px 0 4px 0;padding:8px;background:var(--surf2);border-radius:8px;font-size:12px'>
-        ${prog?`<div style='margin-bottom:6px'>Last: <strong>${prog.summary}</strong> &nbsp;→&nbsp; <span style='color:var(--acc)'>Goal: ${prog.suggest} lb</span></div>`
-              :`<div style='color:var(--mut);margin-bottom:6px'>No history on this device — enter your last session:</div>`}
-        <div style='display:flex;gap:6px;align-items:center'>
+        ${prog?`<div style='margin-bottom:8px'>Last: <strong>${prog.summary}</strong> &nbsp;→&nbsp; <span style='color:var(--acc)'>Goal: ${prog.suggest} lb</span></div>`
+              :`<div style='color:var(--mut);margin-bottom:8px'>No history on this device — enter your last session:</div>`}
+        <div style='display:flex;gap:6px;align-items:center;margin-bottom:${e.cue?'8px':'0'}'>
           <input type='number' id='ew-${e.id}' placeholder='lb' value='${lw?.weight||''}' class='ni' step='5' min='0' style='width:72px'>
           <input type='number' id='er-${e.id}' placeholder='reps' value='${lw?.reps||''}' class='ni' min='1' max='50' style='width:60px'>
           <button class='btn btn-s btn-sm' data-action='save-ex-weight' data-exid='${e.id}' style='flex:1'>Save</button>
         </div>
+        ${e.cue?`<div style='color:var(--mut);line-height:1.6;padding-top:8px;border-top:1px solid var(--bdr)'>${e.cue}</div>`:''}
       </div>`:'';
       // Only the NAME ROW is the click target — detail panel sits outside it so inputs don't collapse the panel
       return`<div class='t-ex' style='flex-direction:column;align-items:flex-start'>
