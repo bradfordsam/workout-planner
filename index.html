@@ -183,10 +183,22 @@ body{
 .plan-eve-opts{margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)}
 .wk-day{cursor:pointer}
 .wk-day.viewing{background:rgba(129,140,248,.2);border-radius:8px}
+/* chat */
+.chat-btn{position:fixed;bottom:76px;right:16px;width:50px;height:50px;border-radius:50%;background:var(--acc);color:#0a0a12;border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(0,0,0,.4);z-index:89;transition:transform .15s}
+.chat-btn:active{transform:scale(.92)}
+.chat-sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:72vh;background:var(--surf);border-top:1px solid var(--bdr);border-radius:16px 16px 0 0;z-index:98;display:flex;flex-direction:column;box-shadow:0 -4px 24px rgba(0,0,0,.4)}
+.chat-hdr{padding:14px 16px 12px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.chat-bubble{max-width:88%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.55;word-break:break-word}
+.cb-user{background:var(--acc);color:#0a0a12;align-self:flex-end;border-bottom-right-radius:4px}
+.cb-ai{background:var(--surf2);color:var(--txt);align-self:flex-start;border-bottom-left-radius:4px}
+.chat-foot{padding:10px 12px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0}
 </style>
 </head>
 <body>
 <div id="root"></div>
+<button class="chat-btn" id="chat-btn" onclick="toggleChat()" title="Ask about exercises">💬</button>
+<div id="chat-float"></div>
 <div id="rest-ov">
   <div class="rest-inner">
     <div class="rest-lbl">Rest Period</div>
@@ -1468,6 +1480,13 @@ document.addEventListener('click',e=>{
     }catch(e){alert('Invalid config JSON: '+e.message);}
     return;
   }
+  if(a==='save-anthropic-key'){
+    const k=document.getElementById('anthropic-key-input')?.value?.trim();
+    if(k)localStorage.setItem('anthropicKey',k);
+    else localStorage.removeItem('anthropicKey');
+    alert(k?'API key saved.':'API key removed.');
+    return;
+  }
   if(a==='clear-fb-config'){
     localStorage.removeItem('fbConfig');
     fbReady=false;fbUser=null;fbAuth=null;fbDb=null;
@@ -1633,6 +1652,105 @@ document.addEventListener('input',e=>{
 });
 
 // ─────────────────────────────────────────────
+// EXERCISE ASSISTANT CHAT
+// ─────────────────────────────────────────────
+let chatOpen=false,chatLoading=false,chatMsgs=[];
+
+function localAnswer(q){
+  const ql=q.toLowerCase();
+  // Find mentioned exercise
+  const ex=EX.find(e=>ql.includes(e.name.toLowerCase())||ql.includes(e.id.replace(/_/g,' ')));
+  if(ex){
+    if(/how|technique|form|cue|tip|perform|do i|do the/.test(ql))
+      return`<strong>${ex.name}</strong><br><br>${ex.cue}`;
+    if(/equipment|need|require|use/.test(ql))
+      return`<strong>${ex.name}</strong> uses: ${ex.eq.join(', ')}`;
+    if(/alternative|substitute|instead|replace|swap/.test(ql)){
+      const alts=EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!(S.cfg.hipCaution&&e.hipRisk)).slice(0,5);
+      return`Alternatives for <strong>${ex.name}</strong> (${ex.muscle}):<br><br>${alts.map(a=>`• ${a.name}`).join('<br>')}`;
+    }
+    return`<strong>${ex.name}</strong> — ${ex.muscle}, ${ex.type}<br>Equipment: ${ex.eq.join(', ')}<br><br>${ex.cue}`;
+  }
+  // Muscle group
+  const muscle=['chest','back','shoulders','biceps','triceps','legs','core','hips'].find(m=>ql.includes(m));
+  if(muscle){
+    const list=EX.filter(e=>e.muscle===muscle&&!(S.cfg.hipCaution&&e.hipRisk));
+    return`<strong>${muscle.charAt(0).toUpperCase()+muscle.slice(1)} exercises:</strong><br><br>${list.map(e=>`• ${e.name} (${e.type})`).join('<br>')}`;
+  }
+  return null;
+}
+
+async function askAssistant(q){
+  const key=localStorage.getItem('anthropicKey');
+  if(!key){
+    const local=localAnswer(q);
+    return local||`No AI key configured — but I can answer questions about specific exercises or muscle groups by name. Add your Anthropic API key in the Cloud Sync settings for full AI responses.`;
+  }
+  try{
+    const hipNote=S.cfg.hipCaution?'User has hip impingement (FAI) — avoid deep squat patterns.':'';
+    const prog=S.program?`Current split: ${S.program.week.filter(d=>!d.rest).map(d=>DOW[d.dow]+': '+d.name).join(', ')}.`:'';
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-client-side-allowlist-v1':'true'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',max_tokens:600,
+        system:`You are a concise personal trainer in a workout app. ${hipNote} ${prog} Keep answers short, practical, and use line breaks. No markdown headers.`,
+        messages:[{role:'user',content:q}]
+      })
+    });
+    if(!res.ok)throw new Error('API '+res.status);
+    const data=await res.json();
+    return data.content[0].text.replace(/\n/g,'<br>');
+  }catch(e){
+    const local=localAnswer(q);
+    return local||`Couldn't reach AI (${e.message}). Check your API key in Cloud Sync settings.`;
+  }
+}
+
+function renderChatHTML(){
+  if(!chatOpen)return'';
+  const bubbles=chatMsgs.map(m=>`<div class='chat-bubble ${m.role==='user'?'cb-user':'cb-ai'}'>${m.text}</div>`).join('');
+  const hasKey=!!localStorage.getItem('anthropicKey');
+  return`<div class='chat-sheet'>
+    <div class='chat-hdr'>
+      <div><div style='font-size:14px;font-weight:700'>💬 Exercise Assistant</div>
+        <div style='font-size:11px;color:var(--mut)'>${hasKey?'AI powered · Claude Haiku':'Local DB answers · add API key for AI'}</div></div>
+      <button style='background:none;border:none;color:var(--mut);font-size:24px;cursor:pointer;padding:0 4px' onclick='toggleChat()'>×</button>
+    </div>
+    <div class='chat-msgs' id='chat-msgs'>
+      ${!chatMsgs.length?`<div style='text-align:center;color:var(--mut);padding:24px 16px;font-size:13px;line-height:1.7'>Ask me anything about exercises.<br><span style='font-size:12px'>Technique · Equipment · Alternatives · Programming</span></div>`:''}
+      ${bubbles}
+      ${chatLoading?`<div class='chat-bubble cb-ai' style='color:var(--mut)'>Thinking…</div>`:''}
+    </div>
+    <div class='chat-foot'>
+      <input type='text' id='chat-input' class='ni' placeholder='e.g. How do I do a proper RDL?' style='flex:1;text-align:left;padding:10px 12px' onkeydown='if(event.key==="Enter")sendChat()'>
+      <button class='btn btn-p btn-sm' onclick='sendChat()' style='width:auto'>Send</button>
+    </div>
+  </div>`;
+}
+
+function updateChatUI(){
+  const el=document.getElementById('chat-float');
+  if(el)el.innerHTML=renderChatHTML();
+  // Scroll to bottom
+  setTimeout(()=>{const m=document.getElementById('chat-msgs');if(m)m.scrollTop=m.scrollHeight;},50);
+}
+
+function toggleChat(){chatOpen=!chatOpen;updateChatUI();}
+
+async function sendChat(){
+  const input=document.getElementById('chat-input');
+  const text=input?.value?.trim();
+  if(!text||chatLoading)return;
+  input.value='';
+  chatMsgs.push({role:'user',text});
+  chatLoading=true;updateChatUI();
+  const answer=await askAssistant(text);
+  chatMsgs.push({role:'assistant',text:answer});
+  chatLoading=false;updateChatUI();
+}
+
+// ─────────────────────────────────────────────
 // CLOUD SYNC (Firebase)
 // ─────────────────────────────────────────────
 let fbAuth=null,fbDb=null,fbUser=null,fbReady=false;
@@ -1764,6 +1882,13 @@ function renderCloudSetup(){
     <textarea id='fb-config-input' class='ni' style='width:100%;height:160px;font-size:11px;font-family:monospace;padding:10px;text-align:left;line-height:1.5;resize:vertical' placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'>${val}</textarea>
     <button class='btn btn-ok' data-action='save-fb-config' style='margin-top:12px'>Connect →</button>
     ${existing?`<button class='btn btn-g btn-sm' data-action='clear-fb-config' style='margin-top:8px'>Remove config &amp; disconnect</button>`:''}
+
+    <div class='sec-lbl' style='margin-top:24px;margin-bottom:6px'>AI Assistant (optional)</div>
+    <div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Add your Anthropic API key to enable AI-powered answers in the exercise chat. Get a free key at <strong>console.anthropic.com</strong>. Your key is stored only on this device.</div>
+    <div style='display:flex;gap:8px'>
+      <input type='password' id='anthropic-key-input' class='ni' placeholder='sk-ant-...' value='${localStorage.getItem('anthropicKey')||''}' style='flex:1;text-align:left;padding:10px 12px;font-size:13px'>
+      <button class='btn btn-s btn-sm' data-action='save-anthropic-key' style='width:auto'>Save</button>
+    </div>
   </div>`;
 }
 
