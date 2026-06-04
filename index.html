@@ -654,11 +654,22 @@ function lastLog(exId){
   }return null;
 }
 function progression(exId,rMax){
-  const l=lastLog(exId);if(!l)return null;
-  const done=l.sets.filter(s=>s.reps>0);if(!done.length)return null;
-  const w=done[0].weight;
-  const minR=Math.min(...done.map(s=>s.reps));
-  const maxR=Math.max(...done.map(s=>s.reps));
+  let w=null,minR=null,maxR=null;
+  const l=lastLog(exId);
+  if(l){
+    const done=l.sets.filter(s=>s.reps>0);
+    if(done.length){
+      w=done[0].weight;
+      minR=Math.min(...done.map(s=>s.reps));
+      maxR=Math.max(...done.map(s=>s.reps));
+    }
+  }
+  // Fall back to manually entered lastWeights when no log exists
+  if(w==null&&S.lastWeights?.[exId]){
+    w=S.lastWeights[exId].weight;
+    minR=maxR=S.lastWeights[exId].reps;
+  }
+  if(w==null)return null;
   const ready=minR>=rMax;
   return{weight:w,minR,maxR,suggest:ready?r5(w*1.04):w,ready,summary:`${w} lb × ${minR===maxR?minR:minR+'–'+maxR}`};
 }
@@ -1182,12 +1193,16 @@ function renderWorkout(){
     <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>4</span><span class='wu-val'>Half-Kneeling Hip Flexor Stretch</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · tuck pelvis first</span></div>
   </div>`:'';
 
+  const sugW0=prog?prog.suggest:null;
+  const wu1Lbl=sugW0?`${r5(sugW0*0.5)} lb`:'~50%';
+  const wu2Lbl=sugW0?`${r5(sugW0*0.75)} lb`:'~75%';
+  const wu3Lbl=sugW0?`${r5(sugW0*0.9)} lb`:'~90%';
   const warmupHTML=ex.isFirst?`<div class='wu-box'>
     <div class='wu-title'>⚡ Warm-up Sets — Weight Acclimation (do these first)</div>
-    <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>~50%</span><span style='color:var(--mut);font-size:13px'> × 8 reps — groove the pattern</span><button data-action='start-wu-rest' data-secs='60' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>60s rest</button></div>
-    <div class='wu-row'><span class='wu-set'>WU2</span><span class='wu-val' id='wu2-${exIdx}'>~75%</span><span style='color:var(--mut);font-size:13px'> × 3 reps — sharpen bar path</span><button data-action='start-wu-rest' data-secs='90' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>90s rest</button></div>
-    <div class='wu-row'><span class='wu-set'>WU3</span><span class='wu-val' id='wu3-${exIdx}'>~90%</span><span style='color:var(--mut);font-size:13px'> × 1 rep — prime the CNS</span><button data-action='start-wu-rest' data-secs='120' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>2 min rest</button></div>
-    <div class='wu-note'>No cardio, static stretching, or ab work before this. Enter working weight below → warm-up loads calculate automatically.</div>
+    <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>${wu1Lbl}</span><span style='color:var(--mut);font-size:13px'> × 8 reps — groove the pattern</span><button data-action='start-wu-rest' data-secs='60' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>60s rest</button></div>
+    <div class='wu-row'><span class='wu-set'>WU2</span><span class='wu-val' id='wu2-${exIdx}'>${wu2Lbl}</span><span style='color:var(--mut);font-size:13px'> × 3 reps — sharpen bar path</span><button data-action='start-wu-rest' data-secs='90' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>90s rest</button></div>
+    <div class='wu-row'><span class='wu-set'>WU3</span><span class='wu-val' id='wu3-${exIdx}'>${wu3Lbl}</span><span style='color:var(--mut);font-size:13px'> × 1 rep — prime the CNS</span><button data-action='start-wu-rest' data-secs='120' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>2 min rest</button></div>
+    <div class='wu-note'>No cardio, static stretching, or ab work before this.${sugW0?' Warm-up weights calculated from your target — update if you adjust the working weight below.':' Enter working weight below → warm-up loads update automatically.'}</div>
   </div>`:'';
 
   const isNoWeight=ex.noWeight===true;
