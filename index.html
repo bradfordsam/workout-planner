@@ -1470,12 +1470,15 @@ document.addEventListener('click',e=>{
     S.view='dash';save();render();return;
   }
   if(a==='go-cloud-setup'){S.view='cloud';render();return;}
-  if(a==='cloud-sign-in'){
-    if(!fbReady||!fbAuth){alert('Firebase not ready — make sure your config is saved and the page has fully loaded.');return;}
-    // Show redirecting feedback
-    btn.textContent='Redirecting to Google…';btn.disabled=true;
-    fbAuth.signInWithRedirect(new firebase.auth.GoogleAuthProvider())
-      .catch(e=>{btn.textContent='Sign in with Google';btn.disabled=false;alert('Sign-in error: '+e.message);});
+  if(a==='send-sign-in-link'){
+    if(!fbReady||!fbAuth){alert('Firebase not ready — check your config.');return;}
+    const emailEl=document.getElementById('signin-email');
+    const email=emailEl?.value?.trim();
+    if(!email){emailEl?.classList.add('shake');setTimeout(()=>emailEl?.classList.remove('shake'),400);return;}
+    btn.textContent='Sending…';btn.disabled=true;
+    fbAuth.sendSignInLinkToEmail(email,{url:location.href,handleCodeInApp:true})
+      .then(()=>{localStorage.setItem('emailForSignIn',email);alert('Link sent to '+email+'! Check your inbox and tap the link to sign in.');btn.textContent='Send Link';btn.disabled=false;})
+      .catch(e=>{alert('Error: '+e.message);btn.textContent='Send Link';btn.disabled=false;});
     return;
   }
   if(a==='cloud-sign-out'){
@@ -1793,10 +1796,16 @@ async function initFirebase(cfg){
       if(user)loadFromCloud();
       else render();
     });
-    // Handle redirect result after returning from Google sign-in page
-    fbAuth.getRedirectResult().catch(e=>{
-      if(e.code&&e.code!=='auth/no-auth-event')console.error('Redirect sign-in error:',e.message);
-    });
+    // Handle email link sign-in when returning from inbox link
+    if(fbAuth.isSignInWithEmailLink(location.href)){
+      let email=localStorage.getItem('emailForSignIn');
+      if(!email)email=prompt('Please confirm your email address:');
+      if(email){
+        fbAuth.signInWithEmailLink(email,location.href)
+          .then(()=>localStorage.removeItem('emailForSignIn'))
+          .catch(e=>alert('Sign-in error: '+e.message));
+      }
+    }
   }catch(e){console.error('Firebase init failed',e);fbReady=false;}
 }
 
@@ -1832,11 +1841,6 @@ async function loadFromCloud(){
   }catch(e){console.error('Cloud load failed',e);render();}
 }
 
-function cloudSignIn(){
-  if(!fbReady||!fbAuth)return;
-  fbAuth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()).catch(e=>alert('Sign-in failed: '+e.message));
-}
-
 function cloudSignOut(){
   if(!fbAuth)return;
   fbAuth.signOut().then(()=>{fbUser=null;render();});
@@ -1860,8 +1864,12 @@ function renderCloudCard(){
   if(!fbUser){
     return`<div class='card' style='margin-bottom:14px'>
       <div class='sec-lbl' style='margin-bottom:6px'>☁️ Cloud Sync</div>
-      <div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Sign in to sync across devices.</div>
-      <button class='btn btn-p btn-sm' data-action='cloud-sign-in' style='width:auto'>Sign in with Google</button>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Enter your email — we'll send a one-tap sign-in link. No password, no redirect issues.</div>
+      <div style='display:flex;gap:8px'>
+        <input type='email' id='signin-email' class='ni' placeholder='your@email.com' style='flex:1;text-align:left;padding:10px 12px;font-size:13px'>
+        <button class='btn btn-p btn-sm' data-action='send-sign-in-link' style='width:auto'>Send Link</button>
+      </div>
+      <div style='font-size:11px;color:var(--mut);margin-top:8px'>Check your inbox and tap the link — opens the app and signs you in instantly.</div>
     </div>`;
   }
   return`<div class='card' style='margin-bottom:14px'>
@@ -1886,7 +1894,7 @@ function renderCloudSetup(){
       <div style='font-size:13px;line-height:1.9'>
         <div><strong>1.</strong> Go to <strong>console.firebase.google.com</strong></div>
         <div><strong>2.</strong> Create a new project (any name)</div>
-        <div><strong>3.</strong> In the project: <em>Authentication → Sign-in method → Google → Enable</em></div>
+        <div><strong>3.</strong> In the project: <em>Authentication → Sign-in method → Email/Password → Enable both toggles (the second one says "Email link / passwordless sign-in")</em></div>
         <div><strong>4.</strong> In the project: <em>Firestore Database → Create database → Start in production mode → choose a region</em></div>
         <div><strong>5.</strong> In Firestore: <em>Rules</em> tab → replace with:<br>
           <code style='font-size:11px;color:var(--acc);display:block;margin:6px 0;background:var(--surf2);padding:8px;border-radius:6px;line-height:1.6'>rules_version = '2';<br>service cloud.firestore {'{'}  match /databases/{'{'}database{'}'}/documents {'{'}    match /users/{'{'}userId{'}'} {'{'}      allow read, write: if request.auth.uid == userId;    {'}'}  {'}'}{'}'}</code>
