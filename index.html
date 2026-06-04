@@ -416,7 +416,7 @@ let S={
   view:'setup',step:1,
   cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
 };
 let timerIv=null;
 
@@ -649,6 +649,16 @@ function progression(exId,rMax){
   const maxR=Math.max(...done.map(s=>s.reps));
   const ready=minR>=rMax;
   return{weight:w,minR,maxR,suggest:ready?r5(w*1.04):w,ready,summary:`${w} lb × ${minR===maxR?minR:minR+'–'+maxR}`};
+}
+function recalcLastWeights(){
+  const w={};
+  [...S.logs].sort((a,b)=>a.id>b.id?1:-1).forEach(log=>{
+    log.exercises?.forEach(ex=>{
+      const sets=ex.sets?.filter(s=>s?.reps>0);
+      if(sets?.length){const l=sets[sets.length-1];w[ex.id]={weight:l.weight,reps:l.reps};}
+    });
+  });
+  S.lastWeights=w;
 }
 function fmtDate(iso){
   const d=new Date(iso);
@@ -1101,12 +1111,12 @@ function renderDash(){
   </div>`;
 
   const recentLogs=S.logs.slice(-3).reverse().map(l=>`
-    <div class='card2 mb8'>
+    <div class='card2 mb8' data-action='edit-log' data-id='${l.id}' style='cursor:pointer'>
       <div style='display:flex;justify-content:space-between;align-items:center'>
         <span style='font-size:13px;font-weight:600'>${l.dayName}</span>
         <span style='font-size:12px;color:var(--mut)'>${fmtDate(l.date)}</span>
       </div>
-      <div style='font-size:12px;color:var(--mut);margin-top:2px'>${l.exercises.length} exercises · ${fmtDur(l.duration)}</div>
+      <div style='font-size:12px;color:var(--mut);margin-top:2px'>${l.exercises.length} exercises · ${fmtDur(l.duration)} · <span style='color:var(--acc)'>tap to view/edit</span></div>
     </div>`).join('');
 
   return`<div class='view'>
@@ -1318,6 +1328,48 @@ function renderProgram(){
 }
 
 // ─────────────────────────────────────────────
+// RENDER – LOG EDIT
+// ─────────────────────────────────────────────
+function renderLogEdit(){
+  const log=S.editLogDraft;
+  if(!log){S.view='history';render();return'';}
+  const exSections=log.exercises.map((ex,ei)=>{
+    const isNW=ex.noWeight||EX.find(e=>e.id===ex.id)?.noWeight;
+    const hdr=isNW
+      ?`<div class='sets-hdr' style='grid-template-columns:32px 1fr'><div class='sh'>Set</div><div class='sh'>Reps</div></div>`
+      :`<div class='sets-hdr' style='grid-template-columns:32px 1fr 1fr'><div class='sh'>Set</div><div class='sh'>Weight</div><div class='sh'>Reps</div></div>`;
+    const rows=(ex.sets||[]).map((s,si)=>{
+      return isNW
+        ?`<div class='set-row' style='grid-template-columns:32px 1fr;margin-bottom:6px'>
+            <div class='sn'>${si+1}</div>
+            <input class='ni' type='number' id='el-r-${ei}-${si}' value='${s.reps||0}' min='0' max='50' placeholder='reps'>
+          </div>`
+        :`<div class='set-row' style='grid-template-columns:32px 1fr 1fr;margin-bottom:6px'>
+            <div class='sn'>${si+1}</div>
+            <input class='ni' type='number' id='el-w-${ei}-${si}' value='${s.weight||0}' min='0' step='5' placeholder='lb'>
+            <input class='ni' type='number' id='el-r-${ei}-${si}' value='${s.reps||0}' min='0' max='50' placeholder='reps'>
+          </div>`;
+    }).join('');
+    return`<div class='card' style='margin-bottom:10px'>
+      <div style='display:flex;align-items:center;gap:8px;margin-bottom:10px'>
+        <span style='width:8px;height:8px;border-radius:50%;background:${MCOL[ex.muscle]||'var(--acc)'};flex-shrink:0;display:inline-block'></span>
+        <strong style='font-size:14px'>${ex.name}</strong>
+      </div>
+      ${hdr}${rows}
+    </div>`;
+  }).join('');
+  return`<div class='view'>
+    <button class='s-back' data-action='cancel-log-edit' style='margin-bottom:20px;margin-top:0'>
+      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
+    </button>
+    <div class='hdg'>Edit Workout</div>
+    <div style='font-size:13px;color:var(--mut);margin-bottom:16px'>${log.dayName} · ${fmtDate(log.date)} · ${fmtDur(log.duration)}</div>
+    ${exSections}
+    <button class='btn btn-ok' data-action='save-log-edit'>Save Changes</button>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
 // RENDER – HISTORY
 // ─────────────────────────────────────────────
 function renderHistory(){
@@ -1329,14 +1381,18 @@ function renderHistory(){
   const items=[...S.logs].reverse().map(l=>{
     const id=`log-${l.id}`;const open=S.openLogs[l.id];
     const exSummary=l.exercises.map(e=>{
-      const setStr=e.sets.map(s=>`${s.weight}lb×${s.reps}`).join(', ');
+      const isNW=EX.find(ex=>ex.id===e.id)?.noWeight;
+      const setStr=e.sets.map(s=>isNW?`${s.reps} reps`:`${s.weight}lb×${s.reps}`).join(' · ');
       return`<div class='log-ex'><strong>${e.name}</strong><div class='log-sets'>${setStr||'—'}</div></div>`;
     }).join('');
     const badge=l.isLunch?`<span class='badge badge-lunch' style='margin-left:6px'>Lunch</span>`:'';
     return`<div class='log-item' data-action='toggle-log' data-id='${l.id}'>
       <div class='log-hdr'><div class='log-date'>${l.dayName}${badge}</div><div style='color:var(--mut);font-size:18px'>${open?'▲':'▼'}</div></div>
       <div class='log-meta'>${fmtDate(l.date)} · ${fmtDur(l.duration)} · ${l.exercises.length} exercises</div>
-      <div class='log-body${open?' open':''}' id='${id}'>${exSummary}</div>
+      <div class='log-body${open?' open':''}' id='${id}'>
+        ${exSummary}
+        <button class='btn btn-s btn-sm' data-action='edit-log' data-id='${l.id}' style='margin-top:10px;width:auto'>✏️ Edit this workout</button>
+      </div>
     </div>`;
   }).join('');
 
@@ -1370,6 +1426,7 @@ function render(){
   if(S.view==='dash'){root.innerHTML=renderDash();return;}
   if(S.view==='plan'){root.innerHTML=renderPlan();return;}
   if(S.view==='cloud'){root.innerHTML=renderCloudSetup();return;}
+  if(S.view==='log-edit'){root.innerHTML=renderLogEdit();return;}
   if(S.view==='program'){root.innerHTML=renderProgram();return;}
   if(S.view==='history'){root.innerHTML=renderHistory();return;}
 }
@@ -1537,6 +1594,30 @@ document.addEventListener('click',e=>{
     const id=btn.dataset.id;
     S.openLogs[id]=!S.openLogs[id];render();return;
   }
+  if(a==='edit-log'){
+    const log=S.logs.find(l=>l.id===btn.dataset.id);
+    if(log){S.editLogDraft=JSON.parse(JSON.stringify(log));S.view='log-edit';render();}
+    return;
+  }
+  if(a==='save-log-edit'){
+    const log=S.editLogDraft;
+    if(log){
+      log.exercises.forEach((ex,ei)=>{
+        const isNW=EX.find(e=>e.id===ex.id)?.noWeight;
+        ex.sets.forEach((s,si)=>{
+          if(!isNW){const wEl=document.getElementById(`el-w-${ei}-${si}`);if(wEl)s.weight=parseFloat(wEl.value)||0;}
+          const rEl=document.getElementById(`el-r-${ei}-${si}`);if(rEl)s.reps=parseInt(rEl.value)||0;
+        });
+      });
+      const idx=S.logs.findIndex(l=>l.id===log.id);
+      if(idx!==-1)S.logs[idx]=log;
+      recalcLastWeights();
+      S.editLogDraft=null;S.view='history';
+      save();render();
+    }
+    return;
+  }
+  if(a==='cancel-log-edit'){S.editLogDraft=null;S.view='history';render();return;}
   if(a==='skip-rest'||btn.id==='skip-rest-btn'){stopRest();return;}
 });
 
