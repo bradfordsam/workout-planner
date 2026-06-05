@@ -1034,7 +1034,7 @@ function renderPlan(){
     <div class='card' style='margin-bottom:16px'>
       <div style='display:flex;align-items:center;gap:8px;margin-bottom:12px'>
         <span style='font-size:13px;color:var(--mut);white-space:nowrap'>Burn</span>
-        <input type='number' class='ni' id='plan-cal' placeholder='e.g. 2000' value='${calVal}' min='0' step='50' style='width:110px'>
+        <input type='number' class='ni' id='plan-cal' placeholder='e.g. 2000' value='${calVal}' min='0' step='50' inputmode='numeric' style='width:110px'>
         <span style='font-size:13px;color:var(--mut);white-space:nowrap'>calories</span>
       </div>
       <div style='display:grid;grid-template-columns:1fr 1fr;gap:8px'>
@@ -1076,7 +1076,7 @@ function renderSetup(){
     `<div class='s-title'>Your body weight?</div>
      <div class='s-sub'>Used to estimate calorie burn from workouts and cardio prescriptions.</div>
      <div class='bw-input-wrap'>
-       <input type='number' class='ni bw-big' id='bw-input' value='${cfg.bodyLbs||175}' min='80' max='400' step='5'>
+       <input type='number' class='ni bw-big' id='bw-input' value='${cfg.bodyLbs||175}' min='80' max='400' step='5' inputmode='decimal'>
        <span style='font-size:20px;font-weight:600;color:var(--mut)'>lbs</span>
      </div>`,
   ];
@@ -1139,8 +1139,8 @@ function renderDash(){
         ${prog?`<div style='margin-bottom:8px'>Last: <strong>${prog.summary}</strong> &nbsp;→&nbsp; <span style='color:var(--acc)'>Goal: ${prog.suggest} lb</span></div>`
               :`<div style='color:var(--mut);margin-bottom:8px'>No history on this device — enter your last session:</div>`}
         <div style='display:flex;gap:6px;align-items:center;margin-bottom:${e.cue?'8px':'0'}'>
-          <input type='number' id='ew-${e.id}' placeholder='lb' value='${lw?.weight||''}' class='ni' step='5' min='0' style='width:72px'>
-          <input type='number' id='er-${e.id}' placeholder='reps' value='${lw?.reps||''}' class='ni' min='1' max='50' style='width:60px'>
+          <input type='number' id='ew-${e.id}' placeholder='lb' value='${lw?.weight||''}' class='ni' step='5' min='0' inputmode='decimal' style='width:72px'>
+          <input type='number' id='er-${e.id}' placeholder='reps' value='${lw?.reps||''}' class='ni' min='1' max='50' inputmode='numeric' style='width:60px'>
           <button class='btn btn-s btn-sm' data-action='save-ex-weight' data-exid='${e.id}' style='flex:1'>Save</button>
         </div>
         ${e.cue?`<div style='color:var(--mut);line-height:1.6;padding-top:8px;border-top:1px solid var(--bdr)'>${e.cue}</div>`:''}
@@ -1340,8 +1340,8 @@ function renderWorkout(){
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
       <div class='st'>${repRange}</div>
-      ${(isNoWeight||isTimed)?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`}
-      <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' ${done?'disabled':''}>
+      ${(isNoWeight||isTimed)?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`}
+      <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' inputmode='numeric' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
     </div>`;
   }).join('');
@@ -1469,12 +1469,12 @@ function renderLogEdit(){
       return isNW
         ?`<div class='set-row' style='grid-template-columns:32px 1fr;margin-bottom:6px'>
             <div class='sn'>${si+1}</div>
-            <input class='ni' type='number' id='el-r-${ei}-${si}' value='${s.reps||0}' min='0' max='50' placeholder='reps'>
+            <input class='ni' type='number' id='el-r-${ei}-${si}' value='${s.reps||0}' min='0' max='50' inputmode='numeric' placeholder='reps'>
           </div>`
         :`<div class='set-row' style='grid-template-columns:32px 1fr 1fr;margin-bottom:6px'>
             <div class='sn'>${si+1}</div>
-            <input class='ni' type='number' id='el-w-${ei}-${si}' value='${s.weight||0}' min='0' step='5' placeholder='lb'>
-            <input class='ni' type='number' id='el-r-${ei}-${si}' value='${s.reps||0}' min='0' max='50' placeholder='reps'>
+            <input class='ni' type='number' id='el-w-${ei}-${si}' value='${s.weight||0}' min='0' step='5' inputmode='decimal' placeholder='lb'>
+            <input class='ni' type='number' id='el-r-${ei}-${si}' value='${s.reps||0}' min='0' max='50' inputmode='numeric' placeholder='reps'>
           </div>`;
     }).join('');
     return`<div class='card' style='margin-bottom:10px'>
