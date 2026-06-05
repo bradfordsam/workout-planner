@@ -300,13 +300,13 @@ const EX = [
   {id:'hip_cars',name:'Hip CARs',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:5,rMax:8,rest:30,cue:'Stand near wall for balance. Lift one knee high, then rotate it OUT and sweep the full circle (Controlled Articular Rotation). Goal is to find and explore your full active range. Go slow — speed defeats the purpose. Squeeze glute at the back. Count full circles per side.',tags:['mobility','rotation']},
 
   // Athletic/Performance focused exercises
-  {id:'burpees',name:'Burpees',muscle:'core',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'Drop to push-up, jump feet back in, explosive jump up with hands overhead. Full-body power endurance. Focus on smooth transitions and explosive jump.',tags:['plyometric','conditioning']},
-  {id:'mountain_climbers',name:'Mountain Climbers',muscle:'core',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,rest:90,cue:'High plank position, drive knees to chest alternating rapidly. Keep hips level, core tight. Think sprinting in plank position. Count total reps (both legs).',tags:['conditioning','anti-extension']},
-  {id:'jump_squats',name:'Jump Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:8,rMax:12,rest:120,cue:'Squat down, then explode up into a jump. Land softly, immediately into next rep. Focus on rate of force development. Each rep should be max effort.',tags:['plyometric','quad','power']},
-  {id:'lateral_bounds',name:'Lateral Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:120,cue:'Single-leg lateral jump, stick the landing on one foot, then bound back to other side. Focus on distance and landing control. Athletic power in frontal plane. Count per side.',tags:['plyometric','unilateral','lateral']},
-  {id:'single_leg_bounds',name:'Single-Leg Forward Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:8,rest:150,cue:'Single-leg hop forward for distance, stick the landing, repeat on same leg. Focus on distance and landing mechanics. Builds unilateral power and stability. Count per leg.',tags:['plyometric','unilateral','power']},
-  {id:'bear_crawl',name:'Bear Crawl',muscle:'core',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,rest:90,cue:'Hands and toes, knees hovering. Crawl forward moving opposite hand/foot together. Keep hips level, core tight. Great for shoulder stability and core strength. Count steps.',tags:['crawling','stability']},
-  {id:'turkish_getup_bw',name:'Turkish Get-up (Bodyweight)',muscle:'core',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:150,cue:'Complex movement from lying to standing. Focus on smooth transitions and stability at each position. Master the movement before adding weight. Ultimate full-body coordination exercise. Count per side.',tags:['complex','stability','coordination']},
+  {id:'burpees',name:'Burpees',muscle:'core',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'Drop to push-up, jump feet back in, explosive jump up with hands overhead. Full-body power endurance. Focus on smooth transitions and explosive jump.',tags:['plyometric','conditioning'],highSweat:true},
+  {id:'mountain_climbers',name:'Mountain Climbers',muscle:'core',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,rest:90,cue:'High plank position, drive knees to chest alternating rapidly. Keep hips level, core tight. Think sprinting in plank position. Count total reps (both legs).',tags:['conditioning','anti-extension'],highSweat:true},
+  {id:'jump_squats',name:'Jump Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:8,rMax:12,rest:120,cue:'Squat down, then explode up into a jump. Land softly, immediately into next rep. Focus on rate of force development. Each rep should be max effort.',tags:['plyometric','quad','power'],highSweat:true},
+  {id:'lateral_bounds',name:'Lateral Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:120,cue:'Single-leg lateral jump, stick the landing on one foot, then bound back to other side. Focus on distance and landing control. Athletic power in frontal plane. Count per side.',tags:['plyometric','unilateral','lateral'],highSweat:true},
+  {id:'single_leg_bounds',name:'Single-Leg Forward Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:8,rest:150,cue:'Single-leg hop forward for distance, stick the landing, repeat on same leg. Focus on distance and landing mechanics. Builds unilateral power and stability. Count per leg.',tags:['plyometric','unilateral','power'],highSweat:true},
+  {id:'bear_crawl',name:'Bear Crawl',muscle:'core',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,rest:90,cue:'Hands and toes, knees hovering. Crawl forward moving opposite hand/foot together. Keep hips level, core tight. Great for shoulder stability and core strength. Count steps.',tags:['crawling','stability'],highSweat:true},
+  {id:'turkish_getup_bw',name:'Turkish Get-up (Bodyweight)',muscle:'core',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:150,cue:'Complex movement from lying to standing. Focus on smooth transitions and stability at each position. Master the movement before adding weight. Ultimate full-body coordination exercise. Count per side.',tags:['complex','stability','coordination'],highSweat:true},
   {id:'archer_pushup',name:'Archer Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:180,cue:'Wide hand position, shift weight to one arm during the push-up. Builds unilateral strength toward one-arm push-up. Control the eccentric phase. Count per side.',tags:['unilateral','advanced']},
   {id:'pistol_squat',name:'Pistol Squat',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:180,cue:'Single-leg squat to full depth, free leg extended forward. Builds unilateral strength, mobility, and balance. Use assistance if needed. Ultimate bodyweight squat progression. Count per leg.',tags:['unilateral','advanced','squat']},
   {id:'handstand_pushup',name:'Handstand Push-up',muscle:'shoulders',type:'compound',eq:['bodyweight'],rMin:3,rMax:8,rest:180,cue:'Inverted push-up against wall. Lower head to floor, press back up. Builds shoulder and core strength. Progress from pike push-ups. Advanced bodyweight movement. Count reps.',tags:['inverted','advanced']},
@@ -349,52 +349,47 @@ const EQUIPMENT_PRESETS = {
 const YMCA_EQUIP = EQUIPMENT_PRESETS.ymca.equipment;
 const HOME_EQUIP = EQUIPMENT_PRESETS.pullup_only.equipment;
 
-// Compact compound-only templates for 45-min YMCA lunch sessions
+// Low-sweat templates for YMCA lunch sessions (no shower needed!)
 const LUNCH_TMPLS = {
-  push:{name:'Push · Lunch',desc:'Chest · Shoulders (compound)',slots:[
+  push:{name:'Push · Lunch',desc:'Chest · Shoulders · Triceps (controlled)',slots:[
     {muscle:'chest',type:'compound'},
     {muscle:'shoulders',type:'compound'},
-    {muscle:'core',type:'rotational'},
+    {muscle:'triceps',type:'isolation'},
   ]},
-  pull:{name:'Pull · Lunch',desc:'Back vertical + horizontal (compound)',slots:[
+  pull:{name:'Pull · Lunch',desc:'Back · Biceps (controlled)',slots:[
     {muscle:'back',type:'compound',tag:'vertical'},
     {muscle:'back',type:'compound',tag:'horizontal'},
-    {muscle:'core',type:'rotational'},
+    {muscle:'biceps',type:'isolation'},
   ]},
-  legs:{name:'Legs · Lunch',desc:'Hinge + quad + hip stability',slots:[
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'legs',type:'compound',tag:'quad'},
+  upper:{name:'Upper Body · Lunch',desc:'Chest · Back · Arms (seated/controlled)',slots:[
+    {muscle:'chest',type:'compound'},
+    {muscle:'back',type:'compound',tag:'horizontal'},
+    {muscle:'shoulders',type:'isolation'},
+  ]},
+  upper_push:{name:'Push Focus · Lunch',desc:'Chest · Shoulders · Triceps',slots:[
+    {muscle:'chest',type:'compound'},
+    {muscle:'shoulders',type:'isolation'},
+    {muscle:'triceps',type:'isolation'},
+  ]},
+  upper_pull:{name:'Pull Focus · Lunch',desc:'Back · Biceps · Rear delts',slots:[
+    {muscle:'back',type:'compound',tag:'vertical'},
+    {muscle:'biceps',type:'isolation'},
+    {muscle:'back',type:'isolation',tag:'rear_delt'},
+  ]},
+  legs_light:{name:'Light Lower · Lunch',desc:'Machine-based leg work (minimal sweat)',slots:[
+    {muscle:'legs',type:'isolation',tag:'quad'},
+    {muscle:'legs',type:'isolation',tag:'hamstring'},
     {muscle:'hips',type:'stability'},
   ]},
-  upper_push:{name:'Upper Push · Lunch',desc:'Chest + back horizontal (compound)',slots:[
-    {muscle:'chest',type:'compound'},
-    {muscle:'back',type:'compound',tag:'horizontal'},
+  core_focus:{name:'Core · Lunch',desc:'Controlled core + upper accessories',slots:[
     {muscle:'core',type:'rotational'},
+    {muscle:'shoulders',type:'isolation'},
+    {muscle:'back',type:'isolation',tag:'rear_delt'},
   ]},
-  upper_pull:{name:'Upper Pull · Lunch',desc:'Back vertical + chest (compound)',slots:[
+  full_upper:{name:'Full Upper · Lunch',desc:'Complete upper body (no legs)',slots:[
+    {muscle:'chest',type:'compound'},
     {muscle:'back',type:'compound',tag:'vertical'},
-    {muscle:'chest',type:'compound'},
-    {muscle:'core',type:'rotational'},
-  ]},
-  lower_a:{name:'Lower A · Lunch',desc:'Quad focus (compound)',slots:[
-    {muscle:'legs',type:'compound',tag:'quad'},
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'core',type:'rotational'},
-  ]},
-  lower_b:{name:'Lower B · Lunch',desc:'Posterior chain (compound)',slots:[
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'legs',type:'compound',tag:'quad'},
-    {muscle:'core',type:'rotational'},
-  ]},
-  full_a:{name:'Full Body A · Lunch',desc:'Push + lower (compound)',slots:[
-    {muscle:'chest',type:'compound'},
-    {muscle:'legs',type:'compound',tag:'quad'},
-    {muscle:'core',type:'rotational'},
-  ]},
-  full_b:{name:'Full Body B · Lunch',desc:'Pull + lower (compound)',slots:[
-    {muscle:'back',type:'compound',tag:'horizontal'},
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'core',type:'rotational'},
+    {muscle:'shoulders',type:'isolation'},
   ]},
 };
 
@@ -529,14 +524,15 @@ function load(){
 // ─────────────────────────────────────────────
 // PROGRAM GENERATOR
 // ─────────────────────────────────────────────
-function pickEx(slot,equip,used){
+function pickEx(slot,equip,used,isLunch){
   const eq=new Set([...equip,'bodyweight']);
   return EX.find(e=>
     e.muscle===slot.muscle&&e.type===slot.type&&
     (!slot.tag||((e.tags||[]).includes(slot.tag)))&&
     !used.includes(e.id)&&
     e.eq.some(q=>eq.has(q))&&
-    !(S.cfg.hipCaution&&e.hipRisk)
+    !(S.cfg.hipCaution&&e.hipRisk)&&
+    !(isLunch&&e.highSweat) // Filter out high-sweat exercises for lunch sessions
   )||null;
 }
 
@@ -587,7 +583,7 @@ function genProgram(cfg,av){
     const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
     const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
     const used=[];
-    const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,equip,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
+    const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,equip,used,slot.isLunch);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
     let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
     return{tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
@@ -710,7 +706,7 @@ function pickEveningExercises(day,sessionMins){
   if(!tmpl)return day.exercises.slice(0,limit);
   const used=[];
   const exs=tmpl.slots.slice(0,limit).map(sl=>{
-    const e=pickEx(sl,equip,used);
+    const e=pickEx(sl,equip,used,false); // Evening sessions allow high-sweat exercises
     if(e)used.push(e.id);
     return e?{...e,sets:3,sessionMins}:null;
   }).filter(Boolean);
@@ -1382,6 +1378,18 @@ function renderWorkout(){
       ${setsRows}
       ${nextBtn}
     </div>
+    ${(exIdx<total-1)?`<div class='card2' style='margin-top:12px'>
+      <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:8px;display:flex;align-items:center;gap:4px'>
+        <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='9 18 15 12 9 6'/></svg>Next Up
+      </div>
+      <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
+        <span style='width:6px;height:6px;border-radius:50%;background:${MCOL[exercises[exIdx+1].muscle]||'var(--acc)'};flex-shrink:0;display:inline-block'></span>
+        <strong style='font-size:14px'>${exercises[exIdx+1].name}</strong>
+        <span style='font-size:11px;color:var(--mut);margin-left:auto'>${exercises[exIdx+1].sets} × ${exercises[exIdx+1].rMin}–${exercises[exIdx+1].rMax}</span>
+      </div>
+      <button class='cue-btn' data-action='toggle-cue' data-id='next-cue-${exIdx+1}' style='margin-bottom:6px'>💡 Preview technique tip</button>
+      <div class='cue-txt' id='next-cue-${exIdx+1}' style='font-size:12px;margin-bottom:0'>${exercises[exIdx+1].cue||'No technique notes available.'}</div>
+    </div>`:''}
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
     <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s':ex.rest>=60?ex.rest/60+' min':ex.rest+'s'} rest between sets · slow eccentric</div>
   </div>`;
