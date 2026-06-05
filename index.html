@@ -13,12 +13,32 @@
 <title>Workout Planner</title>
 <style>
 :root{
-  --bg:#0a0a12;--surf:#141420;--surf2:#1e1e2e;--bdr:rgba(255,255,255,.07);
-  --acc:#818cf8;--acc2:rgba(129,140,248,.12);
-  --txt:#e2e8f0;--mut:#64748b;
-  --ok:#34d399;--warn:#fbbf24;--bad:#f87171;
+  /* Base Colors */
+  --bg:#0a0a12;--surf:#141420;--surf2:#1e1e2e;--surf3:#2a2a3e;
+  --bdr:rgba(255,255,255,.07);--bdr-strong:rgba(255,255,255,.15);
+  --acc:#818cf8;--acc2:rgba(129,140,248,.12);--acc-bright:#a5b4fc;
+  --txt:#e2e8f0;--txt-dim:#cbd5e1;--mut:#64748b;--mut-light:#94a3b8;
+  --ok:#34d399;--ok2:rgba(52,211,153,.12);--warn:#fbbf24;--warn2:rgba(251,191,36,.12);
+  --bad:#f87171;--bad2:rgba(248,113,113,.12);
+
+  /* Muscle Group Colors */
   --chest:#f87171;--back:#60a5fa;--shoulders:#a78bfa;
   --biceps:#34d399;--triceps:#fb923c;--legs:#f472b6;--core:#facc15;
+
+  /* Enhanced Design System */
+  --glass-bg:rgba(20,20,32,0.8);--glass-border:rgba(255,255,255,0.1);
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-md:0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --shadow-xl:0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  --shadow-glow:0 0 20px rgba(129,140,248,0.3);
+  --shadow-glow-sm:0 0 10px rgba(129,140,248,0.2);
+
+  /* Gradients */
+  --grad-primary:linear-gradient(135deg, var(--acc) 0%, var(--acc-bright) 100%);
+  --grad-surface:linear-gradient(135deg, var(--surf) 0%, var(--surf2) 100%);
+  --grad-glass:linear-gradient(135deg, rgba(20,20,32,0.9) 0%, rgba(30,30,46,0.8) 100%);
+  --grad-accent:linear-gradient(135deg, #818cf8 0%, #a5b4fc 50%, #c7d2fe 100%);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;-webkit-tap-highlight-color:transparent}
@@ -278,13 +298,56 @@ const EX = [
   {id:'hip_90_90',name:'90/90 Hip Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Sit with both knees at 90°. Front leg externally rotated, back leg internally rotated. Tall spine. Lean forward over your front shin — feel the hip open. Breathe into the stretch, do not force it. This targets hip internal rotation, which is often restricted with impingement. Count seconds per side.',tags:['mobility','internal_rotation']},
   {id:'hip_flexor_half_kneel',name:'Half-Kneeling Hip Flexor Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Down knee on pad, front foot forward. FIRST: posteriorly tilt your pelvis (tuck tailbone). THEN drive hips forward. That pelvic tilt is the key — without it you compress the hip instead of stretching the flexor. Hold, breathe. Count seconds per side.',tags:['mobility','hip_flexor']},
   {id:'hip_cars',name:'Hip CARs',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:5,rMax:8,rest:30,cue:'Stand near wall for balance. Lift one knee high, then rotate it OUT and sweep the full circle (Controlled Articular Rotation). Goal is to find and explore your full active range. Go slow — speed defeats the purpose. Squeeze glute at the back. Count full circles per side.',tags:['mobility','rotation']},
+
+  // Athletic/Performance focused exercises
+  {id:'burpees',name:'Burpees',muscle:'core',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'Drop to push-up, jump feet back in, explosive jump up with hands overhead. Full-body power endurance. Focus on smooth transitions and explosive jump.',tags:['plyometric','conditioning']},
+  {id:'mountain_climbers',name:'Mountain Climbers',muscle:'core',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,rest:90,cue:'High plank position, drive knees to chest alternating rapidly. Keep hips level, core tight. Think sprinting in plank position. Count total reps (both legs).',tags:['conditioning','anti-extension']},
+  {id:'jump_squats',name:'Jump Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:8,rMax:12,rest:120,cue:'Squat down, then explode up into a jump. Land softly, immediately into next rep. Focus on rate of force development. Each rep should be max effort.',tags:['plyometric','quad','power']},
+  {id:'lateral_bounds',name:'Lateral Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:120,cue:'Single-leg lateral jump, stick the landing on one foot, then bound back to other side. Focus on distance and landing control. Athletic power in frontal plane. Count per side.',tags:['plyometric','unilateral','lateral']},
+  {id:'single_leg_bounds',name:'Single-Leg Forward Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:8,rest:150,cue:'Single-leg hop forward for distance, stick the landing, repeat on same leg. Focus on distance and landing mechanics. Builds unilateral power and stability. Count per leg.',tags:['plyometric','unilateral','power']},
+  {id:'bear_crawl',name:'Bear Crawl',muscle:'core',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,rest:90,cue:'Hands and toes, knees hovering. Crawl forward moving opposite hand/foot together. Keep hips level, core tight. Great for shoulder stability and core strength. Count steps.',tags:['crawling','stability']},
+  {id:'turkish_getup_bw',name:'Turkish Get-up (Bodyweight)',muscle:'core',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:150,cue:'Complex movement from lying to standing. Focus on smooth transitions and stability at each position. Master the movement before adding weight. Ultimate full-body coordination exercise. Count per side.',tags:['complex','stability','coordination']},
+  {id:'archer_pushup',name:'Archer Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:180,cue:'Wide hand position, shift weight to one arm during the push-up. Builds unilateral strength toward one-arm push-up. Control the eccentric phase. Count per side.',tags:['unilateral','advanced']},
+  {id:'pistol_squat',name:'Pistol Squat',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:180,cue:'Single-leg squat to full depth, free leg extended forward. Builds unilateral strength, mobility, and balance. Use assistance if needed. Ultimate bodyweight squat progression. Count per leg.',tags:['unilateral','advanced','squat']},
+  {id:'handstand_pushup',name:'Handstand Push-up',muscle:'shoulders',type:'compound',eq:['bodyweight'],rMin:3,rMax:8,rest:180,cue:'Inverted push-up against wall. Lower head to floor, press back up. Builds shoulder and core strength. Progress from pike push-ups. Advanced bodyweight movement. Count reps.',tags:['inverted','advanced']},
+  {id:'l_sits',name:'L-Sit',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:30,rest:120,isTimed:true,cue:'Sit with legs extended, hands flat, lift entire body off ground. Hold position with straight legs parallel to floor. Incredible core and shoulder strength builder. Count seconds.',tags:['isometric','advanced']},
+  {id:'broad_jump',name:'Broad Jump',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:150,cue:'Two-foot takeoff, jump forward for maximum distance, land softly on both feet. Focus on explosive hip extension and soft landing mechanics. Reset between reps. Count jumps.',tags:['plyometric','power','bilateral']},
 ];
 
 // ─────────────────────────────────────────────
 // YMCA / LUNCH SESSION CONSTANTS
 // ─────────────────────────────────────────────
-const YMCA_EQUIP = ['barbell','dumbbells','cables','pullup_bar','machine'];
-const HOME_EQUIP  = ['pullup_bar','bodyweight'];
+// Equipment Presets - User's 4 main categories
+const EQUIPMENT_PRESETS = {
+  pullup_only: {
+    name: '🏠 Pull-up Bar Only',
+    desc: 'Home setup with just a pull-up bar',
+    equipment: ['pullup_bar', 'bodyweight'],
+    location: 'home'
+  },
+  hotel_gym: {
+    name: '🏨 Hotel Gym',
+    desc: 'Basic hotel gym with dumbbells & machines',
+    equipment: ['dumbbells', 'machine', 'bodyweight'],
+    location: 'hotel'
+  },
+  ymca: {
+    name: '🏋️ YMCA',
+    desc: 'Full gym with all equipment available',
+    equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'bodyweight'],
+    location: 'ymca'
+  },
+  bodyweight: {
+    name: '🌱 Bodyweight Only',
+    desc: 'Grassy field, no equipment needed',
+    equipment: ['bodyweight'],
+    location: 'field'
+  }
+};
+
+// Legacy constants for backward compatibility
+const YMCA_EQUIP = EQUIPMENT_PRESETS.ymca.equipment;
+const HOME_EQUIP = EQUIPMENT_PRESETS.pullup_only.equipment;
 
 // Compact compound-only templates for 45-min YMCA lunch sessions
 const LUNCH_TMPLS = {
@@ -426,7 +489,7 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 // ─────────────────────────────────────────────
 let S={
   view:'setup',step:1,
-  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true},
+  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true,equipmentPreset:'ymca'},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
 };
@@ -512,7 +575,9 @@ function genProgram(cfg,av){
 
   function assignSlot(slot,idx){
     const tk=split[idx%split.length];
-    const equip=slot.loc==='home'?HOME_EQUIP:YMCA_EQUIP;
+    // Use user's selected equipment preset
+    const selectedPreset=EQUIPMENT_PRESETS[cfg.equipmentPreset]||EQUIPMENT_PRESETS.ymca;
+    const equip=selectedPreset.equipment;
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
     if(oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest&&(completedDows.has(slot.dow)||(oldWeek[slot.dow].tk===tk&&oldWeek[slot.dow].loc===slot.loc))){
       const od=oldWeek[slot.dow];
@@ -633,8 +698,9 @@ function getEveningLocation(){
 
 function pickEveningExercises(day,sessionMins){
   const limit=EX_LIMIT[sessionMins]||5;
-  const loc=getEveningLocation();
-  const equip=loc==='ymca'?YMCA_EQUIP:['pullup_bar'];
+  // Use user's selected equipment preset for consistency
+  const selectedPreset=EQUIPMENT_PRESETS[S.cfg.equipmentPreset]||EQUIPMENT_PRESETS.ymca;
+  const equip=selectedPreset.equipment;
   const tmpl=TMPLS[day.tk];
   if(!tmpl)return day.exercises.slice(0,limit);
   const used=[];
@@ -979,17 +1045,27 @@ function renderSetup(){
   const av=S.weekPlan.availability;
 
   const goalOpts=[
+    {id:'ath',label:'Athletic Performance',sub:'Power, speed, movement quality'},
     {id:'hyp',label:'Hypertrophy',sub:'Size + definition'},
     {id:'str',label:'Strength',sub:'Max force output'},
     {id:'bal',label:'Balanced',sub:'Size and strength'},
   ].map(g=>`<div class='opt col1 ${cfg.goal===g.id?'on':''}' data-action='set-goal' data-val='${g.id}'><div class='opt-v' style='font-size:18px'>${g.label}</div><div class='opt-l'>${g.sub}</div></div>`).join('');
 
+  const equipmentOpts=Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>
+    `<div class='opt col1 ${cfg.equipmentPreset===key?'on':''}' data-action='set-equipment' data-val='${key}'>
+      <div class='opt-v' style='font-size:18px'>${preset.name}</div>
+      <div class='opt-l'>${preset.desc}</div>
+    </div>`).join('');
+
   const steps=[
     `<div class='s-title'>Your available sessions</div>
-     <div class='s-sub'>Tap each window you can train. Lunch = 35–40 min at YMCA (compounds). After Work sessions are flexible — you pick the length and whether to lift or just do cardio.</div>
+     <div class='s-sub'>Tap each window you can train. Sessions adapt to your equipment choice on the next screen.</div>
      ${renderAvailGrid(av,true)}`,
-    `<div class='s-title'>Primary goal?</div>
-     <div class='s-sub'>Sets your default rep ranges and intensity targets.</div>
+    `<div class='s-title'>What equipment do you have?</div>
+     <div class='s-sub'>This determines which exercises you'll get in your workouts.</div>
+     <div class='opts col1'>${equipmentOpts}</div>`,
+    `<div class='s-title'>Primary training goal?</div>
+     <div class='s-sub'>Sets your rep ranges and exercise selection priorities.</div>
      <div class='opts col1'>${goalOpts}</div>`,
     `<div class='s-title'>Your body weight?</div>
      <div class='s-sub'>Used to estimate calorie burn from workouts and cardio prescriptions.</div>
@@ -998,8 +1074,8 @@ function renderSetup(){
        <span style='font-size:20px;font-weight:600;color:var(--mut)'>lbs</span>
      </div>`,
   ];
-  const dots=[1,2,3].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
-  const isLast=step===3;
+  const dots=[1,2,3,4].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
+  const isLast=step===4;
   return`<div class='setup'>
     ${step>1?`<button class='s-back' data-action='setup-back'><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back</button>`:'<div style="height:40px"></div>'}
     ${steps[step-1]}
@@ -1235,7 +1311,8 @@ function renderWorkout(){
   }
 
   const swapOpen=S.active.swapMode===exIdx;
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&e.eq.some(q=>[...YMCA_EQUIP,'bodyweight'].includes(q))).slice(0,5):[];
+  const selectedPreset=EQUIPMENT_PRESETS[S.cfg.equipmentPreset]||EQUIPMENT_PRESETS.ymca;
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
     ${alts.map(a=>`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.type}</span></button>`).join('')}
@@ -1489,6 +1566,7 @@ document.addEventListener('click',e=>{
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
   if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);render();return;}
   if(a==='set-goal'){S.cfg.goal=btn.dataset.val;render();return;}
+  if(a==='set-equipment'){S.cfg.equipmentPreset=btn.dataset.val;render();return;}
   if(a==='generate'){
     const bwEl=document.getElementById('bw-input');
     if(bwEl){const v=parseInt(bwEl.value);if(v>=80&&v<=400)S.cfg.bodyLbs=v;}
