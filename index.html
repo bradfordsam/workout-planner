@@ -489,7 +489,7 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 // ─────────────────────────────────────────────
 let S={
   view:'setup',step:1,
-  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true,equipmentPreset:'ymca'},
+  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
 };
@@ -547,15 +547,15 @@ function genProgram(cfg,av){
   const lunchSlots=[];const eveSlots=[];
   [1,2,3,4,5].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.lunch!==false)lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`});
-    if(d.eve?.on)eveSlots.push({dow,isLunch:false,mins:d.eve.mins||60,loc:d.eve.loc||'ymca',key:`${dow}-eve`});
+    if(d.lunch!==false)lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`,equipmentKey:d.lunchEquipment||'ymca'});
+    if(d.eve?.on)eveSlots.push({dow,isLunch:false,mins:d.eve.mins||60,loc:d.eve.loc||'ymca',key:`${dow}-eve`,equipmentKey:d.eve.equipment||'ymca'});
   });
   [6,0].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,loc:d.loc||'ymca',key:`${dow}-wknd`});
+    if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,loc:d.loc||'ymca',key:`${dow}-wknd`,equipmentKey:d.equipment||'ymca'});
   });
   if(!lunchSlots.length&&!eveSlots.length){
-    [1,2,3,4,5].forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`}));
+    [1,2,3,4,5].forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`,equipmentKey:'ymca'}));
   }
 
   // Split size: lunches fill first, evenings on non-lunch days fill remaining gaps (max 5)
@@ -575,8 +575,9 @@ function genProgram(cfg,av){
 
   function assignSlot(slot,idx){
     const tk=split[idx%split.length];
-    // Use user's selected equipment preset
-    const selectedPreset=EQUIPMENT_PRESETS[cfg.equipmentPreset]||EQUIPMENT_PRESETS.ymca;
+    // Use per-session equipment from availability
+    const equipmentKey=slot.equipmentKey||'ymca';
+    const selectedPreset=EQUIPMENT_PRESETS[equipmentKey]||EQUIPMENT_PRESETS.ymca;
     const equip=selectedPreset.equipment;
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
     if(oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest&&(completedDows.has(slot.dow)||(oldWeek[slot.dow].tk===tk&&oldWeek[slot.dow].loc===slot.loc))){
@@ -633,11 +634,11 @@ function planMonday(){return todayDow()===0?addDays(todayStr(),1):thisMonday();}
 function nextSunday(){const dow=todayDow();return addDays(todayStr(),dow===0?7:7-dow);}
 
 function defaultAvailability(){
-  const eve=()=>({on:false,mins:60,loc:'ymca'});
+  const eve=()=>({on:false,mins:60,loc:'ymca',equipment:'ymca'});
   return{
-    1:{lunch:true,eve:eve()},2:{lunch:true,eve:eve()},3:{lunch:true,eve:eve()},
-    4:{lunch:true,eve:eve()},5:{lunch:true,eve:eve()},
-    6:{on:false,mins:60,loc:'ymca'},0:{on:false,mins:60,loc:'ymca'},
+    1:{lunch:true,lunchEquipment:'ymca',eve:eve()},2:{lunch:true,lunchEquipment:'ymca',eve:eve()},3:{lunch:true,lunchEquipment:'ymca',eve:eve()},
+    4:{lunch:true,lunchEquipment:'ymca',eve:eve()},5:{lunch:true,lunchEquipment:'ymca',eve:eve()},
+    6:{on:false,mins:60,loc:'ymca',equipment:'ymca'},0:{on:false,mins:60,loc:'ymca',equipment:'ymca'},
   };
 }
 function ensureAv(dow){
@@ -698,8 +699,12 @@ function getEveningLocation(){
 
 function pickEveningExercises(day,sessionMins){
   const limit=EX_LIMIT[sessionMins]||5;
-  // Use user's selected equipment preset for consistency
-  const selectedPreset=EQUIPMENT_PRESETS[S.cfg.equipmentPreset]||EQUIPMENT_PRESETS.ymca;
+  // Use session's equipment - for evening sessions, get it from availability
+  const today=todayDow();
+  const av=S.weekPlan?.availability||{};
+  const todayAv=av[today]||{};
+  const eveEquipment=todayAv.eve?.equipment||'ymca';
+  const selectedPreset=EQUIPMENT_PRESETS[eveEquipment]||EQUIPMENT_PRESETS.ymca;
   const equip=selectedPreset.equipment;
   const tmpl=TMPLS[day.tk];
   if(!tmpl)return day.exercises.slice(0,limit);
@@ -943,23 +948,33 @@ function renderAvailGrid(av,inSetup){
     const eveCardio=!!d.eve?.cardioOnly;
     const eveMins=d.eve?.mins||60;
     const isPast=!inSetup&&dow>0&&dow<today;
+    const lunchEquipment=d.lunchEquipment||'ymca';
+    const eveEquipment=d.eve?.equipment||'ymca';
+    const lunchEquipName=EQUIPMENT_PRESETS[lunchEquipment]?.name||'🏋️ YMCA';
+    const eveEquipName=EQUIPMENT_PRESETS[eveEquipment]?.name||'🏋️ YMCA';
+
     return`<div class='plan-slot-row${isPast?' pg-skip':''}'>
       <div class='plan-slot-day'>${dn}${isPast?` <span style='font-size:10px;color:var(--mut)'>(past)</span>`:''}</div>
       <div class='plan-slot-checks'>
         <div class='plan-chk${lunchOn?' on':''}' data-action='toggle-avail-lunch' data-dow='${dow}'>
           <div class='plan-chk-box'>${lunchOn?'✓':''}</div>
-          <div><div style='font-size:12px;font-weight:700'>Lunch</div><div style='font-size:11px;color:var(--mut)'>35–40 min · YMCA</div></div>
+          <div><div style='font-size:12px;font-weight:700'>Lunch</div><div style='font-size:11px;color:var(--mut)'>35–40 min · ${lunchEquipName}</div></div>
         </div>
         <div class='plan-chk${eveOn?' on':''}' data-action='toggle-avail-eve' data-dow='${dow}'>
           <div class='plan-chk-box'>${eveOn?'✓':''}</div>
-          <div><div style='font-size:12px;font-weight:700'>After Work</div><div style='font-size:11px;color:var(--mut)'>${eveOn?(eveCardio?'Cardio only':'Lifting · '+eveMins+' min'):'Off'}</div></div>
+          <div><div style='font-size:12px;font-weight:700'>After Work</div><div style='font-size:11px;color:var(--mut)'>${eveOn?(eveCardio?'Cardio only':eveMins+' min · '+eveEquipName):'Off'}</div></div>
         </div>
       </div>
+      ${lunchOn?`<div class='plan-eve-opts'>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Lunch equipment:</div>
+        <div style='display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap'>
+          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${lunchEquipment===key?'btn-p':'btn-g'}' data-action='set-lunch-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${preset.name.replace(' Only','').replace(' Gym','')}</button>`).join('')}
+        </div>
+      </div>`:''}
       ${eveOn?`<div class='plan-eve-opts'>
-        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Location &amp; max session length:</div>
-        <div style='display:flex;gap:6px;margin-bottom:8px'>
-          <button class='btn btn-sm ${(d.eve?.loc||'ymca')==='home'?'btn-p':'btn-g'}' data-action='set-avail-eve-loc' data-dow='${dow}' data-val='home' style='flex:1'>🏠 Home</button>
-          <button class='btn btn-sm ${(d.eve?.loc||'ymca')==='ymca'?'btn-p':'btn-g'}' data-action='set-avail-eve-loc' data-dow='${dow}' data-val='ymca' style='flex:1'>🏋️ YMCA</button>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Evening equipment &amp; session length:</div>
+        <div style='display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap'>
+          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${eveEquipment===key?'btn-p':'btn-g'}' data-action='set-eve-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${preset.name.replace(' Only','').replace(' Gym','')}</button>`).join('')}
         </div>
         <div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${eveMins===m?' on':''}' data-action='set-avail-eve-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
       </div>`:''}
@@ -967,20 +982,20 @@ function renderAvailGrid(av,inSetup){
   };
   const wkndRow=(dow,dn)=>{
     const d=av[dow]||{};
-    const on=!!d.on;const mins=d.mins||60;const loc=d.loc||'ymca';
+    const on=!!d.on;const mins=d.mins||60;const equipment=d.equipment||'ymca';
+    const equipmentName=EQUIPMENT_PRESETS[equipment]?.name||'🏋️ YMCA';
     return`<div class='plan-slot-row'>
       <div class='plan-slot-day'>${dn}</div>
       <div class='plan-slot-checks'>
         <div class='plan-chk${on?' on':''}' data-action='toggle-avail-weekend' data-dow='${dow}'>
           <div class='plan-chk-box'>${on?'✓':''}</div>
-          <div><div style='font-size:12px;font-weight:700'>${on?(loc==='home'?'🏠 Home':'🏋️ YMCA'):'Rest'}</div><div style='font-size:11px;color:var(--mut)'>${on?'App decides lifting vs cardio':'tap to add session'}</div></div>
+          <div><div style='font-size:12px;font-weight:700'>${on?equipmentName:'Rest'}</div><div style='font-size:11px;color:var(--mut)'>${on?'App decides lifting vs cardio':'tap to add session'}</div></div>
         </div>
       </div>
       ${on?`<div class='plan-eve-opts'>
-        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Location &amp; max session length:</div>
-        <div style='display:flex;gap:6px;margin-bottom:8px'>
-          <button class='btn btn-sm ${loc==='home'?'btn-p':'btn-g'}' data-action='set-avail-weekend-loc' data-dow='${dow}' data-val='home' style='flex:1'>🏠 Home</button>
-          <button class='btn btn-sm ${loc==='ymca'?'btn-p':'btn-g'}' data-action='set-avail-weekend-loc' data-dow='${dow}' data-val='ymca' style='flex:1'>🏋️ YMCA</button>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Equipment &amp; session length:</div>
+        <div style='display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap'>
+          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${equipment===key?'btn-p':'btn-g'}' data-action='set-weekend-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${preset.name.replace(' Only','').replace(' Gym','')}</button>`).join('')}
         </div>
         <div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${mins===m?' on':''}' data-action='set-avail-weekend-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
       </div>`:''}
@@ -1051,19 +1066,10 @@ function renderSetup(){
     {id:'bal',label:'Balanced',sub:'Size and strength'},
   ].map(g=>`<div class='opt col1 ${cfg.goal===g.id?'on':''}' data-action='set-goal' data-val='${g.id}'><div class='opt-v' style='font-size:18px'>${g.label}</div><div class='opt-l'>${g.sub}</div></div>`).join('');
 
-  const equipmentOpts=Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>
-    `<div class='opt col1 ${cfg.equipmentPreset===key?'on':''}' data-action='set-equipment' data-val='${key}'>
-      <div class='opt-v' style='font-size:18px'>${preset.name}</div>
-      <div class='opt-l'>${preset.desc}</div>
-    </div>`).join('');
-
   const steps=[
     `<div class='s-title'>Your available sessions</div>
-     <div class='s-sub'>Tap each window you can train. Sessions adapt to your equipment choice on the next screen.</div>
+     <div class='s-sub'>Tap each window you can train. You'll choose equipment for each session in the next step.</div>
      ${renderAvailGrid(av,true)}`,
-    `<div class='s-title'>What equipment do you have?</div>
-     <div class='s-sub'>This determines which exercises you'll get in your workouts.</div>
-     <div class='opts col1'>${equipmentOpts}</div>`,
     `<div class='s-title'>Primary training goal?</div>
      <div class='s-sub'>Sets your rep ranges and exercise selection priorities.</div>
      <div class='opts col1'>${goalOpts}</div>`,
@@ -1074,8 +1080,8 @@ function renderSetup(){
        <span style='font-size:20px;font-weight:600;color:var(--mut)'>lbs</span>
      </div>`,
   ];
-  const dots=[1,2,3,4].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
-  const isLast=step===4;
+  const dots=[1,2,3].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
+  const isLast=step===3;
   return`<div class='setup'>
     ${step>1?`<button class='s-back' data-action='setup-back'><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back</button>`:'<div style="height:40px"></div>'}
     ${steps[step-1]}
@@ -1311,7 +1317,12 @@ function renderWorkout(){
   }
 
   const swapOpen=S.active.swapMode===exIdx;
-  const selectedPreset=EQUIPMENT_PRESETS[S.cfg.equipmentPreset]||EQUIPMENT_PRESETS.ymca;
+  // Use current session's equipment for exercise swaps
+  const today=todayDow();
+  const av=S.weekPlan?.availability||{};
+  const todayAv=av[today]||{};
+  const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
+  const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
   const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
@@ -1566,7 +1577,6 @@ document.addEventListener('click',e=>{
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
   if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);render();return;}
   if(a==='set-goal'){S.cfg.goal=btn.dataset.val;render();return;}
-  if(a==='set-equipment'){S.cfg.equipmentPreset=btn.dataset.val;render();return;}
   if(a==='generate'){
     const bwEl=document.getElementById('bw-input');
     if(bwEl){const v=parseInt(bwEl.value);if(v>=80&&v<=400)S.cfg.bodyLbs=v;}
@@ -1636,6 +1646,16 @@ document.addEventListener('click',e=>{
     S.weekPlan.availability[dv].eve.loc=btn.dataset.val;
     save();render();return;
   }
+  if(a==='set-lunch-equipment'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].lunchEquipment=btn.dataset.val;
+    save();render();return;
+  }
+  if(a==='set-eve-equipment'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].eve.equipment=btn.dataset.val;
+    save();render();return;
+  }
   if(a==='set-avail-weekend-loc'){
     const dv=parseInt(btn.dataset.dow);ensureAv(dv);
     S.weekPlan.availability[dv].loc=btn.dataset.val;
@@ -1649,6 +1669,11 @@ document.addEventListener('click',e=>{
   if(a==='set-avail-weekend-mins'){
     const dv=parseInt(btn.dataset.dow);ensureAv(dv);
     S.weekPlan.availability[dv].mins=parseInt(btn.dataset.val);
+    save();render();return;
+  }
+  if(a==='set-weekend-equipment'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].equipment=btn.dataset.val;
     save();render();return;
   }
   if(a==='save-plan'){
