@@ -414,6 +414,7 @@ const TMPLS = {
   ]},
 };
 
+const MRV={chest:20,back:20,shoulders:20,biceps:20,triceps:18,legs:20,core:20,hips:20};
 const EX_LIMIT={30:2,45:3,60:5,75:6,90:7};
 const SPLITS={2:['full_a','full_b'],3:['push','pull','legs'],4:['upper_push','lower_a','upper_pull','lower_b'],5:['push','pull','legs','upper_push','upper_pull']};
 const DAY_ASSIGN={1:[1],2:[1,4],3:[1,3,5],4:[1,2,4,5],5:[1,2,3,4,5]};
@@ -477,6 +478,18 @@ function pickEx(slot,equip,used){
   )||null;
 }
 
+function weeklySetsByMuscle(){
+  const mon=thisMonday();
+  const weekEnd=addDays(mon,7);
+  const counts={};
+  (S.logs||[]).filter(l=>l.date.slice(0,10)>=mon&&l.date.slice(0,10)<weekEnd)
+    .forEach(log=>(log.exercises||[]).forEach(ex=>{
+      const n=(ex.sets||[]).filter(s=>s&&s.reps>0).length;
+      if(n)counts[ex.muscle]=(counts[ex.muscle]||0)+n;
+    }));
+  return counts;
+}
+
 function genProgram(cfg,av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
 
@@ -510,18 +523,36 @@ function genProgram(cfg,av){
   );
   const oldWeek=S.program?.week;
 
+  // Running tally: starts with sets already logged this week, accumulates planned sets
+  const setsPlanned=weeklySetsByMuscle();
+
   function assignSlot(slot,idx){
     const tk=split[idx%split.length];
     const equip=slot.loc==='home'?HOME_EQUIP:YMCA_EQUIP;
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
     if(oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest&&(completedDows.has(slot.dow)||(oldWeek[slot.dow].tk===tk&&oldWeek[slot.dow].loc===slot.loc))){
       const od=oldWeek[slot.dow];
+      // Count preserved-but-not-yet-done sessions toward MRV so later slots don't over-prescribe
+      if(!completedDows.has(slot.dow)){
+        (od.exercises||[]).forEach(e=>{setsPlanned[e.muscle]=(setsPlanned[e.muscle]||0)+(e.sets||3);});
+      }
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,preserved:true};
     }
     const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
     const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
     const used=[];
-    const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,equip,used);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
+    const exs=tmpl.slots.slice(0,limit).map(sl=>{
+      const e=pickEx(sl,equip,used);
+      if(!e)return null;
+      used.push(e.id);
+      const mrv=MRV[e.muscle]||20;
+      const done=setsPlanned[e.muscle]||0;
+      const remaining=mrv-done;
+      if(remaining<=0)return null; // muscle at MRV — skip exercise
+      const sets=Math.min(3,remaining);
+      setsPlanned[e.muscle]=(setsPlanned[e.muscle]||0)+sets;
+      return{...e,sets,sessionMins:slot.mins};
+    }).filter(Boolean);
     let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
     return{tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
