@@ -459,6 +459,10 @@ function load(){
       if(d.calEntry&&!S.weekPlan){
         S.weekPlan={weekOf:thisMonday(),skipDays:[],calGoal:{cals:d.calEntry.cals,startDate:d.calEntry.date||todayStr(),endDate:nextSunday()}};
       }
+      // Clear mid-week planStartDow if the stored week plan is from a previous week
+      if(S.cfg?.planStartDow&&(!S.weekPlan||S.weekPlan.weekOf<thisMonday())){
+        delete S.cfg.planStartDow;
+      }
       S.view=S.active?'workout':'dash';
     }
   }catch(e){}
@@ -505,7 +509,8 @@ function genProgram(cfg,av){
     if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,loc:d.loc||'ymca',key:`${dow}-wknd`});
   });
   if(!lunchSlots.length&&!eveSlots.length){
-    [1,2,3,4,5].forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`}));
+    const ps=S.cfg?.planStartDow??1;
+    [1,2,3,4,5].filter(d=>ps!==0&&d>=ps).forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`}));
   }
 
   // Split size: lunches fill first, evenings on non-lunch days fill remaining gaps (max 5)
@@ -907,7 +912,15 @@ function renderAvailGrid(av,inSetup){
     const eveOn=!!d.eve?.on;
     const eveCardio=!!d.eve?.cardioOnly;
     const eveMins=d.eve?.mins||60;
+    const planStart=S.cfg?.planStartDow??1;
+    const isPastSetup=inSetup&&(planStart===0||dow<planStart);
     const isPast=!inSetup&&dow>0&&dow<today;
+    if(isPastSetup){
+      return`<div class='plan-slot-row pg-skip'>
+        <div class='plan-slot-day'>${dn} <span style='font-size:10px;color:var(--mut)'>(already done this week)</span></div>
+        <div style='font-size:12px;color:var(--mut);padding:4px 0'>Not included in this plan</div>
+      </div>`;
+    }
     return`<div class='plan-slot-row${isPast?' pg-skip':''}'>
       <div class='plan-slot-day'>${dn}${isPast?` <span style='font-size:10px;color:var(--mut)'>(past)</span>`:''}</div>
       <div class='plan-slot-checks'>
@@ -1526,6 +1539,7 @@ document.addEventListener('click',e=>{
     if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
     S.weekPlan.weekOf=todayStr();
     S.program=genProgram(S.cfg,S.weekPlan.availability);
+    delete S.cfg.planStartDow; // clear so next week starts fresh
     S.view='dash';save();render();return;
   }
   if(a==='go-cloud-setup'){S.view='cloud';render();return;}
@@ -1624,7 +1638,15 @@ document.addEventListener('click',e=>{
   }
   if(a==='reset-program'){
     if(!confirm('Reset your program and reconfigure?'))return;
-    S.program=null;S.active=null;S.weekPlan=null;S.view='setup';S.step=1;save();render();return;
+    const todayDOW=todayDow();
+    const savedCalGoal=S.weekPlan?.calGoal||null;
+    const av=defaultAvailability();
+    // Turn off days that have already passed this week
+    [1,2,3,4,5].forEach(d=>{if(d<todayDOW){av[d].lunch=false;av[d].eve={on:false,mins:60,loc:'ymca'};}});
+    S.program=null;S.active=null;
+    S.cfg.planStartDow=todayDOW;
+    S.weekPlan={weekOf:todayStr(),availability:av,calGoal:savedCalGoal};
+    S.view='setup';S.step=1;save();render();return;
   }
   if(a==='start-workout'){
     const d=todayDay();if(d&&!d.rest)startWorkout(d,btn.dataset.session||'lunch');return;
