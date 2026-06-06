@@ -416,6 +416,21 @@ const TMPLS = {
 
 const MRV={chest:20,back:20,shoulders:20,biceps:20,triceps:18,legs:20,core:20,hips:20};
 const EX_LIMIT={30:2,45:3,60:5,75:6,90:7};
+const EQUIP_OPTS=[
+  {id:'barbell',icon:'🏋️',name:'Barbell'},
+  {id:'dumbbells',icon:'🥊',name:'Dumbbells'},
+  {id:'cables',icon:'🔗',name:'Cable Machine'},
+  {id:'pullup_bar',icon:'🔝',name:'Pull-up Bar'},
+  {id:'machine',icon:'⚙️',name:'Machines'},
+];
+const CONDITIONING_FINISHERS=[
+  {name:'Sprint Intervals',desc:'8 × 30s all-out / 60s walk rest',icon:'🏃',mins:12},
+  {name:'Burpee EMOM',desc:'10 min · 10 burpees at the top of each minute',icon:'💥',mins:10},
+  {name:'Jump Circuit',desc:'3 rounds: 10 box jumps · 15 jump squats · 20 jump rope',icon:'⚡',mins:12},
+  {name:'Agility Intervals',desc:'6 × 30s lateral shuffle / sprint / 30s walk',icon:'🏈',mins:8},
+  {name:'Row Intervals',desc:'6 × 250m hard row / 60s rest',icon:'🚣',mins:14},
+  {name:'DB Circuit',desc:'4 rounds: 10 goblet squats · 10 rows · 10 push press · 30s rest',icon:'💪',mins:15},
+];
 const SPLITS={2:['full_a','full_b'],3:['push','pull','legs'],4:['upper_push','lower_a','upper_pull','lower_b'],5:['push','pull','legs','upper_push','upper_pull']};
 const DAY_ASSIGN={1:[1],2:[1,4],3:[1,3,5],4:[1,2,4,5],5:[1,2,3,4,5]};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -427,7 +442,7 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 // ─────────────────────────────────────────────
 let S={
   view:'setup',step:1,
-  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true},
+  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true,ymcaEquip:[...YMCA_EQUIP],homeEquip:[...HOME_EQUIP],conditioning:false},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
 };
@@ -459,6 +474,10 @@ function load(){
       if(d.calEntry&&!S.weekPlan){
         S.weekPlan={weekOf:thisMonday(),skipDays:[],calGoal:{cals:d.calEntry.cals,startDate:d.calEntry.date||todayStr(),endDate:nextSunday()}};
       }
+      // Migrate: add equipment and conditioning defaults if missing
+      if(!S.cfg.ymcaEquip)S.cfg.ymcaEquip=[...YMCA_EQUIP];
+      if(!S.cfg.homeEquip)S.cfg.homeEquip=[...HOME_EQUIP];
+      if(S.cfg.conditioning===undefined)S.cfg.conditioning=false;
       // Clear mid-week planStartDow if the stored week plan is from a previous week
       if(S.cfg?.planStartDow&&(!S.weekPlan||S.weekPlan.weekOf<thisMonday())){
         delete S.cfg.planStartDow;
@@ -533,7 +552,7 @@ function genProgram(cfg,av){
 
   function assignSlot(slot,idx){
     const tk=split[idx%split.length];
-    const equip=slot.loc==='home'?HOME_EQUIP:YMCA_EQUIP;
+    const equip=slot.loc==='home'?(S.cfg.homeEquip||HOME_EQUIP):(S.cfg.ymcaEquip||YMCA_EQUIP);
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
     if(oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest&&(completedDows.has(slot.dow)||(oldWeek[slot.dow].tk===tk&&oldWeek[slot.dow].loc===slot.loc))){
       const od=oldWeek[slot.dow];
@@ -670,7 +689,7 @@ function getEveningLocation(){
 function pickEveningExercises(day,sessionMins){
   const limit=EX_LIMIT[sessionMins]||5;
   const loc=getEveningLocation();
-  const equip=loc==='ymca'?YMCA_EQUIP:['pullup_bar'];
+  const equip=loc==='ymca'?(S.cfg.ymcaEquip||YMCA_EQUIP):(S.cfg.homeEquip||HOME_EQUIP);
   const tmpl=TMPLS[day.tk];
   if(!tmpl)return day.exercises.slice(0,limit);
   const used=[];
@@ -902,6 +921,29 @@ function abandonWorkout(){
 }
 
 // ─────────────────────────────────────────────
+// CONDITIONING FINISHER
+// ─────────────────────────────────────────────
+function getFinisher(dow){
+  return CONDITIONING_FINISHERS[dow%CONDITIONING_FINISHERS.length];
+}
+function finisherHTML(dow,compact){
+  const f=getFinisher(dow);
+  if(compact){
+    return`<div style='margin-top:12px;padding:12px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:12px'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--warn);margin-bottom:4px'>🔥 Conditioning Finisher</div>
+      <div style='font-size:14px;font-weight:700'>${f.icon} ${f.name}</div>
+      <div style='font-size:12px;color:var(--mut);margin-top:2px'>${f.desc} · ~${f.mins} min</div>
+    </div>`;
+  }
+  return`<div style='margin-top:14px;padding:16px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:14px'>
+    <div style='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--warn);margin-bottom:8px'>🔥 Conditioning Finisher · Do this after your last set</div>
+    <div style='font-size:18px;font-weight:800;margin-bottom:4px'>${f.icon} ${f.name}</div>
+    <div style='font-size:13px;color:var(--mut);line-height:1.55'>${f.desc}</div>
+    <div style='font-size:12px;color:var(--mut);margin-top:6px'>~${f.mins} min · then tap Finish Workout</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
 // SHARED: AVAILABILITY GRID
 // ─────────────────────────────────────────────
 function renderAvailGrid(av,inSetup){
@@ -1028,13 +1070,37 @@ function renderSetup(){
     {id:'bal',label:'Balanced',sub:'Size and strength'},
   ].map(g=>`<div class='opt col1 ${cfg.goal===g.id?'on':''}' data-action='set-goal' data-val='${g.id}'><div class='opt-v' style='font-size:18px'>${g.label}</div><div class='opt-l'>${g.sub}</div></div>`).join('');
 
+  const eqSection=(loc)=>{
+    const arr=loc==='ymca'?(S.cfg.ymcaEquip||YMCA_EQUIP):(S.cfg.homeEquip||HOME_EQUIP);
+    return EQUIP_OPTS.map(e=>{
+      const on=arr.includes(e.id);
+      return`<div class='eq-item${on?' on':''}' data-action='toggle-equip' data-loc='${loc}' data-eq='${e.id}'>
+        <span class='eq-ico'>${e.icon}</span><span class='eq-name'>${e.name}</span>
+        <span class='eq-chk'>${on?'✓':''}</span>
+      </div>`;
+    }).join('');
+  };
   const steps=[
     `<div class='s-title'>Your available sessions</div>
      <div class='s-sub'>Tap each window you can train. Lunch = 35–40 min at YMCA (compounds). After Work sessions are flexible — you pick the length and whether to lift or just do cardio.</div>
      ${renderAvailGrid(av,true)}`,
+    `<div class='s-title'>Equipment available?</div>
+     <div class='s-sub'>The app only prescribes exercises you can actually do. Check everything you have access to at each location.</div>
+     <div class='sec-lbl'>At YMCA</div>
+     <div class='eq-grid' style='margin-bottom:20px'>${eqSection('ymca')}</div>
+     <div class='sec-lbl'>At Home</div>
+     <div class='eq-grid'>${eqSection('home')}</div>`,
     `<div class='s-title'>Primary goal?</div>
      <div class='s-sub'>Sets your default rep ranges and intensity targets.</div>
-     <div class='opts col1'>${goalOpts}</div>`,
+     <div class='opts col1'>${goalOpts}</div>
+     <div class='sec-lbl' style='margin-top:20px'>Conditioning</div>
+     <div class='plan-chk${cfg.conditioning?' on':''}' data-action='toggle-conditioning' style='margin-bottom:0'>
+       <div class='plan-chk-box'>${cfg.conditioning?'✓':''}</div>
+       <div>
+         <div style='font-size:13px;font-weight:700'>Add conditioning finishers</div>
+         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>8–15 min of sprint intervals, circuits, or HIIT after each strength session — good for athleticism and cardio capacity.</div>
+       </div>
+     </div>`,
     `<div class='s-title'>Your body weight?</div>
      <div class='s-sub'>Used to estimate calorie burn from workouts and cardio prescriptions.</div>
      <div class='bw-input-wrap'>
@@ -1042,8 +1108,8 @@ function renderSetup(){
        <span style='font-size:20px;font-weight:600;color:var(--mut)'>lbs</span>
      </div>`,
   ];
-  const dots=[1,2,3].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
-  const isLast=step===3;
+  const dots=[1,2,3,4].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
+  const isLast=step===4;
   return`<div class='setup'>
     ${step>1?`<button class='s-back' data-action='setup-back'><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back</button>`:'<div style="height:40px"></div>'}
     ${steps[step-1]}
@@ -1137,6 +1203,7 @@ function renderDash(){
       ${makeupNote}
       ${isActualToday?`<button class='btn btn-p' data-action='start-workout' data-session='lunch'>Start${d.eveningSession?' Lunch':''} Workout →</button>`:''}
       ${eveBlock}
+      ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true):''}
     </div>`;
   }
 
@@ -1279,7 +1346,8 @@ function renderWorkout(){
   }
 
   const swapOpen=S.active.swapMode===exIdx;
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&e.eq.some(q=>[...YMCA_EQUIP,'bodyweight'].includes(q))).slice(0,5):[];
+  const _swapEquip=new Set([...(S.active.loc==='home'?(S.cfg.homeEquip||HOME_EQUIP):(S.cfg.ymcaEquip||YMCA_EQUIP)),'bodyweight']);
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&e.eq.some(q=>_swapEquip.has(q))).slice(0,5):[];
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
     ${alts.map(a=>`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.type}</span></button>`).join('')}
@@ -1304,6 +1372,7 @@ function renderWorkout(){
 
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
   const isLast=exIdx===total-1;
+  const condBlock=isLast&&S.cfg.conditioning&&allDone?finisherHTML(S.active.dow,false):'';
   const nextBtn=allDone
     ?`<button class='btn ${isLast?'btn-ok':'btn-p'}' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`
     :`<button class='btn btn-p' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px;display:none'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`;
@@ -1336,6 +1405,7 @@ function renderWorkout(){
         ${(isNoWeight||isTimed)?'':`<div class='sh'>Weight</div>`}<div class='sh'>${isTimed?'Sec':'Reps'}</div><div class='sh'></div>
       </div>
       ${setsRows}
+      ${condBlock}
       ${nextBtn}
     </div>
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
@@ -1529,10 +1599,18 @@ document.addEventListener('click',e=>{
     S.viewDay=null;
     render();return;
   }
-  if(a==='setup-next'){S.step=Math.min(3,S.step+1);render();return;}
+  if(a==='setup-next'){S.step=Math.min(4,S.step+1);render();return;}
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
   if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);render();return;}
   if(a==='set-goal'){S.cfg.goal=btn.dataset.val;render();return;}
+  if(a==='toggle-equip'){
+    const loc=btn.dataset.loc;const eq=btn.dataset.eq;
+    const arr=loc==='ymca'?S.cfg.ymcaEquip:S.cfg.homeEquip;
+    const idx=arr.indexOf(eq);
+    if(idx>=0)arr.splice(idx,1);else arr.push(eq);
+    save();render();return;
+  }
+  if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
   if(a==='generate'){
     const bwEl=document.getElementById('bw-input');
     if(bwEl){const v=parseInt(bwEl.value);if(v>=80&&v<=400)S.cfg.bodyLbs=v;}
