@@ -1755,9 +1755,8 @@ function renderProgram(){
     <div class='sub'>All sessions = 35–40 min YMCA lunch. Skipped days show as rest. Missed days shown in red. Set your goal and plan from the Home tab.</div>
     ${calSummary}
     ${days}
-    <div class='mt16' style='display:flex;gap:8px;flex-wrap:wrap'>
+    <div class='mt16'>
       <button class='btn btn-g btn-sm' data-action='reset-program' style='width:auto'>↺ Reset &amp; reconfigure</button>
-      <button class='btn btn-g btn-sm' data-action='partial-reset-week' style='width:auto'>⟲ Reset Thu-Sun only</button>
     </div>
   </div>${renderNav('program')}`;
 }
@@ -2011,30 +2010,30 @@ document.addEventListener('click',e=>{
     save();render();return;
   }
   if(a==='reset-program'){
-    if(!confirm('Reset your program and reconfigure?'))return;
-    S.program=null;S.active=null;S.weekPlan=null;S.view='setup';S.step=1;save();render();return;
-  }
-  if(a==='partial-reset-week'){
-    if(!confirm('Reset Thursday through Sunday and regenerate those days?'))return;
-    // Clear Thu-Sun (days 4,5,6,0) from program and logs for this week
+    if(!confirm('Reset and reconfigure from today through Sunday?'))return;
+    const today = todayDow();
+
+    // If it's Monday or we want to reset everything, do full reset
+    if(today === 1) {
+      S.program=null;S.active=null;S.weekPlan=null;S.view='setup';S.step=1;save();render();return;
+    }
+
+    // Otherwise, keep past days and reset from today forward
     if(S.program && S.program.week){
-      // Keep Mon-Wed exercises but clear Thu-Sun
-      const daysToKeep = [1,2,3]; // Mon, Tue, Wed
       const newWeek = S.program.week.map((day, dow) => {
-        if(daysToKeep.includes(dow)) return day; // Keep Mon-Wed unchanged
-        return {dow, rest: true}; // Reset Thu-Sun to rest days
+        // Keep days before today unchanged
+        if(dow > 0 && dow < today) return day;
+        // Reset today through Sunday
+        return {dow, rest: true};
       });
       S.program.week = newWeek;
     }
-    // Clear any active workout if it's Thu-Sun
-    if(S.active && [0,4,5,6].includes(todayDow())){
-      S.active = null;
-    }
-    // Regenerate program with current availability but preserve completed Mon-Wed
-    if(S.weekPlan?.availability){
-      S.program = genProgram(S.cfg, S.weekPlan.availability);
-    }
-    save();render();return;
+
+    // Clear any active workout
+    S.active = null;
+
+    // Go to setup to reconfigure from today forward
+    S.view='setup';S.step=1;save();render();return;
   }
   if(a==='start-workout'){
     const d=todayDay();if(d&&!d.rest){
