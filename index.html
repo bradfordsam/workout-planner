@@ -1146,7 +1146,7 @@ function renderAvailGrid(av,inSetup){
         </div>
       </div>
       <div class='plan-eve-opts'>
-        <div style='font-size:12px;color:var(--txt);font-weight:600;margin-bottom:8px'>Equipment & Location:</div>
+        <div style='font-size:12px;color:var(--txt);font-weight:600;margin-bottom:8px'>Equipment:</div>
         <div style='display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap'>
           ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${lunchEquipment===key?'btn-p':'btn-g'}' data-action='set-lunch-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px;opacity:${lunchOn?'1':'0.6'}'>${preset.name}</button>`).join('')}
         </div>
