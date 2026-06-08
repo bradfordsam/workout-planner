@@ -272,7 +272,7 @@ const EX = [
   {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Sit back and down, knees track toes. Full depth. Drive the floor away on the way up.',tags:['quad','squat'],hipRisk:true},
   {id:'bulgarian',name:'Bulgarian Split Squat',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated. Front foot well forward. Upright torso. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral'],hipRisk:true},
   {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold DB at chest. Elbows between knees at bottom. Full depth. Controlled descent.',tags:['quad','squat'],hipRisk:true},
-  {id:'step_ups',name:'Step-ups (Heel Elevated)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Elevate front heel for quad emphasis. Drive through full foot. Hips level. Control the step down. Count per leg.',tags:['quad','unilateral']},
+  {id:'step_ups',name:'Step-ups',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step onto stable surface, drive through full foot. Keep hips level throughout movement. Control the step down. Count per leg.',tags:['quad','unilateral']},
   {id:'reverse_lunge',name:'Reverse Lunge (DB)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step BACK — hip-friendly. Front shin vertical. Drive through front heel to return. Control the descent. Count per leg.',tags:['quad','unilateral']},
   {id:'rdl',name:'Romanian Deadlift',muscle:'legs',type:'compound',eq:['barbell','dumbbells'],rMin:6,rMax:10,rest:180,cue:'Push hips BACK, feel hamstring stretch. Bar close to legs. Drive hips forward at top. Not a squat.',tags:['hinge','hamstring']},
   {id:'hip_thrust',name:'Hip Thrust',muscle:'legs',type:'compound',eq:['barbell','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Shoulders on bench. Drive to full hip extension — squeeze at top. Slow controlled descent. Optional: 1s iso hold at top.',tags:['hinge','glute']},
@@ -312,6 +312,13 @@ const EX = [
   {id:'handstand_pushup',name:'Handstand Push-up',muscle:'shoulders',type:'compound',eq:['bodyweight'],rMin:3,rMax:8,rest:180,cue:'Inverted push-up against wall. Lower head to floor, press back up. Builds shoulder and core strength. Progress from pike push-ups. Advanced bodyweight movement. Count reps.',tags:['inverted','advanced']},
   {id:'l_sits',name:'L-Sit',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:30,rest:120,isTimed:true,cue:'Sit with legs extended, hands flat, lift entire body off ground. Hold position with straight legs parallel to floor. Incredible core and shoulder strength builder. Count seconds.',tags:['isometric','advanced']},
   {id:'broad_jump',name:'Broad Jump',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:150,cue:'Two-foot takeoff, jump forward for maximum distance, land softly on both feet. Focus on explosive hip extension and soft landing mechanics. Reset between reps. Count jumps.',tags:['plyometric','power','bilateral']},
+
+  // Circuit Training Exercises
+  {id:'burpee_to_jump',name:'Burpee to Jump Squat',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:8,rMax:12,rest:60,cue:'Burpee down, jump feet in, explosive jump squat up with arms overhead. Land softly, immediately into next rep. High-intensity circuit finisher.',tags:['circuit','plyometric','conditioning'],highSweat:true,circuit:true},
+  {id:'kb_swings_circuit',name:'KB/DB Swings',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:15,rMax:20,rest:60,cue:'Hip hinge power movement. Drive hips forward explosively, weight rises to chest height. High-rep circuit style with continuous movement.',tags:['circuit','power','conditioning'],highSweat:true,circuit:true},
+  {id:'thrusters',name:'DB Thrusters',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:10,rMax:15,rest:60,cue:'Front squat into overhead press in one fluid motion. Shoulders, legs, and cardio all in one. Keep moving between reps.',tags:['circuit','conditioning','full-body'],highSweat:true,circuit:true},
+  {id:'man_makers',name:'Man Makers',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:60,cue:'Push-up with DBs, row each arm, jump feet in, thruster up. Full-body circuit exercise. Rest briefly between reps but keep moving.',tags:['circuit','conditioning','full-body'],highSweat:true,circuit:true},
+  {id:'battle_ropes',name:'Battle Ropes (Alternating)',muscle:'core',type:'compound',eq:['bodyweight'],rMin:30,rMax:60,rest:60,isTimed:true,cue:'Alternating arm waves. Keep core tight, generate power from shoulders. High-intensity interval exercise. Count seconds.',tags:['circuit','conditioning','cardio'],highSweat:true,circuit:true},
 ];
 
 // ─────────────────────────────────────────────
@@ -487,18 +494,19 @@ let S={
   cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
+  customExercises:[],
 };
 let timerIv=null;
 
 function save(){
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises}));}catch(e){}
   saveToCloud();
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[]});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -526,14 +534,50 @@ function load(){
 // ─────────────────────────────────────────────
 function pickEx(slot,equip,used,isLunch){
   const eq=new Set([...equip,'bodyweight']);
-  return EX.find(e=>
+  const overworkedMuscles = getOverworkedMuscles();
+  const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
+
+  // Combine built-in exercises with custom exercises
+  const allExercises = [...EX, ...(S.customExercises||[])];
+
+  // For circuit training, prefer circuit-tagged exercises
+  if(isCircuitStyle && !isLunch) { // Lunch sessions stay controlled regardless
+    const circuitEx = allExercises.find(e=>
+      e.muscle===slot.muscle&&e.type===slot.type&&
+      (!slot.tag||((e.tags||[]).includes(slot.tag)))&&
+      !used.includes(e.id)&&
+      e.eq.some(q=>eq.has(q))&&
+      !(S.cfg.hipCaution&&e.hipRisk)&&
+      !overworkedMuscles.has(e.muscle)&&
+      e.circuit // Prefer circuit exercises
+    );
+    if(circuitEx) return circuitEx;
+  }
+
+  // First try to find exercises that avoid overworked muscle groups
+  let exercise = allExercises.find(e=>
     e.muscle===slot.muscle&&e.type===slot.type&&
     (!slot.tag||((e.tags||[]).includes(slot.tag)))&&
     !used.includes(e.id)&&
     e.eq.some(q=>eq.has(q))&&
     !(S.cfg.hipCaution&&e.hipRisk)&&
-    !(isLunch&&e.highSweat) // Filter out high-sweat exercises for lunch sessions
-  )||null;
+    !(isLunch&&e.highSweat)&& // Filter out high-sweat exercises for lunch sessions
+    !overworkedMuscles.has(e.muscle) // Avoid overworked muscle groups
+  );
+
+  // If no exercise found avoiding overworked muscles, fall back to any valid exercise
+  if(!exercise){
+    exercise = allExercises.find(e=>
+      e.muscle===slot.muscle&&e.type===slot.type&&
+      (!slot.tag||((e.tags||[]).includes(slot.tag)))&&
+      !used.includes(e.id)&&
+      e.eq.some(q=>eq.has(q))&&
+      !(S.cfg.hipCaution&&e.hipRisk)&&
+      !(isLunch&&e.highSweat)
+    );
+  }
+
+  return exercise||null;
 }
 
 function genProgram(cfg,av){
@@ -583,9 +627,28 @@ function genProgram(cfg,av){
     const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
     const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
     const used=[];
-    const exs=tmpl.slots.slice(0,limit).map(sl=>{const e=pickEx(sl,equip,used,slot.isLunch);if(e)used.push(e.id);return e?{...e,sets:3,sessionMins:slot.mins}:null}).filter(Boolean);
+    const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
+    const exs=tmpl.slots.slice(0,limit).map(sl=>{
+      const e=pickEx(sl,equip,used,slot.isLunch);
+      if(e) used.push(e.id);
+      if(!e) return null;
+
+      // Modify exercise for circuit training
+      let modifiedEx = {...e, sets:3, sessionMins:slot.mins};
+      if(isCircuitStyle && !slot.isLunch) { // Apply circuit modifications to evening sessions only
+        modifiedEx.rest = Math.max(60, e.rest ? e.rest / 2 : 60); // Shorter rest periods
+        modifiedEx.sets = e.circuit ? 4 : 3; // Extra set for circuit exercises
+        if(e.circuit) modifiedEx.circuitStyle = true;
+      }
+
+      return modifiedEx;
+    }).filter(Boolean);
+
     let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
-    return{tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
+
+    // Adjust session name for circuit training
+    const sessionName = isCircuitStyle && !slot.isLunch ? tmpl.name.replace('Day', 'Circuit') : tmpl.name;
+    return{tk,name:sessionName,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
 
   const slotMap={};let splitIdx=0;
@@ -662,6 +725,127 @@ function isDaySkipped(dow){
   // A day is "skipped" (no lifting) when program says rest
   if(!S.program)return false;
   return S.program.week[dow]?.rest===true;
+}
+
+// ─── Recent Workouts Analysis ───
+function parseRecentWorkouts(text){
+  if(!text || !text.trim()) return new Set();
+
+  const recentMuscles = new Set();
+  const normalizedText = text.toLowerCase();
+
+  // Muscle group keyword mapping
+  const muscleKeywords = {
+    chest: ['chest', 'pecs', 'bench', 'pushup', 'push-up', 'flies', 'flyes'],
+    back: ['back', 'lats', 'pullup', 'pull-up', 'row', 'pulldown', 'deadlift'],
+    shoulders: ['shoulder', 'delts', 'deltoid', 'press', 'raises', 'lateral'],
+    legs: ['legs', 'quad', 'hamstring', 'squat', 'lunge', 'thigh', 'glutes', 'glute'],
+    biceps: ['biceps', 'bicep', 'curls', 'curl'],
+    triceps: ['triceps', 'tricep', 'pushdown', 'extension', 'dips'],
+    core: ['core', 'abs', 'abdominal', 'plank', 'crunch']
+  };
+
+  // Check for muscle group mentions
+  Object.entries(muscleKeywords).forEach(([muscle, keywords]) => {
+    if(keywords.some(keyword => normalizedText.includes(keyword))){
+      recentMuscles.add(muscle);
+    }
+  });
+
+  return recentMuscles;
+}
+
+function getOverworkedMuscles(){
+  const recentWorkouts = S.weekPlan?.recentWorkouts || '';
+  return parseRecentWorkouts(recentWorkouts);
+}
+
+// ─── MRV (Maximum Recoverable Volume) Tracking ───
+function getWeeklySetVolumes(){
+  // Calculate set volumes by muscle group for the current week
+  const mondayStr = thisMonday();
+  const nextMondayStr = addDays(mondayStr, 7);
+
+  const weekLogs = S.logs.filter(l =>
+    l.date.slice(0,10) >= mondayStr && l.date.slice(0,10) < nextMondayStr
+  );
+
+  const volumes = {};
+
+  weekLogs.forEach(log => {
+    log.exercises?.forEach(ex => {
+      const muscle = ex.muscle;
+      const completedSets = ex.sets?.filter(s => s && s.reps > 0).length || 0;
+      volumes[muscle] = (volumes[muscle] || 0) + completedSets;
+    });
+  });
+
+  return volumes;
+}
+
+function getMRVStatus(){
+  const volumes = getWeeklySetVolumes();
+  const limits = {
+    chest: {min: 10, max: 20},
+    back: {min: 12, max: 22},
+    shoulders: {min: 8, max: 18},
+    biceps: {min: 6, max: 16},
+    triceps: {min: 6, max: 16},
+    legs: {min: 14, max: 24},
+    core: {min: 8, max: 18},
+    hips: {min: 6, max: 16}
+  };
+
+  const status = {};
+  Object.keys(limits).forEach(muscle => {
+    const current = volumes[muscle] || 0;
+    const {min, max} = limits[muscle];
+    let level = 'low';
+    if (current >= min && current <= max) level = 'optimal';
+    else if (current > max) level = 'high';
+
+    status[muscle] = {current, min, max, level};
+  });
+
+  return status;
+}
+
+function renderMRVWidget(){
+  const mrvStatus = getMRVStatus();
+  const overworkedMuscles = getOverworkedMuscles();
+  const hasData = Object.values(mrvStatus).some(m => m.current > 0) || overworkedMuscles.size > 0;
+
+  if (!hasData) return '';
+
+  const rows = Object.entries(mrvStatus)
+    .filter(([muscle, status]) => status.current > 0 || overworkedMuscles.has(muscle))
+    .map(([muscle, status]) => {
+      const {current, min, max, level} = status;
+      const isOverworked = overworkedMuscles.has(muscle);
+      const color = isOverworked ? 'var(--warn)' : level === 'high' ? 'var(--bad)' : level === 'optimal' ? 'var(--ok)' : 'var(--warn)';
+      const pct = Math.min(100, (current / max) * 100);
+
+      return `<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px'>
+        <div style='font-size:12px;font-weight:600;width:60px;text-transform:capitalize;display:flex;align-items:center;gap:4px'>
+          ${MNAME[muscle]}
+          ${isOverworked ? '<span style="font-size:10px;color:var(--warn)">⚠️</span>' : ''}
+        </div>
+        <div style='flex:1;background:var(--surf2);border-radius:4px;height:12px;position:relative'>
+          <div style='background:${color};height:100%;width:${pct}%;border-radius:4px'></div>
+        </div>
+        <div style='font-size:11px;color:${color};min-width:40px;text-align:right'>
+          ${isOverworked && current === 0 ? 'Recent' : `${current}/${max}`}
+        </div>
+      </div>`;
+    }).join('');
+
+  return `<div class='card'>
+    <div style='font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px'>
+      📊 Weekly Set Volume (MRV)
+      <span style='font-size:10px;color:var(--mut);font-weight:400'>10-20+ sets optimal · ⚠️ = recent external</span>
+    </div>
+    ${rows}
+  </div>`;
 }
 function getMissedDays(){
   const plan=getWeekPlan();
@@ -961,16 +1145,16 @@ function renderAvailGrid(av,inSetup){
           <div><div style='font-size:12px;font-weight:700'>After Work</div><div style='font-size:11px;color:var(--mut)'>${eveOn?(eveCardio?'Cardio only':eveMins+' min · '+eveEquipName):'Off'}</div></div>
         </div>
       </div>
-      ${lunchOn?`<div class='plan-eve-opts'>
-        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Lunch equipment:</div>
+      <div class='plan-eve-opts'>
+        <div style='font-size:12px;color:var(--txt);font-weight:600;margin-bottom:8px'>Equipment & Location:</div>
         <div style='display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap'>
-          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${lunchEquipment===key?'btn-p':'btn-g'}' data-action='set-lunch-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${preset.name.replace(' Only','').replace(' Gym','')}</button>`).join('')}
+          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${lunchEquipment===key?'btn-p':'btn-g'}' data-action='set-lunch-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px;opacity:${lunchOn?'1':'0.6'}'>${preset.name}</button>`).join('')}
         </div>
-      </div>`:''}
+      </div>
       ${eveOn?`<div class='plan-eve-opts'>
-        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Evening equipment &amp; session length:</div>
+        <div style='font-size:12px;color:var(--txt);font-weight:600;margin-bottom:8px'>Equipment &amp; Session Length:</div>
         <div style='display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap'>
-          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${eveEquipment===key?'btn-p':'btn-g'}' data-action='set-eve-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${preset.name.replace(' Only','').replace(' Gym','')}</button>`).join('')}
+          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${eveEquipment===key?'btn-p':'btn-g'}' data-action='set-eve-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${preset.name}</button>`).join('')}
         </div>
         <div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${eveMins===m?' on':''}' data-action='set-avail-eve-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
       </div>`:''}
@@ -989,9 +1173,9 @@ function renderAvailGrid(av,inSetup){
         </div>
       </div>
       ${on?`<div class='plan-eve-opts'>
-        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Equipment &amp; session length:</div>
+        <div style='font-size:12px;color:var(--txt);font-weight:600;margin-bottom:8px'>Equipment &amp; Session Length:</div>
         <div style='display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap'>
-          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${equipment===key?'btn-p':'btn-g'}' data-action='set-weekend-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${preset.name.replace(' Only','').replace(' Gym','')}</button>`).join('')}
+          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${equipment===key?'btn-p':'btn-g'}' data-action='set-weekend-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${preset.name}</button>`).join('')}
         </div>
         <div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${mins===m?' on':''}' data-action='set-avail-weekend-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
       </div>`:''}
@@ -1001,6 +1185,26 @@ function renderAvailGrid(av,inSetup){
     ${wkdayRow(1,'Monday')}${wkdayRow(2,'Tuesday')}${wkdayRow(3,'Wednesday')}${wkdayRow(4,'Thursday')}${wkdayRow(5,'Friday')}
     <div class='sec-lbl' style='margin-top:16px'>Weekend Sessions</div>
     ${wkndRow(6,'Saturday')}${wkndRow(0,'Sunday')}`;
+}
+
+function renderCustomExercises(){
+  const customExs = S.customExercises || [];
+
+  const exerciseList = customExs.map((ex, idx) => {
+    const mcolor = MCOL[ex.muscle] || 'var(--acc)';
+    return `<div style='display:flex;align-items:center;gap:8px;padding:8px;background:var(--surf2);border-radius:8px;margin-bottom:6px'>
+      <div class='m-tag' style='background:${mcolor}22;color:${mcolor};border:1px solid ${mcolor}44;font-size:10px;padding:2px 6px'>${MNAME[ex.muscle]}</div>
+      <div style='flex:1;font-size:13px;font-weight:600'>${ex.name}</div>
+      <div style='font-size:11px;color:var(--mut)'>${ex.type}</div>
+      <button class='btn btn-g' data-action='delete-custom-exercise' data-idx='${idx}' style='padding:4px 8px;font-size:10px'>×</button>
+    </div>`;
+  }).join('');
+
+  return `<div class='sec-lbl' style='margin-top:16px'>Custom Exercises</div>
+    <div class='card' style='margin-bottom:16px'>
+      ${customExs.length > 0 ? exerciseList : `<div style='font-size:13px;color:var(--mut);text-align:center;padding:8px'>No custom exercises yet</div>`}
+      <button class='btn btn-s btn-sm' data-action='add-custom-exercise' style='margin-top:8px;width:100%'>+ Add Custom Exercise</button>
+    </div>`;
 }
 
 // ─────────────────────────────────────────────
@@ -1025,6 +1229,35 @@ function renderPlan(){
     <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>Schedule applies from <strong style='color:var(--txt)'>${todayDate}</strong> forward. Changes take effect when you tap Save.</div>
 
     ${renderAvailGrid(av,false)}
+
+    ${renderCustomExercises()}
+
+    <div class='sec-lbl' style='margin-top:16px'>Recent External Workouts</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>Describe workouts you've done recently outside this app so we can avoid overworking muscle groups:</div>
+      <textarea class='ni' id='recent-workouts' placeholder='e.g., "Did chest and triceps yesterday, legs on Monday..."'
+        style='width:100%;min-height:60px;resize:vertical;font-size:13px;line-height:1.4;padding:10px'>${S.weekPlan?.recentWorkouts || ''}</textarea>
+    </div>
+
+    <div class='sec-lbl' style='margin-top:16px'>Cardio Integration</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:12px'>Choose how to integrate cardio with resistance training:</div>
+      <div style='display:grid;grid-template-columns:1fr 1fr;gap:8px'>
+        <div class='opt${(S.weekPlan?.cardioStyle||'separate')==='separate'?' on':''}' data-action='set-cardio-style' data-val='separate'>
+          <div class='opt-v' style='font-size:16px'>🏃‍♀️ Separate</div>
+          <div class='opt-l'>Dedicated cardio sessions</div>
+        </div>
+        <div class='opt${(S.weekPlan?.cardioStyle||'separate')==='circuits'?' on':''}' data-action='set-cardio-style' data-val='circuits'>
+          <div class='opt-v' style='font-size:16px'>⚡ Circuits</div>
+          <div class='opt-l'>Mixed with resistance</div>
+        </div>
+      </div>
+      <div style='font-size:12px;color:var(--mut);margin-top:8px'>
+        ${(S.weekPlan?.cardioStyle||'separate')==='separate'
+          ?'Cardio and resistance training in separate sessions for focused training.'
+          :'High-intensity circuits mixing cardio with resistance exercises for time efficiency.'}
+      </div>
+    </div>
 
     <div class='sec-lbl' style='margin-top:16px'>Calorie Goal</div>
     <div class='card' style='margin-bottom:16px'>
@@ -1063,8 +1296,8 @@ function renderSetup(){
   ].map(g=>`<div class='opt col1 ${cfg.goal===g.id?'on':''}' data-action='set-goal' data-val='${g.id}'><div class='opt-v' style='font-size:18px'>${g.label}</div><div class='opt-l'>${g.sub}</div></div>`).join('');
 
   const steps=[
-    `<div class='s-title'>Your available sessions</div>
-     <div class='s-sub'>Tap each window you can train. You'll choose equipment for each session in the next step.</div>
+    `<div class='s-title'>Your available sessions & equipment</div>
+     <div class='s-sub'>Tap each session you can train and choose equipment. All 4 equipment options are: Pull-up Bar Only, Hotel Gym, YMCA, Bodyweight Only.</div>
      ${renderAvailGrid(av,true)}`,
     `<div class='s-title'>Primary training goal?</div>
      <div class='s-sub'>Sets your rep ranges and exercise selection priorities.</div>
@@ -1074,6 +1307,12 @@ function renderSetup(){
      <div class='bw-input-wrap'>
        <input type='number' class='ni bw-big' id='bw-input' value='${cfg.bodyLbs||175}' min='80' max='400' step='5' inputmode='decimal'>
        <span style='font-size:20px;font-weight:600;color:var(--mut)'>lbs</span>
+     </div>
+     <div style='margin-top:20px'>
+       <div class='sec-lbl'>Recent External Workouts (Optional)</div>
+       <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>Describe any workouts you've done recently outside this app:</div>
+       <textarea class='ni' id='setup-recent-workouts' placeholder='e.g., "Did chest and triceps yesterday, legs on Monday..."'
+         style='width:100%;min-height:60px;resize:vertical;font-size:13px;line-height:1.4;padding:10px'>${S.weekPlan?.recentWorkouts || ''}</textarea>
      </div>`,
   ];
   const dots=[1,2,3].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
@@ -1227,6 +1466,7 @@ function renderDash(){
     <div class='wk-grid'>${wkGrid}</div>
     ${todayHTML}
     ${planCard}
+    ${renderMRVWidget()}
     ${recentLogs?`<div class='sec-lbl mt16'>Recent</div>${recentLogs}`:''}
     ${renderCloudCard()}
   </div>${renderNav('dash')}`;
@@ -1396,6 +1636,71 @@ function renderWorkout(){
 }
 
 // ─────────────────────────────────────────────
+// RENDER – REVIEW WORKOUT
+// ─────────────────────────────────────────────
+function renderReviewWorkout(){
+  if(!S.reviewWorkout){S.view='dash';render();return;}
+
+  const {day, sessionType} = S.reviewWorkout;
+  const isEve = sessionType === 'eve' && day.eveningSession;
+  const src = isEve ? day.eveningSession : day;
+  const limit = isEve ? (EX_LIMIT[src.mins] || 5) : 3;
+  let rawExs = src.exercises.slice(0, limit);
+
+  // Show makeup exercises logic (same as startWorkout)
+  if(!isEve){
+    const missed = getMissedDays();
+    if(missed.length > 0){
+      const todayMuscles = new Set(rawExs.map(e => e.muscle));
+      missed.forEach(missedDow => {
+        const md = S.program.week[missedDow];
+        if(!md || md.rest) return;
+        const mu = md.exercises.find(e => !todayMuscles.has(e.muscle));
+        if(mu){
+          rawExs = [...rawExs, {...mu, sets: 2, isMakeup: true, makeupFrom: md.name}];
+          todayMuscles.add(mu.muscle);
+        }
+      });
+    }
+  }
+
+  const sessionLabel = isEve ? `${src.name} · ${src.mins} min` : `${src.name} · Lunch`;
+
+  const exerciseCards = rawExs.map((ex, idx) => {
+    const mcolor = MCOL[ex.muscle] || 'var(--acc)';
+    const makeupBadge = ex.isMakeup ? `<span class='badge badge-makeup' style='margin-bottom:8px;display:inline-block'>⚡ Make-up · ${ex.makeupFrom}</span>` : '';
+
+    return `<div class='ex-card' style='position:relative'>
+      ${makeupBadge}
+      <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px'>
+        <div class='m-tag' style='background:${mcolor}22;color:${mcolor};border:1px solid ${mcolor}44'>${MNAME[ex.muscle]}</div>
+        <button class='btn btn-g btn-sm' data-action='swap-exercise' data-idx='${idx}' style='font-size:11px;padding:6px 10px'>⟲ Swap</button>
+      </div>
+      <div class='ex-name'>${ex.name}</div>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>${ex.sets} sets × ${ex.rMin}–${ex.rMax} reps</div>
+      <button class='cue-btn' data-action='toggle-cue' data-id='review-cue-${idx}'>💡 Technique tip</button>
+      <div class='cue-txt' id='review-cue-${idx}'>${ex.cue || 'No technique notes available.'}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class='view'>
+    <button class='s-back' data-action='back-to-dash' style='margin-bottom:20px;margin-top:0'>
+      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
+    </button>
+    <div class='hdg'>Review Workout</div>
+    <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${sessionLabel}</div>
+    <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>Review exercises below. Tap "Swap" to replace any exercise with alternatives.</div>
+
+    ${exerciseCards}
+
+    <div style='margin-top:20px;display:flex;gap:8px'>
+      <button class='btn btn-g' data-action='back-to-dash' style='flex:1'>Cancel</button>
+      <button class='btn btn-p' data-action='confirm-start-workout' style='flex:2'>🚀 Start Workout</button>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
 // RENDER – PROGRAM
 // ─────────────────────────────────────────────
 function renderProgram(){
@@ -1456,8 +1761,9 @@ function renderProgram(){
     <div class='sub'>All sessions = 35–40 min YMCA lunch. Skipped days show as rest. Missed days shown in red. Set your goal and plan from the Home tab.</div>
     ${calSummary}
     ${days}
-    <div class='mt16'>
+    <div class='mt16' style='display:flex;gap:8px;flex-wrap:wrap'>
       <button class='btn btn-g btn-sm' data-action='reset-program' style='width:auto'>↺ Reset &amp; reconfigure</button>
+      <button class='btn btn-g btn-sm' data-action='partial-reset-week' style='width:auto'>⟲ Reset Thu-Sun only</button>
     </div>
   </div>${renderNav('program')}`;
 }
@@ -1559,6 +1865,7 @@ function render(){
   if(!S.program&&S.view!=='setup'){S.view='setup';}
   if(S.view==='setup'){root.innerHTML=renderSetup();return;}
   if(S.view==='workout'){root.innerHTML=renderWorkout();return;}
+  if(S.view==='review-workout'){root.innerHTML=renderReviewWorkout();return;}
   if(S.view==='dash'){root.innerHTML=renderDash();return;}
   if(S.view==='plan'){root.innerHTML=renderPlan();return;}
   if(S.view==='cloud'){root.innerHTML=renderCloudSetup();return;}
@@ -1587,9 +1894,11 @@ document.addEventListener('click',e=>{
   if(a==='set-goal'){S.cfg.goal=btn.dataset.val;render();return;}
   if(a==='generate'){
     const bwEl=document.getElementById('bw-input');
+    const recentEl=document.getElementById('setup-recent-workouts');
     if(bwEl){const v=parseInt(bwEl.value);if(v>=80&&v<=400)S.cfg.bodyLbs=v;}
     if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
     S.weekPlan.weekOf=todayStr();
+    if(recentEl)S.weekPlan.recentWorkouts=recentEl.value||'';
     S.program=genProgram(S.cfg,S.weekPlan.availability);
     S.view='dash';save();render();return;
   }
@@ -1688,13 +1997,18 @@ document.addEventListener('click',e=>{
     const calEl=document.getElementById('plan-cal');
     const startEl=document.getElementById('plan-start');
     const endEl=document.getElementById('plan-end');
+    const recentEl=document.getElementById('recent-workouts');
     const cals=parseInt(calEl?.value)||0;
     const startDate=startEl?.value||todayStr();
     const endDate=endEl?.value||nextSunday();
+    const recentWorkouts=recentEl?.value||'';
     if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability()};
     S.weekPlan.weekOf=todayStr();
     S.weekPlan.calGoal=cals>0?{cals,startDate,endDate}:null;
-    // Regenerate program with new availability
+    S.weekPlan.recentWorkouts=recentWorkouts;
+    // Keep existing cardio style if not set
+    if(!S.weekPlan.cardioStyle) S.weekPlan.cardioStyle='separate';
+    // Regenerate program with new availability and cardio style consideration
     S.program=genProgram(S.cfg,S.weekPlan.availability);
     save();S.view='dash';render();return;
   }
@@ -1706,8 +2020,141 @@ document.addEventListener('click',e=>{
     if(!confirm('Reset your program and reconfigure?'))return;
     S.program=null;S.active=null;S.weekPlan=null;S.view='setup';S.step=1;save();render();return;
   }
+  if(a==='partial-reset-week'){
+    if(!confirm('Reset Thursday through Sunday and regenerate those days?'))return;
+    // Clear Thu-Sun (days 4,5,6,0) from program and logs for this week
+    if(S.program && S.program.week){
+      // Keep Mon-Wed exercises but clear Thu-Sun
+      const daysToKeep = [1,2,3]; // Mon, Tue, Wed
+      const newWeek = S.program.week.map((day, dow) => {
+        if(daysToKeep.includes(dow)) return day; // Keep Mon-Wed unchanged
+        return {dow, rest: true}; // Reset Thu-Sun to rest days
+      });
+      S.program.week = newWeek;
+    }
+    // Clear any active workout if it's Thu-Sun
+    if(S.active && [0,4,5,6].includes(todayDow())){
+      S.active = null;
+    }
+    // Regenerate program with current availability but preserve completed Mon-Wed
+    if(S.weekPlan?.availability){
+      S.program = genProgram(S.cfg, S.weekPlan.availability);
+    }
+    save();render();return;
+  }
   if(a==='start-workout'){
-    const d=todayDay();if(d&&!d.rest)startWorkout(d,btn.dataset.session||'lunch');return;
+    const d=todayDay();if(d&&!d.rest){
+      // Show review screen instead of starting directly
+      S.reviewWorkout = {
+        day: d,
+        sessionType: btn.dataset.session || 'lunch'
+      };
+      S.view = 'review-workout';
+      render();
+    }
+    return;
+  }
+  if(a==='confirm-start-workout'){
+    const d=S.reviewWorkout?.day;
+    const sessionType=S.reviewWorkout?.sessionType;
+    if(d&&!d.rest){
+      startWorkout(d,sessionType);
+    }
+    return;
+  }
+  if(a==='back-to-dash'){
+    S.reviewWorkout=null;S.view='dash';render();return;
+  }
+  if(a==='swap-exercise'){
+    const idx=parseInt(btn.dataset.idx);
+    if(!S.reviewWorkout)return;
+
+    // Get current exercise to replace
+    const {day, sessionType} = S.reviewWorkout;
+    const isEve = sessionType === 'eve' && day.eveningSession;
+    const src = isEve ? day.eveningSession : day;
+    const currentEx = src.exercises[idx];
+
+    // Find alternative exercises for the same muscle group and type
+    const alternatives = EX.filter(e =>
+      e.muscle === currentEx.muscle &&
+      e.type === currentEx.type &&
+      e.id !== currentEx.id &&
+      e.eq.some(eq => src.exercises.some(srcEx => srcEx.eq?.includes(eq))) // Has compatible equipment
+    ).slice(0, 5); // Limit to 5 alternatives
+
+    if(alternatives.length === 0){
+      alert('No alternative exercises available for this muscle group and type.');
+      return;
+    }
+
+    // Show selection modal (simple confirm for now, can be enhanced later)
+    const altNames = alternatives.map((e, i) => `${i+1}. ${e.name}`).join('\n');
+    const choice = prompt(`Choose replacement for ${currentEx.name}:\n\n${altNames}\n\nEnter number (1-${alternatives.length}):`);
+    const choiceIdx = parseInt(choice) - 1;
+
+    if(choiceIdx >= 0 && choiceIdx < alternatives.length){
+      // Replace the exercise
+      src.exercises[idx] = {...alternatives[choiceIdx], sets: currentEx.sets};
+      render();
+    }
+    return;
+  }
+  if(a==='add-custom-exercise'){
+    // Create custom exercise form
+    const name = prompt('Exercise name:');
+    if(!name) return;
+
+    const muscles = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'core', 'hips'];
+    const muscleChoice = prompt(`Muscle group:\n${muscles.map((m,i) => `${i+1}. ${MNAME[m]}`).join('\n')}\n\nEnter number (1-${muscles.length}):`);
+    const muscleIdx = parseInt(muscleChoice) - 1;
+    if(muscleIdx < 0 || muscleIdx >= muscles.length) return;
+
+    const types = ['compound', 'isolation'];
+    const typeChoice = prompt(`Exercise type:\n1. Compound (multi-joint)\n2. Isolation (single-joint)\n\nEnter number (1-2):`);
+    const typeIdx = parseInt(typeChoice) - 1;
+    if(typeIdx < 0 || typeIdx >= types.length) return;
+
+    const equipment = ['barbell', 'dumbbells', 'cables', 'machine', 'bodyweight', 'pullup_bar'];
+    const equipChoice = prompt(`Equipment needed:\n${equipment.map((e,i) => `${i+1}. ${e}`).join('\n')}\n\nEnter number (1-${equipment.length}):`);
+    const equipIdx = parseInt(equipChoice) - 1;
+    if(equipIdx < 0 || equipIdx >= equipment.length) return;
+
+    const rMin = parseInt(prompt('Minimum reps (e.g., 6):')) || 6;
+    const rMax = parseInt(prompt('Maximum reps (e.g., 12):')) || 12;
+    const rest = parseInt(prompt('Rest time in seconds (e.g., 120):')) || 120;
+    const cue = prompt('Technique tip (optional):') || '';
+
+    const customEx = {
+      id: `custom_${Date.now()}`,
+      name: name,
+      muscle: muscles[muscleIdx],
+      type: types[typeIdx],
+      eq: [equipment[equipIdx]],
+      rMin: rMin,
+      rMax: rMax,
+      rest: rest,
+      cue: cue,
+      custom: true
+    };
+
+    S.customExercises = S.customExercises || [];
+    S.customExercises.push(customEx);
+    save();render();
+    return;
+  }
+  if(a==='delete-custom-exercise'){
+    const idx = parseInt(btn.dataset.idx);
+    if(confirm('Delete this custom exercise?')){
+      S.customExercises.splice(idx, 1);
+      save();render();
+    }
+    return;
+  }
+  if(a==='set-cardio-style'){
+    if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
+    S.weekPlan.cardioStyle=btn.dataset.val;
+    render();return;
   }
   if(a==='view-day'){
     const dv=parseInt(btn.dataset.dow);
