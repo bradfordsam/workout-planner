@@ -2050,11 +2050,65 @@ function exMatch(name) {
   return allEx.find(e => e.name.toLowerCase() === name.toLowerCase().trim()) || null;
 }
 
-// Identify the muscle group for an exercise name: exact match in the database first,
+// Common abbreviations / synonyms expanded so "BB Bench" → "barbell bench" etc.
+const EX_ABBR = {
+  bb:'barbell', db:'dumbbell', kb:'kettlebell', ohp:'overhead press',
+  rdl:'romanian deadlift', sldl:'romanian deadlift', bw:'bodyweight',
+  ext:'extension', lat:'lateral', pull:'pullup', chin:'chinup',
+  sa:'single arm', sl:'single leg'
+};
+
+// Normalize an exercise name into a list of comparable tokens.
+function exTokens(s) {
+  if (!s) return [];
+  let t = s.toLowerCase().trim().replace(/[^a-z0-9\s]/g, ' ');
+  let tokens = t.split(/\s+/).filter(Boolean).map(w => EX_ABBR[w] || w);
+  tokens = tokens.join(' ').split(/\s+/).filter(Boolean);
+  // crude singularize so "curls"/"squats"/"press" compare consistently
+  tokens = tokens.map(w => (w.length > 3 && w.endsWith('s')) ? w.slice(0, -1) : w);
+  return tokens;
+}
+
+// Fuzzy-match a typed name to the closest database exercise. Returns the best
+// candidate only when it's a clear winner, to avoid linking ambiguous names.
+function fuzzyMatchEx(name) {
+  const inputTokens = exTokens(name);
+  if (!inputTokens.length) return null;
+  const inputSet = new Set(inputTokens);
+  const allEx = [...EX, ...(S.customExercises||[])];
+  const scored = [];
+  allEx.forEach(e => {
+    const exSet = new Set(exTokens(e.name));
+    let overlap = 0;
+    inputSet.forEach(tk => { if (exSet.has(tk)) overlap++; });
+    if (!overlap) return;
+    const dice = (2 * overlap) / (inputSet.size + exSet.size);
+    const coverage = overlap / inputSet.size; // how much of what they typed is covered
+    if (coverage >= 0.6) scored.push({ e, score: dice });
+  });
+  if (!scored.length) return null;
+  scored.sort((a, b) => b.score - a.score);
+  const top = scored[0];
+  const second = scored[1];
+  // Require a decent score and a clear winner (not a near-tie / ambiguous)
+  if (top.score >= 0.5 && (!second || top.score - second.score >= 0.15)) return top.e;
+  return null;
+}
+
+// Resolve a typed name to a database exercise: exact first, then fuzzy.
+function resolveEx(name) {
+  const exact = exMatch(name);
+  if (exact) return { match: exact, exact: true };
+  const fuzzy = fuzzyMatchEx(name);
+  if (fuzzy) return { match: fuzzy, exact: false };
+  return { match: null, exact: false };
+}
+
+// Identify the muscle group for an exercise name: matched exercise first,
 // then keyword-based estimation as a fallback.
 function detectMuscle(name) {
   if (!name || !name.trim()) return 'legs';
-  const match = exMatch(name);
+  const { match } = resolveEx(name);
   if (match) return match.muscle;
   return estimateMuscleGroup(name);
 }
@@ -2062,8 +2116,9 @@ function detectMuscle(name) {
 // Message shown under the name field: confirms whether this entry is linked to a
 // known exercise (so its weights feed the 4% progression history) or is brand new.
 function matchInfoHtml(name) {
-  const m = exMatch(name);
-  if (m) return `<span style="color:var(--ok)">✓ Linked to <strong>${m.name}</strong> — weights feed your 4% progression</span>`;
+  const { match, exact } = resolveEx(name);
+  if (match && exact) return `<span style="color:var(--ok)">✓ Linked to <strong>${match.name}</strong> — weights feed your 4% progression</span>`;
+  if (match) return `<span style="color:var(--ok)">✓ Matched to <strong>${match.name}</strong> — weights feed your 4% progression</span>`;
   if (name && name.trim()) return `<span style="color:var(--mut)">New exercise — tracked on its own</span>`;
   return '';
 }
@@ -2744,10 +2799,10 @@ document.addEventListener('click',e=>{
       isPlanned: S.customWorkoutLog.isPlanning,
       duration: 60, // default estimate
       exercises: S.customWorkoutLog.exercises.map(ex => {
-        // Link to a known exercise when the name matches, so the logged weights
-        // feed the same 4% progression history as regular workouts; otherwise
-        // create a stable slug id tracked on its own.
-        const match = exMatch(ex.name);
+        // Link to a known exercise when the name matches (exact or fuzzy), so the
+        // logged weights feed the same 4% progression history as regular workouts;
+        // otherwise create a stable slug id tracked on its own.
+        const { match } = resolveEx(ex.name);
         return {
           id: match ? match.id : (ex.name||'').toLowerCase().replace(/[^a-z0-9]/g, '_'),
           name: match ? match.name : ex.name,
