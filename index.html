@@ -1792,13 +1792,11 @@ function renderCustomWorkoutLog(){
   const exerciseRows = exercises.map((ex, idx) => {
     return `
     <div class='card2' style='margin-bottom:8px'>
-      <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px'>
-        <div style='flex:1;position:relative'>
-          <input type='text' class='ni' id='cust-name-${idx}' autocomplete='off' placeholder='Type exercise name…' value='${(ex.name||'').replace(/'/g,"&#39;")}'
-                 oninput='onCustomNameInput(${idx}, this.value)' onfocus='renderExSuggest(${idx}, this.value)' onblur='hideExSuggest(${idx})' style='width:100%;text-align:left'>
-          <div id='ex-suggest-${idx}' class='ex-suggest'></div>
-        </div>
-        <button class='btn btn-g' onclick='removeCustomExercise(${idx})' style='padding:6px 10px;font-size:11px'>×</button>
+      <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Exercise</div>
+      <div style='position:relative;margin-bottom:8px'>
+        <input type='text' class='ni' id='cust-name-${idx}' autocomplete='off' placeholder='🔍 Type an exercise name…' value='${(ex.name||'').replace(/'/g,"&#39;")}'
+               oninput='onCustomNameInput(${idx}, this.value)' onfocus='renderExSuggest(${idx}, this.value)' onblur='hideExSuggest(${idx})' style='width:100%;text-align:left'>
+        <div id='ex-suggest-${idx}' class='ex-suggest'></div>
       </div>
       <div id='cust-match-${idx}' style='font-size:11px;margin-bottom:6px;min-height:14px'>${matchInfoHtml(ex.name)}</div>
       <div id='cust-musc-disp-${idx}' style='font-size:11px;margin-bottom:8px;min-height:14px'>${muscleDispHtml(ex.name)}</div>
@@ -1819,6 +1817,7 @@ function renderCustomWorkoutLog(){
                  onchange='updateCustomExercise(${idx}, "weight", parseInt(this.value))' placeholder='0 if bodyweight'>
         </div>
       </div>
+      <button class='btn btn-g btn-sm' onclick='removeCustomExercise(${idx})' style='width:100%;margin-top:10px;color:var(--bad)'>✕ Remove exercise</button>
     </div>
   `;}).join('');
 
