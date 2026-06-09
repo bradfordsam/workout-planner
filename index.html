@@ -1521,12 +1521,15 @@ function renderDash(){
   </div>`;
 
   const recentLogs=S.logs.slice(-3).reverse().map(l=>`
-    <div class='card2 mb8' data-action='edit-log' data-id='${l.id}' style='cursor:pointer'>
-      <div style='display:flex;justify-content:space-between;align-items:center'>
-        <span style='font-size:13px;font-weight:600'>${l.dayName}</span>
-        <span style='font-size:12px;color:var(--mut)'>${fmtDate(l.date)}</span>
+    <div class='card2 mb8' style='display:flex;align-items:center;gap:10px'>
+      <div data-action='edit-log' data-id='${l.id}' style='cursor:pointer;flex:1;min-width:0'>
+        <div style='display:flex;justify-content:space-between;align-items:center;gap:8px'>
+          <span style='font-size:13px;font-weight:600'>${l.dayName}</span>
+          <span style='font-size:12px;color:var(--mut);flex-shrink:0'>${fmtDate(l.date)}</span>
+        </div>
+        <div style='font-size:12px;color:var(--mut);margin-top:2px'>${l.exercises.length} exercises · ${fmtDur(l.duration)} · <span style='color:var(--acc)'>tap to view/edit</span></div>
       </div>
-      <div style='font-size:12px;color:var(--mut);margin-top:2px'>${l.exercises.length} exercises · ${fmtDur(l.duration)} · <span style='color:var(--acc)'>tap to view/edit</span></div>
+      <button class='done-btn' data-action='delete-log' data-id='${l.id}' title='Delete workout' style='background:var(--bad2);color:var(--bad);flex-shrink:0'>🗑️</button>
     </div>`).join('');
 
   return`<div class='view'>
