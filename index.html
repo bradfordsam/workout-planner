@@ -539,7 +539,7 @@ function load(){
 // ─────────────────────────────────────────────
 // PROGRAM GENERATOR
 // ─────────────────────────────────────────────
-function pickEx(slot,equip,used,isLunch){
+function pickEx(slot,equip,used,isLunch,budget){
   const eq=new Set([...equip,'bodyweight']);
   const overworkedMuscles = getOverworkedMuscles();
   const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
@@ -547,43 +547,34 @@ function pickEx(slot,equip,used,isLunch){
   // Combine built-in exercises with custom exercises
   const allExercises = [...EX, ...(S.customExercises||[])];
 
-  // For circuit training, prefer circuit-tagged exercises
-  if(isCircuitStyle && !isLunch) { // Lunch sessions stay controlled regardless
-    const circuitEx = allExercises.find(e=>
-      e.muscle===slot.muscle&&e.type===slot.type&&
-      (!slot.tag||((e.tags||[]).includes(slot.tag)))&&
-      !used.includes(e.id)&&
-      e.eq.some(q=>eq.has(q))&&
-      !(S.cfg.hipCaution&&e.hipRisk)&&
-      !overworkedMuscles.has(e.muscle)&&
-      e.circuit // Prefer circuit exercises
-    );
+  // MRV headroom: would adding this exercise push the muscle past its weekly max?
+  const perEx = (budget && budget.perExercise) || 3;
+  const fitsMRV = (e) => {
+    if(!budget || !budget.limits || !budget.limits[e.muscle]) return true;
+    return (budget.vol[e.muscle] || 0) + perEx <= budget.limits[e.muscle].max;
+  };
+
+  // Shared slot constraints (muscle/type/tag/equipment/hip-caution/lunch sweat).
+  const base = (e) =>
+    e.muscle===slot.muscle && e.type===slot.type &&
+    (!slot.tag || ((e.tags||[]).includes(slot.tag))) &&
+    !used.includes(e.id) &&
+    e.eq.some(q=>eq.has(q)) &&
+    !(S.cfg.hipCaution && e.hipRisk) &&
+    !(isLunch && e.highSweat);
+
+  // For circuit training, prefer circuit-tagged exercises (still within MRV)
+  if(isCircuitStyle && !isLunch) {
+    const circuitEx = allExercises.find(e => base(e) && !overworkedMuscles.has(e.muscle) && fitsMRV(e) && e.circuit);
     if(circuitEx) return circuitEx;
   }
 
-  // First try to find exercises that avoid overworked muscle groups
-  let exercise = allExercises.find(e=>
-    e.muscle===slot.muscle&&e.type===slot.type&&
-    (!slot.tag||((e.tags||[]).includes(slot.tag)))&&
-    !used.includes(e.id)&&
-    e.eq.some(q=>eq.has(q))&&
-    !(S.cfg.hipCaution&&e.hipRisk)&&
-    !(isLunch&&e.highSweat)&& // Filter out high-sweat exercises for lunch sessions
-    !overworkedMuscles.has(e.muscle) // Avoid overworked muscle groups
-  );
-
-  // If no exercise found avoiding overworked muscles, fall back to any valid exercise
-  if(!exercise){
-    exercise = allExercises.find(e=>
-      e.muscle===slot.muscle&&e.type===slot.type&&
-      (!slot.tag||((e.tags||[]).includes(slot.tag)))&&
-      !used.includes(e.id)&&
-      e.eq.some(q=>eq.has(q))&&
-      !(S.cfg.hipCaution&&e.hipRisk)&&
-      !(isLunch&&e.highSweat)
-    );
-  }
-
+  // 1) Best: avoid overworked muscles AND stay within MRV max
+  let exercise = allExercises.find(e => base(e) && !overworkedMuscles.has(e.muscle) && fitsMRV(e));
+  // 2) Next: stay within MRV max (allow a recently-worked muscle if needed)
+  if(!exercise) exercise = allExercises.find(e => base(e) && fitsMRV(e));
+  // If the muscle has hit its weekly MRV max, intentionally return null so this
+  // slot is dropped (fewer sets) rather than exceeding the recoverable volume.
   return exercise||null;
 }
 
@@ -620,6 +611,11 @@ function genProgram(cfg,av){
   );
   const oldWeek=S.program?.week;
 
+  // MRV budget: start from sets already committed this week (logged + planned
+  // custom workouts) and consume headroom as we assign sessions, so the week
+  // fills toward optimal without exceeding each muscle's recoverable max.
+  const budget = { vol: getCommittedVolumes(), limits: getMRVLimits(), perExercise: 3 };
+
   function assignSlot(slot,idx){
     const tk=split[idx%split.length];
     // Use per-session equipment from availability
@@ -629,6 +625,11 @@ function genProgram(cfg,av){
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
     if(oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest&&(completedDows.has(slot.dow)||(oldWeek[slot.dow].tk===tk&&oldWeek[slot.dow].loc===slot.loc))){
       const od=oldWeek[slot.dow];
+      // Count a preserved upcoming session toward the budget (completed days and
+      // custom/planned days are already counted via getCommittedVolumes).
+      if(!completedDows.has(slot.dow) && !oldWeek[slot.dow].customWorkout && !oldWeek[slot.dow].plannedCustomWorkout){
+        (od.exercises||[]).forEach(e=>{ if(e&&e.muscle) budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+(e.sets||3); });
+      }
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,preserved:true};
     }
     const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
@@ -636,9 +637,9 @@ function genProgram(cfg,av){
     const used=[];
     const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
     const exs=tmpl.slots.slice(0,limit).map(sl=>{
-      const e=pickEx(sl,equip,used,slot.isLunch);
-      if(e) used.push(e.id);
+      const e=pickEx(sl,equip,used,slot.isLunch,budget);
       if(!e) return null;
+      used.push(e.id);
 
       // Modify exercise for circuit training
       let modifiedEx = {...e, sets:3, sessionMins:slot.mins};
@@ -647,6 +648,9 @@ function genProgram(cfg,av){
         modifiedEx.sets = e.circuit ? 4 : 3; // Extra set for circuit exercises
         if(e.circuit) modifiedEx.circuitStyle = true;
       }
+
+      // Consume MRV headroom for this muscle
+      budget.vol[e.muscle] = (budget.vol[e.muscle] || 0) + modifiedEx.sets;
 
       return modifiedEx;
     }).filter(Boolean);
@@ -824,9 +828,9 @@ function getWeeklySetVolumes(){
   return volumes;
 }
 
-function getMRVStatus(){
-  const volumes = getWeeklySetVolumes();
-  const limits = {
+// Weekly MRV (Maximum Recoverable Volume) ranges per muscle, in working sets.
+function getMRVLimits(){
+  return {
     chest: {min: 10, max: 20},
     back: {min: 12, max: 22},
     shoulders: {min: 8, max: 18},
@@ -836,6 +840,34 @@ function getMRVStatus(){
     core: {min: 8, max: 18},
     hips: {min: 6, max: 16}
   };
+}
+
+// Sets already committed this week by muscle: completed/logged workouts PLUS any
+// not-yet-done planned custom workouts on the program. Used to budget remaining
+// sessions so the generator fills toward optimal without blowing past MRV max.
+function getCommittedVolumes(){
+  const vol = getWeeklySetVolumes(); // logged (completed + custom-logged)
+  if(S.program?.week){
+    S.program.week.forEach(day => {
+      // Skip planned days that have since been logged (counted via the logs above)
+      if(day && day.plannedCustomWorkout && day.plannedCustomLog && !day.customWorkout){
+        day.plannedCustomLog.exercises.forEach(ex => {
+          const sets = Array.isArray(ex.sets)
+            ? ex.sets.filter(s => s && s.reps > 0).length
+            : (parseInt(ex.sets) || 0);
+          if(ex.muscle) vol[ex.muscle] = (vol[ex.muscle] || 0) + sets;
+        });
+      }
+    });
+  }
+  return vol;
+}
+
+function getMRVStatus(){
+  // Include logged workouts (regular + custom) AND planned custom workouts so the
+  // dashboard reflects every committed set, matching how the generator budgets.
+  const volumes = getCommittedVolumes();
+  const limits = getMRVLimits();
 
   const status = {};
   Object.keys(limits).forEach(muscle => {
@@ -930,10 +962,13 @@ function pickEveningExercises(day,sessionMins){
   const tmpl=TMPLS[day.tk];
   if(!tmpl)return day.exercises.slice(0,limit);
   const used=[];
+  const budget={ vol:getCommittedVolumes(), limits:getMRVLimits(), perExercise:3 };
   const exs=tmpl.slots.slice(0,limit).map(sl=>{
-    const e=pickEx(sl,equip,used,false); // Evening sessions allow high-sweat exercises
-    if(e)used.push(e.id);
-    return e?{...e,sets:3,sessionMins}:null;
+    const e=pickEx(sl,equip,used,false,budget); // Evening sessions allow high-sweat exercises
+    if(!e) return null;
+    used.push(e.id);
+    budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+3;
+    return {...e,sets:3,sessionMins};
   }).filter(Boolean);
   let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
   return exs;
@@ -2878,8 +2913,13 @@ document.addEventListener('click',e=>{
       S.logs.push(customData);
 
       if(S.program && S.program.week[S.customWorkoutLog.dow]) {
-        S.program.week[S.customWorkoutLog.dow].customWorkout = true;
-        S.program.week[S.customWorkoutLog.dow].customLog = customData;
+        const day = S.program.week[S.customWorkoutLog.dow];
+        day.customWorkout = true;
+        day.customLog = customData;
+        // If this day was previously planned, clear the planned markers so its
+        // sets aren't counted twice in MRV / budgeting.
+        delete day.plannedCustomWorkout;
+        delete day.plannedCustomLog;
       }
 
       // Refresh last-used weights so the 4% progression picks up these entries
