@@ -1781,12 +1781,29 @@ function renderCustomWorkoutLog(){
   const {dow} = S.customWorkoutLog;
   const exercises = S.customWorkoutLog.exercises || [];
 
-  const exerciseRows = exercises.map((ex, idx) => `
+  // Suggestions for the autocomplete dropdown (built-in + custom exercises)
+  const allKnownEx = [...EX, ...(S.customExercises||[])];
+  const suggestionOptions = allKnownEx
+    .map(e => `<option value="${e.name.replace(/"/g,'&quot;')}">${MNAME[e.muscle]||''}</option>`)
+    .join('');
+
+  const exerciseRows = exercises.map((ex, idx) => {
+    const detected = ex.muscle || detectMuscle(ex.name);
+    const muscleOpts = Object.keys(MNAME)
+      .map(m => `<option value='${m}' ${m===detected?'selected':''}>${MNAME[m]}</option>`)
+      .join('');
+    return `
     <div class='card2' style='margin-bottom:8px'>
       <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px'>
-        <input type='text' class='ni' placeholder='Exercise name' value='${ex.name || ''}'
-               onchange='updateCustomExercise(${idx}, "name", this.value)' style='flex:1'>
+        <input type='text' class='ni' list='ex-suggestions' autocomplete='off' placeholder='Type exercise name…' value='${(ex.name||'').replace(/'/g,"&#39;")}'
+               oninput='onCustomNameInput(${idx}, this.value)' style='flex:1;text-align:left'>
         <button class='btn btn-g' onclick='removeCustomExercise(${idx})' style='padding:6px 10px;font-size:11px'>×</button>
+      </div>
+      <div style='margin-bottom:8px'>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Muscle group targeted ${ex.muscleManual?'':'<span style="color:var(--acc)">· auto</span>'}</div>
+        <select class='ni' id='cust-musc-${idx}' onchange='updateCustomExercise(${idx},"muscle",this.value);markMuscleManual(${idx})' style='width:100%;text-align:left'>
+          ${muscleOpts}
+        </select>
       </div>
       <div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px'>
         <div>
@@ -1806,7 +1823,7 @@ function renderCustomWorkoutLog(){
         </div>
       </div>
     </div>
-  `).join('');
+  `;}).join('');
 
   return `<div class='view'>
     <button class='s-back' data-action='cancel-custom-workout' style='margin-bottom:20px;margin-top:0'>
@@ -1823,7 +1840,10 @@ function renderCustomWorkoutLog(){
       <button class='btn btn-g btn-sm' data-action='load-strength-template'>🏋️ Heavy Lifting</button>
     </div>
 
+    <datalist id='ex-suggestions'>${suggestionOptions}</datalist>
+
     <div class='sec-lbl'>Exercises</div>
+    <div style='font-size:12px;color:var(--mut);margin-bottom:10px'>Start typing an exercise name for suggestions. The muscle group is detected automatically — adjust it if needed so your history, progression, and recovery tracking stay accurate.</div>
     ${exercises.length > 0 ? exerciseRows : '<div style="text-align:center;color:var(--mut);padding:20px">No exercises added yet</div>'}
 
     <button class='btn btn-s btn-sm' data-action='add-custom-exercise-row' style='margin:16px 0;width:100%'>+ Add Exercise</button>
@@ -2020,6 +2040,37 @@ function updateCustomExercise(idx, field, value) {
   if (!S.customWorkoutLog || !S.customWorkoutLog.exercises[idx]) return;
   S.customWorkoutLog.exercises[idx][field] = value;
   // Don't save yet, just update state
+}
+
+// Identify the muscle group for an exercise name: exact match in the database first,
+// then keyword-based estimation as a fallback.
+function detectMuscle(name) {
+  if (!name || !name.trim()) return 'legs';
+  const allEx = [...EX, ...(S.customExercises||[])];
+  const match = allEx.find(e => e.name.toLowerCase() === name.toLowerCase().trim());
+  if (match) return match.muscle;
+  return estimateMuscleGroup(name);
+}
+
+// Live handler as the user types an exercise name — keeps the muscle dropdown in
+// sync (unless they've manually overridden it) without re-rendering / losing focus.
+function onCustomNameInput(idx, value) {
+  if (!S.customWorkoutLog || !S.customWorkoutLog.exercises[idx]) return;
+  const ex = S.customWorkoutLog.exercises[idx];
+  ex.name = value;
+  if (!ex.muscleManual) {
+    const m = detectMuscle(value);
+    ex.muscle = m;
+    const sel = document.getElementById('cust-musc-' + idx);
+    if (sel) sel.value = m;
+  }
+}
+
+// Mark a row's muscle group as manually chosen so auto-detection stops overriding it.
+function markMuscleManual(idx) {
+  if (S.customWorkoutLog && S.customWorkoutLog.exercises[idx]) {
+    S.customWorkoutLog.exercises[idx].muscleManual = true;
+  }
 }
 
 function removeCustomExercise(idx) {
@@ -2673,14 +2724,20 @@ document.addEventListener('click',e=>{
       isCustom: true,
       isPlanned: S.customWorkoutLog.isPlanning,
       duration: 60, // default estimate
-      exercises: S.customWorkoutLog.exercises.map(ex => ({
-        id: ex.name.toLowerCase().replace(/[^a-z0-9]/g, '_'),
-        name: ex.name,
-        muscle: estimateMuscleGroup(ex.name),
-        sets: [{weight: ex.weight, reps: ex.reps}].concat(
-          Array(ex.sets - 1).fill().map(() => ({weight: ex.weight, reps: ex.reps}))
-        )
-      }))
+      exercises: S.customWorkoutLog.exercises.map(ex => {
+        // Link to a known exercise when the name matches, so progression history
+        // is shared with regular logging; otherwise create a stable slug id.
+        const allKnown = [...EX, ...(S.customExercises||[])];
+        const match = allKnown.find(e => e.name.toLowerCase() === (ex.name||'').toLowerCase().trim());
+        return {
+          id: match ? match.id : (ex.name||'').toLowerCase().replace(/[^a-z0-9]/g, '_'),
+          name: ex.name,
+          muscle: ex.muscle || (match ? match.muscle : estimateMuscleGroup(ex.name)),
+          sets: [{weight: ex.weight, reps: ex.reps}].concat(
+            Array(ex.sets - 1).fill().map(() => ({weight: ex.weight, reps: ex.reps}))
+          )
+        };
+      })
     };
 
     if(S.customWorkoutLog.isPlanning) {
