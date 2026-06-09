@@ -1799,6 +1799,7 @@ function renderCustomWorkoutLog(){
                oninput='onCustomNameInput(${idx}, this.value)' style='flex:1;text-align:left'>
         <button class='btn btn-g' onclick='removeCustomExercise(${idx})' style='padding:6px 10px;font-size:11px'>×</button>
       </div>
+      <div id='cust-match-${idx}' style='font-size:11px;margin-bottom:8px;min-height:14px'>${matchInfoHtml(ex.name)}</div>
       <div style='margin-bottom:8px'>
         <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Muscle group targeted ${ex.muscleManual?'':'<span style="color:var(--acc)">· auto</span>'}</div>
         <select class='ni' id='cust-musc-${idx}' onchange='updateCustomExercise(${idx},"muscle",this.value);markMuscleManual(${idx})' style='width:100%;text-align:left'>
@@ -2042,14 +2043,29 @@ function updateCustomExercise(idx, field, value) {
   // Don't save yet, just update state
 }
 
+// Find an exact database (or custom) exercise match for a typed name.
+function exMatch(name) {
+  if (!name || !name.trim()) return null;
+  const allEx = [...EX, ...(S.customExercises||[])];
+  return allEx.find(e => e.name.toLowerCase() === name.toLowerCase().trim()) || null;
+}
+
 // Identify the muscle group for an exercise name: exact match in the database first,
 // then keyword-based estimation as a fallback.
 function detectMuscle(name) {
   if (!name || !name.trim()) return 'legs';
-  const allEx = [...EX, ...(S.customExercises||[])];
-  const match = allEx.find(e => e.name.toLowerCase() === name.toLowerCase().trim());
+  const match = exMatch(name);
   if (match) return match.muscle;
   return estimateMuscleGroup(name);
+}
+
+// Message shown under the name field: confirms whether this entry is linked to a
+// known exercise (so its weights feed the 4% progression history) or is brand new.
+function matchInfoHtml(name) {
+  const m = exMatch(name);
+  if (m) return `<span style="color:var(--ok)">✓ Linked to <strong>${m.name}</strong> — weights feed your 4% progression</span>`;
+  if (name && name.trim()) return `<span style="color:var(--mut)">New exercise — tracked on its own</span>`;
+  return '';
 }
 
 // Live handler as the user types an exercise name — keeps the muscle dropdown in
@@ -2064,6 +2080,9 @@ function onCustomNameInput(idx, value) {
     const sel = document.getElementById('cust-musc-' + idx);
     if (sel) sel.value = m;
   }
+  // Live-update the database-link indicator
+  const mEl = document.getElementById('cust-match-' + idx);
+  if (mEl) mEl.innerHTML = matchInfoHtml(value);
 }
 
 // Mark a row's muscle group as manually chosen so auto-detection stops overriding it.
@@ -2725,13 +2744,13 @@ document.addEventListener('click',e=>{
       isPlanned: S.customWorkoutLog.isPlanning,
       duration: 60, // default estimate
       exercises: S.customWorkoutLog.exercises.map(ex => {
-        // Link to a known exercise when the name matches, so progression history
-        // is shared with regular logging; otherwise create a stable slug id.
-        const allKnown = [...EX, ...(S.customExercises||[])];
-        const match = allKnown.find(e => e.name.toLowerCase() === (ex.name||'').toLowerCase().trim());
+        // Link to a known exercise when the name matches, so the logged weights
+        // feed the same 4% progression history as regular workouts; otherwise
+        // create a stable slug id tracked on its own.
+        const match = exMatch(ex.name);
         return {
           id: match ? match.id : (ex.name||'').toLowerCase().replace(/[^a-z0-9]/g, '_'),
-          name: ex.name,
+          name: match ? match.name : ex.name,
           muscle: ex.muscle || (match ? match.muscle : estimateMuscleGroup(ex.name)),
           sets: [{weight: ex.weight, reps: ex.reps}].concat(
             Array(ex.sets - 1).fill().map(() => ({weight: ex.weight, reps: ex.reps}))
@@ -2757,6 +2776,9 @@ document.addEventListener('click',e=>{
         S.program.week[S.customWorkoutLog.dow].customWorkout = true;
         S.program.week[S.customWorkoutLog.dow].customLog = customData;
       }
+
+      // Refresh last-used weights so the 4% progression picks up these entries
+      recalcLastWeights();
 
       // Regenerate rest of week to adapt
       adaptWeekForCustomWorkout(customData, S.customWorkoutLog.dow);
