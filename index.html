@@ -1420,7 +1420,7 @@ function renderDash(){
       <div class='t-exlist'>${exList}</div>
       ${makeupNote}
       ${isActualToday?`<button class='btn btn-p' data-action='start-workout' data-session='lunch'>Start${d.eveningSession?' Lunch':''} Workout →</button>`:''}
-      ${isActualToday?`<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 Log Custom Workout Instead</button>`:''}
+      <button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 ${isActualToday?'Log Custom Workout Instead':'Log Custom Workout'}</button>
       ${eveBlock}
     </div>`;
   }
@@ -2049,50 +2049,50 @@ function adaptWeekForCustomWorkout(customLog, customDow) {
     customVolumes[muscle] = (customVolumes[muscle] || 0) + sets;
   });
 
-  // Get current weekly volumes including the custom workout
-  const weeklyVolumes = getWeeklySetVolumes();
-  Object.entries(customVolumes).forEach(([muscle, sets]) => {
-    weeklyVolumes[muscle] = (weeklyVolumes[muscle] || 0) + sets;
-  });
-
-  // Regenerate program for remaining days, avoiding overworked muscles
-  const today = todayDow();
-  const remainingDays = [];
-
-  // Collect days that still need programming (today through Sunday)
-  for (let dow = Math.max(today, customDow + 1); dow <= 6; dow++) {
-    if (dow === 0 || dow > customDow) remainingDays.push(dow);
-  }
-  if (customDow < 6) remainingDays.push(0); // Sunday if not already included
-
-  // Mark heavily worked muscle groups to avoid
-  const overworkedMuscles = new Set();
-  const mrvLimits = {chest: 20, back: 22, shoulders: 18, biceps: 16, triceps: 16, legs: 24, core: 18};
-
-  Object.entries(weeklyVolumes).forEach(([muscle, volume]) => {
-    const limit = mrvLimits[muscle] || 20;
-    if (volume > limit * 0.8) { // If >80% of MRV, avoid this muscle
-      overworkedMuscles.add(muscle);
+  // Store all existing custom workouts to preserve them
+  const existingCustomWorkouts = {};
+  S.program.week.forEach((day, dow) => {
+    if (day && day.customWorkout && day.customLog) {
+      existingCustomWorkouts[dow] = {
+        customWorkout: true,
+        customLog: day.customLog,
+        name: day.name,
+        desc: day.desc
+      };
     }
   });
 
-  // Update recent workouts to include custom workout muscles
-  const customMuscleList = Object.keys(customVolumes).map(m => MNAME[m]).join(', ');
-  const existingRecent = S.weekPlan.recentWorkouts || '';
-  S.weekPlan.recentWorkouts = existingRecent +
-    (existingRecent ? '. ' : '') +
-    `Custom workout: ${customMuscleList}`;
+  // Update recent workouts to include ALL custom workout muscles for better adaptation
+  const allCustomMuscles = new Set();
+  Object.values(existingCustomWorkouts).forEach(cw => {
+    cw.customLog.exercises.forEach(ex => allCustomMuscles.add(ex.muscle));
+  });
+  Object.keys(customVolumes).forEach(muscle => allCustomMuscles.add(muscle));
 
-  // Regenerate program which will now account for the overworked muscles
+  const customMuscleList = Array.from(allCustomMuscles).map(m => MNAME[m]).join(', ');
+  S.weekPlan.recentWorkouts = `Custom workouts this week: ${customMuscleList}`;
+
+  // Completely regenerate the week program to adapt around ALL custom workouts
   S.program = genProgram(S.cfg, S.weekPlan.availability);
 
-  // Restore the custom workout day
-  if (S.program.week[customDow]) {
-    S.program.week[customDow].customWorkout = true;
-    S.program.week[customDow].customLog = customLog;
-    S.program.week[customDow].name = 'Custom Workout';
-    S.program.week[customDow].desc = `${customLog.exercises.length} exercises logged`;
-  }
+  // Restore ALL custom workout days (including the new one)
+  existingCustomWorkouts[customDow] = {
+    customWorkout: true,
+    customLog: customLog,
+    name: 'Custom Workout',
+    desc: `${customLog.exercises.length} exercises logged`
+  };
+
+  // Apply all custom workouts back to the regenerated program
+  Object.entries(existingCustomWorkouts).forEach(([dow, customData]) => {
+    const dayIndex = parseInt(dow);
+    if (S.program.week[dayIndex]) {
+      S.program.week[dayIndex] = {
+        ...S.program.week[dayIndex],
+        ...customData
+      };
+    }
+  });
 }
 
 // ─────────────────────────────────────────────
