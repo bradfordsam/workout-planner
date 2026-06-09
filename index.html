@@ -757,7 +757,41 @@ function parseRecentWorkouts(text){
 
 function getOverworkedMuscles(){
   const recentWorkouts = S.weekPlan?.recentWorkouts || '';
-  return parseRecentWorkouts(recentWorkouts);
+  const recentOverworked = parseRecentWorkouts(recentWorkouts);
+
+  // Also check for upcoming custom workouts this week
+  const upcomingOverworked = getUpcomingCustomWorkoutMuscles();
+
+  // Combine both sets
+  return new Set([...recentOverworked, ...upcomingOverworked]);
+}
+
+function getUpcomingCustomWorkoutMuscles(){
+  const upcomingMuscles = new Set();
+
+  if(!S.program || !S.program.week) return upcomingMuscles;
+
+  const today = todayDow();
+
+  // Check for custom workouts throughout the entire week for better planning
+  S.program.week.forEach((day, dow) => {
+    if(day && (day.customWorkout || day.plannedCustomWorkout)) {
+      const customLog = day.customLog || day.plannedCustomLog;
+      if(customLog) {
+        // Consider all custom workouts in the week, with different weights based on timing
+        const dayDiff = dow === 0 ? (7 - today) : (dow - today);
+
+        // For planning purposes, consider the entire week but with different impact
+        if(dayDiff >= -1 && dayDiff <= 6) { // Yesterday to end of week
+          customLog.exercises.forEach(ex => {
+            upcomingMuscles.add(ex.muscle);
+          });
+        }
+      }
+    }
+  });
+
+  return upcomingMuscles;
 }
 
 // ─── MRV (Maximum Recoverable Volume) Tracking ───
@@ -1367,6 +1401,26 @@ function renderDash(){
       </div>`;
     }
 
+    // Handle planned custom workout days
+    if(d && d.plannedCustomWorkout && d.plannedCustomLog) {
+      const log = d.plannedCustomLog;
+      const exList = log.exercises.slice(0,3).map(ex =>
+        `<div class='t-ex'><span style='color:var(--warn)'>📅</span> ${ex.name} ${ex.sets?.length || 1}×${ex.sets?.[0]?.reps || ex.reps}</div>`
+      ).join('');
+      const moreText = log.exercises.length > 3 ? `<div class='t-ex' style='color:var(--mut)'>+${log.exercises.length-3} more exercises</div>` : '';
+
+      return `<div class='today' style='border-color:var(--warn);background:linear-gradient(135deg,var(--surf2) 0%,rgba(251,191,36,.04) 100%)'>
+        <div class='t-lbl' style='color:var(--warn)'>${isActualToday?'Today · ':''}Planned Workout</div>
+        <div class='t-name'>${log.dayName}</div>
+        <div class='t-desc'>Week adapted around planned workout</div>
+        <div class='t-exlist' style='margin-bottom:12px'>${exList}${moreText}</div>
+        <div style='display:flex;gap:8px'>
+          ${isActualToday?`<button class='btn btn-p btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='flex:1'>📝 Complete Workout</button>`:`<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='flex:1'>📝 Log Workout</button>`}
+          <button class='btn btn-g btn-sm' data-action='cancel-planned-workout' data-dow='${displayDow}' style='flex:1'>❌ Cancel</button>
+        </div>
+      </div>`;
+    }
+
     if(!d||d.rest){
       const label=isActualToday?(isSunday?'Sunday · Plan Your Week':'Rest Day 😴'):(DOW[displayDow]+' · Rest');
       return isActualToday&&isSunday
@@ -1420,7 +1474,10 @@ function renderDash(){
       <div class='t-exlist'>${exList}</div>
       ${makeupNote}
       ${isActualToday?`<button class='btn btn-p' data-action='start-workout' data-session='lunch'>Start${d.eveningSession?' Lunch':''} Workout →</button>`:''}
-      <button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 ${isActualToday?'Log Custom Workout Instead':'Log Custom Workout'}</button>
+      ${displayDow > todayDow() || (displayDow === 0 && todayDow() < 6) ?
+        `<button class='btn btn-g btn-sm' data-action='plan-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📅 Plan Custom Workout</button>` :
+        `<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 ${isActualToday?'Log Custom Workout Instead':'Log Custom Workout'}</button>`
+      }
       ${eveBlock}
     </div>`;
   }
@@ -1752,9 +1809,9 @@ function renderCustomWorkoutLog(){
     <button class='s-back' data-action='cancel-custom-workout' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Cancel
     </button>
-    <div class='hdg'>Log Custom Workout</div>
+    <div class='hdg'>${S.customWorkoutLog.isPlanning ? 'Plan Custom Workout' : 'Log Custom Workout'}</div>
     <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${DOW[dow]} - Custom Session</div>
-    <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>Enter the exercises you completed. The rest of your week will adapt to account for muscle group fatigue and volume.</div>
+    <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>${S.customWorkoutLog.isPlanning ? 'Plan the exercises you will do. Your week will be adjusted immediately to avoid overworking muscle groups.' : 'Enter the exercises you completed. The rest of your week will adapt to account for muscle group fatigue and volume.'}</div>
 
     <div class='sec-lbl'>Quick Templates</div>
     <div style='display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap'>
@@ -1770,7 +1827,7 @@ function renderCustomWorkoutLog(){
 
     <div style='display:flex;gap:8px;margin-top:20px'>
       <button class='btn btn-g' data-action='cancel-custom-workout' style='flex:1'>Cancel</button>
-      <button class='btn btn-p' data-action='save-custom-workout' style='flex:2'>💾 Save & Adapt Week</button>
+      <button class='btn btn-p' data-action='save-custom-workout' style='flex:2'>${S.customWorkoutLog.isPlanning ? '📅 Plan & Adapt Week' : '💾 Save & Adapt Week'}</button>
     </div>
   </div>`;
 }
@@ -2095,6 +2152,127 @@ function adaptWeekForCustomWorkout(customLog, customDow) {
   });
 }
 
+function planCustomWorkout(customLog, customDow) {
+  if (!S.program || !S.program.week || !S.weekPlan?.availability) return;
+
+  // Store all existing custom workouts and planned workouts to preserve them
+  const existingWorkouts = {};
+  S.program.week.forEach((day, dow) => {
+    if (day && day.customWorkout && day.customLog) {
+      existingWorkouts[dow] = {
+        customWorkout: true,
+        customLog: day.customLog,
+        name: day.name,
+        desc: day.desc
+      };
+    } else if (day && day.plannedCustomWorkout && day.plannedCustomLog) {
+      existingWorkouts[dow] = {
+        plannedCustomWorkout: true,
+        plannedCustomLog: day.plannedCustomLog,
+        name: day.name,
+        desc: day.desc
+      };
+    }
+  });
+
+  // Add the new planned workout
+  existingWorkouts[customDow] = {
+    plannedCustomWorkout: true,
+    plannedCustomLog: customLog,
+    name: 'Planned Custom Workout',
+    desc: `${customLog.exercises.length} exercises planned`
+  };
+
+  // Update recent workouts to include ALL custom/planned workout muscles for better adaptation
+  const allCustomMuscles = new Set();
+  Object.values(existingWorkouts).forEach(cw => {
+    const log = cw.customLog || cw.plannedCustomLog;
+    if (log) {
+      log.exercises.forEach(ex => allCustomMuscles.add(ex.muscle));
+    }
+  });
+
+  const customMuscleList = Array.from(allCustomMuscles).map(m => MNAME[m]).join(', ');
+  S.weekPlan.recentWorkouts = `Custom/planned workouts this week: ${customMuscleList}`;
+
+  // Completely regenerate the week program to adapt around ALL custom workouts
+  S.program = genProgram(S.cfg, S.weekPlan.availability);
+
+  // Apply all custom/planned workouts back to the regenerated program
+  Object.entries(existingWorkouts).forEach(([dow, workoutData]) => {
+    const dayIndex = parseInt(dow);
+    if (S.program.week[dayIndex]) {
+      S.program.week[dayIndex] = {
+        ...S.program.week[dayIndex],
+        ...workoutData
+      };
+    }
+  });
+}
+
+function cancelPlannedWorkout(cancelDow) {
+  if (!S.program || !S.program.week) return;
+
+  // Remove the planned workout from the day
+  if(S.program.week[cancelDow]) {
+    delete S.program.week[cancelDow].plannedCustomWorkout;
+    delete S.program.week[cancelDow].plannedCustomLog;
+  }
+
+  // Store all remaining custom workouts to preserve them
+  const existingWorkouts = {};
+  S.program.week.forEach((day, dow) => {
+    if (day && day.customWorkout && day.customLog) {
+      existingWorkouts[dow] = {
+        customWorkout: true,
+        customLog: day.customLog,
+        name: day.name,
+        desc: day.desc
+      };
+    } else if (day && day.plannedCustomWorkout && day.plannedCustomLog) {
+      existingWorkouts[dow] = {
+        plannedCustomWorkout: true,
+        plannedCustomLog: day.plannedCustomLog,
+        name: day.name,
+        desc: day.desc
+      };
+    }
+  });
+
+  // Update recent workouts
+  const allCustomMuscles = new Set();
+  Object.values(existingWorkouts).forEach(cw => {
+    const log = cw.customLog || cw.plannedCustomLog;
+    if (log) {
+      log.exercises.forEach(ex => allCustomMuscles.add(ex.muscle));
+    }
+  });
+
+  if(allCustomMuscles.size > 0) {
+    const customMuscleList = Array.from(allCustomMuscles).map(m => MNAME[m]).join(', ');
+    S.weekPlan.recentWorkouts = `Custom/planned workouts this week: ${customMuscleList}`;
+  } else {
+    S.weekPlan.recentWorkouts = '';
+  }
+
+  // Regenerate the week program
+  S.program = genProgram(S.cfg, S.weekPlan.availability);
+
+  // Restore remaining custom workouts
+  Object.entries(existingWorkouts).forEach(([dow, workoutData]) => {
+    const dayIndex = parseInt(dow);
+    if (S.program.week[dayIndex]) {
+      S.program.week[dayIndex] = {
+        ...S.program.week[dayIndex],
+        ...workoutData
+      };
+    }
+  });
+
+  save();
+  render();
+}
+
 // ─────────────────────────────────────────────
 // EVENT HANDLING
 // ─────────────────────────────────────────────
@@ -2381,10 +2559,28 @@ document.addEventListener('click',e=>{
     const dow = parseInt(btn.dataset.dow);
     S.customWorkoutLog = {
       dow: dow,
-      exercises: []
+      exercises: [],
+      isPlanning: false
     };
     S.view = 'custom-workout-log';
     render();return;
+  }
+  if(a==='plan-custom-workout'){
+    const dow = parseInt(btn.dataset.dow);
+    S.customWorkoutLog = {
+      dow: dow,
+      exercises: [],
+      isPlanning: true
+    };
+    S.view = 'custom-workout-log';
+    render();return;
+  }
+  if(a==='cancel-planned-workout'){
+    const dow = parseInt(btn.dataset.dow);
+    if(confirm('Cancel this planned workout? Your week will be regenerated.')) {
+      cancelPlannedWorkout(dow);
+    }
+    return;
   }
   if(a==='cancel-custom-workout'){
     S.customWorkoutLog = null;
@@ -2413,12 +2609,13 @@ document.addEventListener('click',e=>{
       return;
     }
 
-    // Create a workout log entry
-    const customLog = {
+    // Create a workout entry
+    const customData = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
-      dayName: 'Custom Workout',
+      dayName: S.customWorkoutLog.isPlanning ? 'Planned Custom Workout' : 'Custom Workout',
       isCustom: true,
+      isPlanned: S.customWorkoutLog.isPlanning,
       duration: 60, // default estimate
       exercises: S.customWorkoutLog.exercises.map(ex => ({
         id: ex.name.toLowerCase().replace(/[^a-z0-9]/g, '_'),
@@ -2430,17 +2627,27 @@ document.addEventListener('click',e=>{
       }))
     };
 
-    // Add to logs
-    S.logs.push(customLog);
+    if(S.customWorkoutLog.isPlanning) {
+      // PLANNING: Don't add to logs, mark as planned
+      if(S.program && S.program.week[S.customWorkoutLog.dow]) {
+        S.program.week[S.customWorkoutLog.dow].plannedCustomWorkout = true;
+        S.program.week[S.customWorkoutLog.dow].plannedCustomLog = customData;
+      }
 
-    // Mark today as having a custom workout
-    if(S.program && S.program.week[S.customWorkoutLog.dow]) {
-      S.program.week[S.customWorkoutLog.dow].customWorkout = true;
-      S.program.week[S.customWorkoutLog.dow].customLog = customLog;
+      // Immediately regenerate entire week to adapt around planned workout
+      planCustomWorkout(customData, S.customWorkoutLog.dow);
+    } else {
+      // LOGGING: Add to logs, mark as completed
+      S.logs.push(customData);
+
+      if(S.program && S.program.week[S.customWorkoutLog.dow]) {
+        S.program.week[S.customWorkoutLog.dow].customWorkout = true;
+        S.program.week[S.customWorkoutLog.dow].customLog = customData;
+      }
+
+      // Regenerate rest of week to adapt
+      adaptWeekForCustomWorkout(customData, S.customWorkoutLog.dow);
     }
-
-    // Regenerate rest of week to adapt
-    adaptWeekForCustomWorkout(customLog, S.customWorkoutLog.dow);
 
     S.customWorkoutLog = null;
     S.view = 'dash';
