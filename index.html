@@ -1938,6 +1938,7 @@ function renderLogEdit(){
     <div style='font-size:13px;color:var(--mut);margin-bottom:16px'>${log.dayName} · ${fmtDate(log.date)} · ${fmtDur(log.duration)}</div>
     ${exSections}
     <button class='btn btn-ok' data-action='save-log-edit'>Save Changes</button>
+    <button class='btn' data-action='delete-log' data-id='${log.id}' style='background:var(--bad2);color:var(--bad);margin-top:10px'>🗑️ Delete This Workout</button>
   </div>`;
 }
 
@@ -1964,7 +1965,10 @@ function renderHistory(){
       <div class='log-meta'>${fmtDate(l.date)} · ${fmtDur(l.duration)} · ${l.exercises.length} exercises</div>
       <div class='log-body${open?' open':''}' id='${id}'>
         ${exSummary}
-        <button class='btn btn-s btn-sm' data-action='edit-log' data-id='${l.id}' style='margin-top:10px;width:auto'>✏️ Edit this workout</button>
+        <div style='display:flex;gap:8px;margin-top:10px'>
+          <button class='btn btn-s btn-sm' data-action='edit-log' data-id='${l.id}' style='flex:1'>✏️ Edit</button>
+          <button class='btn btn-sm' data-action='delete-log' data-id='${l.id}' style='flex:1;background:var(--bad2);color:var(--bad)'>🗑️ Delete</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2199,6 +2203,55 @@ function planCustomWorkout(customLog, customDow) {
   S.program = genProgram(S.cfg, S.weekPlan.availability);
 
   // Apply all custom/planned workouts back to the regenerated program
+  Object.entries(existingWorkouts).forEach(([dow, workoutData]) => {
+    const dayIndex = parseInt(dow);
+    if (S.program.week[dayIndex]) {
+      S.program.week[dayIndex] = {
+        ...S.program.week[dayIndex],
+        ...workoutData
+      };
+    }
+  });
+}
+
+function rebalanceCustomWorkouts() {
+  if (!S.program || !S.program.week || !S.weekPlan?.availability) return;
+
+  // Collect all remaining custom and planned workouts to preserve them
+  const existingWorkouts = {};
+  S.program.week.forEach((day, dow) => {
+    if (day && day.customWorkout && day.customLog) {
+      existingWorkouts[dow] = {
+        customWorkout: true,
+        customLog: day.customLog,
+        name: day.name,
+        desc: day.desc
+      };
+    } else if (day && day.plannedCustomWorkout && day.plannedCustomLog) {
+      existingWorkouts[dow] = {
+        plannedCustomWorkout: true,
+        plannedCustomLog: day.plannedCustomLog,
+        name: day.name,
+        desc: day.desc
+      };
+    }
+  });
+
+  // Rebuild recentWorkouts note from remaining workouts
+  const allCustomMuscles = new Set();
+  Object.values(existingWorkouts).forEach(cw => {
+    const log = cw.customLog || cw.plannedCustomLog;
+    if (log) log.exercises.forEach(ex => allCustomMuscles.add(ex.muscle));
+  });
+  if (allCustomMuscles.size > 0) {
+    const customMuscleList = Array.from(allCustomMuscles).map(m => MNAME[m]).join(', ');
+    S.weekPlan.recentWorkouts = `Custom/planned workouts this week: ${customMuscleList}`;
+  } else {
+    S.weekPlan.recentWorkouts = '';
+  }
+
+  // Regenerate the week and re-apply remaining custom/planned workouts
+  S.program = genProgram(S.cfg, S.weekPlan.availability);
   Object.entries(existingWorkouts).forEach(([dow, workoutData]) => {
     const dayIndex = parseInt(dow);
     if (S.program.week[dayIndex]) {
@@ -2737,6 +2790,41 @@ document.addEventListener('click',e=>{
     return;
   }
   if(a==='cancel-log-edit'){S.editLogDraft=null;S.view='history';render();return;}
+  if(a==='delete-log'){
+    const id=btn.dataset.id;
+    const log=S.logs.find(l=>l.id===id);
+    if(!log)return;
+    const isCustom=log.isCustom;
+    const msg=isCustom
+      ?'Delete this custom workout? The rest of your week will rebalance to account for the removed workout.'
+      :'Delete this workout from your history? This cannot be undone.';
+    if(!confirm(msg))return;
+
+    // Remove from logs
+    S.logs=S.logs.filter(l=>l.id!==id);
+
+    // Clear any custom-workout flags on the program week that referenced this log
+    let wasOnWeek=false;
+    if(S.program?.week){
+      S.program.week.forEach(day=>{
+        if(day&&day.customWorkout&&day.customLog?.id===id){
+          delete day.customWorkout;delete day.customLog;wasOnWeek=true;
+        }
+      });
+    }
+
+    recalcLastWeights();
+
+    // If it was a custom workout tied to the week, rebalance the remaining week
+    if(isCustom&&wasOnWeek&&S.weekPlan?.availability){
+      rebalanceCustomWorkouts();
+    }
+
+    S.editLogDraft=null;
+    S.view='history';
+    save();render();
+    return;
+  }
   if(a==='skip-rest'||btn.id==='skip-rest-btn'){stopRest();return;}
 });
 
