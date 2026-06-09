@@ -1,15 +1,43 @@
 {
   "name": "Workout Planner",
   "short_name": "Workout",
+  "description": "Smart workout planning with adaptive programming",
   "start_url": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0a0a12",
   "theme_color": "#0a0a12",
+  "categories": ["health", "fitness"],
   "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 72'%3E%3Crect width='72' height='72' rx='16' fill='%23141420'/%3E%3Ctext x='36' y='48' font-size='36' text-anchor='middle' fill='%23818cf8'%3E💪%3C/text%3E%3C/svg%3E",
+      "sizes": "72x72",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' rx='20' fill='%23141420'/%3E%3Ctext x='48' y='64' font-size='48' text-anchor='middle' fill='%23818cf8'%3E💪%3C/text%3E%3C/svg%3E",
+      "sizes": "96x96",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 144 144'%3E%3Crect width='144' height='144' rx='30' fill='%23141420'/%3E%3Ctext x='72' y='96' font-size='72' text-anchor='middle' fill='%23818cf8'%3E💪%3C/text%3E%3C/svg%3E",
+      "sizes": "144x144",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23141420'/%3E%3Ctext x='96' y='128' font-size='100' text-anchor='middle' fill='%23818cf8'%3E💪%3C/text%3E%3C/svg%3E",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%23141420'/%3E%3Ctext x='256' y='340' font-size='280' text-anchor='middle' fill='%23818cf8'%3E💪%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
