@@ -551,12 +551,12 @@ function genProgram(cfg,av){
   // Running tally: starts with sets already logged this week, accumulates planned sets
   const setsPlanned=weeklySetsByMuscle();
 
-  function assignSlot(slot,idx){
-    const tk=split[idx%split.length];
+  function buildSession(slot,tk,oldData){
     const equip=slot.loc==='home'?(S.cfg.homeEquip||HOME_EQUIP):(S.cfg.ymcaEquip||YMCA_EQUIP);
+    if(oldData===undefined)oldData=oldWeek?.[slot.dow];
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
-    if(oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest&&(completedDows.has(slot.dow)||(oldWeek[slot.dow].tk===tk&&oldWeek[slot.dow].loc===slot.loc))){
-      const od=oldWeek[slot.dow];
+    if(oldData&&!oldData.rest&&(completedDows.has(slot.dow)||(oldData.tk===tk&&oldData.loc===slot.loc))){
+      const od=oldData;
       // Count preserved-but-not-yet-done sessions toward MRV so later slots don't over-prescribe
       if(!completedDows.has(slot.dow)){
         (od.exercises||[]).forEach(e=>{setsPlanned[e.muscle]=(setsPlanned[e.muscle]||0)+(e.sets||3);});
@@ -581,6 +581,9 @@ function genProgram(cfg,av){
     let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
     return{tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
+  function assignSlot(slot,idx){
+    return buildSession(slot,split[idx%split.length]);
+  }
 
   const slotMap={};let splitIdx=0;
   // Pass 1: lunches always get lifting
@@ -593,41 +596,29 @@ function genProgram(cfg,av){
   });
 
   // Pass 3: double-lifting days — if a day has both lunch + evening lifting
-  // available and the lunch session's main muscle is still under its volume
-  // target, use the evening slot to add extra sets/exercises for that muscle
-  // (instead of defaulting to cardio).
+  // available and the split is otherwise complete, give the evening slot a
+  // full bonus session using a DIFFERENT template than lunch. Research favors
+  // hitting an under-volumed muscle group on a separate day/session over
+  // stacking extra same-muscle sets onto one workout, so pick whichever
+  // template targets the muscle furthest below its weekly volume target.
+  const BONUS_TMPLS=['legs','lower_a','lower_b','push','pull','upper_push','upper_pull'];
   eveSlots.forEach(slot=>{
     if(!lunchDows.has(slot.dow))return;   // only relevant for lunch+evening days
     if(slotMap[slot.key])return;          // already assigned
     const lunchSession=slotMap[`${slot.dow}-lunch`];
     if(!lunchSession?.exercises?.length)return;
-    const muscleCounts={};
-    lunchSession.exercises.forEach(e=>{muscleCounts[e.muscle]=(muscleCounts[e.muscle]||0)+1;});
-    const candidate=Object.entries(muscleCounts).sort((a,b)=>b[1]-a[1]).map(([m])=>m)
-      .find(m=>(setsPlanned[m]||0)<(MRV[m]||20)-VOL_TARGET_BUFFER);
-    if(!candidate)return; // muscle already near its weekly target → evening stays cardio
 
-    const equip=slot.loc==='home'?(S.cfg.homeEquip||HOME_EQUIP):(S.cfg.ymcaEquip||YMCA_EQUIP);
-    const eq=new Set([...equip,'bodyweight']);
-    const used=lunchSession.exercises.map(e=>e.id);
-    const limit=EX_LIMIT[slot.mins]||5;
-    const mrv=MRV[candidate]||20;
-    const exs=[];
-    EX.filter(e=>e.muscle===candidate&&!used.includes(e.id)&&e.eq.some(q=>eq.has(q))&&!(S.cfg.hipCaution&&e.hipRisk))
-      .forEach(e=>{
-        if(exs.length>=limit)return;
-        const remaining=mrv-(setsPlanned[candidate]||0);
-        if(remaining<=0)return;
-        const sets=Math.min(3,remaining);
-        setsPlanned[candidate]=(setsPlanned[candidate]||0)+sets;
-        exs.push({...e,sets,sessionMins:slot.mins});
-        used.push(e.id);
-      });
-    if(!exs.length)return;
-    let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
-    slotMap[slot.key]={tk:`vol_${candidate}`,name:`${MNAME[candidate]} · Extra Volume`,
-      desc:`More ${MNAME[candidate].toLowerCase()} work — lunch + evening combo day`,
-      isLunch:false,exercises:exs,mins:slot.mins,loc:slot.loc};
+    let best=null,bestScore=0;
+    BONUS_TMPLS.forEach(tk=>{
+      if(tk===lunchSession.tk)return; // must be a different split than lunch
+      const muscles=new Set(TMPLS[tk].slots.filter(s=>s.type==='compound').map(s=>s.muscle));
+      let score=0;
+      muscles.forEach(m=>{score+=Math.max(0,(MRV[m]||20)-VOL_TARGET_BUFFER-(setsPlanned[m]||0));});
+      if(score>bestScore){bestScore=score;best=tk;}
+    });
+    if(!best)return; // nothing meaningfully under-volumed → evening stays cardio
+
+    slotMap[slot.key]=buildSession(slot,best,oldWeek?.[slot.dow]?.eveningSession);
   });
 
   // Build week array
