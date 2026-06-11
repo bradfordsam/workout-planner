@@ -226,6 +226,7 @@ body{
 <div id="root"></div>
 <button class="chat-btn" id="chat-btn" onclick="toggleChat()" title="Ask about exercises">💬</button>
 <div id="chat-float"></div>
+<div id="modal-root"></div>
 <div id="rest-ov">
   <div class="rest-inner">
     <div class="rest-lbl">Rest Period</div>
@@ -546,19 +547,19 @@ let S={
   cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true,conditioning:false},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
-  customExercises:[],
+  customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,
 };
 let timerIv=null;
 
 function save(){
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20)}));}catch(e){}
   saveToCloud();
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[]});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[]});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -753,7 +754,14 @@ function genProgram(cfg,av){
 
     let best=null,bestScore=0;
     BONUS_TMPLS.forEach(tk=>{
-      if(tk===lunchSession.tk)return; // must be a different split than lunch
+      // Same-day duplicate templates (and their compound movements) are
+      // ALLOWED — multi-session days are gated on aggregate volume, not an
+      // identity block: lunch's sets have already consumed budget.vol, the
+      // deficit scoring below only repeats a split when its muscles remain
+      // genuinely under-volumed, and pickEx's fitsMRV enforces the hard
+      // weekly ceiling per muscle. A mild variety preference breaks ties
+      // toward a different split without forbidding the repeat.
+      const sameAsLunch=tk===lunchSession.tk;
       const muscles=new Set(TMPLS[tk].slots.filter(s=>s.type==='compound').map(s=>s.muscle));
       // Rank by the single most under-volumed muscle the template trains (the
       // muscle that most needs a second weekly session), using total deficit
@@ -771,6 +779,9 @@ function genProgram(cfg,av){
       // day — same-muscle sessions <24h apart compromise recovery.
       const dows=maxDefMuscle?muscleDows[maxDefMuscle]:null;
       if(dows&&(dows.has(slot.dow-1)||dows.has(slot.dow+1)))score*=0.25;
+      // Variety preference (soft), not a block: a repeat of the lunch split
+      // must clearly out-score the alternatives on volume deficit to win.
+      if(sameAsLunch)score*=0.5;
       if(maxDef>0&&score>bestScore){bestScore=score;best=tk;}
     });
     if(!best)return; // nothing meaningfully under-volumed → evening stays cardio
@@ -1281,7 +1292,10 @@ function progression(exId,rMax){
 }
 function recalcLastWeights(){
   const w={};
-  [...S.logs].sort((a,b)=>a.id>b.id?1:-1).forEach(log=>{
+  // Sort by workout DATE, not record id: retroactively injected sessions carry
+  // a fresh id but a historic date, and progression baselines must follow the
+  // true chronological order.
+  [...S.logs].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0).forEach(log=>{
     log.exercises?.forEach(ex=>{
       const sets=ex.sets?.filter(s=>s?.reps>0);
       if(sets?.length){const l=sets[sets.length-1];w[ex.id]={weight:l.weight,reps:l.reps};}
@@ -2230,9 +2244,22 @@ function renderCustomWorkoutLog(){
     <button class='s-back' data-action='cancel-custom-workout' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Cancel
     </button>
-    <div class='hdg'>${S.customWorkoutLog.isPlanning ? 'Plan Custom Workout' : 'Log Custom Workout'}</div>
-    <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${DOW[dow]} - Custom Session</div>
-    <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>${S.customWorkoutLog.isPlanning ? 'Plan the exercises you will do. Your week will be adjusted immediately to avoid overworking muscle groups.' : 'Enter the exercises you completed. The rest of your week will adapt to account for muscle group fatigue and volume.'}</div>
+    <div class='hdg'>${S.customWorkoutLog.isBackdate ? 'Log Past Workout' : S.customWorkoutLog.isPlanning ? 'Plan Custom Workout' : 'Log Custom Workout'}</div>
+    <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${S.customWorkoutLog.isBackdate ? 'Retroactive Entry' : DOW[dow]+' - Custom Session'}</div>
+    <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>${S.customWorkoutLog.isBackdate ? 'Pick when you did this workout. It joins your history in order — weekly volume, recovery, and weight progression all recalculate from it.' : S.customWorkoutLog.isPlanning ? 'Plan the exercises you will do. Your week will be adjusted immediately to avoid overworking muscle groups.' : 'Enter the exercises you completed. The rest of your week will adapt to account for muscle group fatigue and volume.'}</div>
+
+    ${S.customWorkoutLog.isBackdate ? `
+    <div class='sec-lbl'>When</div>
+    <div style='display:flex;gap:8px;margin-bottom:16px'>
+      <div style='flex:2'>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Date</div>
+        <input type='date' id='backdate-date' class='ni' value='${todayStr()}' max='${todayStr()}' style='width:100%;text-align:left;padding:10px 12px'>
+      </div>
+      <div style='flex:1'>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Time</div>
+        <input type='time' id='backdate-time' class='ni' value='17:00' style='width:100%;text-align:left;padding:10px 12px'>
+      </div>
+    </div>` : ''}
 
     <div class='sec-lbl'>Quick Templates</div>
     <div style='display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap'>
@@ -2378,10 +2405,32 @@ function renderLogEdit(){
 // ─────────────────────────────────────────────
 // RENDER – HISTORY
 // ─────────────────────────────────────────────
+// Trash / recovery sub-menu: soft-deleted sessions with one-tap restore.
+function renderDeletedSection(){
+  const ds=S.deletedSessions||[];
+  if(!ds.length)return'';
+  const rows=[...ds].reverse().map(d=>`
+    <div style='display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bdr)'>
+      <div style='flex:1;min-width:0'>
+        <div style='font-size:13px;font-weight:600'>${d.log.dayName}</div>
+        <div style='font-size:11px;color:var(--mut)'>${fmtDate(d.log.date)} · ${d.log.exercises.length} exercises</div>
+      </div>
+      <button class='btn btn-s btn-sm' data-action='restore-log' data-id='${d.log.id}' style='width:auto;padding:7px 12px'>↩ Restore</button>
+    </div>`).join('');
+  return`<div class='card' style='margin-top:16px'>
+    <div class='sec-lbl' style='margin-bottom:6px'>🗑️ Recently Deleted</div>
+    <div style='font-size:11px;color:var(--mut);margin-bottom:6px'>Restoring puts the session back into your history, progression, and weekly volume. Keeps the last 20.</div>
+    ${rows}
+  </div>`;
+}
+
 function renderHistory(){
+  const pastBtn=`<button class='btn btn-s btn-sm' data-action='log-past-workout' style='margin-bottom:14px'>📅 Log a Past Workout</button>`;
   if(!S.logs.length)return`<div class='view'>
     <div class='hdg'>History</div>
+    ${pastBtn}
     <div class='empty'><span style='font-size:48px;display:block;margin-bottom:12px'>📋</span>No workouts logged yet.<br>Complete your first session to start tracking progress.</div>
+    ${renderDeletedSection()}
   </div>${renderNav('history')}`;
 
   const items=[...S.logs].reverse().map(l=>{
@@ -2408,7 +2457,9 @@ function renderHistory(){
 
   return`<div class='view'>
     <div class='hdg'>Workout History</div>
+    ${pastBtn}
     ${items}
+    ${renderDeletedSection()}
   </div>${renderNav('history')}`;
 }
 
@@ -2428,9 +2479,63 @@ function renderNav(active){
 // ─────────────────────────────────────────────
 // MAIN RENDER
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// DELETE PREVIEW MODAL + UNDO BANNER (soft delete)
+// ─────────────────────────────────────────────
+// Full-workload preview shown before any deletion is accepted, so the user
+// can verify they're removing the right session.
+function renderDeleteModal(){
+  const log=S.logs.find(l=>l.id===S.confirmDelete);
+  if(!log)return'';
+  const exRows=log.exercises.map(e=>{
+    const exDef=EX.find(x=>x.id===e.id);
+    const isNW=exDef?.noWeight;const isTm=exDef?.isTimed;
+    const setStr=(e.sets||[]).filter(s=>s&&s.reps>0)
+      .map(s=>isTm?`${s.reps}s`:isNW?`${s.reps} reps`:`${s.weight||0} lb × ${s.reps}`).join(' · ');
+    return`<div style='padding:7px 0;border-bottom:1px solid var(--bdr)'>
+      <div style='display:flex;align-items:center;gap:8px'>
+        <span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]||'var(--acc)'};flex-shrink:0'></span>
+        <strong style='font-size:13px'>${e.name}</strong>
+        <span style='margin-left:auto;font-size:11px;color:var(--mut)'>${(e.sets||[]).filter(s=>s&&s.reps>0).length} sets</span>
+      </div>
+      <div style='font-size:12px;color:var(--mut);margin-left:16px;margin-top:2px'>${setStr||'—'}</div>
+    </div>`;
+  }).join('');
+  return`<div style='position:fixed;inset:0;background:rgba(10,10,18,.88);backdrop-filter:blur(8px);z-index:998;display:flex;align-items:center;justify-content:center;padding:20px'>
+    <div style='background:var(--surf);border:1px solid var(--bdr-strong);border-radius:16px;max-width:440px;width:100%;max-height:80vh;display:flex;flex-direction:column'>
+      <div style='padding:16px 16px 12px'>
+        <div style='font-size:16px;font-weight:800'>Delete this workout?</div>
+        <div style='font-size:12px;color:var(--mut);margin-top:3px'>${log.dayName} · ${fmtDate(log.date)} · ${fmtDur(log.duration)} · review the full workload before confirming</div>
+      </div>
+      <div style='padding:0 16px;overflow-y:auto;flex:1'>${exRows}</div>
+      <div style='padding:12px 16px 16px'>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:10px'>This won't be permanent — the session moves to <strong>Recently Deleted</strong> (History tab), where you can restore it.</div>
+        <div style='display:flex;gap:8px'>
+          <button class='btn btn-g' data-action='cancel-delete-log' style='flex:1'>Cancel</button>
+          <button class='btn' data-action='confirm-delete-log' data-id='${log.id}' style='flex:1;background:var(--bad2);color:var(--bad)'>🗑️ Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+// Ephemeral toast after a soft delete, with one-tap restore.
+function renderUndoBanner(){
+  const b=S.undoBanner;
+  if(!b)return'';
+  return`<div style='position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;background:var(--surf3);border:1px solid var(--bdr-strong);border-radius:12px;padding:11px 14px;z-index:997;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lg)'>
+    <span style='font-size:13px;flex:1'>🗑️ <strong>${b.name}</strong> deleted</span>
+    <button class='btn btn-s btn-sm' data-action='restore-log' data-id='${b.id}' style='width:auto;padding:7px 14px'>↩ Restore</button>
+  </div>`;
+}
+function updateModals(){
+  const mr=document.getElementById('modal-root');
+  if(mr)mr.innerHTML=(S.confirmDelete?renderDeleteModal():'')+renderUndoBanner();
+}
+
 function render(){
   const root=document.getElementById('root');
   if(!S.program&&S.view!=='setup'){S.view='setup';}
+  updateModals();
   // Mid-workout chat is embedded inline in the execution screen — hide the
   // floating chat button there so no detached overlay competes with it.
   const chatBtn=document.getElementById('chat-btn');
@@ -3237,6 +3342,17 @@ document.addEventListener('click',e=>{
     S.view = 'custom-workout-log';
     render();return;
   }
+  if(a==='log-past-workout'){
+    // Retroactive entry: date/time chosen in the form; dow derived on save
+    S.customWorkoutLog = {
+      dow: null,
+      exercises: [],
+      isPlanning: false,
+      isBackdate: true
+    };
+    S.view = 'custom-workout-log';
+    render();return;
+  }
   if(a==='plan-custom-workout'){
     const dow = parseInt(btn.dataset.dow);
     S.customWorkoutLog = {
@@ -3281,10 +3397,27 @@ document.addEventListener('click',e=>{
       return;
     }
 
+    // Backdated entries: resolve the chosen historic date/time and derive the
+    // day-of-week from it; reject future timestamps.
+    let entryDate = new Date();
+    if (S.customWorkoutLog.isBackdate) {
+      const dStr = document.getElementById('backdate-date')?.value;
+      const tStr = document.getElementById('backdate-time')?.value || '17:00';
+      if (!dStr) { alert('Pick the date you did this workout'); return; }
+      entryDate = new Date(`${dStr}T${tStr}:00`);
+      if (isNaN(entryDate.getTime()) || entryDate.getTime() > Date.now()) {
+        alert('That timestamp is in the future — pick a past date/time');
+        return;
+      }
+      S.customWorkoutLog.dow = entryDate.getDay();
+    }
+    // A backdated workout only ties into the program week if it falls inside it
+    const inCurrentWeek = entryDate.toISOString().slice(0,10) >= thisMonday();
+
     // Create a workout entry
     const customData = {
       id: Date.now().toString(),
-      date: new Date().toISOString(),
+      date: entryDate.toISOString(),
       dayName: S.customWorkoutLog.isPlanning ? 'Planned Custom Workout' : 'Custom Workout',
       isCustom: true,
       isPlanned: S.customWorkoutLog.isPlanning,
@@ -3315,10 +3448,13 @@ document.addEventListener('click',e=>{
       // Immediately regenerate entire week to adapt around planned workout
       planCustomWorkout(customData, S.customWorkoutLog.dow);
     } else {
-      // LOGGING: Add to logs, mark as completed
+      // LOGGING: Add to logs in chronological position (matters for backdated
+      // entries — progression must read the true latest session per exercise)
       S.logs.push(customData);
+      S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
 
-      if(S.program && S.program.week[S.customWorkoutLog.dow]) {
+      // Only tie into the current program week when the date falls inside it
+      if(inCurrentWeek && S.program && S.program.week[S.customWorkoutLog.dow]) {
         const day = S.program.week[S.customWorkoutLog.dow];
         day.customWorkout = true;
         day.customLog = customData;
@@ -3328,11 +3464,14 @@ document.addEventListener('click',e=>{
         delete day.plannedCustomLog;
       }
 
-      // Refresh last-used weights so the 4% progression picks up these entries
+      // Background recalculation: last-used weights for the +4% progression
+      // baseline; weekly MRV volume recalculates automatically since it is
+      // derived from log dates (getWeeklySetVolumes / getCommittedVolumes).
       recalcLastWeights();
 
-      // Regenerate rest of week to adapt
-      adaptWeekForCustomWorkout(customData, S.customWorkoutLog.dow);
+      // Regenerate rest of week to adapt (current-week entries only — a
+      // workout from a prior week doesn't change this week's plan)
+      if(inCurrentWeek) adaptWeekForCustomWorkout(customData, S.customWorkoutLog.dow);
     }
 
     S.customWorkoutLog = null;
@@ -3425,37 +3564,73 @@ document.addEventListener('click',e=>{
   }
   if(a==='cancel-log-edit'){S.editLogDraft=null;S.view='history';render();return;}
   if(a==='delete-log'){
+    // Soft-delete pipeline step 1: never delete immediately — open the
+    // full-workload preview modal for confirmation.
+    S.confirmDelete=btn.dataset.id;
+    updateModals();
+    return;
+  }
+  if(a==='cancel-delete-log'){
+    S.confirmDelete=null;
+    updateModals();
+    return;
+  }
+  if(a==='confirm-delete-log'){
     const id=btn.dataset.id;
     const log=S.logs.find(l=>l.id===id);
-    if(!log)return;
-    const isCustom=log.isCustom;
-    const msg=isCustom
-      ?'Delete this custom workout? The rest of your week will rebalance to account for the removed workout.'
-      :'Delete this workout from your history? This cannot be undone.';
-    if(!confirm(msg))return;
+    S.confirmDelete=null;
+    if(!log){updateModals();return;}
 
-    // Remove from logs
+    // Soft delete: move to the recovery cache instead of purging
+    S.deletedSessions=S.deletedSessions||[];
+    S.deletedSessions.push({deletedAt:Date.now(),wasOnDow:null,log});
+    if(S.deletedSessions.length>20)S.deletedSessions=S.deletedSessions.slice(-20);
     S.logs=S.logs.filter(l=>l.id!==id);
 
     // Clear any custom-workout flags on the program week that referenced this log
-    let wasOnWeek=false;
     if(S.program?.week){
       S.program.week.forEach(day=>{
         if(day&&day.customWorkout&&day.customLog?.id===id){
-          delete day.customWorkout;delete day.customLog;wasOnWeek=true;
+          delete day.customWorkout;delete day.customLog;
+          S.deletedSessions[S.deletedSessions.length-1].wasOnDow=day.dow;
         }
       });
     }
 
     recalcLastWeights();
-
-    // If it was a custom workout tied to the week, rebalance the remaining week
-    if(isCustom&&wasOnWeek&&S.weekPlan?.availability){
+    if(log.isCustom&&S.deletedSessions[S.deletedSessions.length-1].wasOnDow!=null&&S.weekPlan?.availability){
       rebalanceCustomWorkouts();
     }
 
+    // Ephemeral undo banner (auto-dismisses; session stays recoverable in
+    // History → Recently Deleted regardless)
+    S.undoBanner={id,name:log.dayName};
+    setTimeout(()=>{if(S.undoBanner&&S.undoBanner.id===id){S.undoBanner=null;updateModals();}},8000);
+
     S.editLogDraft=null;
-    S.view='history';
+    if(S.view==='log-edit')S.view='history';
+    save();render();
+    return;
+  }
+  if(a==='restore-log'){
+    const id=btn.dataset.id;
+    const idx=(S.deletedSessions||[]).findIndex(d=>d.log.id===id);
+    if(idx===-1)return;
+    const entry=S.deletedSessions.splice(idx,1)[0];
+    S.logs.push(entry.log);
+    // Keep history chronological so progression reads the true latest session
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+
+    // Re-attach custom workouts to their program day when still applicable
+    if(entry.log.isCustom&&entry.wasOnDow!=null&&S.program?.week?.[entry.wasOnDow]
+       &&entry.log.date.slice(0,10)>=thisMonday()&&!S.program.week[entry.wasOnDow].customWorkout){
+      S.program.week[entry.wasOnDow].customWorkout=true;
+      S.program.week[entry.wasOnDow].customLog=entry.log;
+      if(S.weekPlan?.availability)rebalanceCustomWorkouts();
+    }
+
+    recalcLastWeights();
+    S.undoBanner=null;
     save();render();
     return;
   }
