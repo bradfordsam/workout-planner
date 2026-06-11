@@ -1107,14 +1107,70 @@ function renderMRVWidget(){
 
   const fatigued=[...getFatiguedMuscles()].filter(m=>MNAME[m]);
   const fatigueNote=fatigued.length?`<div style='font-size:11px;color:var(--warn);margin-top:8px'>🔋 Recovering: ${fatigued.map(m=>MNAME[m]).join(', ')} — volume ceiling reduced 15% for 72h after your hard session</div>`:'';
-  return `<div class='card'>
+  return `<div class='card' data-action='view-mrv-breakdown' style='cursor:pointer'>
     <div style='font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px'>
       📊 Weekly Set Volume (MRV)
       <span style='font-size:10px;color:var(--mut);font-weight:400'>10-20+ sets optimal · ⚠️ = recent external</span>
+      <span style='margin-left:auto;color:var(--acc);font-size:12px;font-weight:600'>Breakdown ›</span>
     </div>
     ${rows}
     ${fatigueNote}
   </div>`;
+}
+
+// ─────────────────────────────────────────────
+// RENDER – MRV BREAKDOWN (volume attribution)
+// ─────────────────────────────────────────────
+function renderMRVBreakdown(){
+  const bd=getMRVBreakdown();
+  const limits=getMRVLimits();
+  const srcBadge={
+    logged:`<span class='badge' style='background:var(--ok2);color:var(--ok)'>✓ logged</span>`,
+    custom:`<span class='badge' style='background:var(--acc2);color:var(--acc)'>📝 custom</span>`,
+    planned:`<span class='badge badge-lunch'>📅 planned</span>`,
+    scheduled:`<span class='badge' style='background:var(--surf3);color:var(--mut)'>⏳ scheduled</span>`,
+  };
+  const muscles=Object.keys(bd).sort((a,b)=>bd[b].committed-bd[a].committed||bd[b].projected-bd[a].projected);
+  const cards=muscles.map(m=>{
+    const b=bd[m];
+    const lim=limits[m];
+    const color=MCOL[m]||'var(--acc)';
+    const committedRows=b.entries.filter(e=>e.source!=='scheduled').map(e=>`
+      <div style='display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--bdr)'>
+        <span style='color:var(--mut);width:34px;flex-shrink:0'>${e.dayLabel}</span>
+        <span style='flex:1;min-width:0'>${e.name}</span>
+        <strong style='flex-shrink:0'>${e.sets} set${e.sets===1?'':'s'}</strong>
+        ${srcBadge[e.source]||''}
+      </div>`).join('');
+    const projRows=b.entries.filter(e=>e.source==='scheduled').map(e=>`
+      <div style='display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--bdr);opacity:.55'>
+        <span style='color:var(--mut);width:34px;flex-shrink:0'>${e.dayLabel}</span>
+        <span style='flex:1;min-width:0'>${e.name}</span>
+        <strong style='flex-shrink:0'>${e.sets} set${e.sets===1?'':'s'}</strong>
+        ${srcBadge.scheduled}
+      </div>`).join('');
+    const pct=lim?Math.min(100,(b.committed/lim.max)*100):0;
+    return`<div class='card'>
+      <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px'>
+        <span style='width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0'></span>
+        <strong style='font-size:15px'>${MNAME[m]||m}</strong>
+        <span style='margin-left:auto;font-size:13px;color:var(--mut)'><strong style='color:var(--txt)'>${b.committed}</strong>${lim?` / ${lim.max} sets`:' sets'}${b.projected?` · +${b.projected} upcoming`:''}</span>
+      </div>
+      <div style='background:var(--surf2);border-radius:4px;height:8px;margin-bottom:10px'>
+        <div style='background:${color};height:100%;width:${pct}%;border-radius:4px'></div>
+      </div>
+      ${committedRows||`<div style='font-size:12px;color:var(--mut);padding:4px 0'>No sets counted yet this week.</div>`}
+      ${projRows}
+    </div>`;
+  }).join('');
+  return`<div class='view'>
+    <button class='s-back' data-action='back-to-dash' style='margin-bottom:20px;margin-top:0'>
+      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
+    </button>
+    <div class='hdg'>Weekly Volume Breakdown</div>
+    <div class='sub'>Every exercise feeding this week's MRV totals, grouped by muscle. Solid rows are counted (logged sessions + planned custom workouts); dimmed rows are upcoming scheduled sessions not yet counted.</div>
+    ${cards||`<div class='empty'><span style='font-size:48px;display:block;margin-bottom:12px'>📊</span>Nothing logged or scheduled this week yet.</div>`}
+  </div>${renderNav('dash')}`;
 }
 function getMissedDays(){
   const plan=getWeekPlan();
@@ -1176,56 +1232,52 @@ function lastLog(exId){
     if(e?.sets?.length)return e;
   }return null;
 }
-// ─── PROGRESSIVE OVERLOAD — deterministic trigger spec ───
-// Source of truth for weight-progression suggestions. Exact rules:
-//   1. BASIS: the most recent log entry for this exercise id (lastLog), falling
-//      back to a manually entered lastWeights value. Working weight = first
-//      completed set's weight of that session.
-//   2. TRIGGER: minR >= rMax — EVERY completed set in the last session reached
-//      the TOP of the exercise's target rep range (e.g. 8/8/8 on a 4–8 lift).
-//      One set short anywhere = no increase; weight is repeated.
-//   3. SUGGESTION when triggered: working weight × 1.04 (+4%), rounded to the
-//      nearest 5 lb (r5). Double progression: add reps first, then load.
-//   4. NOT factored: RPE/RIR (not tracked per set). The post-session fatigue
-//      rating (1–5) regulates weekly volume ceilings via getMRVLimits, never
-//      the per-exercise load suggestion.
+// ─── PROGRESSIVE OVERLOAD — set-by-set inter-set scaling ───
+// Background logic only (no UI explanation modules). Evaluates the last
+// session's full set-history array instead of assuming one uniform weight:
+//   1. BASIS: most recent log for this exercise (lastLog), falling back to a
+//      manually entered lastWeights value.
+//   2. BASELINE: the HIGHEST weight at which any set reached the rep ceiling
+//      (rMax). A mid-session manual increase counts — 10×10 / 15×10 / 15×8
+//      sets the next session's baseline to 15 lb, never back to 10.
+//      If no set reached the ceiling, baseline = heaviest weight attempted.
+//   3. TRIGGER: every completed set was performed at (>=) the baseline weight
+//      AND reached rMax — the full rep schema is complete at that intensity.
+//   4. SUGGESTION when triggered: baseline × 1.04 rounded to nearest 5 lb,
+//      with a minimum +5 lb step so light loads (e.g. 15 lb DBs) still
+//      progress. Otherwise: suggest the baseline (fill the schema there).
+//   5. NOT factored: RPE/RIR (not tracked). Post-session fatigue ratings
+//      regulate weekly volume ceilings via getMRVLimits, never load.
 function progression(exId,rMax){
-  let w=null,minR=null,maxR=null;
   const l=lastLog(exId);
+  let sets=null;
   if(l){
     const done=l.sets.filter(s=>s.reps>0);
-    if(done.length){
-      w=done[0].weight;
-      minR=Math.min(...done.map(s=>s.reps));
-      maxR=Math.max(...done.map(s=>s.reps));
-    }
+    if(done.length)sets=done;
   }
   // Fall back to manually entered lastWeights when no log exists
-  if(w==null&&S.lastWeights?.[exId]){
-    w=S.lastWeights[exId].weight;
-    minR=maxR=S.lastWeights[exId].reps;
+  if(!sets&&S.lastWeights?.[exId]){
+    sets=[{weight:S.lastWeights[exId].weight,reps:S.lastWeights[exId].reps}];
   }
-  if(w==null)return null;
-  const ready=minR>=rMax;
-  return{weight:w,minR,maxR,suggest:ready?r5(w*1.04):w,ready,summary:`${w} lb × ${minR===maxR?minR:minR+'–'+maxR}`};
-}
-
-// Human-readable, deterministic explanation of the progression state for one
-// exercise — exposes the exact trigger logic above to the user on request.
-function progressionExplain(exId){
-  const allEx=[...EX,...(S.customExercises||[])];
-  const def=allEx.find(e=>e.id===exId);
-  if(!def)return null;
-  const rule=`<strong>The rule:</strong> when every completed set of ${def.name} reaches the top of its target rep range (${def.rMin}–${def.rMax}), the next session suggests +4% load, rounded to the nearest 5 lb. Until then, the weight repeats while you add reps (double progression). RPE/RIR isn't tracked — only completed reps count. Session fatigue ratings adjust weekly volume, not this weight.`;
-  const p=progression(exId,def.rMax);
-  if(!p)return `${rule}<br><br><strong>Status:</strong> no logged history yet for ${def.name} — log a session (or enter a last weight) to start progression tracking.`;
-  if(def.noWeight||def.isTimed){
-    return `<strong>The rule:</strong> ${def.name} progresses by reps/time and tempo, not load. Build to ${def.rMax}${def.isTimed?'s':' reps'}, then advance per the exercise's progression ladder in its technique notes.<br><br><strong>Last session:</strong> ${p.summary.replace(/^0 lb × /,'')}.`;
+  if(!sets)return null;
+  const minR=Math.min(...sets.map(s=>s.reps));
+  const maxR=Math.max(...sets.map(s=>s.reps));
+  const wMin=Math.min(...sets.map(s=>s.weight||0));
+  const wMax=Math.max(...sets.map(s=>s.weight||0));
+  // Highest weight at which the rep ceiling was actually hit this session
+  const ceilSets=sets.filter(s=>s.reps>=rMax);
+  const topW=ceilSets.length?Math.max(...ceilSets.map(s=>s.weight||0)):null;
+  let baseline,ready;
+  if(topW!=null){
+    baseline=topW;
+    ready=sets.every(s=>(s.weight||0)>=topW&&s.reps>=rMax);
+  }else{
+    baseline=wMax;
+    ready=false;
   }
-  const status=p.ready
-    ?`<strong>Status — trigger MET:</strong> last session ${p.summary}; every set hit ${def.rMax}+. Next session suggests <strong>${p.suggest} lb</strong> (${p.weight} × 1.04 → nearest 5).`
-    :`<strong>Status — trigger not met:</strong> last session ${p.summary}; lowest set reached ${p.minR} of the ${def.rMax}-rep ceiling. Hit ${def.rMax} on every set at ${p.weight} lb to unlock the +4% suggestion.`;
-  return `${rule}<br><br>${status}`;
+  const suggest=ready?Math.max(r5(baseline*1.04),baseline+5):baseline;
+  const wLabel=wMin===wMax?`${wMax} lb`:`${wMin}→${wMax} lb`;
+  return{weight:baseline,minR,maxR,suggest,ready,summary:`${wLabel} × ${minR===maxR?minR:minR+'–'+maxR}`};
 }
 function recalcLastWeights(){
   const w={};
@@ -1977,7 +2029,7 @@ function renderWorkout(){
     }
   } else {
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
-      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} lb today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Same weight — hit those reps first</div>`}`
+      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} lb today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Target ${prog.suggest} lb — fill ${ex.rMin}–${ex.rMax} reps on every set</div>`}`
       :'<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative, leave 1–2 reps in the tank.</div>';
   }
 
@@ -2063,6 +2115,7 @@ function renderWorkout(){
     </div>`:''}
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
     <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s rest between sets (lunch time-box)':smartRestLabel(ex)} · slow eccentric</div>
+    ${renderInlineChat(ex)}
   </div>`;
 }
 
@@ -2378,8 +2431,13 @@ function renderNav(active){
 function render(){
   const root=document.getElementById('root');
   if(!S.program&&S.view!=='setup'){S.view='setup';}
+  // Mid-workout chat is embedded inline in the execution screen — hide the
+  // floating chat button there so no detached overlay competes with it.
+  const chatBtn=document.getElementById('chat-btn');
+  if(chatBtn)chatBtn.style.display=(S.view==='workout')?'none':'flex';
   if(S.view==='setup'){root.innerHTML=renderSetup();return;}
   if(S.view==='workout'){root.innerHTML=renderWorkout();return;}
+  if(S.view==='mrv-breakdown'){root.innerHTML=renderMRVBreakdown();return;}
   if(S.view==='review-workout'){root.innerHTML=renderReviewWorkout();return;}
   if(S.view==='custom-workout-log'){root.innerHTML=renderCustomWorkoutLog();return;}
   if(S.view==='dash'){root.innerHTML=renderDash();return;}
@@ -3075,6 +3133,9 @@ document.addEventListener('click',e=>{
   if(a==='back-to-dash'){
     S.reviewWorkout=null;S.view='dash';render();return;
   }
+  if(a==='view-mrv-breakdown'){
+    S.view='mrv-breakdown';render();return;
+  }
   if(a==='swap-exercise'){
     const idx=parseInt(btn.dataset.idx);
     if(!S.reviewWorkout)return;
@@ -3549,6 +3610,48 @@ function updateChatUI(){
 }
 
 function toggleChat(){chatOpen=!chatOpen;updateChatUI();}
+
+// ─── INLINE MID-WORKOUT CHAT ───
+// Embedded directly in the workout screen layout (no overlay/sheet). The
+// active exercise context is injected automatically via chatExerciseContext().
+// DOM is updated in place (never a full render()) so uncommitted set inputs
+// are preserved while chatting mid-workout.
+function inlineChatBubbles(){
+  const empty=!chatMsgs.length&&!chatLoading
+    ?`<div style='text-align:center;color:var(--mut);padding:10px;font-size:12px'>Ask about this exercise — form, set order, tempo, alternatives.</div>`:'';
+  return empty
+    +chatMsgs.map(m=>`<div class='chat-bubble ${m.role==='user'?'cb-user':'cb-ai'}'>${m.text}</div>`).join('')
+    +(chatLoading?`<div class='chat-bubble cb-ai' style='color:var(--mut)'>Thinking…</div>`:'');
+}
+function renderInlineChat(ex){
+  const hasKey=!!localStorage.getItem('anthropicKey');
+  return`<div class='card' style='margin-top:12px;padding:14px'>
+    <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>
+      <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc)'>💬 Form Check · ${ex?ex.name:'this exercise'}</div>
+      <div style='font-size:10px;color:var(--mut)'>${hasKey?'AI':'local'}</div>
+    </div>
+    <div id='inline-chat-msgs' style='max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:8px'>${inlineChatBubbles()}</div>
+    <div style='display:flex;gap:8px'>
+      <input type='text' id='chat-input-inline' class='ni' placeholder='e.g. Alternate legs or one side at a time?' style='flex:1;text-align:left;padding:10px 12px' onkeydown='if(event.key==="Enter")sendChatInline()'>
+      <button class='btn btn-p btn-sm' onclick='sendChatInline()' style='width:auto'>Send</button>
+    </div>
+  </div>`;
+}
+function updateInlineChat(){
+  const el=document.getElementById('inline-chat-msgs');
+  if(el){el.innerHTML=inlineChatBubbles();el.scrollTop=el.scrollHeight;}
+}
+async function sendChatInline(){
+  const input=document.getElementById('chat-input-inline');
+  const text=input?.value?.trim();
+  if(!text||chatLoading)return;
+  input.value='';
+  chatMsgs.push({role:'user',text});
+  chatLoading=true;updateInlineChat();
+  const answer=await askAssistant(text);
+  chatMsgs.push({role:'assistant',text:answer});
+  chatLoading=false;updateInlineChat();
+}
 
 async function sendChat(){
   const input=document.getElementById('chat-input');
