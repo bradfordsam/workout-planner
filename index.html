@@ -996,6 +996,66 @@ function getCommittedVolumes(){
   return vol;
 }
 
+// ─── MRV VOLUME ATTRIBUTION ───
+// Per-muscle breakdown of exactly which exercises, on which days, drive the
+// weekly MRV totals. Mirrors getCommittedVolumes for the counted ("committed")
+// numbers — logged sessions + planned custom workouts — and additionally lists
+// upcoming scheduled program sessions as "projected" (NOT counted in the MRV
+// widget totals, shown for transparency into the rest of the week).
+function getMRVBreakdown(){
+  const mondayStr=thisMonday();
+  const nextMondayStr=addDays(mondayStr,7);
+  const breakdown={};
+  const add=(muscle,entry)=>{
+    if(!muscle||!entry.sets)return;
+    if(!breakdown[muscle])breakdown[muscle]={committed:0,projected:0,entries:[]};
+    breakdown[muscle].entries.push(entry);
+    if(entry.source==='scheduled')breakdown[muscle].projected+=entry.sets;
+    else breakdown[muscle].committed+=entry.sets;
+  };
+
+  // 1) Logged sessions this calendar week (regular + custom) — completed sets only
+  const completedDows=new Set();
+  (S.logs||[]).filter(l=>l.date.slice(0,10)>=mondayStr&&l.date.slice(0,10)<nextMondayStr).forEach(l=>{
+    const dow=new Date(l.date.slice(0,10)+'T12:00:00').getDay();
+    completedDows.add(dow);
+    (l.exercises||[]).forEach(ex=>{
+      const sets=ex.sets?.filter(s=>s&&s.reps>0).length||0;
+      add(ex.muscle,{dow,dayLabel:DOW[dow],name:ex.name,sets,source:l.isCustom?'custom':'logged',sessionName:l.dayName});
+    });
+  });
+
+  // 2) Planned custom workouts not yet logged (counted in MRV widget)
+  if(S.program?.week){
+    S.program.week.forEach(day=>{
+      if(day&&day.plannedCustomWorkout&&day.plannedCustomLog&&!day.customWorkout){
+        day.plannedCustomLog.exercises.forEach(ex=>{
+          const sets=Array.isArray(ex.sets)?ex.sets.filter(s=>s&&s.reps>0).length:(parseInt(ex.sets)||0);
+          add(ex.muscle,{dow:day.dow,dayLabel:DOW[day.dow],name:ex.name,sets,source:'planned',sessionName:'Planned Custom Workout'});
+        });
+      }
+    });
+
+    // 3) Upcoming scheduled program sessions — projected, not yet counted
+    const todayISO=todayStr();
+    S.program.week.forEach(day=>{
+      if(!day||day.rest||day.customWorkout||day.plannedCustomWorkout)return;
+      if(completedDows.has(day.dow))return;
+      const dayISO=addDays(mondayStr,day.dow===0?6:day.dow-1);
+      if(dayISO<todayISO)return; // missed past days don't project volume
+      const collect=(sess)=>{(sess?.exercises||[]).forEach(e=>{
+        add(e.muscle,{dow:day.dow,dayLabel:DOW[day.dow],name:e.name,sets:e.sets||3,source:'scheduled',sessionName:sess.name});
+      });};
+      collect(day);
+      if(day.eveningSession)collect(day.eveningSession);
+    });
+  }
+
+  // Stable ordering: entries sorted Mon→Sun within each muscle (Sun last)
+  Object.values(breakdown).forEach(b=>b.entries.sort((a,c)=>(a.dow===0?7:a.dow)-(c.dow===0?7:c.dow)));
+  return breakdown;
+}
+
 function getMRVStatus(){
   // Include logged workouts (regular + custom) AND planned custom workouts so the
   // dashboard reflects every committed set, matching how the generator budgets.
@@ -1116,6 +1176,19 @@ function lastLog(exId){
     if(e?.sets?.length)return e;
   }return null;
 }
+// ─── PROGRESSIVE OVERLOAD — deterministic trigger spec ───
+// Source of truth for weight-progression suggestions. Exact rules:
+//   1. BASIS: the most recent log entry for this exercise id (lastLog), falling
+//      back to a manually entered lastWeights value. Working weight = first
+//      completed set's weight of that session.
+//   2. TRIGGER: minR >= rMax — EVERY completed set in the last session reached
+//      the TOP of the exercise's target rep range (e.g. 8/8/8 on a 4–8 lift).
+//      One set short anywhere = no increase; weight is repeated.
+//   3. SUGGESTION when triggered: working weight × 1.04 (+4%), rounded to the
+//      nearest 5 lb (r5). Double progression: add reps first, then load.
+//   4. NOT factored: RPE/RIR (not tracked per set). The post-session fatigue
+//      rating (1–5) regulates weekly volume ceilings via getMRVLimits, never
+//      the per-exercise load suggestion.
 function progression(exId,rMax){
   let w=null,minR=null,maxR=null;
   const l=lastLog(exId);
@@ -1135,6 +1208,24 @@ function progression(exId,rMax){
   if(w==null)return null;
   const ready=minR>=rMax;
   return{weight:w,minR,maxR,suggest:ready?r5(w*1.04):w,ready,summary:`${w} lb × ${minR===maxR?minR:minR+'–'+maxR}`};
+}
+
+// Human-readable, deterministic explanation of the progression state for one
+// exercise — exposes the exact trigger logic above to the user on request.
+function progressionExplain(exId){
+  const allEx=[...EX,...(S.customExercises||[])];
+  const def=allEx.find(e=>e.id===exId);
+  if(!def)return null;
+  const rule=`<strong>The rule:</strong> when every completed set of ${def.name} reaches the top of its target rep range (${def.rMin}–${def.rMax}), the next session suggests +4% load, rounded to the nearest 5 lb. Until then, the weight repeats while you add reps (double progression). RPE/RIR isn't tracked — only completed reps count. Session fatigue ratings adjust weekly volume, not this weight.`;
+  const p=progression(exId,def.rMax);
+  if(!p)return `${rule}<br><br><strong>Status:</strong> no logged history yet for ${def.name} — log a session (or enter a last weight) to start progression tracking.`;
+  if(def.noWeight||def.isTimed){
+    return `<strong>The rule:</strong> ${def.name} progresses by reps/time and tempo, not load. Build to ${def.rMax}${def.isTimed?'s':' reps'}, then advance per the exercise's progression ladder in its technique notes.<br><br><strong>Last session:</strong> ${p.summary.replace(/^0 lb × /,'')}.`;
+  }
+  const status=p.ready
+    ?`<strong>Status — trigger MET:</strong> last session ${p.summary}; every set hit ${def.rMax}+. Next session suggests <strong>${p.suggest} lb</strong> (${p.weight} × 1.04 → nearest 5).`
+    :`<strong>Status — trigger not met:</strong> last session ${p.summary}; lowest set reached ${p.minR} of the ${def.rMax}-rep ceiling. Hit ${def.rMax} on every set at ${p.weight} lb to unlock the +4% suggestion.`;
+  return `${rule}<br><br>${status}`;
 }
 function recalcLastWeights(){
   const w={};
@@ -3350,21 +3441,72 @@ function localAnswer(q){
   return null;
 }
 
+// ─── CHAT SCOPE GUARD ───
+// Hard boundary: the assistant covers biomechanics, execution, and exercise
+// output ONLY. Nutrition topics are refused deterministically here (before any
+// API call), and the same restriction is restated in the AI system prompt.
+const CHAT_OFF_TOPIC=/\b(calorie?s?|caloric|kcal|diets?|dieting|macros?|macronutrients?|nutrition\w*|meal\s?(plan\w*|prep\w*|s\b)?|protein (intake|target|goal)|carb(ohydrate)?s?\b|what (should|do) i eat|food|eating plan|fasting|deficit|surplus)\b/i;
+function chatScopeGuard(q){
+  if(CHAT_OFF_TOPIC.test(q))
+    return `That's outside my lane — I only cover <strong>biomechanics, execution, and exercise programming</strong>. I can't advise on calories, diet, or macros.<br><br>Ask me about form cues, exercise order, alternatives, rest, or progression instead.`;
+  return null;
+}
+
+// ─── CHAT EXERCISE CONTEXT ───
+// Gives the chat engine direct access to the exercise the user is currently
+// looking at: the active workout's current movement, or an expanded exercise
+// detail card. Returns null when no exercise is in focus.
+function chatExerciseContext(){
+  let ex=null,setting='';
+  if(S.view==='workout'&&S.active?.exercises?.length){
+    ex=S.active.exercises[S.active.exIdx]||null;
+    setting=`mid-workout (${S.active.dayName}${S.active.isLunch?' · lunch session, 90s rest cap':''})`;
+  }else if(S.viewExDetail){
+    const allEx=[...EX,...(S.customExercises||[])];
+    ex=allEx.find(e=>e.id===S.viewExDetail)||null;
+    setting='viewing exercise detail';
+  }
+  if(!ex)return null;
+  const p=progression(ex.id,ex.rMax);
+  return{
+    name:ex.name,
+    prompt:`CURRENT EXERCISE CONTEXT (user is ${setting}):\n`+
+      `- Exercise: ${ex.name} (${ex.type}, targets ${MNAME[ex.muscle]||ex.muscle})\n`+
+      `- Target reps: ${ex.rMin}-${ex.rMax}${ex.isTimed?' seconds':''} · rest: ${smartRest(ex)}s\n`+
+      `- Technique notes on file: ${ex.cue}\n`+
+      (p?`- Last performance: ${p.summary}${p.ready?' (progression trigger met — next suggestion '+p.suggest+' lb)':''}\n`:'')+
+      `Questions that say "this exercise" refer to ${ex.name}.`
+  };
+}
+
 async function askAssistant(q){
+  // Deterministic scope refusal — applies in both AI and local-DB modes
+  const offTopic=chatScopeGuard(q);
+  if(offTopic)return offTopic;
+
   const key=localStorage.getItem('anthropicKey');
   if(!key){
     const local=localAnswer(q);
     return local||`No AI key configured — but I can answer questions about specific exercises or muscle groups by name. Add your Anthropic API key in the Cloud Sync settings for full AI responses.`;
   }
   try{
-    const hipNote=S.cfg.hipCaution?'User has hip impingement (FAI) — avoid deep squat patterns.':'';
+    const hipNote=S.cfg.hipCaution?'User has hip impingement (FAI) — avoid deep squat patterns and compressive end-range hip flexion.':'';
     const prog=S.program?`Current split: ${S.program.week.filter(d=>!d.rest).map(d=>DOW[d.dow]+': '+d.name).join(', ')}.`:'';
+    const ctx=chatExerciseContext();
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-client-side-allowlist-v1':'true'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',max_tokens:600,
-        system:`You are a concise personal trainer in a workout app. ${hipNote} ${prog} Keep answers short, practical, and use line breaks. No markdown headers.`,
+        system:`You are a concise personal trainer in a workout app. ${hipNote} ${prog}
+${ctx?ctx.prompt+'\n':''}
+CORE TRAINING PRINCIPLES (synthesize these with current athletic research when the static technique notes leave a gap — e.g. unilateral set order, breathing, tempo, grip width):
+- Controlled eccentrics (2-3 count) and full ROM beat load; last rep should be hard, form never breaks.
+- Double progression: fill the target rep range on every set, then +4% load.
+- Unilateral work: complete reps per side; for stability-limited moves finish one side before switching unless the program says alternate.
+- Heavy compounds rest 2-3 min; isolation ≥90s.
+SCOPE: You answer ONLY biomechanics, exercise execution, and training output questions. If asked about caloric intake, diet, macros, or any nutrition topic, refuse briefly and redirect to training questions. No exceptions.
+Keep answers short, practical, and use line breaks. No markdown headers.`,
         messages:[{role:'user',content:q}]
       })
     });
