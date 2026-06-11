@@ -287,7 +287,8 @@ const EX = [
   {id:'leg_ext',name:'Leg Extension',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Full lockout, hold 1s at top. Slow 2-count negative — resist the weight down. Lumbar support against pad.',tags:['quad']},
   {id:'leg_curl',name:'Lying Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Flex hard at end range. 2-count descent — resist the weight back to start. Hips stay down.',tags:['hamstring']},
   {id:'db_leg_curl',name:'DB Leg Curl',muscle:'legs',type:'isolation',eq:['dumbbells'],rMin:10,rMax:15,rest:120,cue:'Lie face down, hold DB between feet. Curl to 90°. Slow 2-count negative back down.',tags:['hamstring']},
-  {id:'calf_raise',name:'Calf Raises',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:60,cue:'Full stretch at bottom (off step edge). Full contraction at top. Slow tempo — calves are resistant to fast reps.',tags:['calf']},
+  // rest 60→90s: Singer et al. 2024 Bayesian meta-analysis ("Give it a Rest", Frontiers Sports Act Living) — hypertrophy slightly favors >60s rest, no further benefit beyond ~90s; ≤60s is the only clearly suboptimal zone.
+  {id:'calf_raise',name:'Calf Raises',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Full stretch at bottom (off step edge). Full contraction at top. Slow tempo — calves are resistant to fast reps.',tags:['calf']},
   {id:'hip_abduct',name:'Hip Abduction',muscle:'legs',type:'isolation',eq:['machine'],rMin:15,rMax:20,rest:90,cue:'Slow and controlled. Feel glute med. No momentum or pelvic tilt.',tags:['glute']},
   {id:'glute_bridge',name:'Single-leg Glute Bridge',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'Single leg raises difficulty. Drive through heel. Full hip extension. Squeeze hard at top.\n\nProgression without bands: (1) Build reps → (2) Add 2s hold at top each rep → (3) Elevate your foot on a bench (increases ROM and difficulty) → (4) Add a backpack or a heavy book on your hip for resistance → (5) Barbell hip thrust when you reach a gym.',tags:['glute']},
   {id:'pallof',name:'Pallof Press',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Press out fully, hold 2s, return. Resist rotation — your core fights the cable the whole time. Count per side.',tags:['anti-rotation']},
@@ -829,6 +830,10 @@ function getWeeklySetVolumes(){
 }
 
 // Weekly MRV (Maximum Recoverable Volume) ranges per muscle, in working sets.
+// Evidence check 2026-06-11: consistent with Pelland et al. 2025 dose-response
+// meta-regression (67 studies, n=2058) — hypertrophy rises with volume with
+// diminishing returns and ≥10 weekly sets/muscle outperforms <10; strength
+// plateaus far earlier. No numeric change warranted; ranges retained.
 function getMRVLimits(){
   return {
     chest: {min: 10, max: 20},
