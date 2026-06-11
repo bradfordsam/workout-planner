@@ -280,11 +280,13 @@ const EX = [
   {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Sit back and down, knees track toes. Full depth. Drive the floor away on the way up.',tags:['quad','squat'],hipRisk:true},
   {id:'bulgarian',name:'Bulgarian Split Squat',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated. Front foot well forward. Upright torso. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral'],hipRisk:true},
   {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold DB at chest. Elbows between knees at bottom. Full depth. Controlled descent.',tags:['quad','squat'],hipRisk:true},
+  {id:'leg_press',name:'Leg Press',muscle:'legs',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:180,cue:'Feet shoulder-width on platform. Lower until knees reach ~90°, don\'t let lower back round off the pad. Press through full foot, stop just short of lockout.',tags:['quad']},
   {id:'step_ups',name:'Step-ups',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step onto stable surface, drive through full foot. Keep hips level throughout movement. Control the step down. Count per leg.',tags:['quad','unilateral']},
   {id:'reverse_lunge',name:'Reverse Lunge (DB)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step BACK — hip-friendly. Front shin vertical. Drive through front heel to return. Control the descent. Count per leg.',tags:['quad','unilateral']},
   {id:'rdl',name:'Romanian Deadlift',muscle:'legs',type:'compound',eq:['barbell','dumbbells'],rMin:6,rMax:10,rest:180,cue:'Push hips BACK, feel hamstring stretch. Bar close to legs. Drive hips forward at top. Not a squat.',tags:['hinge','hamstring']},
   {id:'hip_thrust',name:'Hip Thrust',muscle:'legs',type:'compound',eq:['barbell','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Shoulders on bench. Drive to full hip extension — squeeze at top. Slow controlled descent. Optional: 1s iso hold at top.',tags:['hinge','glute']},
   {id:'single_rdl',name:'Single-leg RDL',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Hinge at hip, hips square throughout. Slow descent — feel the hamstring load. Soft bend in standing knee. Count per leg.',tags:['hinge','hamstring','unilateral']},
+  {id:'back_ext',name:'Back Extension',muscle:'legs',type:'isolation',eq:['machine','bodyweight'],rMin:10,rMax:15,rest:120,cue:'Hips hinge over the pad. Lower with control until you feel a hamstring/glute stretch, keep spine neutral — don\'t hyperextend at the top. Squeeze glutes to rise.',tags:['hinge','hamstring','glute']},
   {id:'leg_ext',name:'Leg Extension',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Full lockout, hold 1s at top. Slow 2-count negative — resist the weight down. Lumbar support against pad.',tags:['quad']},
   {id:'leg_curl',name:'Lying Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Flex hard at end range. 2-count descent — resist the weight back to start. Hips stay down.',tags:['hamstring']},
   {id:'db_leg_curl',name:'DB Leg Curl',muscle:'legs',type:'isolation',eq:['dumbbells'],rMin:10,rMax:15,rest:120,cue:'Lie face down, hold DB between feet. Curl to 90°. Slow 2-count negative back down.',tags:['hamstring']},
@@ -299,6 +301,7 @@ const EX = [
   {id:'sa_db_row',name:'Single-arm DB Row (Standing)',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:8,rMax:12,rest:90,cue:'No bench support. Bent over. Core braces hard against rotation on every rep. Count per side.',tags:['unilateral']},
   {id:'dead_bug',name:'Dead Bug',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:8,rMax:12,rest:60,cue:'Lower opposite arm and leg simultaneously, back stays flat. Exhale on the way down. Slow and controlled — speed kills the point of this exercise. Count per side.',tags:['anti-rotation']},
   {id:'side_plank_dip',name:'Side Plank Hip Dips',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:10,rMax:15,rest:60,cue:'Full side plank. Dip hip to floor and drive back up. Resist lateral flexion the whole time. Count per side.',tags:['lateral']},
+  {id:'crunches',name:'Crunches',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on back, knees bent. Curl shoulder blades off the floor, exhale at the top. Keep lower back pressed down — small controlled range, no momentum.',tags:['flexion']},
   // ─── Hip Health (stability & mobility) ───
   {id:'clamshell',name:'Clamshell',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,noWeight:true,cue:'Side-lying, knees bent ~45°. Rotate top knee up like a clamshell lid. Keep hips stacked — they WILL want to roll back. Squeeze hard at top, slow negative. This is pure glute med. Count per side.\n\nProgression without bands: (1) Build to 20 strict reps per side → (2) Add a 2s pause at the top of each rep → (3) Slow the negative to 3 counts → (4) Move to straight-leg side-lying abduction (harder leverage) → (5) Ankle weights when available. No band needed to keep progressing for a long time.',tags:['glute_med']},
   {id:'fire_hydrant',name:'Fire Hydrant',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:12,rMax:15,rest:60,noWeight:true,cue:'Hands and knees (quadruped). Lift one knee out to the side — drive from the hip, not by rotating your torso. Keep hips level and core braced. Slow and controlled. Count per side.\n\nProgression without bands: (1) Build reps → (2) Add a 2s pause at peak → (3) Slow negative to 3 counts → (4) Add small circles at the top → (5) Progress to a higher, fuller ROM → (6) Ankle weights when you have them.',tags:['glute_med']},
@@ -2385,7 +2388,8 @@ function renderLogEdit(){
     return`<div class='card' style='margin-bottom:10px'>
       <div style='display:flex;align-items:center;gap:8px;margin-bottom:10px'>
         <span style='width:8px;height:8px;border-radius:50%;background:${MCOL[ex.muscle]||'var(--acc)'};flex-shrink:0;display:inline-block'></span>
-        <strong style='font-size:14px'>${ex.name}</strong>
+        <strong style='font-size:14px;flex:1'>${ex.name}</strong>
+        <button class='btn btn-g btn-sm' data-action='remove-log-exercise' data-idx='${ei}' style='width:auto;padding:4px 10px;color:var(--bad)'>✕</button>
       </div>
       ${hdr}${rows}
     </div>`;
@@ -2397,9 +2401,52 @@ function renderLogEdit(){
     <div class='hdg'>Edit Workout</div>
     <div style='font-size:13px;color:var(--mut);margin-bottom:16px'>${log.dayName} · ${fmtDate(log.date)} · ${fmtDur(log.duration)}</div>
     ${exSections}
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Add a forgotten exercise</div>
+      <div style='position:relative;margin-bottom:8px'>
+        <input type='text' class='ni' id='new-log-ex-name' autocomplete='off' placeholder='🔍 Type an exercise name…' value='${(S.newLogExName||'').replace(/'/g,"&#39;")}'
+               oninput='onNewLogExInput(this.value)' onfocus='renderNewLogExSuggest(this.value)' onblur='hideNewLogExSuggest()' style='width:100%;text-align:left'>
+        <div id='new-log-ex-suggest' class='ex-suggest'></div>
+      </div>
+      <div style='display:flex;gap:8px;align-items:flex-end'>
+        <div style='flex:1'>
+          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Sets</div>
+          <input type='number' class='ni' id='new-log-ex-sets' min='1' max='10' value='${S.newLogExSets||3}' style='width:100%'>
+        </div>
+        <button class='btn btn-s btn-sm' data-action='add-log-exercise' style='flex:2'>+ Add Exercise</button>
+      </div>
+    </div>
     <button class='btn btn-ok' data-action='save-log-edit'>Save Changes</button>
     <button class='btn' data-action='delete-log' data-id='${log.id}' style='background:var(--bad2);color:var(--bad);margin-top:10px'>🗑️ Delete This Workout</button>
   </div>`;
+}
+
+// ─── Add-exercise autocomplete for the Edit Workout view ───
+function onNewLogExInput(value){
+  S.newLogExName=value;
+  renderNewLogExSuggest(value);
+}
+function renderNewLogExSuggest(value){
+  const box=document.getElementById('new-log-ex-suggest');
+  if(!box)return;
+  const list=exSuggestList(value);
+  if(!list.length){box.classList.remove('on');box.innerHTML='';return;}
+  box.innerHTML=list.map(e=>
+    `<div class='ex-suggest-item' data-name="${e.name.replace(/"/g,'&quot;')}" onpointerdown='pickNewLogExSuggest(this.dataset.name)'>
+       <span>${e.name}</span><span class='es-mus'>${MNAME[e.muscle]||''}</span>
+     </div>`
+  ).join('');
+  box.classList.add('on');
+}
+function hideNewLogExSuggest(){
+  setTimeout(()=>{const box=document.getElementById('new-log-ex-suggest');if(box)box.classList.remove('on');},200);
+}
+function pickNewLogExSuggest(name){
+  S.newLogExName=name;
+  const inp=document.getElementById('new-log-ex-name');
+  if(inp)inp.value=name;
+  const box=document.getElementById('new-log-ex-suggest');
+  if(box){box.classList.remove('on');box.innerHTML='';}
 }
 
 // ─────────────────────────────────────────────
@@ -3541,7 +3588,32 @@ document.addEventListener('click',e=>{
   }
   if(a==='edit-log'){
     const log=S.logs.find(l=>l.id===btn.dataset.id);
-    if(log){S.editLogDraft=JSON.parse(JSON.stringify(log));S.view='log-edit';render();}
+    if(log){S.editLogDraft=JSON.parse(JSON.stringify(log));S.newLogExName='';S.newLogExSets=3;S.view='log-edit';render();}
+    return;
+  }
+  if(a==='add-log-exercise'){
+    const log=S.editLogDraft;if(!log)return;
+    const nameEl=document.getElementById('new-log-ex-name');
+    const setsEl=document.getElementById('new-log-ex-sets');
+    const name=(nameEl?.value||'').trim();
+    if(!name)return;
+    const setsCount=Math.max(1,Math.min(10,parseInt(setsEl?.value)||3));
+    const{match}=resolveEx(name);
+    log.exercises.push({
+      id:match?match.id:'custom_'+Date.now(),
+      name:match?match.name:name,
+      muscle:match?match.muscle:estimateMuscleGroup(name),
+      sets:Array.from({length:setsCount},()=>({weight:0,reps:0}))
+    });
+    S.newLogExName='';S.newLogExSets=3;
+    render();
+    return;
+  }
+  if(a==='remove-log-exercise'){
+    const log=S.editLogDraft;if(!log)return;
+    const idx=parseInt(btn.dataset.idx);
+    log.exercises.splice(idx,1);
+    render();
     return;
   }
   if(a==='save-log-edit'){
