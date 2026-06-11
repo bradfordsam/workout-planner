@@ -13,12 +13,32 @@
 <title>Workout Planner</title>
 <style>
 :root{
-  --bg:#0a0a12;--surf:#141420;--surf2:#1e1e2e;--bdr:rgba(255,255,255,.07);
-  --acc:#818cf8;--acc2:rgba(129,140,248,.12);
-  --txt:#e2e8f0;--mut:#64748b;
-  --ok:#34d399;--warn:#fbbf24;--bad:#f87171;
+  /* Base Colors */
+  --bg:#0a0a12;--surf:#141420;--surf2:#1e1e2e;--surf3:#2a2a3e;
+  --bdr:rgba(255,255,255,.07);--bdr-strong:rgba(255,255,255,.15);
+  --acc:#818cf8;--acc2:rgba(129,140,248,.12);--acc-bright:#a5b4fc;
+  --txt:#e2e8f0;--txt-dim:#cbd5e1;--mut:#64748b;--mut-light:#94a3b8;
+  --ok:#34d399;--ok2:rgba(52,211,153,.12);--warn:#fbbf24;--warn2:rgba(251,191,36,.12);
+  --bad:#f87171;--bad2:rgba(248,113,113,.12);
+
+  /* Muscle Group Colors */
   --chest:#f87171;--back:#60a5fa;--shoulders:#a78bfa;
   --biceps:#34d399;--triceps:#fb923c;--legs:#f472b6;--core:#facc15;
+
+  /* Enhanced Design System */
+  --glass-bg:rgba(20,20,32,0.8);--glass-border:rgba(255,255,255,0.1);
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-md:0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --shadow-xl:0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  --shadow-glow:0 0 20px rgba(129,140,248,0.3);
+  --shadow-glow-sm:0 0 10px rgba(129,140,248,0.2);
+
+  /* Gradients */
+  --grad-primary:linear-gradient(135deg, var(--acc) 0%, var(--acc-bright) 100%);
+  --grad-surface:linear-gradient(135deg, var(--surf) 0%, var(--surf2) 100%);
+  --grad-glass:linear-gradient(135deg, rgba(20,20,32,0.9) 0%, rgba(30,30,46,0.8) 100%);
+  --grad-accent:linear-gradient(135deg, #818cf8 0%, #a5b4fc 50%, #c7d2fe 100%);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;-webkit-tap-highlight-color:transparent}
@@ -193,6 +213,13 @@ body{
 .cb-user{background:var(--acc);color:#0a0a12;align-self:flex-end;border-bottom-right-radius:4px}
 .cb-ai{background:var(--surf2);color:var(--txt);align-self:flex-start;border-bottom-left-radius:4px}
 .chat-foot{padding:10px 12px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0}
+/* custom exercise autocomplete dropdown */
+.ex-suggest{position:absolute;top:100%;left:0;right:0;z-index:60;background:var(--surf3);border:1px solid var(--bdr-strong);border-radius:10px;margin-top:4px;max-height:230px;overflow-y:auto;display:none;box-shadow:var(--shadow-lg)}
+.ex-suggest.on{display:block}
+.ex-suggest-item{padding:11px 12px;cursor:pointer;font-size:14px;font-weight:600;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ex-suggest-item:last-child{border-bottom:none}
+.ex-suggest-item:active,.ex-suggest-item:hover{background:var(--acc2)}
+.ex-suggest-item .es-mus{font-size:11px;font-weight:600;color:var(--mut);flex-shrink:0;text-transform:capitalize}
 </style>
 </head>
 <body>
@@ -252,7 +279,7 @@ const EX = [
   {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Sit back and down, knees track toes. Full depth. Drive the floor away on the way up.',tags:['quad','squat'],hipRisk:true},
   {id:'bulgarian',name:'Bulgarian Split Squat',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated. Front foot well forward. Upright torso. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral'],hipRisk:true},
   {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold DB at chest. Elbows between knees at bottom. Full depth. Controlled descent.',tags:['quad','squat'],hipRisk:true},
-  {id:'step_ups',name:'Step-ups (Heel Elevated)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Elevate front heel for quad emphasis. Drive through full foot. Hips level. Control the step down. Count per leg.',tags:['quad','unilateral']},
+  {id:'step_ups',name:'Step-ups',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step onto stable surface, drive through full foot. Keep hips level throughout movement. Control the step down. Count per leg.',tags:['quad','unilateral']},
   {id:'reverse_lunge',name:'Reverse Lunge (DB)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step BACK — hip-friendly. Front shin vertical. Drive through front heel to return. Control the descent. Count per leg.',tags:['quad','unilateral']},
   {id:'rdl',name:'Romanian Deadlift',muscle:'legs',type:'compound',eq:['barbell','dumbbells'],rMin:6,rMax:10,rest:180,cue:'Push hips BACK, feel hamstring stretch. Bar close to legs. Drive hips forward at top. Not a squat.',tags:['hinge','hamstring']},
   {id:'hip_thrust',name:'Hip Thrust',muscle:'legs',type:'compound',eq:['barbell','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Shoulders on bench. Drive to full hip extension — squeeze at top. Slow controlled descent. Optional: 1s iso hold at top.',tags:['hinge','glute']},
@@ -278,60 +305,105 @@ const EX = [
   {id:'hip_90_90',name:'90/90 Hip Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Sit with both knees at 90°. Front leg externally rotated, back leg internally rotated. Tall spine. Lean forward over your front shin — feel the hip open. Breathe into the stretch, do not force it. This targets hip internal rotation, which is often restricted with impingement. Count seconds per side.',tags:['mobility','internal_rotation']},
   {id:'hip_flexor_half_kneel',name:'Half-Kneeling Hip Flexor Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Down knee on pad, front foot forward. FIRST: posteriorly tilt your pelvis (tuck tailbone). THEN drive hips forward. That pelvic tilt is the key — without it you compress the hip instead of stretching the flexor. Hold, breathe. Count seconds per side.',tags:['mobility','hip_flexor']},
   {id:'hip_cars',name:'Hip CARs',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:5,rMax:8,rest:30,cue:'Stand near wall for balance. Lift one knee high, then rotate it OUT and sweep the full circle (Controlled Articular Rotation). Goal is to find and explore your full active range. Go slow — speed defeats the purpose. Squeeze glute at the back. Count full circles per side.',tags:['mobility','rotation']},
+
+  // Athletic/Performance focused exercises
+  {id:'burpees',name:'Burpees',muscle:'core',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'Drop to push-up, jump feet back in, explosive jump up with hands overhead. Full-body power endurance. Focus on smooth transitions and explosive jump.',tags:['plyometric','conditioning'],highSweat:true},
+  {id:'mountain_climbers',name:'Mountain Climbers',muscle:'core',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,rest:90,cue:'High plank position, drive knees to chest alternating rapidly. Keep hips level, core tight. Think sprinting in plank position. Count total reps (both legs).',tags:['conditioning','anti-extension'],highSweat:true},
+  {id:'jump_squats',name:'Jump Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:8,rMax:12,rest:120,cue:'Squat down, then explode up into a jump. Land softly, immediately into next rep. Focus on rate of force development. Each rep should be max effort.',tags:['plyometric','quad','power'],highSweat:true},
+  {id:'lateral_bounds',name:'Lateral Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:120,cue:'Single-leg lateral jump, stick the landing on one foot, then bound back to other side. Focus on distance and landing control. Athletic power in frontal plane. Count per side.',tags:['plyometric','unilateral','lateral'],highSweat:true},
+  {id:'single_leg_bounds',name:'Single-Leg Forward Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:8,rest:150,cue:'Single-leg hop forward for distance, stick the landing, repeat on same leg. Focus on distance and landing mechanics. Builds unilateral power and stability. Count per leg.',tags:['plyometric','unilateral','power'],highSweat:true},
+  {id:'bear_crawl',name:'Bear Crawl',muscle:'core',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,rest:90,cue:'Hands and toes, knees hovering. Crawl forward moving opposite hand/foot together. Keep hips level, core tight. Great for shoulder stability and core strength. Count steps.',tags:['crawling','stability'],highSweat:true},
+  {id:'turkish_getup_bw',name:'Turkish Get-up (Bodyweight)',muscle:'core',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:150,cue:'Complex movement from lying to standing. Focus on smooth transitions and stability at each position. Master the movement before adding weight. Ultimate full-body coordination exercise. Count per side.',tags:['complex','stability','coordination'],highSweat:true},
+  {id:'archer_pushup',name:'Archer Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:180,cue:'Wide hand position, shift weight to one arm during the push-up. Builds unilateral strength toward one-arm push-up. Control the eccentric phase. Count per side.',tags:['unilateral','advanced']},
+  {id:'pistol_squat',name:'Pistol Squat',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:180,cue:'Single-leg squat to full depth, free leg extended forward. Builds unilateral strength, mobility, and balance. Use assistance if needed. Ultimate bodyweight squat progression. Count per leg.',tags:['unilateral','advanced','squat']},
+  {id:'handstand_pushup',name:'Handstand Push-up',muscle:'shoulders',type:'compound',eq:['bodyweight'],rMin:3,rMax:8,rest:180,cue:'Inverted push-up against wall. Lower head to floor, press back up. Builds shoulder and core strength. Progress from pike push-ups. Advanced bodyweight movement. Count reps.',tags:['inverted','advanced']},
+  {id:'l_sits',name:'L-Sit',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:30,rest:120,isTimed:true,cue:'Sit with legs extended, hands flat, lift entire body off ground. Hold position with straight legs parallel to floor. Incredible core and shoulder strength builder. Count seconds.',tags:['isometric','advanced']},
+  {id:'broad_jump',name:'Broad Jump',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:150,cue:'Two-foot takeoff, jump forward for maximum distance, land softly on both feet. Focus on explosive hip extension and soft landing mechanics. Reset between reps. Count jumps.',tags:['plyometric','power','bilateral']},
+
+  // Circuit Training Exercises
+  {id:'burpee_to_jump',name:'Burpee to Jump Squat',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:8,rMax:12,rest:60,cue:'Burpee down, jump feet in, explosive jump squat up with arms overhead. Land softly, immediately into next rep. High-intensity circuit finisher.',tags:['circuit','plyometric','conditioning'],highSweat:true,circuit:true},
+  {id:'kb_swings_circuit',name:'KB/DB Swings',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:15,rMax:20,rest:60,cue:'Hip hinge power movement. Drive hips forward explosively, weight rises to chest height. High-rep circuit style with continuous movement.',tags:['circuit','power','conditioning'],highSweat:true,circuit:true},
+  {id:'thrusters',name:'DB Thrusters',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:10,rMax:15,rest:60,cue:'Front squat into overhead press in one fluid motion. Shoulders, legs, and cardio all in one. Keep moving between reps.',tags:['circuit','conditioning','full-body'],highSweat:true,circuit:true},
+  {id:'man_makers',name:'Man Makers',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:60,cue:'Push-up with DBs, row each arm, jump feet in, thruster up. Full-body circuit exercise. Rest briefly between reps but keep moving.',tags:['circuit','conditioning','full-body'],highSweat:true,circuit:true},
+  {id:'battle_ropes',name:'Battle Ropes (Alternating)',muscle:'core',type:'compound',eq:['bodyweight'],rMin:30,rMax:60,rest:60,isTimed:true,cue:'Alternating arm waves. Keep core tight, generate power from shoulders. High-intensity interval exercise. Count seconds.',tags:['circuit','conditioning','cardio'],highSweat:true,circuit:true},
 ];
 
 // ─────────────────────────────────────────────
 // YMCA / LUNCH SESSION CONSTANTS
 // ─────────────────────────────────────────────
-const YMCA_EQUIP = ['barbell','dumbbells','cables','pullup_bar','machine'];
-const HOME_EQUIP  = ['pullup_bar','bodyweight'];
+// Equipment Presets - User's 4 main categories
+const EQUIPMENT_PRESETS = {
+  pullup_only: {
+    name: '🏠 Pull-up Bar Only',
+    desc: 'Home setup with just a pull-up bar',
+    equipment: ['pullup_bar', 'bodyweight'],
+    location: 'home'
+  },
+  hotel_gym: {
+    name: '🏨 Hotel Gym',
+    desc: 'Basic hotel gym with dumbbells & machines',
+    equipment: ['dumbbells', 'machine', 'bodyweight'],
+    location: 'hotel'
+  },
+  ymca: {
+    name: '🏋️ YMCA',
+    desc: 'Full gym with all equipment available',
+    equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'bodyweight'],
+    location: 'ymca'
+  },
+  bodyweight: {
+    name: '🌱 Bodyweight Only',
+    desc: 'Grassy field, no equipment needed',
+    equipment: ['bodyweight'],
+    location: 'field'
+  }
+};
 
-// Compact compound-only templates for 45-min YMCA lunch sessions
+// Legacy constants for backward compatibility
+const YMCA_EQUIP = EQUIPMENT_PRESETS.ymca.equipment;
+const HOME_EQUIP = EQUIPMENT_PRESETS.pullup_only.equipment;
+
+// Low-sweat templates for YMCA lunch sessions (no shower needed!)
 const LUNCH_TMPLS = {
-  push:{name:'Push · Lunch',desc:'Chest · Shoulders (compound)',slots:[
+  push:{name:'Push · Lunch',desc:'Chest · Shoulders · Triceps (controlled)',slots:[
     {muscle:'chest',type:'compound'},
     {muscle:'shoulders',type:'compound'},
-    {muscle:'core',type:'rotational'},
+    {muscle:'triceps',type:'isolation'},
   ]},
-  pull:{name:'Pull · Lunch',desc:'Back vertical + horizontal (compound)',slots:[
+  pull:{name:'Pull · Lunch',desc:'Back · Biceps (controlled)',slots:[
     {muscle:'back',type:'compound',tag:'vertical'},
     {muscle:'back',type:'compound',tag:'horizontal'},
-    {muscle:'core',type:'rotational'},
+    {muscle:'biceps',type:'isolation'},
   ]},
-  legs:{name:'Legs · Lunch',desc:'Hinge + quad + hip stability',slots:[
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'legs',type:'compound',tag:'quad'},
+  upper:{name:'Upper Body · Lunch',desc:'Chest · Back · Arms (seated/controlled)',slots:[
+    {muscle:'chest',type:'compound'},
+    {muscle:'back',type:'compound',tag:'horizontal'},
+    {muscle:'shoulders',type:'isolation'},
+  ]},
+  upper_push:{name:'Push Focus · Lunch',desc:'Chest · Shoulders · Triceps',slots:[
+    {muscle:'chest',type:'compound'},
+    {muscle:'shoulders',type:'isolation'},
+    {muscle:'triceps',type:'isolation'},
+  ]},
+  upper_pull:{name:'Pull Focus · Lunch',desc:'Back · Biceps · Rear delts',slots:[
+    {muscle:'back',type:'compound',tag:'vertical'},
+    {muscle:'biceps',type:'isolation'},
+    {muscle:'back',type:'isolation',tag:'rear_delt'},
+  ]},
+  legs_light:{name:'Light Lower · Lunch',desc:'Machine-based leg work (minimal sweat)',slots:[
+    {muscle:'legs',type:'isolation',tag:'quad'},
+    {muscle:'legs',type:'isolation',tag:'hamstring'},
     {muscle:'hips',type:'stability'},
   ]},
-  upper_push:{name:'Upper Push · Lunch',desc:'Chest + back horizontal (compound)',slots:[
-    {muscle:'chest',type:'compound'},
-    {muscle:'back',type:'compound',tag:'horizontal'},
+  core_focus:{name:'Core · Lunch',desc:'Controlled core + upper accessories',slots:[
     {muscle:'core',type:'rotational'},
+    {muscle:'shoulders',type:'isolation'},
+    {muscle:'back',type:'isolation',tag:'rear_delt'},
   ]},
-  upper_pull:{name:'Upper Pull · Lunch',desc:'Back vertical + chest (compound)',slots:[
+  full_upper:{name:'Full Upper · Lunch',desc:'Complete upper body (no legs)',slots:[
+    {muscle:'chest',type:'compound'},
     {muscle:'back',type:'compound',tag:'vertical'},
-    {muscle:'chest',type:'compound'},
-    {muscle:'core',type:'rotational'},
-  ]},
-  lower_a:{name:'Lower A · Lunch',desc:'Quad focus (compound)',slots:[
-    {muscle:'legs',type:'compound',tag:'quad'},
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'core',type:'rotational'},
-  ]},
-  lower_b:{name:'Lower B · Lunch',desc:'Posterior chain (compound)',slots:[
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'legs',type:'compound',tag:'quad'},
-    {muscle:'core',type:'rotational'},
-  ]},
-  full_a:{name:'Full Body A · Lunch',desc:'Push + lower (compound)',slots:[
-    {muscle:'chest',type:'compound'},
-    {muscle:'legs',type:'compound',tag:'quad'},
-    {muscle:'core',type:'rotational'},
-  ]},
-  full_b:{name:'Full Body B · Lunch',desc:'Pull + lower (compound)',slots:[
-    {muscle:'back',type:'compound',tag:'horizontal'},
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'core',type:'rotational'},
+    {muscle:'shoulders',type:'isolation'},
   ]},
 };
 
@@ -414,16 +486,7 @@ const TMPLS = {
   ]},
 };
 
-const MRV={chest:20,back:20,shoulders:20,biceps:20,triceps:18,legs:20,core:20,hips:20};
-const VOL_TARGET_BUFFER=4; // a muscle "needs more volume" if its planned sets are this far below MRV
 const EX_LIMIT={30:2,45:3,60:5,75:6,90:7};
-const EQUIP_OPTS=[
-  {id:'barbell',icon:'🏋️',name:'Barbell'},
-  {id:'dumbbells',icon:'🥊',name:'Dumbbells'},
-  {id:'cables',icon:'🔗',name:'Cable Machine'},
-  {id:'pullup_bar',icon:'🔝',name:'Pull-up Bar'},
-  {id:'machine',icon:'⚙️',name:'Machines'},
-];
 const CONDITIONING_FINISHERS=[
   {name:'Sprint Intervals',desc:'8 × 30s all-out / 60s walk rest',icon:'🏃',mins:12},
   {name:'Burpee EMOM',desc:'10 min · 10 burpees at the top of each minute',icon:'💥',mins:10},
@@ -431,6 +494,38 @@ const CONDITIONING_FINISHERS=[
   {name:'Agility Intervals',desc:'6 × 30s lateral shuffle / sprint / 30s walk',icon:'🏈',mins:8},
   {name:'Row Intervals',desc:'6 × 250m hard row / 60s rest',icon:'🚣',mins:14},
   {name:'DB Circuit',desc:'4 rounds: 10 goblet squats · 10 rows · 10 push press · 30s rest',icon:'💪',mins:15},
+];
+// Off-day active recovery: gentle mobility, stretching, and tissue work to
+// support recovery between lifting days. Rotates by day of week.
+const RECOVERY_PROTOCOLS=[
+  {name:'Hip Reset',icon:'🦋',mins:15,items:[
+    'Hip CARs — 5 slow circles each side',
+    '90/90 hip stretch — 60s per side',
+    'Half-kneeling hip flexor stretch — 45s per side',
+    'Glute bridge hold — 3 × 20s',
+    'Foam roll quads & glutes — 2 min',
+  ]},
+  {name:'Thoracic & Shoulders',icon:'🧘',mins:12,items:[
+    'Cat-cow — 10 slow reps',
+    'Thread the needle — 8 per side',
+    'Wall slides — 2 × 10',
+    'Doorway pec stretch — 45s per side',
+    'Foam roll upper back — 2 min',
+  ]},
+  {name:'Lower Body Flush',icon:'🚶',mins:20,items:[
+    'Easy 20 min walk or bike (conversational pace)',
+    'Couch stretch — 60s per side',
+    'Hamstring floss — 10 per side',
+    'Standing calf stretch — 45s per side',
+    'Foam roll calves & hamstrings — 2 min',
+  ]},
+  {name:'Full-Body Flow',icon:'🌊',mins:15,items:[
+    "World's greatest stretch — 5 per side",
+    'Deep squat hold — 3 × 30s',
+    'Dead hang from bar — 3 × 15-30s',
+    'Ankle rocks — 10 per side',
+    'Down-dog to cobra flow — 8 slow reps',
+  ]},
 ];
 const SPLITS={2:['full_a','full_b'],3:['push','pull','legs'],4:['upper_push','lower_a','upper_pull','lower_b'],5:['push','pull','legs','upper_push','upper_pull']};
 const DAY_ASSIGN={1:[1],2:[1,4],3:[1,3,5],4:[1,2,4,5],5:[1,2,3,4,5]};
@@ -443,21 +538,22 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 // ─────────────────────────────────────────────
 let S={
   view:'setup',step:1,
-  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true,ymcaEquip:[...YMCA_EQUIP],homeEquip:[...HOME_EQUIP],conditioning:false},
+  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true,conditioning:false},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
+  customExercises:[],
 };
 let timerIv=null;
 
 function save(){
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises}));}catch(e){}
   saveToCloud();
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[]});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -475,9 +571,7 @@ function load(){
       if(d.calEntry&&!S.weekPlan){
         S.weekPlan={weekOf:thisMonday(),skipDays:[],calGoal:{cals:d.calEntry.cals,startDate:d.calEntry.date||todayStr(),endDate:nextSunday()}};
       }
-      // Migrate: add equipment and conditioning defaults if missing
-      if(!S.cfg.ymcaEquip)S.cfg.ymcaEquip=[...YMCA_EQUIP];
-      if(!S.cfg.homeEquip)S.cfg.homeEquip=[...HOME_EQUIP];
+      // Migrate: add conditioning default if missing
       if(S.cfg.conditioning===undefined)S.cfg.conditioning=false;
       // Clear mid-week planStartDow if the stored week plan is from a previous week
       if(S.cfg?.planStartDow&&(!S.weekPlan||S.weekPlan.weekOf<thisMonday())){
@@ -491,27 +585,43 @@ function load(){
 // ─────────────────────────────────────────────
 // PROGRAM GENERATOR
 // ─────────────────────────────────────────────
-function pickEx(slot,equip,used){
+function pickEx(slot,equip,used,isLunch,budget){
   const eq=new Set([...equip,'bodyweight']);
-  return EX.find(e=>
-    e.muscle===slot.muscle&&e.type===slot.type&&
-    (!slot.tag||((e.tags||[]).includes(slot.tag)))&&
-    !used.includes(e.id)&&
-    e.eq.some(q=>eq.has(q))&&
-    !(S.cfg.hipCaution&&e.hipRisk)
-  )||null;
-}
+  const overworkedMuscles = getOverworkedMuscles();
+  const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
 
-function weeklySetsByMuscle(){
-  const mon=thisMonday();
-  const weekEnd=addDays(mon,7);
-  const counts={};
-  (S.logs||[]).filter(l=>l.date.slice(0,10)>=mon&&l.date.slice(0,10)<weekEnd)
-    .forEach(log=>(log.exercises||[]).forEach(ex=>{
-      const n=(ex.sets||[]).filter(s=>s&&s.reps>0).length;
-      if(n)counts[ex.muscle]=(counts[ex.muscle]||0)+n;
-    }));
-  return counts;
+  // Combine built-in exercises with custom exercises
+  const allExercises = [...EX, ...(S.customExercises||[])];
+
+  // MRV headroom: would adding this exercise push the muscle past its weekly max?
+  const perEx = (budget && budget.perExercise) || 3;
+  const fitsMRV = (e) => {
+    if(!budget || !budget.limits || !budget.limits[e.muscle]) return true;
+    return (budget.vol[e.muscle] || 0) + perEx <= budget.limits[e.muscle].max;
+  };
+
+  // Shared slot constraints (muscle/type/tag/equipment/hip-caution/lunch sweat).
+  const base = (e) =>
+    e.muscle===slot.muscle && e.type===slot.type &&
+    (!slot.tag || ((e.tags||[]).includes(slot.tag))) &&
+    !used.includes(e.id) &&
+    e.eq.some(q=>eq.has(q)) &&
+    !(S.cfg.hipCaution && e.hipRisk) &&
+    !(isLunch && e.highSweat);
+
+  // For circuit training, prefer circuit-tagged exercises (still within MRV)
+  if(isCircuitStyle && !isLunch) {
+    const circuitEx = allExercises.find(e => base(e) && !overworkedMuscles.has(e.muscle) && fitsMRV(e) && e.circuit);
+    if(circuitEx) return circuitEx;
+  }
+
+  // 1) Best: avoid overworked muscles AND stay within MRV max
+  let exercise = allExercises.find(e => base(e) && !overworkedMuscles.has(e.muscle) && fitsMRV(e));
+  // 2) Next: stay within MRV max (allow a recently-worked muscle if needed)
+  if(!exercise) exercise = allExercises.find(e => base(e) && fitsMRV(e));
+  // If the muscle has hit its weekly MRV max, intentionally return null so this
+  // slot is dropped (fewer sets) rather than exceeding the recoverable volume.
+  return exercise||null;
 }
 
 function genProgram(cfg,av){
@@ -521,16 +631,16 @@ function genProgram(cfg,av){
   const lunchSlots=[];const eveSlots=[];
   [1,2,3,4,5].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.lunch!==false)lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`});
-    if(d.eve?.on)eveSlots.push({dow,isLunch:false,mins:d.eve.mins||60,loc:d.eve.loc||'ymca',key:`${dow}-eve`});
+    if(d.lunch!==false)lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`,equipmentKey:d.lunchEquipment||'ymca'});
+    if(d.eve?.on)eveSlots.push({dow,isLunch:false,mins:d.eve.mins||60,loc:d.eve.loc||'ymca',key:`${dow}-eve`,equipmentKey:d.eve.equipment||'ymca'});
   });
   [6,0].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,loc:d.loc||'ymca',key:`${dow}-wknd`});
+    if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,loc:d.loc||'ymca',key:`${dow}-wknd`,equipmentKey:d.equipment||'ymca'});
   });
   if(!lunchSlots.length&&!eveSlots.length){
     const ps=S.cfg?.planStartDow??1;
-    [1,2,3,4,5].filter(d=>ps!==0&&d>=ps).forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`}));
+    [1,2,3,4,5].filter(d=>ps!==0&&d>=ps).forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`,equipmentKey:'ymca'}));
   }
 
   // Split size: lunches fill first, evenings on non-lunch days fill remaining gaps (max 5)
@@ -548,38 +658,55 @@ function genProgram(cfg,av){
   );
   const oldWeek=S.program?.week;
 
-  // Running tally: starts with sets already logged this week, accumulates planned sets
-  const setsPlanned=weeklySetsByMuscle();
+  // MRV budget: start from sets already committed this week (logged + planned
+  // custom workouts) and consume headroom as we assign sessions, so the week
+  // fills toward optimal without exceeding each muscle's recoverable max.
+  const budget = { vol: getCommittedVolumes(), limits: getMRVLimits(), perExercise: 3 };
 
   function buildSession(slot,tk,oldData){
-    const equip=slot.loc==='home'?(S.cfg.homeEquip||HOME_EQUIP):(S.cfg.ymcaEquip||YMCA_EQUIP);
+    // Use per-session equipment from availability
+    const equipmentKey=slot.equipmentKey||'ymca';
+    const selectedPreset=EQUIPMENT_PRESETS[equipmentKey]||EQUIPMENT_PRESETS.ymca;
+    const equip=selectedPreset.equipment;
     if(oldData===undefined)oldData=oldWeek?.[slot.dow];
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
     if(oldData&&!oldData.rest&&(completedDows.has(slot.dow)||(oldData.tk===tk&&oldData.loc===slot.loc))){
       const od=oldData;
-      // Count preserved-but-not-yet-done sessions toward MRV so later slots don't over-prescribe
-      if(!completedDows.has(slot.dow)){
-        (od.exercises||[]).forEach(e=>{setsPlanned[e.muscle]=(setsPlanned[e.muscle]||0)+(e.sets||3);});
+      // Count a preserved upcoming session toward the budget (completed days and
+      // custom/planned days are already counted via getCommittedVolumes).
+      if(!completedDows.has(slot.dow) && !od.customWorkout && !od.plannedCustomWorkout){
+        (od.exercises||[]).forEach(e=>{ if(e&&e.muscle) budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+(e.sets||3); });
       }
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,preserved:true};
     }
     const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
     const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
     const used=[];
+    const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
     const exs=tmpl.slots.slice(0,limit).map(sl=>{
-      const e=pickEx(sl,equip,used);
-      if(!e)return null;
+      const e=pickEx(sl,equip,used,slot.isLunch,budget);
+      if(!e) return null;
       used.push(e.id);
-      const mrv=MRV[e.muscle]||20;
-      const done=setsPlanned[e.muscle]||0;
-      const remaining=mrv-done;
-      if(remaining<=0)return null; // muscle at MRV — skip exercise
-      const sets=Math.min(3,remaining);
-      setsPlanned[e.muscle]=(setsPlanned[e.muscle]||0)+sets;
-      return{...e,sets,sessionMins:slot.mins};
+
+      // Modify exercise for circuit training
+      let modifiedEx = {...e, sets:3, sessionMins:slot.mins};
+      if(isCircuitStyle && !slot.isLunch) { // Apply circuit modifications to evening sessions only
+        modifiedEx.rest = Math.max(60, e.rest ? e.rest / 2 : 60); // Shorter rest periods
+        modifiedEx.sets = e.circuit ? 4 : 3; // Extra set for circuit exercises
+        if(e.circuit) modifiedEx.circuitStyle = true;
+      }
+
+      // Consume MRV headroom for this muscle
+      budget.vol[e.muscle] = (budget.vol[e.muscle] || 0) + modifiedEx.sets;
+
+      return modifiedEx;
     }).filter(Boolean);
+
     let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
-    return{tk,name:tmpl.name,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
+
+    // Adjust session name for circuit training
+    const sessionName = isCircuitStyle && !slot.isLunch ? tmpl.name.replace('Day', 'Circuit') : tmpl.name;
+    return{tk,name:sessionName,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
   function assignSlot(slot,idx){
     return buildSession(slot,split[idx%split.length]);
@@ -602,19 +729,44 @@ function genProgram(cfg,av){
   // stacking extra same-muscle sets onto one workout, so pick whichever
   // template targets the muscle furthest below its weekly volume target.
   const BONUS_TMPLS=['legs','lower_a','lower_b','push','pull','upper_push','upper_pull'];
+  const VOL_TARGET_BUFFER=4; // a muscle "needs more volume" if it's this far below its weekly MRV max
   eveSlots.forEach(slot=>{
     if(!lunchDows.has(slot.dow))return;   // only relevant for lunch+evening days
     if(slotMap[slot.key])return;          // already assigned
     const lunchSession=slotMap[`${slot.dow}-lunch`];
     if(!lunchSession?.exercises?.length)return;
 
+    // Which muscles get compound work on each planned day, so the bonus
+    // session can avoid hitting a muscle on back-to-back days.
+    const muscleDows={};
+    Object.entries(slotMap).forEach(([key,sess])=>{
+      const sdow=parseInt(key);
+      (sess.exercises||[]).forEach(e=>{
+        if(e.type==='compound')(muscleDows[e.muscle]=muscleDows[e.muscle]||new Set()).add(sdow);
+      });
+    });
+
     let best=null,bestScore=0;
     BONUS_TMPLS.forEach(tk=>{
       if(tk===lunchSession.tk)return; // must be a different split than lunch
       const muscles=new Set(TMPLS[tk].slots.filter(s=>s.type==='compound').map(s=>s.muscle));
-      let score=0;
-      muscles.forEach(m=>{score+=Math.max(0,(MRV[m]||20)-VOL_TARGET_BUFFER-(setsPlanned[m]||0));});
-      if(score>bestScore){bestScore=score;best=tk;}
+      // Rank by the single most under-volumed muscle the template trains (the
+      // muscle that most needs a second weekly session), using total deficit
+      // only as a tie-breaker — otherwise multi-muscle upper days always beat
+      // a legs day on summed deficit.
+      let maxDef=0,sumDef=0,maxDefMuscle=null;
+      muscles.forEach(m=>{
+        const max=budget.limits[m]?.max??20;
+        const def=Math.max(0,max-VOL_TARGET_BUFFER-(budget.vol[m]||0));
+        if(def>maxDef){maxDef=def;maxDefMuscle=m;}
+        sumDef+=def;
+      });
+      let score=maxDef*100+sumDef;
+      // Soft penalty if the target muscle is already trained on an adjacent
+      // day — same-muscle sessions <24h apart compromise recovery.
+      const dows=maxDefMuscle?muscleDows[maxDefMuscle]:null;
+      if(dows&&(dows.has(slot.dow-1)||dows.has(slot.dow+1)))score*=0.25;
+      if(maxDef>0&&score>bestScore){bestScore=score;best=tk;}
     });
     if(!best)return; // nothing meaningfully under-volumed → evening stays cardio
 
@@ -653,11 +805,11 @@ function planMonday(){return todayDow()===0?addDays(todayStr(),1):thisMonday();}
 function nextSunday(){const dow=todayDow();return addDays(todayStr(),dow===0?7:7-dow);}
 
 function defaultAvailability(){
-  const eve=()=>({on:false,mins:60,loc:'ymca'});
+  const eve=()=>({on:false,mins:60,loc:'ymca',equipment:'ymca'});
   return{
-    1:{lunch:true,eve:eve()},2:{lunch:true,eve:eve()},3:{lunch:true,eve:eve()},
-    4:{lunch:true,eve:eve()},5:{lunch:true,eve:eve()},
-    6:{on:false,mins:60,loc:'ymca'},0:{on:false,mins:60,loc:'ymca'},
+    1:{lunch:true,lunchEquipment:'ymca',eve:eve()},2:{lunch:true,lunchEquipment:'ymca',eve:eve()},3:{lunch:true,lunchEquipment:'ymca',eve:eve()},
+    4:{lunch:true,lunchEquipment:'ymca',eve:eve()},5:{lunch:true,lunchEquipment:'ymca',eve:eve()},
+    6:{on:false,mins:60,loc:'ymca',equipment:'ymca'},0:{on:false,mins:60,loc:'ymca',equipment:'ymca'},
   };
 }
 function ensureAv(dow){
@@ -685,6 +837,212 @@ function isDaySkipped(dow){
   // A day is "skipped" (no lifting) when program says rest
   if(!S.program)return false;
   return S.program.week[dow]?.rest===true;
+}
+
+// ─── Recent Workouts Analysis ───
+function parseRecentWorkouts(text){
+  if(!text || !text.trim()) return new Set();
+
+  const recentMuscles = new Set();
+  const normalizedText = text.toLowerCase();
+
+  // Muscle group keyword mapping
+  const muscleKeywords = {
+    chest: ['chest', 'pecs', 'bench', 'pushup', 'push-up', 'flies', 'flyes'],
+    back: ['back', 'lats', 'pullup', 'pull-up', 'row', 'pulldown', 'deadlift'],
+    shoulders: ['shoulder', 'delts', 'deltoid', 'press', 'raises', 'lateral'],
+    legs: ['legs', 'quad', 'hamstring', 'squat', 'lunge', 'thigh', 'glutes', 'glute'],
+    biceps: ['biceps', 'bicep', 'curls', 'curl'],
+    triceps: ['triceps', 'tricep', 'pushdown', 'extension', 'dips'],
+    core: ['core', 'abs', 'abdominal', 'plank', 'crunch']
+  };
+
+  // Check for muscle group mentions
+  Object.entries(muscleKeywords).forEach(([muscle, keywords]) => {
+    if(keywords.some(keyword => normalizedText.includes(keyword))){
+      recentMuscles.add(muscle);
+    }
+  });
+
+  return recentMuscles;
+}
+
+function getOverworkedMuscles(){
+  const recentWorkouts = S.weekPlan?.recentWorkouts || '';
+  const recentOverworked = parseRecentWorkouts(recentWorkouts);
+
+  // Also check for upcoming custom workouts this week
+  const upcomingOverworked = getUpcomingCustomWorkoutMuscles();
+
+  // Combine both sets
+  return new Set([...recentOverworked, ...upcomingOverworked]);
+}
+
+function getUpcomingCustomWorkoutMuscles(){
+  const upcomingMuscles = new Set();
+
+  if(!S.program || !S.program.week) return upcomingMuscles;
+
+  const today = todayDow();
+
+  // Check for custom workouts throughout the entire week for better planning
+  S.program.week.forEach((day, dow) => {
+    if(day && (day.customWorkout || day.plannedCustomWorkout)) {
+      const customLog = day.customLog || day.plannedCustomLog;
+      if(customLog) {
+        // Consider all custom workouts in the week, with different weights based on timing
+        const dayDiff = dow === 0 ? (7 - today) : (dow - today);
+
+        // For planning purposes, consider the entire week but with different impact
+        if(dayDiff >= -1 && dayDiff <= 6) { // Yesterday to end of week
+          customLog.exercises.forEach(ex => {
+            upcomingMuscles.add(ex.muscle);
+          });
+        }
+      }
+    }
+  });
+
+  return upcomingMuscles;
+}
+
+// ─── MRV (Maximum Recoverable Volume) Tracking ───
+function getWeeklySetVolumes(){
+  // Calculate set volumes by muscle group for the current week
+  const mondayStr = thisMonday();
+  const nextMondayStr = addDays(mondayStr, 7);
+
+  const weekLogs = S.logs.filter(l =>
+    l.date.slice(0,10) >= mondayStr && l.date.slice(0,10) < nextMondayStr
+  );
+
+  const volumes = {};
+
+  weekLogs.forEach(log => {
+    log.exercises?.forEach(ex => {
+      const muscle = ex.muscle;
+      const completedSets = ex.sets?.filter(s => s && s.reps > 0).length || 0;
+      volumes[muscle] = (volumes[muscle] || 0) + completedSets;
+    });
+  });
+
+  return volumes;
+}
+
+// Weekly MRV (Maximum Recoverable Volume) ranges per muscle, in working sets.
+function getMRVLimits(){
+  const limits = {
+    chest: {min: 10, max: 20},
+    back: {min: 12, max: 22},
+    shoulders: {min: 8, max: 18},
+    biceps: {min: 6, max: 16},
+    triceps: {min: 6, max: 16},
+    legs: {min: 14, max: 24},
+    core: {min: 8, max: 18},
+    hips: {min: 6, max: 16}
+  };
+  // Recovery auto-regulation: muscles trained in a high-fatigue session
+  // (rating ≥4) within the last 72h get a temporarily reduced ceiling, so
+  // the generator backs off volume until they've recovered.
+  getFatiguedMuscles().forEach(m=>{
+    if(limits[m])limits[m]={min:limits[m].min,max:Math.max(limits[m].min,Math.round(limits[m].max*0.85))};
+  });
+  return limits;
+}
+
+// Muscles trained in a session the user rated 4-5 ("Hard"/"Maxed out")
+// within the last 72 hours.
+function getFatiguedMuscles(){
+  const cutoff=Date.now()-72*3600*1000;
+  const fatigued=new Set();
+  (S.logs||[]).forEach(l=>{
+    if((l.fatigue||0)>=4&&new Date(l.date).getTime()>=cutoff){
+      (l.exercises||[]).forEach(e=>{if(e.muscle)fatigued.add(e.muscle);});
+    }
+  });
+  return fatigued;
+}
+
+// Sets already committed this week by muscle: completed/logged workouts PLUS any
+// not-yet-done planned custom workouts on the program. Used to budget remaining
+// sessions so the generator fills toward optimal without blowing past MRV max.
+function getCommittedVolumes(){
+  const vol = getWeeklySetVolumes(); // logged (completed + custom-logged)
+  if(S.program?.week){
+    S.program.week.forEach(day => {
+      // Skip planned days that have since been logged (counted via the logs above)
+      if(day && day.plannedCustomWorkout && day.plannedCustomLog && !day.customWorkout){
+        day.plannedCustomLog.exercises.forEach(ex => {
+          const sets = Array.isArray(ex.sets)
+            ? ex.sets.filter(s => s && s.reps > 0).length
+            : (parseInt(ex.sets) || 0);
+          if(ex.muscle) vol[ex.muscle] = (vol[ex.muscle] || 0) + sets;
+        });
+      }
+    });
+  }
+  return vol;
+}
+
+function getMRVStatus(){
+  // Include logged workouts (regular + custom) AND planned custom workouts so the
+  // dashboard reflects every committed set, matching how the generator budgets.
+  const volumes = getCommittedVolumes();
+  const limits = getMRVLimits();
+
+  const status = {};
+  Object.keys(limits).forEach(muscle => {
+    const current = volumes[muscle] || 0;
+    const {min, max} = limits[muscle];
+    let level = 'low';
+    if (current >= min && current <= max) level = 'optimal';
+    else if (current > max) level = 'high';
+
+    status[muscle] = {current, min, max, level};
+  });
+
+  return status;
+}
+
+function renderMRVWidget(){
+  const mrvStatus = getMRVStatus();
+  const overworkedMuscles = getOverworkedMuscles();
+  const hasData = Object.values(mrvStatus).some(m => m.current > 0) || overworkedMuscles.size > 0;
+
+  if (!hasData) return '';
+
+  const rows = Object.entries(mrvStatus)
+    .filter(([muscle, status]) => status.current > 0 || overworkedMuscles.has(muscle))
+    .map(([muscle, status]) => {
+      const {current, min, max, level} = status;
+      const isOverworked = overworkedMuscles.has(muscle);
+      const color = isOverworked ? 'var(--warn)' : level === 'high' ? 'var(--bad)' : level === 'optimal' ? 'var(--ok)' : 'var(--warn)';
+      const pct = Math.min(100, (current / max) * 100);
+
+      return `<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px'>
+        <div style='font-size:12px;font-weight:600;width:60px;text-transform:capitalize;display:flex;align-items:center;gap:4px'>
+          ${MNAME[muscle]}
+          ${isOverworked ? '<span style="font-size:10px;color:var(--warn)">⚠️</span>' : ''}
+        </div>
+        <div style='flex:1;background:var(--surf2);border-radius:4px;height:12px;position:relative'>
+          <div style='background:${color};height:100%;width:${pct}%;border-radius:4px'></div>
+        </div>
+        <div style='font-size:11px;color:${color};min-width:40px;text-align:right'>
+          ${isOverworked && current === 0 ? 'Recent' : `${current}/${max}`}
+        </div>
+      </div>`;
+    }).join('');
+
+  const fatigued=[...getFatiguedMuscles()].filter(m=>MNAME[m]);
+  const fatigueNote=fatigued.length?`<div style='font-size:11px;color:var(--warn);margin-top:8px'>🔋 Recovering: ${fatigued.map(m=>MNAME[m]).join(', ')} — volume ceiling reduced 15% for 72h after your hard session</div>`:'';
+  return `<div class='card'>
+    <div style='font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px'>
+      📊 Weekly Set Volume (MRV)
+      <span style='font-size:10px;color:var(--mut);font-weight:400'>10-20+ sets optimal · ⚠️ = recent external</span>
+    </div>
+    ${rows}
+    ${fatigueNote}
+  </div>`;
 }
 function getMissedDays(){
   const plan=getWeekPlan();
@@ -718,15 +1076,23 @@ function getEveningLocation(){
 
 function pickEveningExercises(day,sessionMins){
   const limit=EX_LIMIT[sessionMins]||5;
-  const loc=getEveningLocation();
-  const equip=loc==='ymca'?(S.cfg.ymcaEquip||YMCA_EQUIP):(S.cfg.homeEquip||HOME_EQUIP);
+  // Use session's equipment - for evening sessions, get it from availability
+  const today=todayDow();
+  const av=S.weekPlan?.availability||{};
+  const todayAv=av[today]||{};
+  const eveEquipment=todayAv.eve?.equipment||'ymca';
+  const selectedPreset=EQUIPMENT_PRESETS[eveEquipment]||EQUIPMENT_PRESETS.ymca;
+  const equip=selectedPreset.equipment;
   const tmpl=TMPLS[day.tk];
   if(!tmpl)return day.exercises.slice(0,limit);
   const used=[];
+  const budget={ vol:getCommittedVolumes(), limits:getMRVLimits(), perExercise:3 };
   const exs=tmpl.slots.slice(0,limit).map(sl=>{
-    const e=pickEx(sl,equip,used);
-    if(e)used.push(e.id);
-    return e?{...e,sets:3,sessionMins}:null;
+    const e=pickEx(sl,equip,used,false,budget); // Evening sessions allow high-sweat exercises
+    if(!e) return null;
+    used.push(e.id);
+    budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+3;
+    return {...e,sets:3,sessionMins};
   }).filter(Boolean);
   let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
   return exs;
@@ -834,6 +1200,20 @@ function calcWeekCardio(){
 // ─────────────────────────────────────────────
 // REST TIMER
 // ─────────────────────────────────────────────
+// Intensity-based rest: heavy compounds need ≥2-3 min for full performance on
+// the next set (Schoenfeld 2016 — longer inter-set rest beats 1 min for both
+// strength and hypertrophy on compounds); isolation work recovers on 60-90s.
+function smartRest(ex){
+  if(ex.isTimed||ex.noWeight)return ex.rest||60;
+  if(ex.type==='compound')return ex.rMax<=8?180:(ex.rMax<=12?150:120);
+  return ex.rMax<=12?90:60;
+}
+function smartRestLabel(ex){
+  const s=smartRest(ex);
+  const t=s>=60?(s%60===0?`${s/60} min`:`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`):`${s}s`;
+  const why=ex.type==='compound'?(ex.rMax<=8?'heavy compound':'compound'):'isolation';
+  return`${t} rest between sets (${why})`;
+}
 function startRest(secs,exName){
   if(timerIv)clearInterval(timerIv);
   S.active.restEndsAt=Date.now()+secs*1000;
@@ -921,7 +1301,9 @@ function completeSet(exIdx,setIdx){
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
   if(allDone){const nb=document.getElementById(`next-btn-${exIdx}`);if(nb)nb.style.display='flex';}
   save();
-  const restSecs=S.active.restCap?Math.min(ex.rest||120,S.active.restCap):(ex.rest||120);
+  // Lunch sessions keep the 90s cap (hard 40-min time box); evenings get the
+  // full intensity-based rest.
+  const restSecs=S.active.restCap?Math.min(smartRest(ex),S.active.restCap):smartRest(ex);
   startRest(restSecs,ex.name);
 }
 
@@ -933,14 +1315,14 @@ function updateWarmup(exIdx,weight){
 
 function goToEx(idx){S.active.exIdx=idx;save();render();}
 
-function finishWorkout(){
+function finishWorkout(fatigue){
   const exData=S.active.exercises.map(e=>({id:e.id,name:e.name,muscle:e.muscle,sets:e.done.filter(Boolean)}));
   // Update lastWeights — only last set's weight per exercise, that's all we need
   exData.forEach(e=>{
     const working=e.sets.filter(s=>s&&s.reps>0&&!e.isMakeup);
     if(working.length){const last=working[working.length-1];S.lastWeights[e.id]={weight:last.weight,reps:last.reps};}
   });
-  const log={id:Date.now().toString(),date:new Date().toISOString(),dayName:S.active.dayName,isLunch:S.active.isLunch,duration:Math.round((Date.now()-S.active.startTime)/60000),exercises:exData};
+  const log={id:Date.now().toString(),date:new Date().toISOString(),dayName:S.active.dayName,isLunch:S.active.isLunch,duration:Math.round((Date.now()-S.active.startTime)/60000),exercises:exData,fatigue:fatigue||null};
   S.logs.push(log);S.active=null;S.view='dash';
   stopRest();save();render();
 }
@@ -974,6 +1356,22 @@ function finisherHTML(dow,compact){
 }
 
 // ─────────────────────────────────────────────
+// OFF-DAY ACTIVE RECOVERY
+// ─────────────────────────────────────────────
+function getRecoveryProtocol(dow){
+  return RECOVERY_PROTOCOLS[dow%RECOVERY_PROTOCOLS.length];
+}
+function recoveryHTML(dow){
+  const p=getRecoveryProtocol(dow);
+  return`<div style='margin-top:12px;padding:14px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:6px'>🔋 Active Recovery · ~${p.mins} min</div>
+    <div style='font-size:14px;font-weight:700;margin-bottom:6px'>${p.icon} ${p.name}</div>
+    ${p.items.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• ${it}</div>`).join('')}
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Gentle movement improves blood flow and movement quality — keep effort easy, this should feel good.</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
 // SHARED: AVAILABILITY GRID
 // ─────────────────────────────────────────────
 function renderAvailGrid(av,inSetup){
@@ -987,29 +1385,27 @@ function renderAvailGrid(av,inSetup){
     const planStart=S.cfg?.planStartDow??1;
     const isPastSetup=inSetup&&(planStart===0||dow<planStart);
     const isPast=!inSetup&&dow>0&&dow<today;
-    if(isPastSetup){
-      return`<div class='plan-slot-row pg-skip'>
-        <div class='plan-slot-day'>${dn} <span style='font-size:10px;color:var(--mut)'>(already done this week)</span></div>
-        <div style='font-size:12px;color:var(--mut);padding:4px 0'>Not included in this plan</div>
-      </div>`;
-    }
+    const lunchEquipment=d.lunchEquipment||'ymca';
+    const eveEquipment=d.eve?.equipment||'ymca';
+    const lunchEquipName=EQUIPMENT_PRESETS[lunchEquipment]?.name||'🏋️ YMCA';
+    const eveEquipName=EQUIPMENT_PRESETS[eveEquipment]?.name||'🏋️ YMCA';
+
     return`<div class='plan-slot-row${isPast?' pg-skip':''}'>
       <div class='plan-slot-day'>${dn}${isPast?` <span style='font-size:10px;color:var(--mut)'>(past)</span>`:''}</div>
       <div class='plan-slot-checks'>
         <div class='plan-chk${lunchOn?' on':''}' data-action='toggle-avail-lunch' data-dow='${dow}'>
           <div class='plan-chk-box'>${lunchOn?'✓':''}</div>
-          <div><div style='font-size:12px;font-weight:700'>Lunch</div><div style='font-size:11px;color:var(--mut)'>35–40 min · YMCA</div></div>
+          <div><div style='font-size:12px;font-weight:700'>Lunch</div><div style='font-size:11px;color:var(--mut)'>35–40 min · 🏋️ YMCA</div></div>
         </div>
         <div class='plan-chk${eveOn?' on':''}' data-action='toggle-avail-eve' data-dow='${dow}'>
           <div class='plan-chk-box'>${eveOn?'✓':''}</div>
-          <div><div style='font-size:12px;font-weight:700'>After Work</div><div style='font-size:11px;color:var(--mut)'>${eveOn?(eveCardio?'Cardio only':'Lifting · '+eveMins+' min'):'Off'}</div></div>
+          <div><div style='font-size:12px;font-weight:700'>After Work</div><div style='font-size:11px;color:var(--mut)'>${eveOn?(eveCardio?'Cardio only':eveMins+' min · '+eveEquipName):'Off'}</div></div>
         </div>
       </div>
       ${eveOn?`<div class='plan-eve-opts'>
-        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Location &amp; max session length:</div>
-        <div style='display:flex;gap:6px;margin-bottom:8px'>
-          <button class='btn btn-sm ${(d.eve?.loc||'ymca')==='home'?'btn-p':'btn-g'}' data-action='set-avail-eve-loc' data-dow='${dow}' data-val='home' style='flex:1'>🏠 Home</button>
-          <button class='btn btn-sm ${(d.eve?.loc||'ymca')==='ymca'?'btn-p':'btn-g'}' data-action='set-avail-eve-loc' data-dow='${dow}' data-val='ymca' style='flex:1'>🏋️ YMCA</button>
+        <div style='font-size:12px;color:var(--txt);font-weight:600;margin-bottom:8px'>Equipment &amp; Session Length:</div>
+        <div style='display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap'>
+          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${eveEquipment===key?'btn-p':'btn-g'}' data-action='set-eve-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${preset.name}</button>`).join('')}
         </div>
         <div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${eveMins===m?' on':''}' data-action='set-avail-eve-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
       </div>`:''}
@@ -1017,20 +1413,20 @@ function renderAvailGrid(av,inSetup){
   };
   const wkndRow=(dow,dn)=>{
     const d=av[dow]||{};
-    const on=!!d.on;const mins=d.mins||60;const loc=d.loc||'ymca';
+    const on=!!d.on;const mins=d.mins||60;const equipment=d.equipment||'ymca';
+    const equipmentName=EQUIPMENT_PRESETS[equipment]?.name||'🏋️ YMCA';
     return`<div class='plan-slot-row'>
       <div class='plan-slot-day'>${dn}</div>
       <div class='plan-slot-checks'>
         <div class='plan-chk${on?' on':''}' data-action='toggle-avail-weekend' data-dow='${dow}'>
           <div class='plan-chk-box'>${on?'✓':''}</div>
-          <div><div style='font-size:12px;font-weight:700'>${on?(loc==='home'?'🏠 Home':'🏋️ YMCA'):'Rest'}</div><div style='font-size:11px;color:var(--mut)'>${on?'App decides lifting vs cardio':'tap to add session'}</div></div>
+          <div><div style='font-size:12px;font-weight:700'>${on?equipmentName:'Rest'}</div><div style='font-size:11px;color:var(--mut)'>${on?'App decides lifting vs cardio':'tap to add session'}</div></div>
         </div>
       </div>
       ${on?`<div class='plan-eve-opts'>
-        <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>Location &amp; max session length:</div>
-        <div style='display:flex;gap:6px;margin-bottom:8px'>
-          <button class='btn btn-sm ${loc==='home'?'btn-p':'btn-g'}' data-action='set-avail-weekend-loc' data-dow='${dow}' data-val='home' style='flex:1'>🏠 Home</button>
-          <button class='btn btn-sm ${loc==='ymca'?'btn-p':'btn-g'}' data-action='set-avail-weekend-loc' data-dow='${dow}' data-val='ymca' style='flex:1'>🏋️ YMCA</button>
+        <div style='font-size:12px;color:var(--txt);font-weight:600;margin-bottom:8px'>Equipment &amp; Session Length:</div>
+        <div style='display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap'>
+          ${Object.entries(EQUIPMENT_PRESETS).map(([key,preset])=>`<button class='btn btn-sm ${equipment===key?'btn-p':'btn-g'}' data-action='set-weekend-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${preset.name}</button>`).join('')}
         </div>
         <div style='display:flex;gap:6px'>${[45,60,75,90].map(m=>`<div class='opt${mins===m?' on':''}' data-action='set-avail-weekend-mins' data-dow='${dow}' data-val='${m}' style='padding:8px 4px;flex:1'><div class='opt-v' style='font-size:15px'>${m}</div><div class='opt-l'>min</div></div>`).join('')}</div>
       </div>`:''}
@@ -1040,6 +1436,26 @@ function renderAvailGrid(av,inSetup){
     ${wkdayRow(1,'Monday')}${wkdayRow(2,'Tuesday')}${wkdayRow(3,'Wednesday')}${wkdayRow(4,'Thursday')}${wkdayRow(5,'Friday')}
     <div class='sec-lbl' style='margin-top:16px'>Weekend Sessions</div>
     ${wkndRow(6,'Saturday')}${wkndRow(0,'Sunday')}`;
+}
+
+function renderCustomExercises(){
+  const customExs = S.customExercises || [];
+
+  const exerciseList = customExs.map((ex, idx) => {
+    const mcolor = MCOL[ex.muscle] || 'var(--acc)';
+    return `<div style='display:flex;align-items:center;gap:8px;padding:8px;background:var(--surf2);border-radius:8px;margin-bottom:6px'>
+      <div class='m-tag' style='background:${mcolor}22;color:${mcolor};border:1px solid ${mcolor}44;font-size:10px;padding:2px 6px'>${MNAME[ex.muscle]}</div>
+      <div style='flex:1;font-size:13px;font-weight:600'>${ex.name}</div>
+      <div style='font-size:11px;color:var(--mut)'>${ex.type}</div>
+      <button class='btn btn-g' data-action='delete-custom-exercise' data-idx='${idx}' style='padding:4px 8px;font-size:10px'>×</button>
+    </div>`;
+  }).join('');
+
+  return `<div class='sec-lbl' style='margin-top:16px'>Custom Exercises</div>
+    <div class='card' style='margin-bottom:16px'>
+      ${customExs.length > 0 ? exerciseList : `<div style='font-size:13px;color:var(--mut);text-align:center;padding:8px'>No custom exercises yet</div>`}
+      <button class='btn btn-s btn-sm' data-action='add-custom-exercise' style='margin-top:8px;width:100%'>+ Add Custom Exercise</button>
+    </div>`;
 }
 
 // ─────────────────────────────────────────────
@@ -1065,11 +1481,40 @@ function renderPlan(){
 
     ${renderAvailGrid(av,false)}
 
+    ${renderCustomExercises()}
+
+    <div class='sec-lbl' style='margin-top:16px'>Recent External Workouts</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>Describe workouts you've done recently outside this app so we can avoid overworking muscle groups:</div>
+      <textarea class='ni' id='recent-workouts' placeholder='e.g., "Did chest and triceps yesterday, legs on Monday..."'
+        style='width:100%;min-height:60px;resize:vertical;font-size:13px;line-height:1.4;padding:10px'>${S.weekPlan?.recentWorkouts || ''}</textarea>
+    </div>
+
+    <div class='sec-lbl' style='margin-top:16px'>Cardio Integration</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:12px'>Choose how to integrate cardio with resistance training:</div>
+      <div style='display:grid;grid-template-columns:1fr 1fr;gap:8px'>
+        <div class='opt${(S.weekPlan?.cardioStyle||'separate')==='separate'?' on':''}' data-action='set-cardio-style' data-val='separate'>
+          <div class='opt-v' style='font-size:16px'>🏃‍♀️ Separate</div>
+          <div class='opt-l'>Dedicated cardio sessions</div>
+        </div>
+        <div class='opt${(S.weekPlan?.cardioStyle||'separate')==='circuits'?' on':''}' data-action='set-cardio-style' data-val='circuits'>
+          <div class='opt-v' style='font-size:16px'>⚡ Circuits</div>
+          <div class='opt-l'>Mixed with resistance</div>
+        </div>
+      </div>
+      <div style='font-size:12px;color:var(--mut);margin-top:8px'>
+        ${(S.weekPlan?.cardioStyle||'separate')==='separate'
+          ?'Cardio and resistance training in separate sessions for focused training.'
+          :'High-intensity circuits mixing cardio with resistance exercises for time efficiency.'}
+      </div>
+    </div>
+
     <div class='sec-lbl' style='margin-top:16px'>Calorie Goal</div>
     <div class='card' style='margin-bottom:16px'>
       <div style='display:flex;align-items:center;gap:8px;margin-bottom:12px'>
         <span style='font-size:13px;color:var(--mut);white-space:nowrap'>Burn</span>
-        <input type='number' class='ni' id='plan-cal' placeholder='e.g. 2000' value='${calVal}' min='0' step='50' style='width:110px'>
+        <input type='number' class='ni' id='plan-cal' placeholder='e.g. 2000' value='${calVal}' min='0' step='50' inputmode='numeric' style='width:110px'>
         <span style='font-size:13px;color:var(--mut);white-space:nowrap'>calories</span>
       </div>
       <div style='display:grid;grid-template-columns:1fr 1fr;gap:8px'>
@@ -1095,33 +1540,18 @@ function renderSetup(){
   const av=S.weekPlan.availability;
 
   const goalOpts=[
+    {id:'ath',label:'Athletic Performance',sub:'Power, speed, movement quality'},
     {id:'hyp',label:'Hypertrophy',sub:'Size + definition'},
     {id:'str',label:'Strength',sub:'Max force output'},
     {id:'bal',label:'Balanced',sub:'Size and strength'},
   ].map(g=>`<div class='opt col1 ${cfg.goal===g.id?'on':''}' data-action='set-goal' data-val='${g.id}'><div class='opt-v' style='font-size:18px'>${g.label}</div><div class='opt-l'>${g.sub}</div></div>`).join('');
 
-  const eqSection=(loc)=>{
-    const arr=loc==='ymca'?(S.cfg.ymcaEquip||YMCA_EQUIP):(S.cfg.homeEquip||HOME_EQUIP);
-    return EQUIP_OPTS.map(e=>{
-      const on=arr.includes(e.id);
-      return`<div class='eq-item${on?' on':''}' data-action='toggle-equip' data-loc='${loc}' data-eq='${e.id}'>
-        <span class='eq-ico'>${e.icon}</span><span class='eq-name'>${e.name}</span>
-        <span class='eq-chk'>${on?'✓':''}</span>
-      </div>`;
-    }).join('');
-  };
   const steps=[
-    `<div class='s-title'>Your available sessions</div>
-     <div class='s-sub'>Tap each window you can train. Lunch = 35–40 min at YMCA (compounds). After Work sessions are flexible — you pick the length and whether to lift or just do cardio.</div>
+    `<div class='s-title'>Your available sessions & equipment</div>
+     <div class='s-sub'>Tap each session you can train and choose equipment. All 4 equipment options are: Pull-up Bar Only, Hotel Gym, YMCA, Bodyweight Only.</div>
      ${renderAvailGrid(av,true)}`,
-    `<div class='s-title'>Equipment available?</div>
-     <div class='s-sub'>The app only prescribes exercises you can actually do. Check everything you have access to at each location.</div>
-     <div class='sec-lbl'>At YMCA</div>
-     <div class='eq-grid' style='margin-bottom:20px'>${eqSection('ymca')}</div>
-     <div class='sec-lbl'>At Home</div>
-     <div class='eq-grid'>${eqSection('home')}</div>`,
-    `<div class='s-title'>Primary goal?</div>
-     <div class='s-sub'>Sets your default rep ranges and intensity targets.</div>
+    `<div class='s-title'>Primary training goal?</div>
+     <div class='s-sub'>Sets your rep ranges and exercise selection priorities.</div>
      <div class='opts col1'>${goalOpts}</div>
      <div class='sec-lbl' style='margin-top:20px'>Conditioning</div>
      <div class='plan-chk${cfg.conditioning?' on':''}' data-action='toggle-conditioning' style='margin-bottom:0'>
@@ -1134,12 +1564,18 @@ function renderSetup(){
     `<div class='s-title'>Your body weight?</div>
      <div class='s-sub'>Used to estimate calorie burn from workouts and cardio prescriptions.</div>
      <div class='bw-input-wrap'>
-       <input type='number' class='ni bw-big' id='bw-input' value='${cfg.bodyLbs||175}' min='80' max='400' step='5'>
+       <input type='number' class='ni bw-big' id='bw-input' value='${cfg.bodyLbs||175}' min='80' max='400' step='5' inputmode='decimal'>
        <span style='font-size:20px;font-weight:600;color:var(--mut)'>lbs</span>
+     </div>
+     <div style='margin-top:20px'>
+       <div class='sec-lbl'>Recent External Workouts (Optional)</div>
+       <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>Describe any workouts you've done recently outside this app:</div>
+       <textarea class='ni' id='setup-recent-workouts' placeholder='e.g., "Did chest and triceps yesterday, legs on Monday..."'
+         style='width:100%;min-height:60px;resize:vertical;font-size:13px;line-height:1.4;padding:10px'>${S.weekPlan?.recentWorkouts || ''}</textarea>
      </div>`,
   ];
-  const dots=[1,2,3,4].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
-  const isLast=step===4;
+  const dots=[1,2,3].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
+  const isLast=step===3;
   return`<div class='setup'>
     ${step>1?`<button class='s-back' data-action='setup-back'><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back</button>`:'<div style="height:40px"></div>'}
     ${steps[step-1]}
@@ -1179,6 +1615,43 @@ function renderDash(){
   const isViewingOther=S.viewDay!=null&&S.viewDay!==dow;
 
   function dayCard(d,displayDow,isActualToday){
+    // Handle custom workout days
+    if(d && d.customWorkout && d.customLog) {
+      const log = d.customLog;
+      const exList = log.exercises.slice(0,3).map(ex =>
+        `<div class='t-ex'><span style='color:var(--acc)'>•</span> ${ex.name} ${ex.sets?.length || 1}×${ex.sets?.[0]?.reps || ex.reps}</div>`
+      ).join('');
+      const moreText = log.exercises.length > 3 ? `<div class='t-ex' style='color:var(--mut)'>+${log.exercises.length-3} more exercises</div>` : '';
+
+      return `<div class='today' style='border-color:var(--acc);background:linear-gradient(135deg,var(--surf2) 0%,rgba(129,140,248,.04) 100%)'>
+        <div class='t-lbl' style='color:var(--acc)'>${isActualToday?'Today · ':''}Custom Workout</div>
+        <div class='t-name'>${log.dayName}</div>
+        <div class='t-desc'>Logged custom workout · Week adapted for recovery</div>
+        <div class='t-exlist' style='margin-bottom:12px'>${exList}${moreText}</div>
+        ${isActualToday?`<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='width:100%'>📝 Log Another Workout</button>`:''}
+      </div>`;
+    }
+
+    // Handle planned custom workout days
+    if(d && d.plannedCustomWorkout && d.plannedCustomLog) {
+      const log = d.plannedCustomLog;
+      const exList = log.exercises.slice(0,3).map(ex =>
+        `<div class='t-ex'><span style='color:var(--warn)'>📅</span> ${ex.name} ${ex.sets?.length || 1}×${ex.sets?.[0]?.reps || ex.reps}</div>`
+      ).join('');
+      const moreText = log.exercises.length > 3 ? `<div class='t-ex' style='color:var(--mut)'>+${log.exercises.length-3} more exercises</div>` : '';
+
+      return `<div class='today' style='border-color:var(--warn);background:linear-gradient(135deg,var(--surf2) 0%,rgba(251,191,36,.04) 100%)'>
+        <div class='t-lbl' style='color:var(--warn)'>${isActualToday?'Today · ':''}Planned Workout</div>
+        <div class='t-name'>${log.dayName}</div>
+        <div class='t-desc'>Week adapted around planned workout</div>
+        <div class='t-exlist' style='margin-bottom:12px'>${exList}${moreText}</div>
+        <div style='display:flex;gap:8px'>
+          ${isActualToday?`<button class='btn btn-p btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='flex:1'>📝 Complete Workout</button>`:`<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='flex:1'>📝 Log Workout</button>`}
+          <button class='btn btn-g btn-sm' data-action='cancel-planned-workout' data-dow='${displayDow}' style='flex:1'>❌ Cancel</button>
+        </div>
+      </div>`;
+    }
+
     if(!d||d.rest){
       const label=isActualToday?(isSunday?'Sunday · Plan Your Week':'Rest Day 😴'):(DOW[displayDow]+' · Rest');
       return isActualToday&&isSunday
@@ -1186,8 +1659,9 @@ function renderDash(){
             <div class='t-lbl' style='color:var(--warn)'>Sunday · Plan Your Week</div>
             <div class='t-name'>Set Up This Week</div>
             <div class='t-desc'>Tap "Edit" on the Weekly Goal card below to schedule sessions and set your calorie goal.</div>
+            ${recoveryHTML(displayDow)}
           </div>`
-        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div></div>`;
+        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div>${isActualToday?recoveryHTML(displayDow):''}</div>`;
     }
     const exRow=e=>{
       const exp=S.viewExDetail===e.id;
@@ -1197,8 +1671,8 @@ function renderDash(){
         ${prog?`<div style='margin-bottom:8px'>Last: <strong>${prog.summary}</strong> &nbsp;→&nbsp; <span style='color:var(--acc)'>Goal: ${prog.suggest} lb</span></div>`
               :`<div style='color:var(--mut);margin-bottom:8px'>No history on this device — enter your last session:</div>`}
         <div style='display:flex;gap:6px;align-items:center;margin-bottom:${e.cue?'8px':'0'}'>
-          <input type='number' id='ew-${e.id}' placeholder='lb' value='${lw?.weight||''}' class='ni' step='5' min='0' style='width:72px'>
-          <input type='number' id='er-${e.id}' placeholder='reps' value='${lw?.reps||''}' class='ni' min='1' max='50' style='width:60px'>
+          <input type='number' id='ew-${e.id}' placeholder='lb' value='${lw?.weight||''}' class='ni' step='5' min='0' inputmode='decimal' style='width:72px'>
+          <input type='number' id='er-${e.id}' placeholder='reps' value='${lw?.reps||''}' class='ni' min='1' max='50' inputmode='numeric' style='width:60px'>
           <button class='btn btn-s btn-sm' data-action='save-ex-weight' data-exid='${e.id}' style='flex:1'>Save</button>
         </div>
         ${e.cue?`<div style='color:var(--mut);line-height:1.6;padding-top:8px;border-top:1px solid var(--bdr)'>${e.cue}</div>`:''}
@@ -1232,6 +1706,10 @@ function renderDash(){
       <div class='t-exlist'>${exList}</div>
       ${makeupNote}
       ${isActualToday?`<button class='btn btn-p' data-action='start-workout' data-session='lunch'>Start${d.eveningSession?' Lunch':''} Workout →</button>`:''}
+      ${displayDow > todayDow() || (displayDow === 0 && todayDow() < 6) ?
+        `<button class='btn btn-g btn-sm' data-action='plan-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📅 Plan Custom Workout</button>` :
+        `<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 ${isActualToday?'Log Custom Workout Instead':'Log Custom Workout'}</button>`
+      }
       ${eveBlock}
       ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true):''}
     </div>`;
@@ -1276,12 +1754,15 @@ function renderDash(){
   </div>`;
 
   const recentLogs=S.logs.slice(-3).reverse().map(l=>`
-    <div class='card2 mb8' data-action='edit-log' data-id='${l.id}' style='cursor:pointer'>
-      <div style='display:flex;justify-content:space-between;align-items:center'>
-        <span style='font-size:13px;font-weight:600'>${l.dayName}</span>
-        <span style='font-size:12px;color:var(--mut)'>${fmtDate(l.date)}</span>
+    <div class='card2 mb8' style='display:flex;align-items:center;gap:10px'>
+      <div data-action='edit-log' data-id='${l.id}' style='cursor:pointer;flex:1;min-width:0'>
+        <div style='display:flex;justify-content:space-between;align-items:center;gap:8px'>
+          <span style='font-size:13px;font-weight:600'>${l.dayName}</span>
+          <span style='font-size:12px;color:var(--mut);flex-shrink:0'>${fmtDate(l.date)}</span>
+        </div>
+        <div style='font-size:12px;color:var(--mut);margin-top:2px'>${l.exercises.length} exercises · ${fmtDur(l.duration)} · <span style='color:var(--acc)'>tap to view/edit</span></div>
       </div>
-      <div style='font-size:12px;color:var(--mut);margin-top:2px'>${l.exercises.length} exercises · ${fmtDur(l.duration)} · <span style='color:var(--acc)'>tap to view/edit</span></div>
+      <button class='done-btn' data-action='delete-log' data-id='${l.id}' title='Delete workout' style='background:var(--bad2);color:var(--bad);flex-shrink:0'>🗑️</button>
     </div>`).join('');
 
   return`<div class='view'>
@@ -1290,6 +1771,7 @@ function renderDash(){
     <div class='wk-grid'>${wkGrid}</div>
     ${todayHTML}
     ${planCard}
+    ${renderMRVWidget()}
     ${recentLogs?`<div class='sec-lbl mt16'>Recent</div>${recentLogs}`:''}
     ${renderCloudCard()}
   </div>${renderNav('dash')}`;
@@ -1311,6 +1793,24 @@ function renderWorkout(){
              <button class='btn btn-p' data-action='start-workout' style='max-width:240px;margin:0 auto'>Start Today's Session →</button>`
           :`Rest day.<br><span style='font-size:13px'>Recovery is where the growth happens.</span>`}
       </div>
+    </div>${renderNav('workout')}`;
+  }
+  if(S.active.ratePending){
+    const opts=[
+      {v:1,icon:'😌',label:'Easy',sub:'Could do it again right now'},
+      {v:2,icon:'🙂',label:'Comfortable',sub:'Solid work, plenty left'},
+      {v:3,icon:'😤',label:'Worked',sub:'Good session, properly tired'},
+      {v:4,icon:'🥵',label:'Hard',sub:'Close to my limit'},
+      {v:5,icon:'💀',label:'Maxed out',sub:'Totally drained'},
+    ].map(o=>`<div class='opt col1' data-action='rate-fatigue' data-val='${o.v}' style='display:flex;align-items:center;gap:12px;text-align:left'>
+      <span style='font-size:26px'>${o.icon}</span>
+      <div><div class='opt-v' style='font-size:16px'>${o.label}</div><div class='opt-l'>${o.sub}</div></div>
+    </div>`).join('');
+    return`<div class='view'>
+      <div class='hdg'>How hard was that?</div>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:16px'>Your rating auto-regulates the plan — muscles trained in very hard sessions get a lower volume ceiling for the next 72 hours so you recover instead of overtraining.</div>
+      <div class='opts col1'>${opts}</div>
+      <button class='btn btn-g btn-sm' data-action='rate-fatigue' data-val='' style='margin-top:12px'>Skip</button>
     </div>${renderNav('workout')}`;
   }
   const{exercises,exIdx,dayName,isLunch}=S.active;
@@ -1376,8 +1876,13 @@ function renderWorkout(){
   }
 
   const swapOpen=S.active.swapMode===exIdx;
-  const _swapEquip=new Set([...(S.active.loc==='home'?(S.cfg.homeEquip||HOME_EQUIP):(S.cfg.ymcaEquip||YMCA_EQUIP)),'bodyweight']);
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&e.eq.some(q=>_swapEquip.has(q))).slice(0,5):[];
+  // Use current session's equipment for exercise swaps
+  const today=todayDow();
+  const av=S.weekPlan?.availability||{};
+  const todayAv=av[today]||{};
+  const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
+  const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
     ${alts.map(a=>`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.type}</span></button>`).join('')}
@@ -1394,8 +1899,8 @@ function renderWorkout(){
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
       <div class='st'>${repRange}</div>
-      ${(isNoWeight||isTimed)?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`}
-      <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' ${done?'disabled':''}>
+      ${(isNoWeight||isTimed)?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='lb' value='${done?done.weight:sugW||''}' min='0' step='5' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`}
+      <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' inputmode='numeric' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
     </div>`;
   }).join('');
@@ -1438,8 +1943,155 @@ function renderWorkout(){
       ${condBlock}
       ${nextBtn}
     </div>
+    ${(exIdx<total-1)?`<div class='card2' style='margin-top:12px'>
+      <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:8px;display:flex;align-items:center;gap:4px'>
+        <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='9 18 15 12 9 6'/></svg>Next Up
+      </div>
+      <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
+        <span style='width:6px;height:6px;border-radius:50%;background:${MCOL[exercises[exIdx+1].muscle]||'var(--acc)'};flex-shrink:0;display:inline-block'></span>
+        <strong style='font-size:14px'>${exercises[exIdx+1].name}</strong>
+        <span style='font-size:11px;color:var(--mut);margin-left:auto'>${exercises[exIdx+1].sets} × ${exercises[exIdx+1].rMin}–${exercises[exIdx+1].rMax}</span>
+      </div>
+      <button class='cue-btn' data-action='toggle-cue' data-id='next-cue-${exIdx+1}' style='margin-bottom:6px'>💡 Preview technique tip</button>
+      <div class='cue-txt' id='next-cue-${exIdx+1}' style='font-size:12px;margin-bottom:0'>${exercises[exIdx+1].cue||'No technique notes available.'}</div>
+    </div>`:''}
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
-    <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s':ex.rest>=60?ex.rest/60+' min':ex.rest+'s'} rest between sets · slow eccentric</div>
+    <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s rest between sets (lunch time-box)':smartRestLabel(ex)} · slow eccentric</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+// RENDER – REVIEW WORKOUT
+// ─────────────────────────────────────────────
+function renderReviewWorkout(){
+  if(!S.reviewWorkout){S.view='dash';render();return;}
+
+  const {day, sessionType} = S.reviewWorkout;
+  const isEve = sessionType === 'eve' && day.eveningSession;
+  const src = isEve ? day.eveningSession : day;
+  const limit = isEve ? (EX_LIMIT[src.mins] || 5) : 3;
+  let rawExs = src.exercises.slice(0, limit);
+
+  // Show makeup exercises logic (same as startWorkout)
+  if(!isEve){
+    const missed = getMissedDays();
+    if(missed.length > 0){
+      const todayMuscles = new Set(rawExs.map(e => e.muscle));
+      missed.forEach(missedDow => {
+        const md = S.program.week[missedDow];
+        if(!md || md.rest) return;
+        const mu = md.exercises.find(e => !todayMuscles.has(e.muscle));
+        if(mu){
+          rawExs = [...rawExs, {...mu, sets: 2, isMakeup: true, makeupFrom: md.name}];
+          todayMuscles.add(mu.muscle);
+        }
+      });
+    }
+  }
+
+  const sessionLabel = isEve ? `${src.name} · ${src.mins} min` : `${src.name} · Lunch`;
+
+  const exerciseCards = rawExs.map((ex, idx) => {
+    const mcolor = MCOL[ex.muscle] || 'var(--acc)';
+    const makeupBadge = ex.isMakeup ? `<span class='badge badge-makeup' style='margin-bottom:8px;display:inline-block'>⚡ Make-up · ${ex.makeupFrom}</span>` : '';
+
+    return `<div class='ex-card' style='position:relative'>
+      ${makeupBadge}
+      <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px'>
+        <div class='m-tag' style='background:${mcolor}22;color:${mcolor};border:1px solid ${mcolor}44'>${MNAME[ex.muscle]}</div>
+        <button class='btn btn-g btn-sm' data-action='swap-exercise' data-idx='${idx}' style='font-size:11px;padding:6px 10px'>⟲ Swap</button>
+      </div>
+      <div class='ex-name'>${ex.name}</div>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>${ex.sets} sets × ${ex.rMin}–${ex.rMax} reps</div>
+      <button class='cue-btn' data-action='toggle-cue' data-id='review-cue-${idx}'>💡 Technique tip</button>
+      <div class='cue-txt' id='review-cue-${idx}'>${ex.cue || 'No technique notes available.'}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class='view'>
+    <button class='s-back' data-action='back-to-dash' style='margin-bottom:20px;margin-top:0'>
+      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
+    </button>
+    <div class='hdg'>Review Workout</div>
+    <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${sessionLabel}</div>
+    <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>Review exercises below. Tap "Swap" to replace any exercise with alternatives.</div>
+
+    ${exerciseCards}
+
+    <div style='margin-top:20px;display:flex;gap:8px'>
+      <button class='btn btn-g' data-action='back-to-dash' style='flex:1'>Cancel</button>
+      <button class='btn btn-p' data-action='confirm-start-workout' style='flex:2'>🚀 Start Workout</button>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+// RENDER – CUSTOM WORKOUT LOG
+// ─────────────────────────────────────────────
+function renderCustomWorkoutLog(){
+  if(!S.customWorkoutLog) return '';
+
+  const {dow} = S.customWorkoutLog;
+  const exercises = S.customWorkoutLog.exercises || [];
+
+  // Suggestions for the autocomplete dropdown (built-in + custom exercises)
+  const exerciseRows = exercises.map((ex, idx) => {
+    return `
+    <div class='card2' style='margin-bottom:8px'>
+      <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Exercise</div>
+      <div style='position:relative;margin-bottom:8px'>
+        <input type='text' class='ni' id='cust-name-${idx}' autocomplete='off' placeholder='🔍 Type an exercise name…' value='${(ex.name||'').replace(/'/g,"&#39;")}'
+               oninput='onCustomNameInput(${idx}, this.value)' onfocus='renderExSuggest(${idx}, this.value)' onblur='hideExSuggest(${idx})' style='width:100%;text-align:left'>
+        <div id='ex-suggest-${idx}' class='ex-suggest'></div>
+      </div>
+      <div id='cust-match-${idx}' style='font-size:11px;margin-bottom:6px;min-height:14px'>${matchInfoHtml(ex.name)}</div>
+      <div id='cust-musc-disp-${idx}' style='font-size:11px;margin-bottom:8px;min-height:14px'>${muscleDispHtml(ex.name)}</div>
+      <div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px'>
+        <div>
+          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Sets</div>
+          <input type='number' class='ni' min='1' max='20' value='${ex.sets || 3}'
+                 onchange='updateCustomExercise(${idx}, "sets", parseInt(this.value))'>
+        </div>
+        <div>
+          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Reps</div>
+          <input type='number' class='ni' min='1' max='100' value='${ex.reps || 10}'
+                 onchange='updateCustomExercise(${idx}, "reps", parseInt(this.value))'>
+        </div>
+        <div>
+          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Weight (lbs)</div>
+          <input type='number' class='ni' min='0' max='500' value='${ex.weight || 0}'
+                 onchange='updateCustomExercise(${idx}, "weight", parseInt(this.value))' placeholder='0 if bodyweight'>
+        </div>
+      </div>
+      <button class='btn btn-g btn-sm' onclick='removeCustomExercise(${idx})' style='width:100%;margin-top:10px;color:var(--bad)'>✕ Remove exercise</button>
+    </div>
+  `;}).join('');
+
+  return `<div class='view'>
+    <button class='s-back' data-action='cancel-custom-workout' style='margin-bottom:20px;margin-top:0'>
+      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Cancel
+    </button>
+    <div class='hdg'>${S.customWorkoutLog.isPlanning ? 'Plan Custom Workout' : 'Log Custom Workout'}</div>
+    <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${DOW[dow]} - Custom Session</div>
+    <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>${S.customWorkoutLog.isPlanning ? 'Plan the exercises you will do. Your week will be adjusted immediately to avoid overworking muscle groups.' : 'Enter the exercises you completed. The rest of your week will adapt to account for muscle group fatigue and volume.'}</div>
+
+    <div class='sec-lbl'>Quick Templates</div>
+    <div style='display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap'>
+      <button class='btn btn-g btn-sm' data-action='load-murph-template'>💪 Murph</button>
+      <button class='btn btn-g btn-sm' data-action='load-bodyweight-template'>🌱 Bodyweight Circuit</button>
+      <button class='btn btn-g btn-sm' data-action='load-strength-template'>🏋️ Heavy Lifting</button>
+    </div>
+
+    <div class='sec-lbl'>Exercises</div>
+    <div style='font-size:12px;color:var(--mut);margin-bottom:10px'>Tap the name field and start typing — pick an exercise from the dropdown so it links to your weight history. The muscle group is detected automatically; adjust it if needed.</div>
+    ${exercises.length > 0 ? exerciseRows : '<div style="text-align:center;color:var(--mut);padding:20px">No exercises added yet</div>'}
+
+    <button class='btn btn-s btn-sm' data-action='add-custom-exercise-row' style='margin:16px 0;width:100%'>+ Add Exercise</button>
+
+    <div style='display:flex;gap:8px;margin-top:20px'>
+      <button class='btn btn-g' data-action='cancel-custom-workout' style='flex:1'>Cancel</button>
+      <button class='btn btn-p' data-action='save-custom-workout' style='flex:2'>${S.customWorkoutLog.isPlanning ? '📅 Plan & Adapt Week' : '💾 Save & Adapt Week'}</button>
+    </div>
   </div>`;
 }
 
@@ -1525,12 +2177,12 @@ function renderLogEdit(){
       return isNW
         ?`<div class='set-row' style='grid-template-columns:32px 1fr;margin-bottom:6px'>
             <div class='sn'>${si+1}</div>
-            <input class='ni' type='number' id='el-r-${ei}-${si}' value='${s.reps||0}' min='0' max='50' placeholder='reps'>
+            <input class='ni' type='number' id='el-r-${ei}-${si}' value='${s.reps||0}' min='0' max='50' inputmode='numeric' placeholder='reps'>
           </div>`
         :`<div class='set-row' style='grid-template-columns:32px 1fr 1fr;margin-bottom:6px'>
             <div class='sn'>${si+1}</div>
-            <input class='ni' type='number' id='el-w-${ei}-${si}' value='${s.weight||0}' min='0' step='5' placeholder='lb'>
-            <input class='ni' type='number' id='el-r-${ei}-${si}' value='${s.reps||0}' min='0' max='50' placeholder='reps'>
+            <input class='ni' type='number' id='el-w-${ei}-${si}' value='${s.weight||0}' min='0' step='5' inputmode='decimal' placeholder='lb'>
+            <input class='ni' type='number' id='el-r-${ei}-${si}' value='${s.reps||0}' min='0' max='50' inputmode='numeric' placeholder='reps'>
           </div>`;
     }).join('');
     return`<div class='card' style='margin-bottom:10px'>
@@ -1549,6 +2201,7 @@ function renderLogEdit(){
     <div style='font-size:13px;color:var(--mut);margin-bottom:16px'>${log.dayName} · ${fmtDate(log.date)} · ${fmtDur(log.duration)}</div>
     ${exSections}
     <button class='btn btn-ok' data-action='save-log-edit'>Save Changes</button>
+    <button class='btn' data-action='delete-log' data-id='${log.id}' style='background:var(--bad2);color:var(--bad);margin-top:10px'>🗑️ Delete This Workout</button>
   </div>`;
 }
 
@@ -1575,7 +2228,10 @@ function renderHistory(){
       <div class='log-meta'>${fmtDate(l.date)} · ${fmtDur(l.duration)} · ${l.exercises.length} exercises</div>
       <div class='log-body${open?' open':''}' id='${id}'>
         ${exSummary}
-        <button class='btn btn-s btn-sm' data-action='edit-log' data-id='${l.id}' style='margin-top:10px;width:auto'>✏️ Edit this workout</button>
+        <div style='display:flex;gap:8px;margin-top:10px'>
+          <button class='btn btn-s btn-sm' data-action='edit-log' data-id='${l.id}' style='flex:1'>✏️ Edit</button>
+          <button class='btn btn-sm' data-action='delete-log' data-id='${l.id}' style='flex:1;background:var(--bad2);color:var(--bad)'>🗑️ Delete</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1607,12 +2263,491 @@ function render(){
   if(!S.program&&S.view!=='setup'){S.view='setup';}
   if(S.view==='setup'){root.innerHTML=renderSetup();return;}
   if(S.view==='workout'){root.innerHTML=renderWorkout();return;}
+  if(S.view==='review-workout'){root.innerHTML=renderReviewWorkout();return;}
+  if(S.view==='custom-workout-log'){root.innerHTML=renderCustomWorkoutLog();return;}
   if(S.view==='dash'){root.innerHTML=renderDash();return;}
   if(S.view==='plan'){root.innerHTML=renderPlan();return;}
   if(S.view==='cloud'){root.innerHTML=renderCloudSetup();return;}
   if(S.view==='log-edit'){root.innerHTML=renderLogEdit();return;}
   if(S.view==='program'){root.innerHTML=renderProgram();return;}
   if(S.view==='history'){root.innerHTML=renderHistory();return;}
+}
+
+// ─────────────────────────────────────────────
+// CUSTOM WORKOUT HELPERS
+// ─────────────────────────────────────────────
+function updateCustomExercise(idx, field, value) {
+  if (!S.customWorkoutLog || !S.customWorkoutLog.exercises[idx]) return;
+  S.customWorkoutLog.exercises[idx][field] = value;
+  // Don't save yet, just update state
+}
+
+// Find an exact database (or custom) exercise match for a typed name.
+function exMatch(name) {
+  if (!name || !name.trim()) return null;
+  const allEx = [...EX, ...(S.customExercises||[])];
+  return allEx.find(e => e.name.toLowerCase() === name.toLowerCase().trim()) || null;
+}
+
+// Common abbreviations / synonyms expanded so "BB Bench" → "barbell bench" etc.
+const EX_ABBR = {
+  bb:'barbell', db:'dumbbell', kb:'kettlebell', ohp:'overhead press',
+  rdl:'romanian deadlift', sldl:'romanian deadlift', bw:'bodyweight',
+  ext:'extension', lat:'lateral', pull:'pullup', chin:'chinup',
+  sa:'single arm', sl:'single leg'
+};
+
+// Normalize an exercise name into a list of comparable tokens.
+function exTokens(s) {
+  if (!s) return [];
+  let t = s.toLowerCase().trim().replace(/[^a-z0-9\s]/g, ' ');
+  let tokens = t.split(/\s+/).filter(Boolean).map(w => EX_ABBR[w] || w);
+  tokens = tokens.join(' ').split(/\s+/).filter(Boolean);
+  // crude singularize so "curls"/"squats"/"press" compare consistently
+  tokens = tokens.map(w => (w.length > 3 && w.endsWith('s')) ? w.slice(0, -1) : w);
+  return tokens;
+}
+
+// Fuzzy-match a typed name to the closest database exercise. Returns the best
+// candidate only when it's a clear winner, to avoid linking ambiguous names.
+function fuzzyMatchEx(name) {
+  const inputTokens = exTokens(name);
+  if (!inputTokens.length) return null;
+  const inputSet = new Set(inputTokens);
+  const allEx = [...EX, ...(S.customExercises||[])];
+  const scored = [];
+  allEx.forEach(e => {
+    const exSet = new Set(exTokens(e.name));
+    let overlap = 0;
+    inputSet.forEach(tk => { if (exSet.has(tk)) overlap++; });
+    if (!overlap) return;
+    const dice = (2 * overlap) / (inputSet.size + exSet.size);
+    const coverage = overlap / inputSet.size; // how much of what they typed is covered
+    if (coverage >= 0.6) scored.push({ e, score: dice });
+  });
+  if (!scored.length) return null;
+  scored.sort((a, b) => b.score - a.score);
+  const top = scored[0];
+  const second = scored[1];
+  // Require a decent score and a clear winner (not a near-tie / ambiguous)
+  if (top.score >= 0.5 && (!second || top.score - second.score >= 0.15)) return top.e;
+  return null;
+}
+
+// Resolve a typed name to a database exercise: exact first, then fuzzy.
+function resolveEx(name) {
+  const exact = exMatch(name);
+  if (exact) return { match: exact, exact: true };
+  const fuzzy = fuzzyMatchEx(name);
+  if (fuzzy) return { match: fuzzy, exact: false };
+  return { match: null, exact: false };
+}
+
+// Identify the muscle group for an exercise name: matched exercise first,
+// then keyword-based estimation as a fallback.
+function detectMuscle(name) {
+  if (!name || !name.trim()) return 'legs';
+  const { match } = resolveEx(name);
+  if (match) return match.muscle;
+  return estimateMuscleGroup(name);
+}
+
+// Read-only line showing the auto-detected muscle group for the typed exercise.
+function muscleDispHtml(name) {
+  if (!name || !name.trim()) return `<span style="color:var(--mut)">Muscle group auto-detects from the exercise</span>`;
+  const m = detectMuscle(name);
+  const color = MCOL[m] || 'var(--acc)';
+  return `<span style="color:var(--mut)">Targets <strong style="color:${color}">${MNAME[m]||m}</strong> · auto-detected</span>`;
+}
+
+// Message shown under the name field: confirms whether this entry is linked to a
+// known exercise (so its weights feed the 4% progression history) or is brand new.
+function matchInfoHtml(name) {
+  const { match, exact } = resolveEx(name);
+  if (match && exact) return `<span style="color:var(--ok)">✓ Linked to <strong>${match.name}</strong> — weights feed your 4% progression</span>`;
+  if (match) return `<span style="color:var(--ok)">✓ Matched to <strong>${match.name}</strong> — weights feed your 4% progression</span>`;
+  if (name && name.trim()) return `<span style="color:var(--mut)">New exercise — tracked on its own</span>`;
+  return '';
+}
+
+// Live handler as the user types an exercise name — keeps the muscle dropdown in
+// sync (unless they've manually overridden it) without re-rendering / losing focus.
+function onCustomNameInput(idx, value) {
+  if (!S.customWorkoutLog || !S.customWorkoutLog.exercises[idx]) return;
+  const ex = S.customWorkoutLog.exercises[idx];
+  ex.name = value;
+  ex.muscle = detectMuscle(value); // always auto-detect from the exercise
+  // Live-update the muscle-group line and the database-link indicator
+  const dEl = document.getElementById('cust-musc-disp-' + idx);
+  if (dEl) dEl.innerHTML = muscleDispHtml(value);
+  const mEl = document.getElementById('cust-match-' + idx);
+  if (mEl) mEl.innerHTML = matchInfoHtml(value);
+  // Refresh the suggestions dropdown
+  renderExSuggest(idx, value);
+}
+
+// Build the ranked list of exercise suggestions for what the user has typed.
+function exSuggestList(value) {
+  const all = [...EX, ...(S.customExercises||[])];
+  const q = (value || '').toLowerCase().trim();
+  if (!q) return all.slice(0, 8); // show a starter list when empty
+  const qTokens = exTokens(value);
+  const scored = all.map(e => {
+    const name = e.name.toLowerCase();
+    const exT = new Set(exTokens(e.name));
+    let score = 0;
+    if (name.includes(q)) score += 2;
+    if (name.startsWith(q)) score += 1;
+    qTokens.forEach(t => { if (exT.has(t)) score += 1; });
+    return { e, score };
+  }).filter(x => x.score > 0);
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 8).map(x => x.e);
+}
+
+// Render the dropdown of exercise suggestions under a row's name field.
+function renderExSuggest(idx, value) {
+  const box = document.getElementById('ex-suggest-' + idx);
+  if (!box) return;
+  const list = exSuggestList(value);
+  if (!list.length) { box.classList.remove('on'); box.innerHTML = ''; return; }
+  box.innerHTML = list.map(e =>
+    `<div class='ex-suggest-item' data-name="${e.name.replace(/"/g,'&quot;')}" onpointerdown='pickExSuggest(${idx}, this.dataset.name)'>
+       <span>${e.name}</span><span class='es-mus'>${MNAME[e.muscle]||''}</span>
+     </div>`
+  ).join('');
+  box.classList.add('on');
+}
+
+// User tapped a suggestion — fill the field, sync muscle + link indicator.
+function pickExSuggest(idx, name) {
+  if (!S.customWorkoutLog || !S.customWorkoutLog.exercises[idx]) return;
+  const ex = S.customWorkoutLog.exercises[idx];
+  ex.name = name;
+  ex.muscle = detectMuscle(name); // always auto-detect from the exercise
+  const inp = document.getElementById('cust-name-' + idx);
+  if (inp) inp.value = name;
+  const dEl = document.getElementById('cust-musc-disp-' + idx);
+  if (dEl) dEl.innerHTML = muscleDispHtml(name);
+  const mEl = document.getElementById('cust-match-' + idx);
+  if (mEl) mEl.innerHTML = matchInfoHtml(name);
+  const box = document.getElementById('ex-suggest-' + idx);
+  if (box) { box.classList.remove('on'); box.innerHTML = ''; }
+}
+
+// Hide the dropdown on blur (delayed so a tap on a suggestion registers first).
+function hideExSuggest(idx) {
+  setTimeout(() => {
+    const box = document.getElementById('ex-suggest-' + idx);
+    if (box) box.classList.remove('on');
+  }, 200);
+}
+
+function removeCustomExercise(idx) {
+  if (!S.customWorkoutLog || !S.customWorkoutLog.exercises) return;
+  S.customWorkoutLog.exercises.splice(idx, 1);
+  render();
+}
+
+function addCustomExerciseRow() {
+  if (!S.customWorkoutLog) return;
+  if (!S.customWorkoutLog.exercises) S.customWorkoutLog.exercises = [];
+  S.customWorkoutLog.exercises.push({name: '', sets: 3, reps: 10, weight: 0});
+  render();
+}
+
+function loadWorkoutTemplate(template) {
+  if (!S.customWorkoutLog) return;
+
+  let exercises = [];
+  if (template === 'murph') {
+    exercises = [
+      {name: 'Run', sets: 1, reps: 1, weight: 0, notes: '1 mile'},
+      {name: 'Pull-ups', sets: 20, reps: 5, weight: 0},
+      {name: 'Push-ups', sets: 20, reps: 10, weight: 0},
+      {name: 'Air Squats', sets: 20, reps: 15, weight: 0},
+      {name: 'Run', sets: 1, reps: 1, weight: 0, notes: '1 mile'}
+    ];
+  } else if (template === 'bodyweight') {
+    exercises = [
+      {name: 'Push-ups', sets: 3, reps: 15, weight: 0},
+      {name: 'Pull-ups', sets: 3, reps: 8, weight: 0},
+      {name: 'Air Squats', sets: 3, reps: 20, weight: 0},
+      {name: 'Burpees', sets: 3, reps: 10, weight: 0}
+    ];
+  } else if (template === 'strength') {
+    exercises = [
+      {name: 'Barbell Back Squat', sets: 5, reps: 5, weight: 185},
+      {name: 'Barbell Bench Press', sets: 5, reps: 5, weight: 155},
+      {name: 'Barbell Row', sets: 3, reps: 8, weight: 135},
+      {name: 'Overhead Press', sets: 3, reps: 8, weight: 95}
+    ];
+  }
+
+  S.customWorkoutLog.exercises = exercises;
+  render();
+}
+
+function estimateMuscleGroup(exerciseName) {
+  const name = exerciseName.toLowerCase();
+
+  // Chest keywords
+  if (name.includes('push') || name.includes('bench') || name.includes('chest') || name.includes('fly')) {
+    return 'chest';
+  }
+  // Back keywords
+  if (name.includes('pull') || name.includes('row') || name.includes('lat') || name.includes('back')) {
+    return 'back';
+  }
+  // Shoulders
+  if (name.includes('shoulder') || name.includes('press') || name.includes('raise') || name.includes('overhead')) {
+    return 'shoulders';
+  }
+  // Legs
+  if (name.includes('squat') || name.includes('lunge') || name.includes('leg') || name.includes('quad') || name.includes('glute')) {
+    return 'legs';
+  }
+  // Arms
+  if (name.includes('curl') || name.includes('bicep')) {
+    return 'biceps';
+  }
+  if (name.includes('tricep') || name.includes('dip') || name.includes('extension')) {
+    return 'triceps';
+  }
+  // Core/full body
+  if (name.includes('burpee') || name.includes('plank') || name.includes('core') || name.includes('run')) {
+    return 'core';
+  }
+
+  // Default to legs for compound movements
+  return 'legs';
+}
+
+function adaptWeekForCustomWorkout(customLog, customDow) {
+  if (!S.program || !S.program.week || !S.weekPlan?.availability) return;
+
+  // Calculate muscle group volumes from custom workout
+  const customVolumes = {};
+  customLog.exercises.forEach(ex => {
+    const muscle = ex.muscle;
+    const sets = ex.sets?.filter(s => s && s.reps > 0).length || 0;
+    customVolumes[muscle] = (customVolumes[muscle] || 0) + sets;
+  });
+
+  // Store all existing custom workouts to preserve them
+  const existingCustomWorkouts = {};
+  S.program.week.forEach((day, dow) => {
+    if (day && day.customWorkout && day.customLog) {
+      existingCustomWorkouts[dow] = {
+        customWorkout: true,
+        customLog: day.customLog,
+        name: day.name,
+        desc: day.desc
+      };
+    }
+  });
+
+  // Update recent workouts to include ALL custom workout muscles for better adaptation
+  const allCustomMuscles = new Set();
+  Object.values(existingCustomWorkouts).forEach(cw => {
+    cw.customLog.exercises.forEach(ex => allCustomMuscles.add(ex.muscle));
+  });
+  Object.keys(customVolumes).forEach(muscle => allCustomMuscles.add(muscle));
+
+  const customMuscleList = Array.from(allCustomMuscles).map(m => MNAME[m]).join(', ');
+  S.weekPlan.recentWorkouts = `Custom workouts this week: ${customMuscleList}`;
+
+  // Completely regenerate the week program to adapt around ALL custom workouts
+  S.program = genProgram(S.cfg, S.weekPlan.availability);
+
+  // Restore ALL custom workout days (including the new one)
+  existingCustomWorkouts[customDow] = {
+    customWorkout: true,
+    customLog: customLog,
+    name: 'Custom Workout',
+    desc: `${customLog.exercises.length} exercises logged`
+  };
+
+  // Apply all custom workouts back to the regenerated program
+  Object.entries(existingCustomWorkouts).forEach(([dow, customData]) => {
+    const dayIndex = parseInt(dow);
+    if (S.program.week[dayIndex]) {
+      S.program.week[dayIndex] = {
+        ...S.program.week[dayIndex],
+        ...customData
+      };
+    }
+  });
+}
+
+function planCustomWorkout(customLog, customDow) {
+  if (!S.program || !S.program.week || !S.weekPlan?.availability) return;
+
+  // Store all existing custom workouts and planned workouts to preserve them
+  const existingWorkouts = {};
+  S.program.week.forEach((day, dow) => {
+    if (day && day.customWorkout && day.customLog) {
+      existingWorkouts[dow] = {
+        customWorkout: true,
+        customLog: day.customLog,
+        name: day.name,
+        desc: day.desc
+      };
+    } else if (day && day.plannedCustomWorkout && day.plannedCustomLog) {
+      existingWorkouts[dow] = {
+        plannedCustomWorkout: true,
+        plannedCustomLog: day.plannedCustomLog,
+        name: day.name,
+        desc: day.desc
+      };
+    }
+  });
+
+  // Add the new planned workout
+  existingWorkouts[customDow] = {
+    plannedCustomWorkout: true,
+    plannedCustomLog: customLog,
+    name: 'Planned Custom Workout',
+    desc: `${customLog.exercises.length} exercises planned`
+  };
+
+  // Update recent workouts to include ALL custom/planned workout muscles for better adaptation
+  const allCustomMuscles = new Set();
+  Object.values(existingWorkouts).forEach(cw => {
+    const log = cw.customLog || cw.plannedCustomLog;
+    if (log) {
+      log.exercises.forEach(ex => allCustomMuscles.add(ex.muscle));
+    }
+  });
+
+  const customMuscleList = Array.from(allCustomMuscles).map(m => MNAME[m]).join(', ');
+  S.weekPlan.recentWorkouts = `Custom/planned workouts this week: ${customMuscleList}`;
+
+  // Completely regenerate the week program to adapt around ALL custom workouts
+  S.program = genProgram(S.cfg, S.weekPlan.availability);
+
+  // Apply all custom/planned workouts back to the regenerated program
+  Object.entries(existingWorkouts).forEach(([dow, workoutData]) => {
+    const dayIndex = parseInt(dow);
+    if (S.program.week[dayIndex]) {
+      S.program.week[dayIndex] = {
+        ...S.program.week[dayIndex],
+        ...workoutData
+      };
+    }
+  });
+}
+
+function rebalanceCustomWorkouts() {
+  if (!S.program || !S.program.week || !S.weekPlan?.availability) return;
+
+  // Collect all remaining custom and planned workouts to preserve them
+  const existingWorkouts = {};
+  S.program.week.forEach((day, dow) => {
+    if (day && day.customWorkout && day.customLog) {
+      existingWorkouts[dow] = {
+        customWorkout: true,
+        customLog: day.customLog,
+        name: day.name,
+        desc: day.desc
+      };
+    } else if (day && day.plannedCustomWorkout && day.plannedCustomLog) {
+      existingWorkouts[dow] = {
+        plannedCustomWorkout: true,
+        plannedCustomLog: day.plannedCustomLog,
+        name: day.name,
+        desc: day.desc
+      };
+    }
+  });
+
+  // Rebuild recentWorkouts note from remaining workouts
+  const allCustomMuscles = new Set();
+  Object.values(existingWorkouts).forEach(cw => {
+    const log = cw.customLog || cw.plannedCustomLog;
+    if (log) log.exercises.forEach(ex => allCustomMuscles.add(ex.muscle));
+  });
+  if (allCustomMuscles.size > 0) {
+    const customMuscleList = Array.from(allCustomMuscles).map(m => MNAME[m]).join(', ');
+    S.weekPlan.recentWorkouts = `Custom/planned workouts this week: ${customMuscleList}`;
+  } else {
+    S.weekPlan.recentWorkouts = '';
+  }
+
+  // Regenerate the week and re-apply remaining custom/planned workouts
+  S.program = genProgram(S.cfg, S.weekPlan.availability);
+  Object.entries(existingWorkouts).forEach(([dow, workoutData]) => {
+    const dayIndex = parseInt(dow);
+    if (S.program.week[dayIndex]) {
+      S.program.week[dayIndex] = {
+        ...S.program.week[dayIndex],
+        ...workoutData
+      };
+    }
+  });
+}
+
+function cancelPlannedWorkout(cancelDow) {
+  if (!S.program || !S.program.week) return;
+
+  // Remove the planned workout from the day
+  if(S.program.week[cancelDow]) {
+    delete S.program.week[cancelDow].plannedCustomWorkout;
+    delete S.program.week[cancelDow].plannedCustomLog;
+  }
+
+  // Store all remaining custom workouts to preserve them
+  const existingWorkouts = {};
+  S.program.week.forEach((day, dow) => {
+    if (day && day.customWorkout && day.customLog) {
+      existingWorkouts[dow] = {
+        customWorkout: true,
+        customLog: day.customLog,
+        name: day.name,
+        desc: day.desc
+      };
+    } else if (day && day.plannedCustomWorkout && day.plannedCustomLog) {
+      existingWorkouts[dow] = {
+        plannedCustomWorkout: true,
+        plannedCustomLog: day.plannedCustomLog,
+        name: day.name,
+        desc: day.desc
+      };
+    }
+  });
+
+  // Update recent workouts
+  const allCustomMuscles = new Set();
+  Object.values(existingWorkouts).forEach(cw => {
+    const log = cw.customLog || cw.plannedCustomLog;
+    if (log) {
+      log.exercises.forEach(ex => allCustomMuscles.add(ex.muscle));
+    }
+  });
+
+  if(allCustomMuscles.size > 0) {
+    const customMuscleList = Array.from(allCustomMuscles).map(m => MNAME[m]).join(', ');
+    S.weekPlan.recentWorkouts = `Custom/planned workouts this week: ${customMuscleList}`;
+  } else {
+    S.weekPlan.recentWorkouts = '';
+  }
+
+  // Regenerate the week program
+  S.program = genProgram(S.cfg, S.weekPlan.availability);
+
+  // Restore remaining custom workouts
+  Object.entries(existingWorkouts).forEach(([dow, workoutData]) => {
+    const dayIndex = parseInt(dow);
+    if (S.program.week[dayIndex]) {
+      S.program.week[dayIndex] = {
+        ...S.program.week[dayIndex],
+        ...workoutData
+      };
+    }
+  });
+
+  save();
+  render();
 }
 
 // ─────────────────────────────────────────────
@@ -1629,23 +2764,18 @@ document.addEventListener('click',e=>{
     S.viewDay=null;
     render();return;
   }
-  if(a==='setup-next'){S.step=Math.min(4,S.step+1);render();return;}
+  if(a==='setup-next'){S.step=Math.min(3,S.step+1);render();return;}
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
   if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);render();return;}
   if(a==='set-goal'){S.cfg.goal=btn.dataset.val;render();return;}
-  if(a==='toggle-equip'){
-    const loc=btn.dataset.loc;const eq=btn.dataset.eq;
-    const arr=loc==='ymca'?S.cfg.ymcaEquip:S.cfg.homeEquip;
-    const idx=arr.indexOf(eq);
-    if(idx>=0)arr.splice(idx,1);else arr.push(eq);
-    save();render();return;
-  }
   if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
   if(a==='generate'){
     const bwEl=document.getElementById('bw-input');
+    const recentEl=document.getElementById('setup-recent-workouts');
     if(bwEl){const v=parseInt(bwEl.value);if(v>=80&&v<=400)S.cfg.bodyLbs=v;}
     if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
     S.weekPlan.weekOf=todayStr();
+    if(recentEl)S.weekPlan.recentWorkouts=recentEl.value||'';
     S.program=genProgram(S.cfg,S.weekPlan.availability);
     delete S.cfg.planStartDow; // clear so next week starts fresh
     S.view='dash';save();render();return;
@@ -1711,6 +2841,16 @@ document.addEventListener('click',e=>{
     S.weekPlan.availability[dv].eve.loc=btn.dataset.val;
     save();render();return;
   }
+  if(a==='set-lunch-equipment'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].lunchEquipment=btn.dataset.val;
+    save();render();return;
+  }
+  if(a==='set-eve-equipment'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].eve.equipment=btn.dataset.val;
+    save();render();return;
+  }
   if(a==='set-avail-weekend-loc'){
     const dv=parseInt(btn.dataset.dow);ensureAv(dv);
     S.weekPlan.availability[dv].loc=btn.dataset.val;
@@ -1726,17 +2866,27 @@ document.addEventListener('click',e=>{
     S.weekPlan.availability[dv].mins=parseInt(btn.dataset.val);
     save();render();return;
   }
+  if(a==='set-weekend-equipment'){
+    const dv=parseInt(btn.dataset.dow);ensureAv(dv);
+    S.weekPlan.availability[dv].equipment=btn.dataset.val;
+    save();render();return;
+  }
   if(a==='save-plan'){
     const calEl=document.getElementById('plan-cal');
     const startEl=document.getElementById('plan-start');
     const endEl=document.getElementById('plan-end');
+    const recentEl=document.getElementById('recent-workouts');
     const cals=parseInt(calEl?.value)||0;
     const startDate=startEl?.value||todayStr();
     const endDate=endEl?.value||nextSunday();
+    const recentWorkouts=recentEl?.value||'';
     if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability()};
     S.weekPlan.weekOf=todayStr();
     S.weekPlan.calGoal=cals>0?{cals,startDate,endDate}:null;
-    // Regenerate program with new availability
+    S.weekPlan.recentWorkouts=recentWorkouts;
+    // Keep existing cardio style if not set
+    if(!S.weekPlan.cardioStyle) S.weekPlan.cardioStyle='separate';
+    // Regenerate program with new availability and cardio style consideration
     S.program=genProgram(S.cfg,S.weekPlan.availability);
     save();S.view='dash';render();return;
   }
@@ -1745,19 +2895,273 @@ document.addEventListener('click',e=>{
     save();render();return;
   }
   if(a==='reset-program'){
-    if(!confirm('Reset your program and reconfigure?'))return;
-    const todayDOW=todayDow();
-    const savedCalGoal=S.weekPlan?.calGoal||null;
-    const av=defaultAvailability();
-    // Turn off days that have already passed this week
-    [1,2,3,4,5].forEach(d=>{if(d<todayDOW){av[d].lunch=false;av[d].eve={on:false,mins:60,loc:'ymca'};}});
-    S.program=null;S.active=null;
-    S.cfg.planStartDow=todayDOW;
-    S.weekPlan={weekOf:todayStr(),availability:av,calGoal:savedCalGoal};
+    if(!confirm('Reset and reconfigure from today through Sunday?'))return;
+    const todayDOW = todayDow();
+    const calGoal = S.weekPlan?.calGoal || null; // calorie goal survives a reset
+
+    // Monday → full reset: re-plan the whole week
+    if(todayDOW === 1) {
+      S.program=null;S.active=null;
+      S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal};
+      delete S.cfg.planStartDow;
+      S.view='setup';S.step=1;save();render();return;
+    }
+
+    // Mid-week: only re-plan today through Sunday, keep past days untouched.
+    // planStartDow marks where the new plan begins (0 = Sunday only).
+    S.cfg.planStartDow = todayDOW;
+    if(S.program && S.program.week){
+      S.program.week = S.program.week.map((day, dow) => {
+        // Sunday is the last day of the Mon-based week: on Sunday keep Mon-Sat
+        const isPast = todayDOW===0 ? dow>0 : (dow>0 && dow<todayDOW);
+        if(isPast) return day;
+        return {dow, rest: true};
+      });
+    }
+
+    // Drop past days from availability so the new plan only covers remaining days
+    if(S.weekPlan?.availability){
+      const av=S.weekPlan.availability;
+      [1,2,3,4,5].forEach(dw=>{
+        const isPast = todayDOW===0 || dw<todayDOW;
+        if(isPast && av[dw]){av[dw].lunch=false;if(av[dw].eve)av[dw].eve.on=false;}
+      });
+      if(todayDOW===0 && av[6]) av[6].on=false;
+    }
+
+    // Clear any active workout
+    S.active = null;
+
+    // Go to setup to reconfigure from today forward
     S.view='setup';S.step=1;save();render();return;
   }
   if(a==='start-workout'){
-    const d=todayDay();if(d&&!d.rest)startWorkout(d,btn.dataset.session||'lunch');return;
+    const d=todayDay();if(d&&!d.rest){
+      // Show review screen instead of starting directly
+      S.reviewWorkout = {
+        day: d,
+        sessionType: btn.dataset.session || 'lunch'
+      };
+      S.view = 'review-workout';
+      render();
+    }
+    return;
+  }
+  if(a==='confirm-start-workout'){
+    const d=S.reviewWorkout?.day;
+    const sessionType=S.reviewWorkout?.sessionType;
+    if(d&&!d.rest){
+      startWorkout(d,sessionType);
+    }
+    return;
+  }
+  if(a==='back-to-dash'){
+    S.reviewWorkout=null;S.view='dash';render();return;
+  }
+  if(a==='swap-exercise'){
+    const idx=parseInt(btn.dataset.idx);
+    if(!S.reviewWorkout)return;
+
+    // Get current exercise to replace
+    const {day, sessionType} = S.reviewWorkout;
+    const isEve = sessionType === 'eve' && day.eveningSession;
+    const src = isEve ? day.eveningSession : day;
+    const currentEx = src.exercises[idx];
+
+    // Find alternative exercises for the same muscle group and type
+    const alternatives = EX.filter(e =>
+      e.muscle === currentEx.muscle &&
+      e.type === currentEx.type &&
+      e.id !== currentEx.id &&
+      e.eq.some(eq => src.exercises.some(srcEx => srcEx.eq?.includes(eq))) // Has compatible equipment
+    ).slice(0, 5); // Limit to 5 alternatives
+
+    if(alternatives.length === 0){
+      alert('No alternative exercises available for this muscle group and type.');
+      return;
+    }
+
+    // Show selection modal (simple confirm for now, can be enhanced later)
+    const altNames = alternatives.map((e, i) => `${i+1}. ${e.name}`).join('\n');
+    const choice = prompt(`Choose replacement for ${currentEx.name}:\n\n${altNames}\n\nEnter number (1-${alternatives.length}):`);
+    const choiceIdx = parseInt(choice) - 1;
+
+    if(choiceIdx >= 0 && choiceIdx < alternatives.length){
+      // Replace the exercise
+      src.exercises[idx] = {...alternatives[choiceIdx], sets: currentEx.sets};
+      render();
+    }
+    return;
+  }
+  if(a==='add-custom-exercise'){
+    // Create custom exercise form
+    const name = prompt('Exercise name:');
+    if(!name) return;
+
+    const muscles = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'core', 'hips'];
+    const muscleChoice = prompt(`Muscle group:\n${muscles.map((m,i) => `${i+1}. ${MNAME[m]}`).join('\n')}\n\nEnter number (1-${muscles.length}):`);
+    const muscleIdx = parseInt(muscleChoice) - 1;
+    if(muscleIdx < 0 || muscleIdx >= muscles.length) return;
+
+    const types = ['compound', 'isolation'];
+    const typeChoice = prompt(`Exercise type:\n1. Compound (multi-joint)\n2. Isolation (single-joint)\n\nEnter number (1-2):`);
+    const typeIdx = parseInt(typeChoice) - 1;
+    if(typeIdx < 0 || typeIdx >= types.length) return;
+
+    const equipment = ['barbell', 'dumbbells', 'cables', 'machine', 'bodyweight', 'pullup_bar'];
+    const equipChoice = prompt(`Equipment needed:\n${equipment.map((e,i) => `${i+1}. ${e}`).join('\n')}\n\nEnter number (1-${equipment.length}):`);
+    const equipIdx = parseInt(equipChoice) - 1;
+    if(equipIdx < 0 || equipIdx >= equipment.length) return;
+
+    const rMin = parseInt(prompt('Minimum reps (e.g., 6):')) || 6;
+    const rMax = parseInt(prompt('Maximum reps (e.g., 12):')) || 12;
+    const rest = parseInt(prompt('Rest time in seconds (e.g., 120):')) || 120;
+    const cue = prompt('Technique tip (optional):') || '';
+
+    const customEx = {
+      id: `custom_${Date.now()}`,
+      name: name,
+      muscle: muscles[muscleIdx],
+      type: types[typeIdx],
+      eq: [equipment[equipIdx]],
+      rMin: rMin,
+      rMax: rMax,
+      rest: rest,
+      cue: cue,
+      custom: true
+    };
+
+    S.customExercises = S.customExercises || [];
+    S.customExercises.push(customEx);
+    save();render();
+    return;
+  }
+  if(a==='delete-custom-exercise'){
+    const idx = parseInt(btn.dataset.idx);
+    if(confirm('Delete this custom exercise?')){
+      S.customExercises.splice(idx, 1);
+      save();render();
+    }
+    return;
+  }
+  if(a==='set-cardio-style'){
+    if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
+    S.weekPlan.cardioStyle=btn.dataset.val;
+    render();return;
+  }
+  if(a==='log-custom-workout'){
+    const dow = parseInt(btn.dataset.dow);
+    S.customWorkoutLog = {
+      dow: dow,
+      exercises: [],
+      isPlanning: false
+    };
+    S.view = 'custom-workout-log';
+    render();return;
+  }
+  if(a==='plan-custom-workout'){
+    const dow = parseInt(btn.dataset.dow);
+    S.customWorkoutLog = {
+      dow: dow,
+      exercises: [],
+      isPlanning: true
+    };
+    S.view = 'custom-workout-log';
+    render();return;
+  }
+  if(a==='cancel-planned-workout'){
+    const dow = parseInt(btn.dataset.dow);
+    if(confirm('Cancel this planned workout? Your week will be regenerated.')) {
+      cancelPlannedWorkout(dow);
+    }
+    return;
+  }
+  if(a==='cancel-custom-workout'){
+    S.customWorkoutLog = null;
+    S.view = 'dash';
+    render();return;
+  }
+  if(a==='add-custom-exercise-row'){
+    addCustomExerciseRow();
+    return;
+  }
+  if(a==='load-murph-template'){
+    loadWorkoutTemplate('murph');
+    return;
+  }
+  if(a==='load-bodyweight-template'){
+    loadWorkoutTemplate('bodyweight');
+    return;
+  }
+  if(a==='load-strength-template'){
+    loadWorkoutTemplate('strength');
+    return;
+  }
+  if(a==='save-custom-workout'){
+    if(!S.customWorkoutLog || !S.customWorkoutLog.exercises.length) {
+      alert('Please add at least one exercise');
+      return;
+    }
+
+    // Create a workout entry
+    const customData = {
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      dayName: S.customWorkoutLog.isPlanning ? 'Planned Custom Workout' : 'Custom Workout',
+      isCustom: true,
+      isPlanned: S.customWorkoutLog.isPlanning,
+      duration: 60, // default estimate
+      exercises: S.customWorkoutLog.exercises.map(ex => {
+        // Link to a known exercise when the name matches (exact or fuzzy), so the
+        // logged weights feed the same 4% progression history as regular workouts;
+        // otherwise create a stable slug id tracked on its own.
+        const { match } = resolveEx(ex.name);
+        return {
+          id: match ? match.id : (ex.name||'').toLowerCase().replace(/[^a-z0-9]/g, '_'),
+          name: match ? match.name : ex.name,
+          muscle: ex.muscle || (match ? match.muscle : estimateMuscleGroup(ex.name)),
+          sets: [{weight: ex.weight, reps: ex.reps}].concat(
+            Array(ex.sets - 1).fill().map(() => ({weight: ex.weight, reps: ex.reps}))
+          )
+        };
+      })
+    };
+
+    if(S.customWorkoutLog.isPlanning) {
+      // PLANNING: Don't add to logs, mark as planned
+      if(S.program && S.program.week[S.customWorkoutLog.dow]) {
+        S.program.week[S.customWorkoutLog.dow].plannedCustomWorkout = true;
+        S.program.week[S.customWorkoutLog.dow].plannedCustomLog = customData;
+      }
+
+      // Immediately regenerate entire week to adapt around planned workout
+      planCustomWorkout(customData, S.customWorkoutLog.dow);
+    } else {
+      // LOGGING: Add to logs, mark as completed
+      S.logs.push(customData);
+
+      if(S.program && S.program.week[S.customWorkoutLog.dow]) {
+        const day = S.program.week[S.customWorkoutLog.dow];
+        day.customWorkout = true;
+        day.customLog = customData;
+        // If this day was previously planned, clear the planned markers so its
+        // sets aren't counted twice in MRV / budgeting.
+        delete day.plannedCustomWorkout;
+        delete day.plannedCustomLog;
+      }
+
+      // Refresh last-used weights so the 4% progression picks up these entries
+      recalcLastWeights();
+
+      // Regenerate rest of week to adapt
+      adaptWeekForCustomWorkout(customData, S.customWorkoutLog.dow);
+    }
+
+    S.customWorkoutLog = null;
+    S.view = 'dash';
+    save();
+    render();
+    return;
   }
   if(a==='view-day'){
     const dv=parseInt(btn.dataset.dow);
@@ -1787,7 +3191,8 @@ document.addEventListener('click',e=>{
     return;
   }
   if(a==='prev-ex'){goToEx(S.active.exIdx-1);return;}
-  if(a==='finish-workout'){finishWorkout();return;}
+  if(a==='finish-workout'){S.active.ratePending=true;save();render();return;}
+  if(a==='rate-fatigue'){finishWorkout(parseInt(btn.dataset.val)||null);return;}
   if(a==='abandon'){abandonWorkout();return;}
   if(a==='undo-set'){
     const ei=parseInt(btn.dataset.ex),si=parseInt(btn.dataset.set);
@@ -1841,6 +3246,41 @@ document.addEventListener('click',e=>{
     return;
   }
   if(a==='cancel-log-edit'){S.editLogDraft=null;S.view='history';render();return;}
+  if(a==='delete-log'){
+    const id=btn.dataset.id;
+    const log=S.logs.find(l=>l.id===id);
+    if(!log)return;
+    const isCustom=log.isCustom;
+    const msg=isCustom
+      ?'Delete this custom workout? The rest of your week will rebalance to account for the removed workout.'
+      :'Delete this workout from your history? This cannot be undone.';
+    if(!confirm(msg))return;
+
+    // Remove from logs
+    S.logs=S.logs.filter(l=>l.id!==id);
+
+    // Clear any custom-workout flags on the program week that referenced this log
+    let wasOnWeek=false;
+    if(S.program?.week){
+      S.program.week.forEach(day=>{
+        if(day&&day.customWorkout&&day.customLog?.id===id){
+          delete day.customWorkout;delete day.customLog;wasOnWeek=true;
+        }
+      });
+    }
+
+    recalcLastWeights();
+
+    // If it was a custom workout tied to the week, rebalance the remaining week
+    if(isCustom&&wasOnWeek&&S.weekPlan?.availability){
+      rebalanceCustomWorkouts();
+    }
+
+    S.editLogDraft=null;
+    S.view='history';
+    save();render();
+    return;
+  }
   if(a==='skip-rest'||btn.id==='skip-rest-btn'){stopRest();return;}
 });
 
@@ -2113,6 +3553,21 @@ load();
 const _fbCfg=getStoredFbConfig();
 if(_fbCfg)initFirebase(_fbCfg);
 render();
+
+// Register service worker for PWA functionality
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(registration) {
+        console.log('ServiceWorker registration successful');
+      })
+      .catch(function(err) {
+        console.log('ServiceWorker registration failed: ', err);
+      });
+  });
+}
 </script>
 </body>
 </html>
+< ! - -   F o r c e   G i t H u b   P a g e s   r e d e p l o y   0 6 / 0 9 / 2 0 2 6   1 7 : 0 2 : 4 4   - - >  
+ 
