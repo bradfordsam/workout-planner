@@ -488,6 +488,46 @@ const TMPLS = {
 };
 
 const EX_LIMIT={30:2,45:3,60:5,75:6,90:7};
+const CONDITIONING_FINISHERS=[
+  {name:'Sprint Intervals',desc:'8 × 30s all-out / 60s walk rest',icon:'🏃',mins:12},
+  {name:'Burpee EMOM',desc:'10 min · 10 burpees at the top of each minute',icon:'💥',mins:10},
+  {name:'Jump Circuit',desc:'3 rounds: 10 box jumps · 15 jump squats · 20 jump rope',icon:'⚡',mins:12},
+  {name:'Agility Intervals',desc:'6 × 30s lateral shuffle / sprint / 30s walk',icon:'🏈',mins:8},
+  {name:'Row Intervals',desc:'6 × 250m hard row / 60s rest',icon:'🚣',mins:14},
+  {name:'DB Circuit',desc:'4 rounds: 10 goblet squats · 10 rows · 10 push press · 30s rest',icon:'💪',mins:15},
+];
+// Off-day active recovery: gentle mobility, stretching, and tissue work to
+// support recovery between lifting days. Rotates by day of week.
+const RECOVERY_PROTOCOLS=[
+  {name:'Hip Reset',icon:'🦋',mins:15,items:[
+    'Hip CARs — 5 slow circles each side',
+    '90/90 hip stretch — 60s per side',
+    'Half-kneeling hip flexor stretch — 45s per side',
+    'Glute bridge hold — 3 × 20s',
+    'Foam roll quads & glutes — 2 min',
+  ]},
+  {name:'Thoracic & Shoulders',icon:'🧘',mins:12,items:[
+    'Cat-cow — 10 slow reps',
+    'Thread the needle — 8 per side',
+    'Wall slides — 2 × 10',
+    'Doorway pec stretch — 45s per side',
+    'Foam roll upper back — 2 min',
+  ]},
+  {name:'Lower Body Flush',icon:'🚶',mins:20,items:[
+    'Easy 20 min walk or bike (conversational pace)',
+    'Couch stretch — 60s per side',
+    'Hamstring floss — 10 per side',
+    'Standing calf stretch — 45s per side',
+    'Foam roll calves & hamstrings — 2 min',
+  ]},
+  {name:'Full-Body Flow',icon:'🌊',mins:15,items:[
+    "World's greatest stretch — 5 per side",
+    'Deep squat hold — 3 × 30s',
+    'Dead hang from bar — 3 × 15-30s',
+    'Ankle rocks — 10 per side',
+    'Down-dog to cobra flow — 8 slow reps',
+  ]},
+];
 const SPLITS={2:['full_a','full_b'],3:['push','pull','legs'],4:['upper_push','lower_a','upper_pull','lower_b'],5:['push','pull','legs','upper_push','upper_pull']};
 const DAY_ASSIGN={1:[1],2:[1,4],3:[1,3,5],4:[1,2,4,5],5:[1,2,3,4,5]};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -499,7 +539,7 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 // ─────────────────────────────────────────────
 let S={
   view:'setup',step:1,
-  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true},
+  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true,conditioning:false},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],
@@ -531,6 +571,12 @@ function load(){
       // migrate old calEntry format
       if(d.calEntry&&!S.weekPlan){
         S.weekPlan={weekOf:thisMonday(),skipDays:[],calGoal:{cals:d.calEntry.cals,startDate:d.calEntry.date||todayStr(),endDate:nextSunday()}};
+      }
+      // Migrate: add conditioning default if missing
+      if(S.cfg.conditioning===undefined)S.cfg.conditioning=false;
+      // Clear mid-week planStartDow if the stored week plan is from a previous week
+      if(S.cfg?.planStartDow&&(!S.weekPlan||S.weekPlan.weekOf<thisMonday())){
+        delete S.cfg.planStartDow;
       }
       S.view=S.active?'workout':'dash';
     }
@@ -594,7 +640,8 @@ function genProgram(cfg,av){
     if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,loc:d.loc||'ymca',key:`${dow}-wknd`,equipmentKey:d.equipment||'ymca'});
   });
   if(!lunchSlots.length&&!eveSlots.length){
-    [1,2,3,4,5].forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`,equipmentKey:'ymca'}));
+    const ps=S.cfg?.planStartDow??1;
+    [1,2,3,4,5].filter(d=>ps!==0&&d>=ps).forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`,equipmentKey:'ymca'}));
   }
 
   // Split size: lunches fill first, evenings on non-lunch days fill remaining gaps (max 5)
@@ -617,18 +664,18 @@ function genProgram(cfg,av){
   // fills toward optimal without exceeding each muscle's recoverable max.
   const budget = { vol: getCommittedVolumes(), limits: getMRVLimits(), perExercise: 3 };
 
-  function assignSlot(slot,idx){
-    const tk=split[idx%split.length];
+  function buildSession(slot,tk,oldData){
     // Use per-session equipment from availability
     const equipmentKey=slot.equipmentKey||'ymca';
     const selectedPreset=EQUIPMENT_PRESETS[equipmentKey]||EQUIPMENT_PRESETS.ymca;
     const equip=selectedPreset.equipment;
+    if(oldData===undefined)oldData=oldWeek?.[slot.dow];
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
-    if(oldWeek?.[slot.dow]&&!oldWeek[slot.dow].rest&&(completedDows.has(slot.dow)||(oldWeek[slot.dow].tk===tk&&oldWeek[slot.dow].loc===slot.loc))){
-      const od=oldWeek[slot.dow];
+    if(oldData&&!oldData.rest&&(completedDows.has(slot.dow)||(oldData.tk===tk&&oldData.loc===slot.loc))){
+      const od=oldData;
       // Count a preserved upcoming session toward the budget (completed days and
       // custom/planned days are already counted via getCommittedVolumes).
-      if(!completedDows.has(slot.dow) && !oldWeek[slot.dow].customWorkout && !oldWeek[slot.dow].plannedCustomWorkout){
+      if(!completedDows.has(slot.dow) && !od.customWorkout && !od.plannedCustomWorkout){
         (od.exercises||[]).forEach(e=>{ if(e&&e.muscle) budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+(e.sets||3); });
       }
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,preserved:true};
@@ -662,6 +709,9 @@ function genProgram(cfg,av){
     const sessionName = isCircuitStyle && !slot.isLunch ? tmpl.name.replace('Day', 'Circuit') : tmpl.name;
     return{tk,name:sessionName,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
+  function assignSlot(slot,idx){
+    return buildSession(slot,split[idx%split.length]);
+  }
 
   const slotMap={};let splitIdx=0;
   // Pass 1: lunches always get lifting
@@ -671,6 +721,57 @@ function genProgram(cfg,av){
     if(lunchDows.has(slot.dow))return; // lifted at lunch today → evening = cardio
     if(splitIdx>=count)return;         // split fully covered → cardio
     slotMap[slot.key]=assignSlot(slot,splitIdx);splitIdx++;
+  });
+
+  // Pass 3: double-lifting days — if a day has both lunch + evening lifting
+  // available and the split is otherwise complete, give the evening slot a
+  // full bonus session using a DIFFERENT template than lunch. Research favors
+  // hitting an under-volumed muscle group on a separate day/session over
+  // stacking extra same-muscle sets onto one workout, so pick whichever
+  // template targets the muscle furthest below its weekly volume target.
+  const BONUS_TMPLS=['legs','lower_a','lower_b','push','pull','upper_push','upper_pull'];
+  const VOL_TARGET_BUFFER=4; // a muscle "needs more volume" if it's this far below its weekly MRV max
+  eveSlots.forEach(slot=>{
+    if(!lunchDows.has(slot.dow))return;   // only relevant for lunch+evening days
+    if(slotMap[slot.key])return;          // already assigned
+    const lunchSession=slotMap[`${slot.dow}-lunch`];
+    if(!lunchSession?.exercises?.length)return;
+
+    // Which muscles get compound work on each planned day, so the bonus
+    // session can avoid hitting a muscle on back-to-back days.
+    const muscleDows={};
+    Object.entries(slotMap).forEach(([key,sess])=>{
+      const sdow=parseInt(key);
+      (sess.exercises||[]).forEach(e=>{
+        if(e.type==='compound')(muscleDows[e.muscle]=muscleDows[e.muscle]||new Set()).add(sdow);
+      });
+    });
+
+    let best=null,bestScore=0;
+    BONUS_TMPLS.forEach(tk=>{
+      if(tk===lunchSession.tk)return; // must be a different split than lunch
+      const muscles=new Set(TMPLS[tk].slots.filter(s=>s.type==='compound').map(s=>s.muscle));
+      // Rank by the single most under-volumed muscle the template trains (the
+      // muscle that most needs a second weekly session), using total deficit
+      // only as a tie-breaker — otherwise multi-muscle upper days always beat
+      // a legs day on summed deficit.
+      let maxDef=0,sumDef=0,maxDefMuscle=null;
+      muscles.forEach(m=>{
+        const max=budget.limits[m]?.max??20;
+        const def=Math.max(0,max-VOL_TARGET_BUFFER-(budget.vol[m]||0));
+        if(def>maxDef){maxDef=def;maxDefMuscle=m;}
+        sumDef+=def;
+      });
+      let score=maxDef*100+sumDef;
+      // Soft penalty if the target muscle is already trained on an adjacent
+      // day — same-muscle sessions <24h apart compromise recovery.
+      const dows=maxDefMuscle?muscleDows[maxDefMuscle]:null;
+      if(dows&&(dows.has(slot.dow-1)||dows.has(slot.dow+1)))score*=0.25;
+      if(maxDef>0&&score>bestScore){bestScore=score;best=tk;}
+    });
+    if(!best)return; // nothing meaningfully under-volumed → evening stays cardio
+
+    slotMap[slot.key]=buildSession(slot,best,oldWeek?.[slot.dow]?.eveningSession);
   });
 
   // Build week array
@@ -835,7 +936,7 @@ function getWeeklySetVolumes(){
 // diminishing returns and ≥10 weekly sets/muscle outperforms <10; strength
 // plateaus far earlier. No numeric change warranted; ranges retained.
 function getMRVLimits(){
-  return {
+  const limits = {
     chest: {min: 10, max: 20},
     back: {min: 12, max: 22},
     shoulders: {min: 8, max: 18},
@@ -845,6 +946,26 @@ function getMRVLimits(){
     core: {min: 8, max: 18},
     hips: {min: 6, max: 16}
   };
+  // Recovery auto-regulation: muscles trained in a high-fatigue session
+  // (rating ≥4) within the last 72h get a temporarily reduced ceiling, so
+  // the generator backs off volume until they've recovered.
+  getFatiguedMuscles().forEach(m=>{
+    if(limits[m])limits[m]={min:limits[m].min,max:Math.max(limits[m].min,Math.round(limits[m].max*0.85))};
+  });
+  return limits;
+}
+
+// Muscles trained in a session the user rated 4-5 ("Hard"/"Maxed out")
+// within the last 72 hours.
+function getFatiguedMuscles(){
+  const cutoff=Date.now()-72*3600*1000;
+  const fatigued=new Set();
+  (S.logs||[]).forEach(l=>{
+    if((l.fatigue||0)>=4&&new Date(l.date).getTime()>=cutoff){
+      (l.exercises||[]).forEach(e=>{if(e.muscle)fatigued.add(e.muscle);});
+    }
+  });
+  return fatigued;
 }
 
 // Sets already committed this week by muscle: completed/logged workouts PLUS any
@@ -917,12 +1038,15 @@ function renderMRVWidget(){
       </div>`;
     }).join('');
 
+  const fatigued=[...getFatiguedMuscles()].filter(m=>MNAME[m]);
+  const fatigueNote=fatigued.length?`<div style='font-size:11px;color:var(--warn);margin-top:8px'>🔋 Recovering: ${fatigued.map(m=>MNAME[m]).join(', ')} — volume ceiling reduced 15% for 72h after your hard session</div>`:'';
   return `<div class='card'>
     <div style='font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px'>
       📊 Weekly Set Volume (MRV)
       <span style='font-size:10px;color:var(--mut);font-weight:400'>10-20+ sets optimal · ⚠️ = recent external</span>
     </div>
     ${rows}
+    ${fatigueNote}
   </div>`;
 }
 function getMissedDays(){
@@ -1081,6 +1205,20 @@ function calcWeekCardio(){
 // ─────────────────────────────────────────────
 // REST TIMER
 // ─────────────────────────────────────────────
+// Intensity-based rest: heavy compounds need ≥2-3 min for full performance on
+// the next set (Schoenfeld 2016 — longer inter-set rest beats 1 min for both
+// strength and hypertrophy on compounds); isolation work recovers on 60-90s.
+function smartRest(ex){
+  if(ex.isTimed||ex.noWeight)return ex.rest||60;
+  if(ex.type==='compound')return ex.rMax<=8?180:(ex.rMax<=12?150:120);
+  return ex.rMax<=12?90:60;
+}
+function smartRestLabel(ex){
+  const s=smartRest(ex);
+  const t=s>=60?(s%60===0?`${s/60} min`:`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`):`${s}s`;
+  const why=ex.type==='compound'?(ex.rMax<=8?'heavy compound':'compound'):'isolation';
+  return`${t} rest between sets (${why})`;
+}
 function startRest(secs,exName){
   if(timerIv)clearInterval(timerIv);
   S.active.restEndsAt=Date.now()+secs*1000;
@@ -1168,7 +1306,9 @@ function completeSet(exIdx,setIdx){
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
   if(allDone){const nb=document.getElementById(`next-btn-${exIdx}`);if(nb)nb.style.display='flex';}
   save();
-  const restSecs=S.active.restCap?Math.min(ex.rest||120,S.active.restCap):(ex.rest||120);
+  // Lunch sessions keep the 90s cap (hard 40-min time box); evenings get the
+  // full intensity-based rest.
+  const restSecs=S.active.restCap?Math.min(smartRest(ex),S.active.restCap):smartRest(ex);
   startRest(restSecs,ex.name);
 }
 
@@ -1180,14 +1320,14 @@ function updateWarmup(exIdx,weight){
 
 function goToEx(idx){S.active.exIdx=idx;save();render();}
 
-function finishWorkout(){
+function finishWorkout(fatigue){
   const exData=S.active.exercises.map(e=>({id:e.id,name:e.name,muscle:e.muscle,sets:e.done.filter(Boolean)}));
   // Update lastWeights — only last set's weight per exercise, that's all we need
   exData.forEach(e=>{
     const working=e.sets.filter(s=>s&&s.reps>0&&!e.isMakeup);
     if(working.length){const last=working[working.length-1];S.lastWeights[e.id]={weight:last.weight,reps:last.reps};}
   });
-  const log={id:Date.now().toString(),date:new Date().toISOString(),dayName:S.active.dayName,isLunch:S.active.isLunch,duration:Math.round((Date.now()-S.active.startTime)/60000),exercises:exData};
+  const log={id:Date.now().toString(),date:new Date().toISOString(),dayName:S.active.dayName,isLunch:S.active.isLunch,duration:Math.round((Date.now()-S.active.startTime)/60000),exercises:exData,fatigue:fatigue||null};
   S.logs.push(log);S.active=null;S.view='dash';
   stopRest();save();render();
 }
@@ -1195,6 +1335,45 @@ function finishWorkout(){
 function abandonWorkout(){
   if(!confirm('Abandon this workout? Progress will be lost.'))return;
   S.active=null;S.view='dash';stopRest();save();render();
+}
+
+// ─────────────────────────────────────────────
+// CONDITIONING FINISHER
+// ─────────────────────────────────────────────
+function getFinisher(dow){
+  return CONDITIONING_FINISHERS[dow%CONDITIONING_FINISHERS.length];
+}
+function finisherHTML(dow,compact){
+  const f=getFinisher(dow);
+  if(compact){
+    return`<div style='margin-top:12px;padding:12px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:12px'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--warn);margin-bottom:4px'>🔥 Conditioning Finisher</div>
+      <div style='font-size:14px;font-weight:700'>${f.icon} ${f.name}</div>
+      <div style='font-size:12px;color:var(--mut);margin-top:2px'>${f.desc} · ~${f.mins} min</div>
+    </div>`;
+  }
+  return`<div style='margin-top:14px;padding:16px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:14px'>
+    <div style='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--warn);margin-bottom:8px'>🔥 Conditioning Finisher · Do this after your last set</div>
+    <div style='font-size:18px;font-weight:800;margin-bottom:4px'>${f.icon} ${f.name}</div>
+    <div style='font-size:13px;color:var(--mut);line-height:1.55'>${f.desc}</div>
+    <div style='font-size:12px;color:var(--mut);margin-top:6px'>~${f.mins} min · then tap Finish Workout</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+// OFF-DAY ACTIVE RECOVERY
+// ─────────────────────────────────────────────
+function getRecoveryProtocol(dow){
+  return RECOVERY_PROTOCOLS[dow%RECOVERY_PROTOCOLS.length];
+}
+function recoveryHTML(dow){
+  const p=getRecoveryProtocol(dow);
+  return`<div style='margin-top:12px;padding:14px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:6px'>🔋 Active Recovery · ~${p.mins} min</div>
+    <div style='font-size:14px;font-weight:700;margin-bottom:6px'>${p.icon} ${p.name}</div>
+    ${p.items.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• ${it}</div>`).join('')}
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Gentle movement improves blood flow and movement quality — keep effort easy, this should feel good.</div>
+  </div>`;
 }
 
 // ─────────────────────────────────────────────
@@ -1208,6 +1387,8 @@ function renderAvailGrid(av,inSetup){
     const eveOn=!!d.eve?.on;
     const eveCardio=!!d.eve?.cardioOnly;
     const eveMins=d.eve?.mins||60;
+    const planStart=S.cfg?.planStartDow??1;
+    const isPastSetup=inSetup&&(planStart===0||dow<planStart);
     const isPast=!inSetup&&dow>0&&dow<today;
     const lunchEquipment=d.lunchEquipment||'ymca';
     const eveEquipment=d.eve?.equipment||'ymca';
@@ -1376,7 +1557,15 @@ function renderSetup(){
      ${renderAvailGrid(av,true)}`,
     `<div class='s-title'>Primary training goal?</div>
      <div class='s-sub'>Sets your rep ranges and exercise selection priorities.</div>
-     <div class='opts col1'>${goalOpts}</div>`,
+     <div class='opts col1'>${goalOpts}</div>
+     <div class='sec-lbl' style='margin-top:20px'>Conditioning</div>
+     <div class='plan-chk${cfg.conditioning?' on':''}' data-action='toggle-conditioning' style='margin-bottom:0'>
+       <div class='plan-chk-box'>${cfg.conditioning?'✓':''}</div>
+       <div>
+         <div style='font-size:13px;font-weight:700'>Add conditioning finishers</div>
+         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>8–15 min of sprint intervals, circuits, or HIIT after each strength session — good for athleticism and cardio capacity.</div>
+       </div>
+     </div>`,
     `<div class='s-title'>Your body weight?</div>
      <div class='s-sub'>Used to estimate calorie burn from workouts and cardio prescriptions.</div>
      <div class='bw-input-wrap'>
@@ -1475,8 +1664,9 @@ function renderDash(){
             <div class='t-lbl' style='color:var(--warn)'>Sunday · Plan Your Week</div>
             <div class='t-name'>Set Up This Week</div>
             <div class='t-desc'>Tap "Edit" on the Weekly Goal card below to schedule sessions and set your calorie goal.</div>
+            ${recoveryHTML(displayDow)}
           </div>`
-        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div></div>`;
+        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div>${isActualToday?recoveryHTML(displayDow):''}</div>`;
     }
     const exRow=e=>{
       const exp=S.viewExDetail===e.id;
@@ -1526,6 +1716,7 @@ function renderDash(){
         `<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 ${isActualToday?'Log Custom Workout Instead':'Log Custom Workout'}</button>`
       }
       ${eveBlock}
+      ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true):''}
     </div>`;
   }
 
@@ -1607,6 +1798,24 @@ function renderWorkout(){
              <button class='btn btn-p' data-action='start-workout' style='max-width:240px;margin:0 auto'>Start Today's Session →</button>`
           :`Rest day.<br><span style='font-size:13px'>Recovery is where the growth happens.</span>`}
       </div>
+    </div>${renderNav('workout')}`;
+  }
+  if(S.active.ratePending){
+    const opts=[
+      {v:1,icon:'😌',label:'Easy',sub:'Could do it again right now'},
+      {v:2,icon:'🙂',label:'Comfortable',sub:'Solid work, plenty left'},
+      {v:3,icon:'😤',label:'Worked',sub:'Good session, properly tired'},
+      {v:4,icon:'🥵',label:'Hard',sub:'Close to my limit'},
+      {v:5,icon:'💀',label:'Maxed out',sub:'Totally drained'},
+    ].map(o=>`<div class='opt col1' data-action='rate-fatigue' data-val='${o.v}' style='display:flex;align-items:center;gap:12px;text-align:left'>
+      <span style='font-size:26px'>${o.icon}</span>
+      <div><div class='opt-v' style='font-size:16px'>${o.label}</div><div class='opt-l'>${o.sub}</div></div>
+    </div>`).join('');
+    return`<div class='view'>
+      <div class='hdg'>How hard was that?</div>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:16px'>Your rating auto-regulates the plan — muscles trained in very hard sessions get a lower volume ceiling for the next 72 hours so you recover instead of overtraining.</div>
+      <div class='opts col1'>${opts}</div>
+      <button class='btn btn-g btn-sm' data-action='rate-fatigue' data-val='' style='margin-top:12px'>Skip</button>
     </div>${renderNav('workout')}`;
   }
   const{exercises,exIdx,dayName,isLunch}=S.active;
@@ -1703,6 +1912,7 @@ function renderWorkout(){
 
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
   const isLast=exIdx===total-1;
+  const condBlock=isLast&&S.cfg.conditioning&&allDone?finisherHTML(S.active.dow,false):'';
   const nextBtn=allDone
     ?`<button class='btn ${isLast?'btn-ok':'btn-p'}' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`
     :`<button class='btn btn-p' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px;display:none'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`;
@@ -1735,6 +1945,7 @@ function renderWorkout(){
         ${(isNoWeight||isTimed)?'':`<div class='sh'>Weight</div>`}<div class='sh'>${isTimed?'Sec':'Reps'}</div><div class='sh'></div>
       </div>
       ${setsRows}
+      ${condBlock}
       ${nextBtn}
     </div>
     ${(exIdx<total-1)?`<div class='card2' style='margin-top:12px'>
@@ -1750,7 +1961,7 @@ function renderWorkout(){
       <div class='cue-txt' id='next-cue-${exIdx+1}' style='font-size:12px;margin-bottom:0'>${exercises[exIdx+1].cue||'No technique notes available.'}</div>
     </div>`:''}
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
-    <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s':ex.rest>=60?ex.rest/60+' min':ex.rest+'s'} rest between sets · slow eccentric</div>
+    <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s rest between sets (lunch time-box)':smartRestLabel(ex)} · slow eccentric</div>
   </div>`;
 }
 
@@ -1900,12 +2111,14 @@ function renderProgram(){
     ?cardio.options.slice(0,3).map(o=>`${o.icon} ${o.name}: ${o.min} min${o.dist&&o.dist!=='—'?' · '+o.dist:''}`).join(' · ')
     :'';
 
+  const exRow=e=>`<div class='pg-ex'><div class='pg-dot' style='background:${MCOL[e.muscle]}'></div>${e.name} <span style='color:var(--mut);font-size:12px'>· ${e.sets}×${e.rMin}–${e.rMax}</span></div>`;
+
   const days=S.program.week.map(d=>{
-    if(d.dow===0||d.dow===6)return''; // skip Sun/Sat header rows
     const isToday=d.dow===dow;
     const isSkipped=!d.rest&&isDaySkipped(d.dow);
     const isMissed=!d.rest&&!isSkipped&&missed.includes(d.dow);
     if(d.rest||isSkipped){
+      if(d.dow===0||d.dow===6)return''; // skip weekend rest rows
       let cn='';
       if(cardio&&cardio.calsPerDay>0&&!isSkipped){
         cn=`<div style='margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)'>
@@ -1918,9 +2131,17 @@ function renderProgram(){
         ${cn}
       </div>`;
     }
-    const badge=`<span class='badge badge-lunch'>YMCA · 35–40 min</span>`;
+    const badge=d.isLunch?`<span class='badge badge-lunch'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve'>${d.sessionMins||60} min</span>`;
     const missedTag=isMissed?`<span style='font-size:11px;color:var(--bad);font-weight:700;margin-left:6px'>⚠️ missed</span>`:'';
-    const exList=d.exercises.map(e=>`<div class='pg-ex'><div class='pg-dot' style='background:${MCOL[e.muscle]}'></div>${e.name} <span style='color:var(--mut);font-size:12px'>· ${e.sets}×${e.rMin}–${e.rMax}</span></div>`).join('');
+    const exList=d.exercises.map(exRow).join('');
+    let eveBlock='';
+    if(d.eveningSession){
+      const eveList=d.eveningSession.exercises.map(exRow).join('');
+      eveBlock=`<div style='margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)'>
+        <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px'>After Work · ${d.eveningSession.name} · ${d.eveningSession.mins} min</div>
+        ${eveList}
+      </div>`;
+    }
     let cn='';
     if(cardio&&cardio.calsPerDay>0){
       cn=`<div style='margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)'>
@@ -1934,6 +2155,7 @@ function renderProgram(){
         ${isToday?`<span style='font-size:11px;font-weight:700;color:var(--acc);background:var(--acc2);padding:3px 8px;border-radius:20px'>TODAY</span>`:''}
       </div>
       <div>${exList}</div>
+      ${eveBlock}
       ${cn}
     </div>`;
   }).join('');
@@ -1947,7 +2169,7 @@ function renderProgram(){
 
   return`<div class='view'>
     <div class='hdg'>Weekly Program</div>
-    <div class='sub'>All sessions = 35–40 min YMCA lunch. Skipped days show as rest. Missed days shown in red. Set your goal and plan from the Home tab.</div>
+    <div class='sub'>Every movement for the week. Combo days show both the lunch and after-work sessions. Skipped days show as rest. Missed days shown in red. Set your goal and plan from the Home tab.</div>
     ${calSummary}
     ${days}
     <div class='mt16'>
@@ -2562,6 +2784,7 @@ document.addEventListener('click',e=>{
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
   if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);render();return;}
   if(a==='set-goal'){S.cfg.goal=btn.dataset.val;render();return;}
+  if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
   if(a==='generate'){
     const bwEl=document.getElementById('bw-input');
     const recentEl=document.getElementById('setup-recent-workouts');
@@ -2570,6 +2793,7 @@ document.addEventListener('click',e=>{
     S.weekPlan.weekOf=todayStr();
     if(recentEl)S.weekPlan.recentWorkouts=recentEl.value||'';
     S.program=genProgram(S.cfg,S.weekPlan.availability);
+    delete S.cfg.planStartDow; // clear so next week starts fresh
     S.view='dash';save();render();return;
   }
   if(a==='go-cloud-setup'){S.view='cloud';render();return;}
@@ -2688,22 +2912,37 @@ document.addEventListener('click',e=>{
   }
   if(a==='reset-program'){
     if(!confirm('Reset and reconfigure from today through Sunday?'))return;
-    const today = todayDow();
+    const todayDOW = todayDow();
+    const calGoal = S.weekPlan?.calGoal || null; // calorie goal survives a reset
 
-    // If it's Monday or we want to reset everything, do full reset
-    if(today === 1) {
-      S.program=null;S.active=null;S.weekPlan=null;S.view='setup';S.step=1;save();render();return;
+    // Monday → full reset: re-plan the whole week
+    if(todayDOW === 1) {
+      S.program=null;S.active=null;
+      S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal};
+      delete S.cfg.planStartDow;
+      S.view='setup';S.step=1;save();render();return;
     }
 
-    // Otherwise, keep past days and reset from today forward
+    // Mid-week: only re-plan today through Sunday, keep past days untouched.
+    // planStartDow marks where the new plan begins (0 = Sunday only).
+    S.cfg.planStartDow = todayDOW;
     if(S.program && S.program.week){
-      const newWeek = S.program.week.map((day, dow) => {
-        // Keep days before today unchanged
-        if(dow > 0 && dow < today) return day;
-        // Reset today through Sunday
+      S.program.week = S.program.week.map((day, dow) => {
+        // Sunday is the last day of the Mon-based week: on Sunday keep Mon-Sat
+        const isPast = todayDOW===0 ? dow>0 : (dow>0 && dow<todayDOW);
+        if(isPast) return day;
         return {dow, rest: true};
       });
-      S.program.week = newWeek;
+    }
+
+    // Drop past days from availability so the new plan only covers remaining days
+    if(S.weekPlan?.availability){
+      const av=S.weekPlan.availability;
+      [1,2,3,4,5].forEach(dw=>{
+        const isPast = todayDOW===0 || dw<todayDOW;
+        if(isPast && av[dw]){av[dw].lunch=false;if(av[dw].eve)av[dw].eve.on=false;}
+      });
+      if(todayDOW===0 && av[6]) av[6].on=false;
     }
 
     // Clear any active workout
@@ -2968,7 +3207,8 @@ document.addEventListener('click',e=>{
     return;
   }
   if(a==='prev-ex'){goToEx(S.active.exIdx-1);return;}
-  if(a==='finish-workout'){finishWorkout();return;}
+  if(a==='finish-workout'){S.active.ratePending=true;save();render();return;}
+  if(a==='rate-fatigue'){finishWorkout(parseInt(btn.dataset.val)||null);return;}
   if(a==='abandon'){abandonWorkout();return;}
   if(a==='undo-set'){
     const ei=parseInt(btn.dataset.ex),si=parseInt(btn.dataset.set);
