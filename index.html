@@ -226,6 +226,7 @@ body{
 <div id="root"></div>
 <button class="chat-btn" id="chat-btn" onclick="toggleChat()" title="Ask about exercises">💬</button>
 <div id="chat-float"></div>
+<div id="modal-root"></div>
 <div id="rest-ov">
   <div class="rest-inner">
     <div class="rest-lbl">Rest Period</div>
@@ -252,6 +253,7 @@ const EX = [
   {id:'cable_fly',name:'Cable Fly',muscle:'chest',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Slight elbow bend. Full stretch at bottom — feel it. Slow eccentric back. Squeeze hard at contraction.'},
   {id:'db_fly',name:'Dumbbell Fly',muscle:'chest',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower only to shoulder level. 2-count descent — slow and controlled. Soft elbows throughout.'},
   {id:'pec_deck',name:'Pec Deck',muscle:'chest',type:'isolation',eq:['machine'],rMin:8,rMax:12,rest:120,cue:'Full ROM, hard squeeze at contraction. Slow negative — resist the weight on the way back. Great for overload tracking.'},
+  {id:'scap_pullups',name:'Scapular Pull-ups',muscle:'back',type:'isolation',eq:['pullup_bar'],rMin:8,rMax:12,rest:90,noWeight:true,cue:'Dead hang, arms straight. Without bending the elbows, shrug down and back to lift your body a few inches — depress and retract the shoulder blades. Pause at the top, slow return. Pure scapular control, no arm pulling.',tags:['vertical','scapular']},
   {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,rest:180,noWeight:true,cue:'Dead hang start. Drive elbows to hips — think about that, not pulling with hands. 3-count descent every rep, no dropping. Progression ladder: (1) build to 8 strict reps → (2) add 1s pause chin-over-bar each rep → (3) slow negative to 4 counts → (4) L-sit pull-ups (legs parallel) → (5) archer pull-ups. Weight is the last tool, not the first.',tags:['vertical']},
   {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,rest:180,noWeight:true,cue:'Supinated grip. Full dead hang, drive elbows down and back. 3-count descent. Progression: build reps → 1s top pause → 4-count negative → mixed grip → neutral grip → weighted. Great for both back and biceps.',tags:['vertical']},
   {id:'lat_pulldown',name:'Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Slight lean back. Pull to upper chest, feel lat stretch fully at the top. Don\'t let elbows drift forward.',tags:['vertical']},
@@ -279,15 +281,20 @@ const EX = [
   {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Sit back and down, knees track toes. Full depth. Drive the floor away on the way up.',tags:['quad','squat'],hipRisk:true},
   {id:'bulgarian',name:'Bulgarian Split Squat',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated. Front foot well forward. Upright torso. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral'],hipRisk:true},
   {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold DB at chest. Elbows between knees at bottom. Full depth. Controlled descent.',tags:['quad','squat'],hipRisk:true},
+  {id:'leg_press',name:'Leg Press',muscle:'legs',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:180,cue:'Feet shoulder-width on platform. Lower until knees reach ~90°, don\'t let lower back round off the pad. Press through full foot, stop just short of lockout.',tags:['quad']},
   {id:'step_ups',name:'Step-ups',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step onto stable surface, drive through full foot. Keep hips level throughout movement. Control the step down. Count per leg.',tags:['quad','unilateral']},
   {id:'reverse_lunge',name:'Reverse Lunge (DB)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step BACK — hip-friendly. Front shin vertical. Drive through front heel to return. Control the descent. Count per leg.',tags:['quad','unilateral']},
   {id:'rdl',name:'Romanian Deadlift',muscle:'legs',type:'compound',eq:['barbell','dumbbells'],rMin:6,rMax:10,rest:180,cue:'Push hips BACK, feel hamstring stretch. Bar close to legs. Drive hips forward at top. Not a squat.',tags:['hinge','hamstring']},
   {id:'hip_thrust',name:'Hip Thrust',muscle:'legs',type:'compound',eq:['barbell','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Shoulders on bench. Drive to full hip extension — squeeze at top. Slow controlled descent. Optional: 1s iso hold at top.',tags:['hinge','glute']},
+  {id:'single_leg_hip_thrust',name:'Single-Leg Hip Thrust',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:8,rMax:12,rest:120,cue:'Shoulders on bench, one foot on floor, other leg extended or held off the ground. Drive through the planted heel to full hip extension — squeeze glute at top. Slow controlled descent. Count per side.',tags:['hinge','glute','unilateral']},
   {id:'single_rdl',name:'Single-leg RDL',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Hinge at hip, hips square throughout. Slow descent — feel the hamstring load. Soft bend in standing knee. Count per leg.',tags:['hinge','hamstring','unilateral']},
+  {id:'back_ext',name:'Back Extension',muscle:'legs',type:'isolation',eq:['machine','bodyweight'],rMin:10,rMax:15,rest:120,cue:'Hips hinge over the pad. Lower with control until you feel a hamstring/glute stretch, keep spine neutral — don\'t hyperextend at the top. Squeeze glutes to rise.',tags:['hinge','hamstring','glute']},
   {id:'leg_ext',name:'Leg Extension',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Full lockout, hold 1s at top. Slow 2-count negative — resist the weight down. Lumbar support against pad.',tags:['quad']},
   {id:'leg_curl',name:'Lying Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Flex hard at end range. 2-count descent — resist the weight back to start. Hips stay down.',tags:['hamstring']},
   {id:'db_leg_curl',name:'DB Leg Curl',muscle:'legs',type:'isolation',eq:['dumbbells'],rMin:10,rMax:15,rest:120,cue:'Lie face down, hold DB between feet. Curl to 90°. Slow 2-count negative back down.',tags:['hamstring']},
-  {id:'calf_raise',name:'Calf Raises',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:60,cue:'Full stretch at bottom (off step edge). Full contraction at top. Slow tempo — calves are resistant to fast reps.',tags:['calf']},
+  // rest 60→90s: Singer et al. 2024 Bayesian meta-analysis ("Give it a Rest", Frontiers Sports Act Living) — hypertrophy slightly favors >60s rest, no further benefit beyond ~90s; ≤60s is the only clearly suboptimal zone.
+  {id:'calf_raise',name:'Calf Raises',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Full stretch at bottom (off step edge). Full contraction at top. Slow tempo — calves are resistant to fast reps.',tags:['calf']},
+  {id:'single_leg_calf_raise',name:'Single-Leg Calf Raise',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Balance on one foot (hold something for stability). Full stretch at bottom (off step edge). Full contraction at top. Slow tempo. Count per side.',tags:['calf','unilateral']},
   {id:'hip_abduct',name:'Hip Abduction',muscle:'legs',type:'isolation',eq:['machine'],rMin:15,rMax:20,rest:90,cue:'Slow and controlled. Feel glute med. No momentum or pelvic tilt.',tags:['glute']},
   {id:'glute_bridge',name:'Single-leg Glute Bridge',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'Single leg raises difficulty. Drive through heel. Full hip extension. Squeeze hard at top.\n\nProgression without bands: (1) Build reps → (2) Add 2s hold at top each rep → (3) Elevate your foot on a bench (increases ROM and difficulty) → (4) Add a backpack or a heavy book on your hip for resistance → (5) Barbell hip thrust when you reach a gym.',tags:['glute']},
   {id:'pallof',name:'Pallof Press',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Press out fully, hold 2s, return. Resist rotation — your core fights the cable the whole time. Count per side.',tags:['anti-rotation']},
@@ -297,6 +304,7 @@ const EX = [
   {id:'sa_db_row',name:'Single-arm DB Row (Standing)',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:8,rMax:12,rest:90,cue:'No bench support. Bent over. Core braces hard against rotation on every rep. Count per side.',tags:['unilateral']},
   {id:'dead_bug',name:'Dead Bug',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:8,rMax:12,rest:60,cue:'Lower opposite arm and leg simultaneously, back stays flat. Exhale on the way down. Slow and controlled — speed kills the point of this exercise. Count per side.',tags:['anti-rotation']},
   {id:'side_plank_dip',name:'Side Plank Hip Dips',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:10,rMax:15,rest:60,cue:'Full side plank. Dip hip to floor and drive back up. Resist lateral flexion the whole time. Count per side.',tags:['lateral']},
+  {id:'crunches',name:'Crunches',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on back, knees bent. Curl shoulder blades off the floor, exhale at the top. Keep lower back pressed down — small controlled range, no momentum.',tags:['flexion']},
   // ─── Hip Health (stability & mobility) ───
   {id:'clamshell',name:'Clamshell',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,noWeight:true,cue:'Side-lying, knees bent ~45°. Rotate top knee up like a clamshell lid. Keep hips stacked — they WILL want to roll back. Squeeze hard at top, slow negative. This is pure glute med. Count per side.\n\nProgression without bands: (1) Build to 20 strict reps per side → (2) Add a 2s pause at the top of each rep → (3) Slow the negative to 3 counts → (4) Move to straight-leg side-lying abduction (harder leverage) → (5) Ankle weights when available. No band needed to keep progressing for a long time.',tags:['glute_med']},
   {id:'fire_hydrant',name:'Fire Hydrant',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:12,rMax:15,rest:60,noWeight:true,cue:'Hands and knees (quadruped). Lift one knee out to the side — drive from the hip, not by rotating your torso. Keep hips level and core braced. Slow and controlled. Count per side.\n\nProgression without bands: (1) Build reps → (2) Add a 2s pause at peak → (3) Slow negative to 3 counts → (4) Add small circles at the top → (5) Progress to a higher, fuller ROM → (6) Ankle weights when you have them.',tags:['glute_med']},
@@ -319,6 +327,9 @@ const EX = [
   {id:'handstand_pushup',name:'Handstand Push-up',muscle:'shoulders',type:'compound',eq:['bodyweight'],rMin:3,rMax:8,rest:180,cue:'Inverted push-up against wall. Lower head to floor, press back up. Builds shoulder and core strength. Progress from pike push-ups. Advanced bodyweight movement. Count reps.',tags:['inverted','advanced']},
   {id:'l_sits',name:'L-Sit',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:30,rest:120,isTimed:true,cue:'Sit with legs extended, hands flat, lift entire body off ground. Hold position with straight legs parallel to floor. Incredible core and shoulder strength builder. Count seconds.',tags:['isometric','advanced']},
   {id:'broad_jump',name:'Broad Jump',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:150,cue:'Two-foot takeoff, jump forward for maximum distance, land softly on both feet. Focus on explosive hip extension and soft landing mechanics. Reset between reps. Count jumps.',tags:['plyometric','power','bilateral']},
+  {id:'continuous_broad_jumps',name:'Continuous Broad Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:90,cue:'Two-foot takeoff into the next jump immediately on landing — minimal ground contact time. Reset only at the end of the set. Land soft and absorb before exploding into the next rep. Grass preferred. Count jumps.',tags:['plyometric','power','bilateral'],highSweat:true},
+  {id:'skater_jumps',name:'Skater Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:90,cue:'Lateral bound from one foot to the other, like a speed skater. Land soft on the outside foot, hold briefly, then push off into the next bound. Count per side.',tags:['plyometric','unilateral','lateral'],highSweat:true},
+  {id:'lateral_bound_broad_jump',name:'Lateral Bound into Broad Jump',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:6,rest:120,cue:'Lateral bound to one side, stick the landing on one foot, then immediately broad jump forward off that foot for distance. Reset between combos. Count combos per side.',tags:['plyometric','unilateral','power'],highSweat:true},
 
   // Circuit Training Exercises
   {id:'burpee_to_jump',name:'Burpee to Jump Squat',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:8,rMax:12,rest:60,cue:'Burpee down, jump feet in, explosive jump squat up with arms overhead. Land softly, immediately into next rep. High-intensity circuit finisher.',tags:['circuit','plyometric','conditioning'],highSweat:true,circuit:true},
@@ -497,6 +508,10 @@ const CONDITIONING_FINISHERS=[
 ];
 // Off-day active recovery: gentle mobility, stretching, and tissue work to
 // support recovery between lifting days. Rotates by day of week.
+// Evidence check 2026-06-11: active recovery (10-20 min easy walking/cycling)
+// reduces DOMS at 24-48h (2025 Frontiers Physiology RCT; 99-study review);
+// static stretching is for ROM, not soreness (2025 meta-analyses find no
+// robust DOMS effect) — protocols below pair movement with tissue work.
 const RECOVERY_PROTOCOLS=[
   {name:'Hip Reset',icon:'🦋',mins:15,items:[
     'Hip CARs — 5 slow circles each side',
@@ -541,20 +556,20 @@ let S={
   cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true,conditioning:false},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
-  customExercises:[],
+  customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,
 };
 let timerIv=null;
 
 function save(){
   S.updatedAt=new Date().toISOString();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,updatedAt:S.updatedAt}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt}));}catch(e){}
   saveToCloud();
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],updatedAt:d.updatedAt||new Date().toISOString()});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],updatedAt:d.updatedAt||new Date().toISOString()});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -749,7 +764,14 @@ function genProgram(cfg,av){
 
     let best=null,bestScore=0;
     BONUS_TMPLS.forEach(tk=>{
-      if(tk===lunchSession.tk)return; // must be a different split than lunch
+      // Same-day duplicate templates (and their compound movements) are
+      // ALLOWED — multi-session days are gated on aggregate volume, not an
+      // identity block: lunch's sets have already consumed budget.vol, the
+      // deficit scoring below only repeats a split when its muscles remain
+      // genuinely under-volumed, and pickEx's fitsMRV enforces the hard
+      // weekly ceiling per muscle. A mild variety preference breaks ties
+      // toward a different split without forbidding the repeat.
+      const sameAsLunch=tk===lunchSession.tk;
       const muscles=new Set(TMPLS[tk].slots.filter(s=>s.type==='compound').map(s=>s.muscle));
       // Rank by the single most under-volumed muscle the template trains (the
       // muscle that most needs a second weekly session), using total deficit
@@ -767,6 +789,9 @@ function genProgram(cfg,av){
       // day — same-muscle sessions <24h apart compromise recovery.
       const dows=maxDefMuscle?muscleDows[maxDefMuscle]:null;
       if(dows&&(dows.has(slot.dow-1)||dows.has(slot.dow+1)))score*=0.25;
+      // Variety preference (soft), not a block: a repeat of the lunch split
+      // must clearly out-score the alternatives on volume deficit to win.
+      if(sameAsLunch)score*=0.5;
       if(maxDef>0&&score>bestScore){bestScore=score;best=tk;}
     });
     if(!best)return; // nothing meaningfully under-volumed → evening stays cardio
@@ -931,6 +956,10 @@ function getWeeklySetVolumes(){
 }
 
 // Weekly MRV (Maximum Recoverable Volume) ranges per muscle, in working sets.
+// Evidence check 2026-06-11: consistent with Pelland et al. 2025 dose-response
+// meta-regression (67 studies, n=2058) — hypertrophy rises with volume with
+// diminishing returns and ≥10 weekly sets/muscle outperforms <10; strength
+// plateaus far earlier. No numeric change warranted; ranges retained.
 function getMRVLimits(){
   const limits = {
     chest: {min: 10, max: 20},
@@ -944,7 +973,10 @@ function getMRVLimits(){
   };
   // Recovery auto-regulation: muscles trained in a high-fatigue session
   // (rating ≥4) within the last 72h get a temporarily reduced ceiling, so
-  // the generator backs off volume until they've recovered.
+  // the generator backs off volume until they've recovered. 72h window is
+  // consistent with time-course studies showing mechanical function depressed
+  // 24-72h after training to failure / high-fatigue sessions (e.g., 2025
+  // Frontiers Physiology DOMS-intervention RCT; velocity-loss time-course work).
   getFatiguedMuscles().forEach(m=>{
     if(limits[m])limits[m]={min:limits[m].min,max:Math.max(limits[m].min,Math.round(limits[m].max*0.85))};
   });
@@ -983,6 +1015,66 @@ function getCommittedVolumes(){
     });
   }
   return vol;
+}
+
+// ─── MRV VOLUME ATTRIBUTION ───
+// Per-muscle breakdown of exactly which exercises, on which days, drive the
+// weekly MRV totals. Mirrors getCommittedVolumes for the counted ("committed")
+// numbers — logged sessions + planned custom workouts — and additionally lists
+// upcoming scheduled program sessions as "projected" (NOT counted in the MRV
+// widget totals, shown for transparency into the rest of the week).
+function getMRVBreakdown(){
+  const mondayStr=thisMonday();
+  const nextMondayStr=addDays(mondayStr,7);
+  const breakdown={};
+  const add=(muscle,entry)=>{
+    if(!muscle||!entry.sets)return;
+    if(!breakdown[muscle])breakdown[muscle]={committed:0,projected:0,entries:[]};
+    breakdown[muscle].entries.push(entry);
+    if(entry.source==='scheduled')breakdown[muscle].projected+=entry.sets;
+    else breakdown[muscle].committed+=entry.sets;
+  };
+
+  // 1) Logged sessions this calendar week (regular + custom) — completed sets only
+  const completedDows=new Set();
+  (S.logs||[]).filter(l=>l.date.slice(0,10)>=mondayStr&&l.date.slice(0,10)<nextMondayStr).forEach(l=>{
+    const dow=new Date(l.date.slice(0,10)+'T12:00:00').getDay();
+    completedDows.add(dow);
+    (l.exercises||[]).forEach(ex=>{
+      const sets=ex.sets?.filter(s=>s&&s.reps>0).length||0;
+      add(ex.muscle,{dow,dayLabel:DOW[dow],name:ex.name,sets,source:l.isCustom?'custom':'logged',sessionName:l.dayName});
+    });
+  });
+
+  // 2) Planned custom workouts not yet logged (counted in MRV widget)
+  if(S.program?.week){
+    S.program.week.forEach(day=>{
+      if(day&&day.plannedCustomWorkout&&day.plannedCustomLog&&!day.customWorkout){
+        day.plannedCustomLog.exercises.forEach(ex=>{
+          const sets=Array.isArray(ex.sets)?ex.sets.filter(s=>s&&s.reps>0).length:(parseInt(ex.sets)||0);
+          add(ex.muscle,{dow:day.dow,dayLabel:DOW[day.dow],name:ex.name,sets,source:'planned',sessionName:'Planned Custom Workout'});
+        });
+      }
+    });
+
+    // 3) Upcoming scheduled program sessions — projected, not yet counted
+    const todayISO=todayStr();
+    S.program.week.forEach(day=>{
+      if(!day||day.rest||day.customWorkout||day.plannedCustomWorkout)return;
+      if(completedDows.has(day.dow))return;
+      const dayISO=addDays(mondayStr,day.dow===0?6:day.dow-1);
+      if(dayISO<todayISO)return; // missed past days don't project volume
+      const collect=(sess)=>{(sess?.exercises||[]).forEach(e=>{
+        add(e.muscle,{dow:day.dow,dayLabel:DOW[day.dow],name:e.name,sets:e.sets||3,source:'scheduled',sessionName:sess.name});
+      });};
+      collect(day);
+      if(day.eveningSession)collect(day.eveningSession);
+    });
+  }
+
+  // Stable ordering: entries sorted Mon→Sun within each muscle (Sun last)
+  Object.values(breakdown).forEach(b=>b.entries.sort((a,c)=>(a.dow===0?7:a.dow)-(c.dow===0?7:c.dow)));
+  return breakdown;
 }
 
 function getMRVStatus(){
@@ -1036,14 +1128,70 @@ function renderMRVWidget(){
 
   const fatigued=[...getFatiguedMuscles()].filter(m=>MNAME[m]);
   const fatigueNote=fatigued.length?`<div style='font-size:11px;color:var(--warn);margin-top:8px'>🔋 Recovering: ${fatigued.map(m=>MNAME[m]).join(', ')} — volume ceiling reduced 15% for 72h after your hard session</div>`:'';
-  return `<div class='card'>
+  return `<div class='card' data-action='view-mrv-breakdown' style='cursor:pointer'>
     <div style='font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px'>
       📊 Weekly Set Volume (MRV)
       <span style='font-size:10px;color:var(--mut);font-weight:400'>10-20+ sets optimal · ⚠️ = recent external</span>
+      <span style='margin-left:auto;color:var(--acc);font-size:12px;font-weight:600'>Breakdown ›</span>
     </div>
     ${rows}
     ${fatigueNote}
   </div>`;
+}
+
+// ─────────────────────────────────────────────
+// RENDER – MRV BREAKDOWN (volume attribution)
+// ─────────────────────────────────────────────
+function renderMRVBreakdown(){
+  const bd=getMRVBreakdown();
+  const limits=getMRVLimits();
+  const srcBadge={
+    logged:`<span class='badge' style='background:var(--ok2);color:var(--ok)'>✓ logged</span>`,
+    custom:`<span class='badge' style='background:var(--acc2);color:var(--acc)'>📝 custom</span>`,
+    planned:`<span class='badge badge-lunch'>📅 planned</span>`,
+    scheduled:`<span class='badge' style='background:var(--surf3);color:var(--mut)'>⏳ scheduled</span>`,
+  };
+  const muscles=Object.keys(bd).sort((a,b)=>bd[b].committed-bd[a].committed||bd[b].projected-bd[a].projected);
+  const cards=muscles.map(m=>{
+    const b=bd[m];
+    const lim=limits[m];
+    const color=MCOL[m]||'var(--acc)';
+    const committedRows=b.entries.filter(e=>e.source!=='scheduled').map(e=>`
+      <div style='display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--bdr)'>
+        <span style='color:var(--mut);width:34px;flex-shrink:0'>${e.dayLabel}</span>
+        <span style='flex:1;min-width:0'>${e.name}</span>
+        <strong style='flex-shrink:0'>${e.sets} set${e.sets===1?'':'s'}</strong>
+        ${srcBadge[e.source]||''}
+      </div>`).join('');
+    const projRows=b.entries.filter(e=>e.source==='scheduled').map(e=>`
+      <div style='display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--bdr);opacity:.55'>
+        <span style='color:var(--mut);width:34px;flex-shrink:0'>${e.dayLabel}</span>
+        <span style='flex:1;min-width:0'>${e.name}</span>
+        <strong style='flex-shrink:0'>${e.sets} set${e.sets===1?'':'s'}</strong>
+        ${srcBadge.scheduled}
+      </div>`).join('');
+    const pct=lim?Math.min(100,(b.committed/lim.max)*100):0;
+    return`<div class='card'>
+      <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px'>
+        <span style='width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0'></span>
+        <strong style='font-size:15px'>${MNAME[m]||m}</strong>
+        <span style='margin-left:auto;font-size:13px;color:var(--mut)'><strong style='color:var(--txt)'>${b.committed}</strong>${lim?` / ${lim.max} sets`:' sets'}${b.projected?` · +${b.projected} upcoming`:''}</span>
+      </div>
+      <div style='background:var(--surf2);border-radius:4px;height:8px;margin-bottom:10px'>
+        <div style='background:${color};height:100%;width:${pct}%;border-radius:4px'></div>
+      </div>
+      ${committedRows||`<div style='font-size:12px;color:var(--mut);padding:4px 0'>No sets counted yet this week.</div>`}
+      ${projRows}
+    </div>`;
+  }).join('');
+  return`<div class='view'>
+    <button class='s-back' data-action='back-to-dash' style='margin-bottom:20px;margin-top:0'>
+      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
+    </button>
+    <div class='hdg'>Weekly Volume Breakdown</div>
+    <div class='sub'>Every exercise feeding this week's MRV totals, grouped by muscle. Solid rows are counted (logged sessions + planned custom workouts); dimmed rows are upcoming scheduled sessions not yet counted.</div>
+    ${cards||`<div class='empty'><span style='font-size:48px;display:block;margin-bottom:12px'>📊</span>Nothing logged or scheduled this week yet.</div>`}
+  </div>${renderNav('dash')}`;
 }
 function getMissedDays(){
   const plan=getWeekPlan();
@@ -1105,29 +1253,59 @@ function lastLog(exId){
     if(e?.sets?.length)return e;
   }return null;
 }
+// ─── PROGRESSIVE OVERLOAD — set-by-set inter-set scaling ───
+// Background logic only (no UI explanation modules). Evaluates the last
+// session's full set-history array instead of assuming one uniform weight:
+//   1. BASIS: most recent log for this exercise (lastLog), falling back to a
+//      manually entered lastWeights value.
+//   2. BASELINE: the HIGHEST weight at which any set reached the rep ceiling
+//      (rMax). A mid-session manual increase counts — 10×10 / 15×10 / 15×8
+//      sets the next session's baseline to 15 lb, never back to 10.
+//      If no set reached the ceiling, baseline = heaviest weight attempted.
+//   3. TRIGGER: every completed set was performed at (>=) the baseline weight
+//      AND reached rMax — the full rep schema is complete at that intensity.
+//   4. SUGGESTION when triggered: baseline × 1.04 rounded to nearest 5 lb,
+//      with a minimum +5 lb step so light loads (e.g. 15 lb DBs) still
+//      progress. Otherwise: suggest the baseline (fill the schema there).
+//   5. NOT factored: RPE/RIR (not tracked). Post-session fatigue ratings
+//      regulate weekly volume ceilings via getMRVLimits, never load.
 function progression(exId,rMax){
-  let w=null,minR=null,maxR=null;
   const l=lastLog(exId);
+  let sets=null;
   if(l){
     const done=l.sets.filter(s=>s.reps>0);
-    if(done.length){
-      w=done[0].weight;
-      minR=Math.min(...done.map(s=>s.reps));
-      maxR=Math.max(...done.map(s=>s.reps));
-    }
+    if(done.length)sets=done;
   }
   // Fall back to manually entered lastWeights when no log exists
-  if(w==null&&S.lastWeights?.[exId]){
-    w=S.lastWeights[exId].weight;
-    minR=maxR=S.lastWeights[exId].reps;
+  if(!sets&&S.lastWeights?.[exId]){
+    sets=[{weight:S.lastWeights[exId].weight,reps:S.lastWeights[exId].reps}];
   }
-  if(w==null)return null;
-  const ready=minR>=rMax;
-  return{weight:w,minR,maxR,suggest:ready?r5(w*1.04):w,ready,summary:`${w} lb × ${minR===maxR?minR:minR+'–'+maxR}`};
+  if(!sets)return null;
+  const minR=Math.min(...sets.map(s=>s.reps));
+  const maxR=Math.max(...sets.map(s=>s.reps));
+  const wMin=Math.min(...sets.map(s=>s.weight||0));
+  const wMax=Math.max(...sets.map(s=>s.weight||0));
+  // Highest weight at which the rep ceiling was actually hit this session
+  const ceilSets=sets.filter(s=>s.reps>=rMax);
+  const topW=ceilSets.length?Math.max(...ceilSets.map(s=>s.weight||0)):null;
+  let baseline,ready;
+  if(topW!=null){
+    baseline=topW;
+    ready=sets.every(s=>(s.weight||0)>=topW&&s.reps>=rMax);
+  }else{
+    baseline=wMax;
+    ready=false;
+  }
+  const suggest=ready?Math.max(r5(baseline*1.04),baseline+5):baseline;
+  const wLabel=wMin===wMax?`${wMax} lb`:`${wMin}→${wMax} lb`;
+  return{weight:baseline,minR,maxR,suggest,ready,summary:`${wLabel} × ${minR===maxR?minR:minR+'–'+maxR}`};
 }
 function recalcLastWeights(){
   const w={};
-  [...S.logs].sort((a,b)=>a.id>b.id?1:-1).forEach(log=>{
+  // Sort by workout DATE, not record id: retroactively injected sessions carry
+  // a fresh id but a historic date, and progression baselines must follow the
+  // true chronological order.
+  [...S.logs].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0).forEach(log=>{
     log.exercises?.forEach(ex=>{
       const sets=ex.sets?.filter(s=>s?.reps>0);
       if(sets?.length){const l=sets[sets.length-1];w[ex.id]={weight:l.weight,reps:l.reps};}
@@ -1203,11 +1381,14 @@ function calcWeekCardio(){
 // ─────────────────────────────────────────────
 // Intensity-based rest: heavy compounds need ≥2-3 min for full performance on
 // the next set (Schoenfeld 2016 — longer inter-set rest beats 1 min for both
-// strength and hypertrophy on compounds); isolation work recovers on 60-90s.
+// strength and hypertrophy on compounds). Isolation floor raised 60→90s per
+// Singer et al. 2024 Bayesian meta-analysis ("Give it a Rest", Frontiers
+// Sports Act Living): ≤60s is the only clearly suboptimal zone for
+// hypertrophy; no further benefit beyond ~90s, so 90s is the isolation minimum.
 function smartRest(ex){
   if(ex.isTimed||ex.noWeight)return ex.rest||60;
   if(ex.type==='compound')return ex.rMax<=8?180:(ex.rMax<=12?150:120);
-  return ex.rMax<=12?90:60;
+  return 90;
 }
 function smartRestLabel(ex){
   const s=smartRest(ex);
@@ -1872,7 +2053,7 @@ function renderWorkout(){
     }
   } else {
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
-      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} lb today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Same weight — hit those reps first</div>`}`
+      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} lb today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Target ${prog.suggest} lb — fill ${ex.rMin}–${ex.rMax} reps on every set</div>`}`
       :'<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative, leave 1–2 reps in the tank.</div>';
   }
 
@@ -1958,6 +2139,7 @@ function renderWorkout(){
     </div>`:''}
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
     <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s rest between sets (lunch time-box)':smartRestLabel(ex)} · slow eccentric</div>
+    ${renderInlineChat(ex)}
   </div>`;
 }
 
@@ -2072,9 +2254,22 @@ function renderCustomWorkoutLog(){
     <button class='s-back' data-action='cancel-custom-workout' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Cancel
     </button>
-    <div class='hdg'>${S.customWorkoutLog.isPlanning ? 'Plan Custom Workout' : 'Log Custom Workout'}</div>
-    <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${DOW[dow]} - Custom Session</div>
-    <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>${S.customWorkoutLog.isPlanning ? 'Plan the exercises you will do. Your week will be adjusted immediately to avoid overworking muscle groups.' : 'Enter the exercises you completed. The rest of your week will adapt to account for muscle group fatigue and volume.'}</div>
+    <div class='hdg'>${S.customWorkoutLog.isBackdate ? 'Log Past Workout' : S.customWorkoutLog.isPlanning ? 'Plan Custom Workout' : 'Log Custom Workout'}</div>
+    <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${S.customWorkoutLog.isBackdate ? 'Retroactive Entry' : DOW[dow]+' - Custom Session'}</div>
+    <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>${S.customWorkoutLog.isBackdate ? 'Pick when you did this workout. It joins your history in order — weekly volume, recovery, and weight progression all recalculate from it.' : S.customWorkoutLog.isPlanning ? 'Plan the exercises you will do. Your week will be adjusted immediately to avoid overworking muscle groups.' : 'Enter the exercises you completed. The rest of your week will adapt to account for muscle group fatigue and volume.'}</div>
+
+    ${S.customWorkoutLog.isBackdate ? `
+    <div class='sec-lbl'>When</div>
+    <div style='display:flex;gap:8px;margin-bottom:16px'>
+      <div style='flex:2'>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Date</div>
+        <input type='date' id='backdate-date' class='ni' value='${todayStr()}' max='${todayStr()}' style='width:100%;text-align:left;padding:10px 12px'>
+      </div>
+      <div style='flex:1'>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Time</div>
+        <input type='time' id='backdate-time' class='ni' value='17:00' style='width:100%;text-align:left;padding:10px 12px'>
+      </div>
+    </div>` : ''}
 
     <div class='sec-lbl'>Quick Templates</div>
     <div style='display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap'>
@@ -2200,7 +2395,8 @@ function renderLogEdit(){
     return`<div class='card' style='margin-bottom:10px'>
       <div style='display:flex;align-items:center;gap:8px;margin-bottom:10px'>
         <span style='width:8px;height:8px;border-radius:50%;background:${MCOL[ex.muscle]||'var(--acc)'};flex-shrink:0;display:inline-block'></span>
-        <strong style='font-size:14px'>${ex.name}</strong>
+        <strong style='font-size:14px;flex:1'>${ex.name}</strong>
+        <button class='btn btn-g btn-sm' data-action='remove-log-exercise' data-idx='${ei}' style='width:auto;padding:4px 10px;color:var(--bad)'>✕</button>
       </div>
       ${hdr}${rows}
     </div>`;
@@ -2212,18 +2408,83 @@ function renderLogEdit(){
     <div class='hdg'>Edit Workout</div>
     <div style='font-size:13px;color:var(--mut);margin-bottom:16px'>${log.dayName} · ${fmtDate(log.date)} · ${fmtDur(log.duration)}</div>
     ${exSections}
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Add a forgotten exercise</div>
+      <div style='position:relative;margin-bottom:8px'>
+        <input type='text' class='ni' id='new-log-ex-name' autocomplete='off' placeholder='🔍 Type an exercise name…' value='${(S.newLogExName||'').replace(/'/g,"&#39;")}'
+               oninput='onNewLogExInput(this.value)' onfocus='renderNewLogExSuggest(this.value)' onblur='hideNewLogExSuggest()' style='width:100%;text-align:left'>
+        <div id='new-log-ex-suggest' class='ex-suggest'></div>
+      </div>
+      <div style='display:flex;gap:8px;align-items:flex-end'>
+        <div style='flex:1'>
+          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Sets</div>
+          <input type='number' class='ni' id='new-log-ex-sets' min='1' max='10' value='${S.newLogExSets||3}' style='width:100%'>
+        </div>
+        <button class='btn btn-s btn-sm' data-action='add-log-exercise' style='flex:2'>+ Add Exercise</button>
+      </div>
+    </div>
     <button class='btn btn-ok' data-action='save-log-edit'>Save Changes</button>
     <button class='btn' data-action='delete-log' data-id='${log.id}' style='background:var(--bad2);color:var(--bad);margin-top:10px'>🗑️ Delete This Workout</button>
   </div>`;
 }
 
+// ─── Add-exercise autocomplete for the Edit Workout view ───
+function onNewLogExInput(value){
+  S.newLogExName=value;
+  renderNewLogExSuggest(value);
+}
+function renderNewLogExSuggest(value){
+  const box=document.getElementById('new-log-ex-suggest');
+  if(!box)return;
+  const list=exSuggestList(value);
+  if(!list.length){box.classList.remove('on');box.innerHTML='';return;}
+  box.innerHTML=list.map(e=>
+    `<div class='ex-suggest-item' data-name="${e.name.replace(/"/g,'&quot;')}" onpointerdown='pickNewLogExSuggest(this.dataset.name)'>
+       <span>${e.name}</span><span class='es-mus'>${MNAME[e.muscle]||''}</span>
+     </div>`
+  ).join('');
+  box.classList.add('on');
+}
+function hideNewLogExSuggest(){
+  setTimeout(()=>{const box=document.getElementById('new-log-ex-suggest');if(box)box.classList.remove('on');},200);
+}
+function pickNewLogExSuggest(name){
+  S.newLogExName=name;
+  const inp=document.getElementById('new-log-ex-name');
+  if(inp)inp.value=name;
+  const box=document.getElementById('new-log-ex-suggest');
+  if(box){box.classList.remove('on');box.innerHTML='';}
+}
+
 // ─────────────────────────────────────────────
 // RENDER – HISTORY
 // ─────────────────────────────────────────────
+// Trash / recovery sub-menu: soft-deleted sessions with one-tap restore.
+function renderDeletedSection(){
+  const ds=S.deletedSessions||[];
+  if(!ds.length)return'';
+  const rows=[...ds].reverse().map(d=>`
+    <div style='display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bdr)'>
+      <div style='flex:1;min-width:0'>
+        <div style='font-size:13px;font-weight:600'>${d.log.dayName}</div>
+        <div style='font-size:11px;color:var(--mut)'>${fmtDate(d.log.date)} · ${d.log.exercises.length} exercises</div>
+      </div>
+      <button class='btn btn-s btn-sm' data-action='restore-log' data-id='${d.log.id}' style='width:auto;padding:7px 12px'>↩ Restore</button>
+    </div>`).join('');
+  return`<div class='card' style='margin-top:16px'>
+    <div class='sec-lbl' style='margin-bottom:6px'>🗑️ Recently Deleted</div>
+    <div style='font-size:11px;color:var(--mut);margin-bottom:6px'>Restoring puts the session back into your history, progression, and weekly volume. Keeps the last 20.</div>
+    ${rows}
+  </div>`;
+}
+
 function renderHistory(){
+  const pastBtn=`<button class='btn btn-s btn-sm' data-action='log-past-workout' style='margin-bottom:14px'>📅 Log a Past Workout</button>`;
   if(!S.logs.length)return`<div class='view'>
     <div class='hdg'>History</div>
+    ${pastBtn}
     <div class='empty'><span style='font-size:48px;display:block;margin-bottom:12px'>📋</span>No workouts logged yet.<br>Complete your first session to start tracking progress.</div>
+    ${renderDeletedSection()}
   </div>${renderNav('history')}`;
 
   const items=[...S.logs].reverse().map(l=>{
@@ -2250,7 +2511,9 @@ function renderHistory(){
 
   return`<div class='view'>
     <div class='hdg'>Workout History</div>
+    ${pastBtn}
     ${items}
+    ${renderDeletedSection()}
   </div>${renderNav('history')}`;
 }
 
@@ -2270,11 +2533,70 @@ function renderNav(active){
 // ─────────────────────────────────────────────
 // MAIN RENDER
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// DELETE PREVIEW MODAL + UNDO BANNER (soft delete)
+// ─────────────────────────────────────────────
+// Full-workload preview shown before any deletion is accepted, so the user
+// can verify they're removing the right session.
+function renderDeleteModal(){
+  const log=S.logs.find(l=>l.id===S.confirmDelete);
+  if(!log)return'';
+  const exRows=log.exercises.map(e=>{
+    const exDef=EX.find(x=>x.id===e.id);
+    const isNW=exDef?.noWeight;const isTm=exDef?.isTimed;
+    const setStr=(e.sets||[]).filter(s=>s&&s.reps>0)
+      .map(s=>isTm?`${s.reps}s`:isNW?`${s.reps} reps`:`${s.weight||0} lb × ${s.reps}`).join(' · ');
+    return`<div style='padding:7px 0;border-bottom:1px solid var(--bdr)'>
+      <div style='display:flex;align-items:center;gap:8px'>
+        <span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]||'var(--acc)'};flex-shrink:0'></span>
+        <strong style='font-size:13px'>${e.name}</strong>
+        <span style='margin-left:auto;font-size:11px;color:var(--mut)'>${(e.sets||[]).filter(s=>s&&s.reps>0).length} sets</span>
+      </div>
+      <div style='font-size:12px;color:var(--mut);margin-left:16px;margin-top:2px'>${setStr||'—'}</div>
+    </div>`;
+  }).join('');
+  return`<div style='position:fixed;inset:0;background:rgba(10,10,18,.88);backdrop-filter:blur(8px);z-index:998;display:flex;align-items:center;justify-content:center;padding:20px'>
+    <div style='background:var(--surf);border:1px solid var(--bdr-strong);border-radius:16px;max-width:440px;width:100%;max-height:80vh;display:flex;flex-direction:column'>
+      <div style='padding:16px 16px 12px'>
+        <div style='font-size:16px;font-weight:800'>Delete this workout?</div>
+        <div style='font-size:12px;color:var(--mut);margin-top:3px'>${log.dayName} · ${fmtDate(log.date)} · ${fmtDur(log.duration)} · review the full workload before confirming</div>
+      </div>
+      <div style='padding:0 16px;overflow-y:auto;flex:1'>${exRows}</div>
+      <div style='padding:12px 16px 16px'>
+        <div style='font-size:11px;color:var(--mut);margin-bottom:10px'>This won't be permanent — the session moves to <strong>Recently Deleted</strong> (History tab), where you can restore it.</div>
+        <div style='display:flex;gap:8px'>
+          <button class='btn btn-g' data-action='cancel-delete-log' style='flex:1'>Cancel</button>
+          <button class='btn' data-action='confirm-delete-log' data-id='${log.id}' style='flex:1;background:var(--bad2);color:var(--bad)'>🗑️ Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+// Ephemeral toast after a soft delete, with one-tap restore.
+function renderUndoBanner(){
+  const b=S.undoBanner;
+  if(!b)return'';
+  return`<div style='position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;background:var(--surf3);border:1px solid var(--bdr-strong);border-radius:12px;padding:11px 14px;z-index:997;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lg)'>
+    <span style='font-size:13px;flex:1'>🗑️ <strong>${b.name}</strong> deleted</span>
+    <button class='btn btn-s btn-sm' data-action='restore-log' data-id='${b.id}' style='width:auto;padding:7px 14px'>↩ Restore</button>
+  </div>`;
+}
+function updateModals(){
+  const mr=document.getElementById('modal-root');
+  if(mr)mr.innerHTML=(S.confirmDelete?renderDeleteModal():'')+renderUndoBanner();
+}
+
 function render(){
   const root=document.getElementById('root');
   if(!S.program&&S.view!=='setup'){S.view='setup';}
+  updateModals();
+  // Mid-workout chat is embedded inline in the execution screen — hide the
+  // floating chat button there so no detached overlay competes with it.
+  const chatBtn=document.getElementById('chat-btn');
+  if(chatBtn)chatBtn.style.display=(S.view==='workout')?'none':'flex';
   if(S.view==='setup'){root.innerHTML=renderSetup();return;}
   if(S.view==='workout'){root.innerHTML=renderWorkout();return;}
+  if(S.view==='mrv-breakdown'){root.innerHTML=renderMRVBreakdown();return;}
   if(S.view==='review-workout'){root.innerHTML=renderReviewWorkout();return;}
   if(S.view==='custom-workout-log'){root.innerHTML=renderCustomWorkoutLog();return;}
   if(S.view==='dash'){root.innerHTML=renderDash();return;}
@@ -2970,6 +3292,9 @@ document.addEventListener('click',e=>{
   if(a==='back-to-dash'){
     S.reviewWorkout=null;S.view='dash';render();return;
   }
+  if(a==='view-mrv-breakdown'){
+    S.view='mrv-breakdown';render();return;
+  }
   if(a==='swap-exercise'){
     const idx=parseInt(btn.dataset.idx);
     if(!S.reviewWorkout)return;
@@ -3071,6 +3396,17 @@ document.addEventListener('click',e=>{
     S.view = 'custom-workout-log';
     render();return;
   }
+  if(a==='log-past-workout'){
+    // Retroactive entry: date/time chosen in the form; dow derived on save
+    S.customWorkoutLog = {
+      dow: null,
+      exercises: [],
+      isPlanning: false,
+      isBackdate: true
+    };
+    S.view = 'custom-workout-log';
+    render();return;
+  }
   if(a==='plan-custom-workout'){
     const dow = parseInt(btn.dataset.dow);
     S.customWorkoutLog = {
@@ -3115,10 +3451,27 @@ document.addEventListener('click',e=>{
       return;
     }
 
+    // Backdated entries: resolve the chosen historic date/time and derive the
+    // day-of-week from it; reject future timestamps.
+    let entryDate = new Date();
+    if (S.customWorkoutLog.isBackdate) {
+      const dStr = document.getElementById('backdate-date')?.value;
+      const tStr = document.getElementById('backdate-time')?.value || '17:00';
+      if (!dStr) { alert('Pick the date you did this workout'); return; }
+      entryDate = new Date(`${dStr}T${tStr}:00`);
+      if (isNaN(entryDate.getTime()) || entryDate.getTime() > Date.now()) {
+        alert('That timestamp is in the future — pick a past date/time');
+        return;
+      }
+      S.customWorkoutLog.dow = entryDate.getDay();
+    }
+    // A backdated workout only ties into the program week if it falls inside it
+    const inCurrentWeek = entryDate.toISOString().slice(0,10) >= thisMonday();
+
     // Create a workout entry
     const customData = {
       id: Date.now().toString(),
-      date: new Date().toISOString(),
+      date: entryDate.toISOString(),
       dayName: S.customWorkoutLog.isPlanning ? 'Planned Custom Workout' : 'Custom Workout',
       isCustom: true,
       isPlanned: S.customWorkoutLog.isPlanning,
@@ -3149,10 +3502,13 @@ document.addEventListener('click',e=>{
       // Immediately regenerate entire week to adapt around planned workout
       planCustomWorkout(customData, S.customWorkoutLog.dow);
     } else {
-      // LOGGING: Add to logs, mark as completed
+      // LOGGING: Add to logs in chronological position (matters for backdated
+      // entries — progression must read the true latest session per exercise)
       S.logs.push(customData);
+      S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
 
-      if(S.program && S.program.week[S.customWorkoutLog.dow]) {
+      // Only tie into the current program week when the date falls inside it
+      if(inCurrentWeek && S.program && S.program.week[S.customWorkoutLog.dow]) {
         const day = S.program.week[S.customWorkoutLog.dow];
         day.customWorkout = true;
         day.customLog = customData;
@@ -3162,11 +3518,14 @@ document.addEventListener('click',e=>{
         delete day.plannedCustomLog;
       }
 
-      // Refresh last-used weights so the 4% progression picks up these entries
+      // Background recalculation: last-used weights for the +4% progression
+      // baseline; weekly MRV volume recalculates automatically since it is
+      // derived from log dates (getWeeklySetVolumes / getCommittedVolumes).
       recalcLastWeights();
 
-      // Regenerate rest of week to adapt
-      adaptWeekForCustomWorkout(customData, S.customWorkoutLog.dow);
+      // Regenerate rest of week to adapt (current-week entries only — a
+      // workout from a prior week doesn't change this week's plan)
+      if(inCurrentWeek) adaptWeekForCustomWorkout(customData, S.customWorkoutLog.dow);
     }
 
     S.customWorkoutLog = null;
@@ -3236,7 +3595,32 @@ document.addEventListener('click',e=>{
   }
   if(a==='edit-log'){
     const log=S.logs.find(l=>l.id===btn.dataset.id);
-    if(log){S.editLogDraft=JSON.parse(JSON.stringify(log));S.view='log-edit';render();}
+    if(log){S.editLogDraft=JSON.parse(JSON.stringify(log));S.newLogExName='';S.newLogExSets=3;S.view='log-edit';render();}
+    return;
+  }
+  if(a==='add-log-exercise'){
+    const log=S.editLogDraft;if(!log)return;
+    const nameEl=document.getElementById('new-log-ex-name');
+    const setsEl=document.getElementById('new-log-ex-sets');
+    const name=(nameEl?.value||'').trim();
+    if(!name)return;
+    const setsCount=Math.max(1,Math.min(10,parseInt(setsEl?.value)||3));
+    const{match}=resolveEx(name);
+    log.exercises.push({
+      id:match?match.id:'custom_'+Date.now(),
+      name:match?match.name:name,
+      muscle:match?match.muscle:estimateMuscleGroup(name),
+      sets:Array.from({length:setsCount},()=>({weight:0,reps:0}))
+    });
+    S.newLogExName='';S.newLogExSets=3;
+    render();
+    return;
+  }
+  if(a==='remove-log-exercise'){
+    const log=S.editLogDraft;if(!log)return;
+    const idx=parseInt(btn.dataset.idx);
+    log.exercises.splice(idx,1);
+    render();
     return;
   }
   if(a==='save-log-edit'){
@@ -3259,37 +3643,73 @@ document.addEventListener('click',e=>{
   }
   if(a==='cancel-log-edit'){S.editLogDraft=null;S.view='history';render();return;}
   if(a==='delete-log'){
+    // Soft-delete pipeline step 1: never delete immediately — open the
+    // full-workload preview modal for confirmation.
+    S.confirmDelete=btn.dataset.id;
+    updateModals();
+    return;
+  }
+  if(a==='cancel-delete-log'){
+    S.confirmDelete=null;
+    updateModals();
+    return;
+  }
+  if(a==='confirm-delete-log'){
     const id=btn.dataset.id;
     const log=S.logs.find(l=>l.id===id);
-    if(!log)return;
-    const isCustom=log.isCustom;
-    const msg=isCustom
-      ?'Delete this custom workout? The rest of your week will rebalance to account for the removed workout.'
-      :'Delete this workout from your history? This cannot be undone.';
-    if(!confirm(msg))return;
+    S.confirmDelete=null;
+    if(!log){updateModals();return;}
 
-    // Remove from logs
+    // Soft delete: move to the recovery cache instead of purging
+    S.deletedSessions=S.deletedSessions||[];
+    S.deletedSessions.push({deletedAt:Date.now(),wasOnDow:null,log});
+    if(S.deletedSessions.length>20)S.deletedSessions=S.deletedSessions.slice(-20);
     S.logs=S.logs.filter(l=>l.id!==id);
 
     // Clear any custom-workout flags on the program week that referenced this log
-    let wasOnWeek=false;
     if(S.program?.week){
       S.program.week.forEach(day=>{
         if(day&&day.customWorkout&&day.customLog?.id===id){
-          delete day.customWorkout;delete day.customLog;wasOnWeek=true;
+          delete day.customWorkout;delete day.customLog;
+          S.deletedSessions[S.deletedSessions.length-1].wasOnDow=day.dow;
         }
       });
     }
 
     recalcLastWeights();
-
-    // If it was a custom workout tied to the week, rebalance the remaining week
-    if(isCustom&&wasOnWeek&&S.weekPlan?.availability){
+    if(log.isCustom&&S.deletedSessions[S.deletedSessions.length-1].wasOnDow!=null&&S.weekPlan?.availability){
       rebalanceCustomWorkouts();
     }
 
+    // Ephemeral undo banner (auto-dismisses; session stays recoverable in
+    // History → Recently Deleted regardless)
+    S.undoBanner={id,name:log.dayName};
+    setTimeout(()=>{if(S.undoBanner&&S.undoBanner.id===id){S.undoBanner=null;updateModals();}},8000);
+
     S.editLogDraft=null;
-    S.view='history';
+    if(S.view==='log-edit')S.view='history';
+    save();render();
+    return;
+  }
+  if(a==='restore-log'){
+    const id=btn.dataset.id;
+    const idx=(S.deletedSessions||[]).findIndex(d=>d.log.id===id);
+    if(idx===-1)return;
+    const entry=S.deletedSessions.splice(idx,1)[0];
+    S.logs.push(entry.log);
+    // Keep history chronological so progression reads the true latest session
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+
+    // Re-attach custom workouts to their program day when still applicable
+    if(entry.log.isCustom&&entry.wasOnDow!=null&&S.program?.week?.[entry.wasOnDow]
+       &&entry.log.date.slice(0,10)>=thisMonday()&&!S.program.week[entry.wasOnDow].customWorkout){
+      S.program.week[entry.wasOnDow].customWorkout=true;
+      S.program.week[entry.wasOnDow].customLog=entry.log;
+      if(S.weekPlan?.availability)rebalanceCustomWorkouts();
+    }
+
+    recalcLastWeights();
+    S.undoBanner=null;
     save();render();
     return;
   }
@@ -3336,21 +3756,72 @@ function localAnswer(q){
   return null;
 }
 
+// ─── CHAT SCOPE GUARD ───
+// Hard boundary: the assistant covers biomechanics, execution, and exercise
+// output ONLY. Nutrition topics are refused deterministically here (before any
+// API call), and the same restriction is restated in the AI system prompt.
+const CHAT_OFF_TOPIC=/\b(calorie?s?|caloric|kcal|diets?|dieting|macros?|macronutrients?|nutrition\w*|meal\s?(plan\w*|prep\w*|s\b)?|protein (intake|target|goal)|carb(ohydrate)?s?\b|what (should|do) i eat|food|eating plan|fasting|deficit|surplus)\b/i;
+function chatScopeGuard(q){
+  if(CHAT_OFF_TOPIC.test(q))
+    return `That's outside my lane — I only cover <strong>biomechanics, execution, and exercise programming</strong>. I can't advise on calories, diet, or macros.<br><br>Ask me about form cues, exercise order, alternatives, rest, or progression instead.`;
+  return null;
+}
+
+// ─── CHAT EXERCISE CONTEXT ───
+// Gives the chat engine direct access to the exercise the user is currently
+// looking at: the active workout's current movement, or an expanded exercise
+// detail card. Returns null when no exercise is in focus.
+function chatExerciseContext(){
+  let ex=null,setting='';
+  if(S.view==='workout'&&S.active?.exercises?.length){
+    ex=S.active.exercises[S.active.exIdx]||null;
+    setting=`mid-workout (${S.active.dayName}${S.active.isLunch?' · lunch session, 90s rest cap':''})`;
+  }else if(S.viewExDetail){
+    const allEx=[...EX,...(S.customExercises||[])];
+    ex=allEx.find(e=>e.id===S.viewExDetail)||null;
+    setting='viewing exercise detail';
+  }
+  if(!ex)return null;
+  const p=progression(ex.id,ex.rMax);
+  return{
+    name:ex.name,
+    prompt:`CURRENT EXERCISE CONTEXT (user is ${setting}):\n`+
+      `- Exercise: ${ex.name} (${ex.type}, targets ${MNAME[ex.muscle]||ex.muscle})\n`+
+      `- Target reps: ${ex.rMin}-${ex.rMax}${ex.isTimed?' seconds':''} · rest: ${smartRest(ex)}s\n`+
+      `- Technique notes on file: ${ex.cue}\n`+
+      (p?`- Last performance: ${p.summary}${p.ready?' (progression trigger met — next suggestion '+p.suggest+' lb)':''}\n`:'')+
+      `Questions that say "this exercise" refer to ${ex.name}.`
+  };
+}
+
 async function askAssistant(q){
+  // Deterministic scope refusal — applies in both AI and local-DB modes
+  const offTopic=chatScopeGuard(q);
+  if(offTopic)return offTopic;
+
   const key=localStorage.getItem('anthropicKey');
   if(!key){
     const local=localAnswer(q);
     return local||`No AI key configured — but I can answer questions about specific exercises or muscle groups by name. Add your Anthropic API key in the Cloud Sync settings for full AI responses.`;
   }
   try{
-    const hipNote=S.cfg.hipCaution?'User has hip impingement (FAI) — avoid deep squat patterns.':'';
+    const hipNote=S.cfg.hipCaution?'User has hip impingement (FAI) — avoid deep squat patterns and compressive end-range hip flexion.':'';
     const prog=S.program?`Current split: ${S.program.week.filter(d=>!d.rest).map(d=>DOW[d.dow]+': '+d.name).join(', ')}.`:'';
+    const ctx=chatExerciseContext();
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-client-side-allowlist-v1':'true'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',max_tokens:600,
-        system:`You are a concise personal trainer in a workout app. ${hipNote} ${prog} Keep answers short, practical, and use line breaks. No markdown headers.`,
+        system:`You are a concise personal trainer in a workout app. ${hipNote} ${prog}
+${ctx?ctx.prompt+'\n':''}
+CORE TRAINING PRINCIPLES (synthesize these with current athletic research when the static technique notes leave a gap — e.g. unilateral set order, breathing, tempo, grip width):
+- Controlled eccentrics (2-3 count) and full ROM beat load; last rep should be hard, form never breaks.
+- Double progression: fill the target rep range on every set, then +4% load.
+- Unilateral work: complete reps per side; for stability-limited moves finish one side before switching unless the program says alternate.
+- Heavy compounds rest 2-3 min; isolation ≥90s.
+SCOPE: You answer ONLY biomechanics, exercise execution, and training output questions. If asked about caloric intake, diet, macros, or any nutrition topic, refuse briefly and redirect to training questions. No exceptions.
+Keep answers short, practical, and use line breaks. No markdown headers.`,
         messages:[{role:'user',content:q}]
       })
     });
@@ -3393,6 +3864,48 @@ function updateChatUI(){
 }
 
 function toggleChat(){chatOpen=!chatOpen;updateChatUI();}
+
+// ─── INLINE MID-WORKOUT CHAT ───
+// Embedded directly in the workout screen layout (no overlay/sheet). The
+// active exercise context is injected automatically via chatExerciseContext().
+// DOM is updated in place (never a full render()) so uncommitted set inputs
+// are preserved while chatting mid-workout.
+function inlineChatBubbles(){
+  const empty=!chatMsgs.length&&!chatLoading
+    ?`<div style='text-align:center;color:var(--mut);padding:10px;font-size:12px'>Ask about this exercise — form, set order, tempo, alternatives.</div>`:'';
+  return empty
+    +chatMsgs.map(m=>`<div class='chat-bubble ${m.role==='user'?'cb-user':'cb-ai'}'>${m.text}</div>`).join('')
+    +(chatLoading?`<div class='chat-bubble cb-ai' style='color:var(--mut)'>Thinking…</div>`:'');
+}
+function renderInlineChat(ex){
+  const hasKey=!!localStorage.getItem('anthropicKey');
+  return`<div class='card' style='margin-top:12px;padding:14px'>
+    <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>
+      <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc)'>💬 Form Check · ${ex?ex.name:'this exercise'}</div>
+      <div style='font-size:10px;color:var(--mut)'>${hasKey?'AI':'local'}</div>
+    </div>
+    <div id='inline-chat-msgs' style='max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:8px'>${inlineChatBubbles()}</div>
+    <div style='display:flex;gap:8px'>
+      <input type='text' id='chat-input-inline' class='ni' placeholder='e.g. Alternate legs or one side at a time?' style='flex:1;text-align:left;padding:10px 12px' onkeydown='if(event.key==="Enter")sendChatInline()'>
+      <button class='btn btn-p btn-sm' onclick='sendChatInline()' style='width:auto'>Send</button>
+    </div>
+  </div>`;
+}
+function updateInlineChat(){
+  const el=document.getElementById('inline-chat-msgs');
+  if(el){el.innerHTML=inlineChatBubbles();el.scrollTop=el.scrollHeight;}
+}
+async function sendChatInline(){
+  const input=document.getElementById('chat-input-inline');
+  const text=input?.value?.trim();
+  if(!text||chatLoading)return;
+  input.value='';
+  chatMsgs.push({role:'user',text});
+  chatLoading=true;updateInlineChat();
+  const answer=await askAssistant(text);
+  chatMsgs.push({role:'assistant',text:answer});
+  chatLoading=false;updateInlineChat();
+}
 
 async function sendChat(){
   const input=document.getElementById('chat-input');
