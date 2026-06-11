@@ -546,14 +546,15 @@ let S={
 let timerIv=null;
 
 function save(){
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises}));}catch(e){}
+  S.updatedAt=new Date().toISOString();
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,updatedAt:S.updatedAt}));}catch(e){}
   saveToCloud();
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[]});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],updatedAt:d.updatedAt||new Date().toISOString()});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -2777,8 +2778,8 @@ document.addEventListener('click',e=>{
   }
   if(a==='setup-next'){S.step=Math.min(3,S.step+1);render();return;}
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
-  if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);render();return;}
-  if(a==='set-goal'){S.cfg.goal=btn.dataset.val;render();return;}
+  if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);save();render();return;}
+  if(a==='set-goal'){S.cfg.goal=btn.dataset.val;save();render();return;}
   if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
   if(a==='generate'){
     const bwEl=document.getElementById('bw-input');
@@ -3452,7 +3453,7 @@ async function initFirebase(cfg){
 async function saveToCloud(){
   if(!fbReady||!fbUser||!fbDb)return;
   try{
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,updatedAt:new Date().toISOString()};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],updatedAt:S.updatedAt||new Date().toISOString()};
     await fbDb.collection('users').doc(fbUser.uid).set(data);
   }catch(e){console.error('Cloud save failed',e);}
 }
@@ -3471,9 +3472,14 @@ async function loadFromCloud(){
       merged.sort((a,b)=>a.id>b.id?1:-1);
       // Merge lastWeights: local takes precedence (most recent device)
       const weights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
-      Object.assign(S,{cfg:cloud.cfg||S.cfg,program:cloud.program||S.program,weekPlan:cloud.weekPlan||S.weekPlan,logs:merged.slice(-10),lastWeights:weights});
-      save();
-      await saveToCloud();// upload merged data back
+      // cfg/program/weekPlan come from whichever side saved most recently —
+      // the cloud copy can be stale if a local save happened before Firebase was ready
+      const cloudNewer=cloud.updatedAt&&(!S.updatedAt||cloud.updatedAt>S.updatedAt);
+      if(cloudNewer){
+        Object.assign(S,{cfg:cloud.cfg||S.cfg,program:cloud.program||S.program,weekPlan:cloud.weekPlan||S.weekPlan,eveningMins:cloud.eveningMins??S.eveningMins,eveningLocation:cloud.eveningLocation??S.eveningLocation,customExercises:cloud.customExercises||S.customExercises});
+      }
+      Object.assign(S,{logs:merged.slice(-10),lastWeights:weights});
+      save();// persists merged state and uploads it back to the cloud
     }else{
       await saveToCloud();// first login — push local data up
     }
