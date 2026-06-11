@@ -2106,12 +2106,14 @@ function renderProgram(){
     ?cardio.options.slice(0,3).map(o=>`${o.icon} ${o.name}: ${o.min} min${o.dist&&o.dist!=='—'?' · '+o.dist:''}`).join(' · ')
     :'';
 
+  const exRow=e=>`<div class='pg-ex'><div class='pg-dot' style='background:${MCOL[e.muscle]}'></div>${e.name} <span style='color:var(--mut);font-size:12px'>· ${e.sets}×${e.rMin}–${e.rMax}</span></div>`;
+
   const days=S.program.week.map(d=>{
-    if(d.dow===0||d.dow===6)return''; // skip Sun/Sat header rows
     const isToday=d.dow===dow;
     const isSkipped=!d.rest&&isDaySkipped(d.dow);
     const isMissed=!d.rest&&!isSkipped&&missed.includes(d.dow);
     if(d.rest||isSkipped){
+      if(d.dow===0||d.dow===6)return''; // skip weekend rest rows
       let cn='';
       if(cardio&&cardio.calsPerDay>0&&!isSkipped){
         cn=`<div style='margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)'>
@@ -2124,9 +2126,17 @@ function renderProgram(){
         ${cn}
       </div>`;
     }
-    const badge=`<span class='badge badge-lunch'>YMCA · 35–40 min</span>`;
+    const badge=d.isLunch?`<span class='badge badge-lunch'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve'>${d.sessionMins||60} min</span>`;
     const missedTag=isMissed?`<span style='font-size:11px;color:var(--bad);font-weight:700;margin-left:6px'>⚠️ missed</span>`:'';
-    const exList=d.exercises.map(e=>`<div class='pg-ex'><div class='pg-dot' style='background:${MCOL[e.muscle]}'></div>${e.name} <span style='color:var(--mut);font-size:12px'>· ${e.sets}×${e.rMin}–${e.rMax}</span></div>`).join('');
+    const exList=d.exercises.map(exRow).join('');
+    let eveBlock='';
+    if(d.eveningSession){
+      const eveList=d.eveningSession.exercises.map(exRow).join('');
+      eveBlock=`<div style='margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)'>
+        <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px'>After Work · ${d.eveningSession.name} · ${d.eveningSession.mins} min</div>
+        ${eveList}
+      </div>`;
+    }
     let cn='';
     if(cardio&&cardio.calsPerDay>0){
       cn=`<div style='margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)'>
@@ -2140,6 +2150,7 @@ function renderProgram(){
         ${isToday?`<span style='font-size:11px;font-weight:700;color:var(--acc);background:var(--acc2);padding:3px 8px;border-radius:20px'>TODAY</span>`:''}
       </div>
       <div>${exList}</div>
+      ${eveBlock}
       ${cn}
     </div>`;
   }).join('');
@@ -2153,7 +2164,7 @@ function renderProgram(){
 
   return`<div class='view'>
     <div class='hdg'>Weekly Program</div>
-    <div class='sub'>All sessions = 35–40 min YMCA lunch. Skipped days show as rest. Missed days shown in red. Set your goal and plan from the Home tab.</div>
+    <div class='sub'>Every movement for the week. Combo days show both the lunch and after-work sessions. Skipped days show as rest. Missed days shown in red. Set your goal and plan from the Home tab.</div>
     ${calSummary}
     ${days}
     <div class='mt16'>
