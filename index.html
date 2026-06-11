@@ -498,6 +498,10 @@ const CONDITIONING_FINISHERS=[
 ];
 // Off-day active recovery: gentle mobility, stretching, and tissue work to
 // support recovery between lifting days. Rotates by day of week.
+// Evidence check 2026-06-11: active recovery (10-20 min easy walking/cycling)
+// reduces DOMS at 24-48h (2025 Frontiers Physiology RCT; 99-study review);
+// static stretching is for ROM, not soreness (2025 meta-analyses find no
+// robust DOMS effect) — protocols below pair movement with tissue work.
 const RECOVERY_PROTOCOLS=[
   {name:'Hip Reset',icon:'🦋',mins:15,items:[
     'Hip CARs — 5 slow circles each side',
@@ -948,7 +952,10 @@ function getMRVLimits(){
   };
   // Recovery auto-regulation: muscles trained in a high-fatigue session
   // (rating ≥4) within the last 72h get a temporarily reduced ceiling, so
-  // the generator backs off volume until they've recovered.
+  // the generator backs off volume until they've recovered. 72h window is
+  // consistent with time-course studies showing mechanical function depressed
+  // 24-72h after training to failure / high-fatigue sessions (e.g., 2025
+  // Frontiers Physiology DOMS-intervention RCT; velocity-loss time-course work).
   getFatiguedMuscles().forEach(m=>{
     if(limits[m])limits[m]={min:limits[m].min,max:Math.max(limits[m].min,Math.round(limits[m].max*0.85))};
   });
@@ -1207,11 +1214,14 @@ function calcWeekCardio(){
 // ─────────────────────────────────────────────
 // Intensity-based rest: heavy compounds need ≥2-3 min for full performance on
 // the next set (Schoenfeld 2016 — longer inter-set rest beats 1 min for both
-// strength and hypertrophy on compounds); isolation work recovers on 60-90s.
+// strength and hypertrophy on compounds). Isolation floor raised 60→90s per
+// Singer et al. 2024 Bayesian meta-analysis ("Give it a Rest", Frontiers
+// Sports Act Living): ≤60s is the only clearly suboptimal zone for
+// hypertrophy; no further benefit beyond ~90s, so 90s is the isolation minimum.
 function smartRest(ex){
   if(ex.isTimed||ex.noWeight)return ex.rest||60;
   if(ex.type==='compound')return ex.rMax<=8?180:(ex.rMax<=12?150:120);
-  return ex.rMax<=12?90:60;
+  return 90;
 }
 function smartRestLabel(ex){
   const s=smartRest(ex);
