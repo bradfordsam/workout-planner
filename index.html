@@ -668,9 +668,11 @@ function genProgram(cfg,av){
   // Completed sessions this calendar week — preserve their templates
   const mon=thisMonday();
   const weekEnd=addDays(mon,7);
+  // Local-day bucketing (also fixes the former `l.date+'T12:00:00'` parse,
+  // which produced Invalid Date on full ISO timestamps → NaN dows)
   const completedDows=new Set(
-    (S.logs||[]).filter(l=>l.date.slice(0,10)>=mon&&l.date.slice(0,10)<weekEnd)
-      .map(l=>new Date(l.date+'T12:00:00').getDay())
+    (S.logs||[]).filter(l=>logDay(l.date)>=mon&&logDay(l.date)<weekEnd)
+      .map(l=>new Date(l.date).getDay())
   );
   const oldWeek=S.program?.week;
 
@@ -818,14 +820,25 @@ function genProgram(cfg,av){
 function r5(n){return Math.round(n/5)*5;}
 function todayDow(){return new Date().getDay();}
 function todayDay(){return S.program?S.program.week[todayDow()]:null;}
-function todayStr(){return new Date().toISOString().slice(0,10);}
-function addDays(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+// ─── LOCAL CALENDAR DAY ───
+// All day bucketing keys off the USER'S LOCAL day, never UTC. toISOString()
+// flips to tomorrow at 6/7pm Central, which pushed evening workouts into the
+// wrong day (and the wrong MRV week). Mirrors the backend design's
+// session_date = started_at AT TIME ZONE users.timezone.
+function localDateStr(d){
+  d=d||new Date();
+  return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+// Local day a logged session belongs to (log.date is a full ISO timestamp).
+function logDay(iso){return localDateStr(new Date(iso));}
+function todayStr(){return localDateStr(new Date());}
+function addDays(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return localDateStr(d);}
 function daysBetween(a,b){return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000);}
 
 function thisMonday(){
   const d=new Date();const dow=d.getDay();
   const m=new Date(d);m.setDate(d.getDate()-(dow===0?6:dow-1));
-  return m.toISOString().slice(0,10);
+  return localDateStr(m);
 }
 function planMonday(){return todayDow()===0?addDays(todayStr(),1):thisMonday();}
 function nextSunday(){const dow=todayDow();return addDays(todayStr(),dow===0?7:7-dow);}
@@ -939,7 +952,7 @@ function getWeeklySetVolumes(){
   const nextMondayStr = addDays(mondayStr, 7);
 
   const weekLogs = S.logs.filter(l =>
-    l.date.slice(0,10) >= mondayStr && l.date.slice(0,10) < nextMondayStr
+    logDay(l.date) >= mondayStr && logDay(l.date) < nextMondayStr
   );
 
   const volumes = {};
@@ -1037,8 +1050,8 @@ function getMRVBreakdown(){
 
   // 1) Logged sessions this calendar week (regular + custom) — completed sets only
   const completedDows=new Set();
-  (S.logs||[]).filter(l=>l.date.slice(0,10)>=mondayStr&&l.date.slice(0,10)<nextMondayStr).forEach(l=>{
-    const dow=new Date(l.date.slice(0,10)+'T12:00:00').getDay();
+  (S.logs||[]).filter(l=>logDay(l.date)>=mondayStr&&logDay(l.date)<nextMondayStr).forEach(l=>{
+    const dow=new Date(l.date).getDay();
     completedDows.add(dow);
     (l.exercises||[]).forEach(ex=>{
       const sets=ex.sets?.filter(s=>s&&s.reps>0).length||0;
@@ -1199,8 +1212,8 @@ function getMissedDays(){
   const today=todayDow();
   const planStart=plan.weekOf;
   const weekEnd=addDays(planStart,14); // allow up to 2 weeks
-  const weekLogs=S.logs.filter(l=>l.date.slice(0,10)>=planStart&&l.date.slice(0,10)<weekEnd);
-  const completedDates=new Set(weekLogs.map(l=>l.date.slice(0,10)));
+  const weekLogs=S.logs.filter(l=>logDay(l.date)>=planStart&&logDay(l.date)<weekEnd);
+  const completedDates=new Set(weekLogs.map(l=>logDay(l.date)));
   // Find non-rest days in the past (from planStart onward) with no log
   return S.program.week.filter(d=>{
     if(d.rest||d.dow===0||d.dow>=today)return false;
@@ -1439,7 +1452,63 @@ function stopRest(alarm){
 // ─────────────────────────────────────────────
 // ACTIVE WORKOUT LOGIC
 // ─────────────────────────────────────────────
+// ─── DAILY SESSION CONSTRAINTS (user's local calendar day) ───
+// Count of lifting sessions logged on a given local day. The app allows at
+// most TWO per day (lunch + evening); a third is always refused.
+function liftingSessionsOn(dayStr){
+  return (S.logs||[]).filter(l=>logDay(l.date)===dayStr).length;
+}
+
+// Execution-time auto-regulation for the SECOND session of a day, ported from
+// the backend design's 60% rule. Daily per-muscle budget = 50% of the weekly
+// MRV max (which already reflects fatigue reductions). Reading today's logged
+// session at start time:
+//   ≤60% of a muscle's daily budget used → session 2 untouched for that muscle
+//   >60% used → session 2's sets for it capped at (budget − used) × 0.85
+//   ≥95% used → the muscle is blocked for session 2 (exercises dropped)
+function applyDailyAutoReg(exs){
+  const prior=(S.logs||[]).filter(l=>logDay(l.date)===todayStr());
+  if(!prior.length)return{exs,notes:[]};
+  const limits=getMRVLimits();
+  const used={};
+  prior.forEach(l=>(l.exercises||[]).forEach(e=>{
+    const n=e.sets?.filter(s=>s&&s.reps>0).length||0;
+    if(e.muscle&&n)used[e.muscle]=(used[e.muscle]||0)+n;
+  }));
+  const capFor=m=>Math.max(3,Math.round((limits[m]?.max??16)*0.5));
+  const remaining={},state={},notes=[];
+  Object.keys(used).forEach(m=>{
+    const cap=capFor(m),u=used[m];
+    if(u>=cap*0.95){
+      state[m]='blocked';
+      notes.push(`${MNAME[m]||m}: blocked — ${u}/${cap} daily sets already done`);
+    }else if(u>cap*0.6){
+      remaining[m]=Math.max(0,Math.floor((cap-u)*0.85));
+      state[m]='reduced';
+      notes.push(`${MNAME[m]||m}: capped at ${remaining[m]} set${remaining[m]===1?'':'s'} — session 1 used ${Math.round(u/cap*100)}% of today's budget`);
+    }
+  });
+  const out=[];
+  exs.forEach(e=>{
+    const st=state[e.muscle];
+    if(st==='blocked')return;
+    if(st==='reduced'){
+      const take=Math.min(e.sets||3,remaining[e.muscle]);
+      if(take<=0)return;
+      remaining[e.muscle]-=take;
+      out.push({...e,sets:take,autoReg:true});
+    }else out.push(e);
+  });
+  return{exs:out,notes};
+}
+
 function startWorkout(day,sessionType){
+  // Two-per-day cap, judged on the LOCAL calendar day
+  const sessionsToday=liftingSessionsOn(todayStr());
+  if(sessionsToday>=2){
+    alert('Daily session limit: two lifting sessions are already logged today. Recovery beats more volume — go again tomorrow.');
+    return;
+  }
   const isEve=sessionType==='eve'&&day.eveningSession;
   const src=isEve?day.eveningSession:day;
   const limit=isEve?(EX_LIMIT[src.mins]||5):3;
@@ -1457,9 +1526,21 @@ function startWorkout(day,sessionType){
       });
     }
   }
+  // Second session of the day → apply the 60% execution-time rule against
+  // what was actually logged earlier today (not what was planned)
+  let autoRegNotes=[];
+  if(sessionsToday===1){
+    const reg=applyDailyAutoReg(rawExs);
+    rawExs=reg.exs;autoRegNotes=reg.notes;
+    if(!rawExs.length){
+      alert("Today's earlier session already used the volume budget for every muscle in this workout. Session blocked — recover and hit it tomorrow.");
+      return;
+    }
+  }
   S.active={
     dayName:src.name,dow:day.dow,startTime:Date.now(),isLunch:!isEve,
     sessionMins:src.mins||40,loc:src.loc||'ymca',restCap:(!isEve)?90:null,exIdx:0,
+    autoRegNotes,
     exercises:rawExs.map(e=>({...e,done:[]})),
   };
   S.view='workout';save();render();
@@ -2104,6 +2185,11 @@ function renderWorkout(){
       </div>
       <button class='abandon' style='width:auto;padding:8px 12px;border-radius:10px' data-action='abandon'>✕ Quit</button>
     </div>
+    ${S.active.autoRegNotes?.length?`<div class='wu-box' style='margin-bottom:14px'>
+      <div class='wu-title'>⚖️ Auto-Regulation · 2nd Session Today</div>
+      ${S.active.autoRegNotes.map(n=>`<div class='wu-row'>${n}</div>`).join('')}
+      <div class='wu-note'>Volume adjusted from what you actually logged earlier today (60% rule).</div>
+    </div>`:''}
     ${hipPrehabHTML}
     <div class='ex-card'>
       ${sessionTag}
@@ -3465,8 +3551,15 @@ document.addEventListener('click',e=>{
       }
       S.customWorkoutLog.dow = entryDate.getDay();
     }
-    // A backdated workout only ties into the program week if it falls inside it
-    const inCurrentWeek = entryDate.toISOString().slice(0,10) >= thisMonday();
+    // A backdated workout only ties into the program week if it falls inside
+    // it — judged on the user's LOCAL calendar day
+    const inCurrentWeek = localDateStr(entryDate) >= thisMonday();
+
+    // Two-per-day cap applies to logged entries on any local calendar day
+    if(!S.customWorkoutLog.isPlanning && liftingSessionsOn(localDateStr(entryDate)) >= 2){
+      alert(`Daily limit: ${localDateStr(entryDate)} already has two lifting sessions logged (max two per calendar day).`);
+      return;
+    }
 
     // Create a workout entry
     const customData = {
@@ -3702,7 +3795,7 @@ document.addEventListener('click',e=>{
 
     // Re-attach custom workouts to their program day when still applicable
     if(entry.log.isCustom&&entry.wasOnDow!=null&&S.program?.week?.[entry.wasOnDow]
-       &&entry.log.date.slice(0,10)>=thisMonday()&&!S.program.week[entry.wasOnDow].customWorkout){
+       &&logDay(entry.log.date)>=thisMonday()&&!S.program.week[entry.wasOnDow].customWorkout){
       S.program.week[entry.wasOnDow].customWorkout=true;
       S.program.week[entry.wasOnDow].customLog=entry.log;
       if(S.weekPlan?.availability)rebalanceCustomWorkouts();
