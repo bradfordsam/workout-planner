@@ -508,6 +508,28 @@ const CONDITIONING_FINISHERS=[
   {name:'Row Intervals',desc:'6 × 250m hard row / 60s rest',icon:'🚣',mins:14},
   {name:'DB Circuit',desc:'4 rounds: 10 goblet squats · 10 rows · 10 push press · 30s rest',icon:'💪',mins:15},
 ];
+// ─── VO2 MAX PROTOCOL (non-lunch sessions) ───
+// Progressive aerobic overload, fully isolated from lifting: VO2 logs carry
+// isCardio:true and no muscle sets, so they never consume MRV set budgets or
+// a lifting slot in the two-per-day cap. Progression: +1 work interval every
+// 4 completed sessions (capped), alternating protocols every 2 sessions for
+// long-interval and short-interval adaptations.
+const VO2_PROTOCOLS=[
+  {key:'norwegian',name:'Norwegian 4×4',icon:'🫀',base:4,maxW:6,
+   desc:w=>`${w} × 4 min hard (90–95% max HR) · 3 min easy jog between`,
+   mins:w=>w*7+10},
+  {key:'billat',name:'Billat 30/30s',icon:'⚡',base:12,maxW:20,
+   desc:w=>`${w} × (30s @ ~vVO2max / 30s easy) · split into 2 blocks, 3 min between`,
+   mins:()=>25},
+];
+function vo2History(){return (S.logs||[]).filter(l=>l.vo2);}
+function currentVO2Protocol(){
+  const lvl=vo2History().length;
+  const proto=VO2_PROTOCOLS[Math.floor(lvl/2)%VO2_PROTOCOLS.length];
+  const work=Math.min(proto.base+Math.floor(lvl/4),proto.maxW);
+  return{...proto,work,desc:proto.desc(work),mins:proto.mins(work),lvl};
+}
+
 // Off-day active recovery: gentle mobility, stretching, and tissue work to
 // support recovery between lifting days. Rotates by day of week.
 // Evidence check 2026-06-11: active recovery (10-20 min easy walking/cycling)
@@ -674,9 +696,11 @@ function genProgram(cfg,av){
   // Completed sessions this calendar week — preserve their templates
   const mon=thisMonday();
   const weekEnd=addDays(mon,7);
+  // Local-day bucketing (also fixes the former `l.date+'T12:00:00'` parse,
+  // which produced Invalid Date on full ISO timestamps → NaN dows)
   const completedDows=new Set(
-    (S.logs||[]).filter(l=>l.date.slice(0,10)>=mon&&l.date.slice(0,10)<weekEnd)
-      .map(l=>new Date(l.date+'T12:00:00').getDay())
+    (S.logs||[]).filter(l=>!l.isCardio&&logDay(l.date)>=mon&&logDay(l.date)<weekEnd)
+      .map(l=>new Date(l.date).getDay())
   );
   const oldWeek=S.program?.week;
 
@@ -824,14 +848,25 @@ function genProgram(cfg,av){
 function r5(n){return Math.round(n/5)*5;}
 function todayDow(){return new Date().getDay();}
 function todayDay(){return S.program?S.program.week[todayDow()]:null;}
-function todayStr(){return new Date().toISOString().slice(0,10);}
-function addDays(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+// ─── LOCAL CALENDAR DAY ───
+// All day bucketing keys off the USER'S LOCAL day, never UTC. toISOString()
+// flips to tomorrow at 6/7pm Central, which pushed evening workouts into the
+// wrong day (and the wrong MRV week). Mirrors the backend design's
+// session_date = started_at AT TIME ZONE users.timezone.
+function localDateStr(d){
+  d=d||new Date();
+  return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+// Local day a logged session belongs to (log.date is a full ISO timestamp).
+function logDay(iso){return localDateStr(new Date(iso));}
+function todayStr(){return localDateStr(new Date());}
+function addDays(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return localDateStr(d);}
 function daysBetween(a,b){return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000);}
 
 function thisMonday(){
   const d=new Date();const dow=d.getDay();
   const m=new Date(d);m.setDate(d.getDate()-(dow===0?6:dow-1));
-  return m.toISOString().slice(0,10);
+  return localDateStr(m);
 }
 function planMonday(){return todayDow()===0?addDays(todayStr(),1):thisMonday();}
 function nextSunday(){const dow=todayDow();return addDays(todayStr(),dow===0?7:7-dow);}
@@ -945,7 +980,7 @@ function getWeeklySetVolumes(){
   const nextMondayStr = addDays(mondayStr, 7);
 
   const weekLogs = S.logs.filter(l =>
-    l.date.slice(0,10) >= mondayStr && l.date.slice(0,10) < nextMondayStr
+    logDay(l.date) >= mondayStr && logDay(l.date) < nextMondayStr
   );
 
   const volumes = {};
@@ -1043,9 +1078,9 @@ function getMRVBreakdown(){
 
   // 1) Logged sessions this calendar week (regular + custom) — completed sets only
   const completedDows=new Set();
-  (S.logs||[]).filter(l=>l.date.slice(0,10)>=mondayStr&&l.date.slice(0,10)<nextMondayStr).forEach(l=>{
-    const dow=new Date(l.date.slice(0,10)+'T12:00:00').getDay();
-    completedDows.add(dow);
+  (S.logs||[]).filter(l=>logDay(l.date)>=mondayStr&&logDay(l.date)<nextMondayStr).forEach(l=>{
+    const dow=new Date(l.date).getDay();
+    if(!l.isCardio)completedDows.add(dow);
     (l.exercises||[]).forEach(ex=>{
       const sets=ex.sets?.filter(s=>s&&s.reps>0).length||0;
       add(ex.muscle,{dow,dayLabel:DOW[dow],name:ex.name,sets,source:l.isCustom?'custom':'logged',sessionName:l.dayName});
@@ -1205,8 +1240,8 @@ function getMissedDays(){
   const today=todayDow();
   const planStart=plan.weekOf;
   const weekEnd=addDays(planStart,14); // allow up to 2 weeks
-  const weekLogs=S.logs.filter(l=>l.date.slice(0,10)>=planStart&&l.date.slice(0,10)<weekEnd);
-  const completedDates=new Set(weekLogs.map(l=>l.date.slice(0,10)));
+  const weekLogs=S.logs.filter(l=>!l.isCardio&&logDay(l.date)>=planStart&&logDay(l.date)<weekEnd);
+  const completedDates=new Set(weekLogs.map(l=>logDay(l.date)));
   // Find non-rest days in the past (from planStart onward) with no log
   return S.program.week.filter(d=>{
     if(d.rest||d.dow===0||d.dow>=today)return false;
@@ -1451,7 +1486,64 @@ function stopRest(alarm){
 // ─────────────────────────────────────────────
 // ACTIVE WORKOUT LOGIC
 // ─────────────────────────────────────────────
+// ─── DAILY SESSION CONSTRAINTS (user's local calendar day) ───
+// Count of lifting sessions logged on a given local day. The app allows at
+// most TWO per day (lunch + evening); a third is always refused.
+function liftingSessionsOn(dayStr){
+  // Cardio/VO2 logs don't occupy a lifting slot
+  return (S.logs||[]).filter(l=>!l.isCardio&&logDay(l.date)===dayStr).length;
+}
+
+// Execution-time auto-regulation for the SECOND session of a day, ported from
+// the backend design's 60% rule. Daily per-muscle budget = 50% of the weekly
+// MRV max (which already reflects fatigue reductions). Reading today's logged
+// session at start time:
+//   ≤60% of a muscle's daily budget used → session 2 untouched for that muscle
+//   >60% used → session 2's sets for it capped at (budget − used) × 0.85
+//   ≥95% used → the muscle is blocked for session 2 (exercises dropped)
+function applyDailyAutoReg(exs){
+  const prior=(S.logs||[]).filter(l=>logDay(l.date)===todayStr());
+  if(!prior.length)return{exs,notes:[]};
+  const limits=getMRVLimits();
+  const used={};
+  prior.forEach(l=>(l.exercises||[]).forEach(e=>{
+    const n=e.sets?.filter(s=>s&&s.reps>0).length||0;
+    if(e.muscle&&n)used[e.muscle]=(used[e.muscle]||0)+n;
+  }));
+  const capFor=m=>Math.max(3,Math.round((limits[m]?.max??16)*0.5));
+  const remaining={},state={},notes=[];
+  Object.keys(used).forEach(m=>{
+    const cap=capFor(m),u=used[m];
+    if(u>=cap*0.95){
+      state[m]='blocked';
+      notes.push(`${MNAME[m]||m}: blocked — ${u}/${cap} daily sets already done`);
+    }else if(u>cap*0.6){
+      remaining[m]=Math.max(0,Math.floor((cap-u)*0.85));
+      state[m]='reduced';
+      notes.push(`${MNAME[m]||m}: capped at ${remaining[m]} set${remaining[m]===1?'':'s'} — session 1 used ${Math.round(u/cap*100)}% of today's budget`);
+    }
+  });
+  const out=[];
+  exs.forEach(e=>{
+    const st=state[e.muscle];
+    if(st==='blocked')return;
+    if(st==='reduced'){
+      const take=Math.min(e.sets||3,remaining[e.muscle]);
+      if(take<=0)return;
+      remaining[e.muscle]-=take;
+      out.push({...e,sets:take,autoReg:true});
+    }else out.push(e);
+  });
+  return{exs:out,notes};
+}
+
 function startWorkout(day,sessionType){
+  // Two-per-day cap, judged on the LOCAL calendar day
+  const sessionsToday=liftingSessionsOn(todayStr());
+  if(sessionsToday>=2){
+    alert('Daily session limit: two lifting sessions are already logged today. Recovery beats more volume — go again tomorrow.');
+    return;
+  }
   const isEve=sessionType==='eve'&&day.eveningSession;
   const src=isEve?day.eveningSession:day;
   const limit=isEve?(EX_LIMIT[src.mins]||5):3;
@@ -1469,9 +1561,21 @@ function startWorkout(day,sessionType){
       });
     }
   }
+  // Second session of the day → apply the 60% execution-time rule against
+  // what was actually logged earlier today (not what was planned)
+  let autoRegNotes=[];
+  if(sessionsToday===1){
+    const reg=applyDailyAutoReg(rawExs);
+    rawExs=reg.exs;autoRegNotes=reg.notes;
+    if(!rawExs.length){
+      alert("Today's earlier session already used the volume budget for every muscle in this workout. Session blocked — recover and hit it tomorrow.");
+      return;
+    }
+  }
   S.active={
     dayName:src.name,dow:day.dow,startTime:Date.now(),isLunch:!isEve,
     sessionMins:src.mins||40,loc:src.loc||'ymca',restCap:(!isEve)?90:null,exIdx:0,
+    autoRegNotes,
     exercises:rawExs.map(e=>({...e,done:[]})),
   };
   S.view='workout';save();render();
@@ -1940,6 +2044,33 @@ function renderDash(){
       </div>`;
     }
   }
+
+  // VO2 max protocol — offered on days whose evening is NOT a lifting session
+  // (rest days, weekends, cardio evenings). Aerobic only: never touches MRV.
+  let vo2HTML='';
+  {
+    const todayD=todayDay();
+    const eveningFree=!todayD||todayD.rest||!todayD.eveningSession;
+    if(eveningFree){
+      const proto=currentVO2Protocol();
+      const tomorrow=S.program?.week[(todayDow()+1)%7];
+      const legsTomorrow=!!(tomorrow&&!tomorrow.rest&&(tomorrow.exercises||[]).some(e=>e.muscle==='legs'&&e.type==='compound'));
+      const doneToday=vo2History().some(l=>logDay(l.date)===todayStr());
+      vo2HTML=`<div style='margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)'>
+        <div class='sec-lbl' style='margin-bottom:6px'>VO2 Max · Evening Protocol${proto.lvl?` · Session ${proto.lvl+1}`:''}</div>
+        <div class='cardio-row'>
+          <div class='cr-icon'>${proto.icon}</div>
+          <div class='cr-body'><div class='cr-name'>${proto.name}</div><div class='cr-note'>${proto.desc}</div></div>
+          <div class='cr-right'><div class='cr-dur'>${proto.mins} min</div><div class='cr-dist'>aerobic</div></div>
+        </div>
+        ${legsTomorrow?`<div style='font-size:11px;color:var(--warn);margin-top:6px'>⚠️ Legs are programmed tomorrow — keep the easy portions truly easy, or shift this to another evening.</div>`:''}
+        ${doneToday
+          ?`<div class='prog-hint' style='margin-top:8px'>✅ VO2 session logged today</div>`
+          :`<button class='btn btn-s btn-sm' data-action='log-vo2-session' style='margin-top:8px;width:100%'>🫀 Log VO2 Session Done</button>`}
+        <div style='font-size:11px;color:var(--mut);margin-top:6px'>+1 interval every 4 sessions, protocols alternate. Doesn't count against lifting MRV or the two-session daily cap.</div>
+      </div>`;
+    }
+  }
   const planCard=`<div class='card' style='margin-bottom:14px'>
     <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>
       <div class='sec-lbl' style='margin-bottom:0'>Weekly Goal</div>
@@ -1949,6 +2080,7 @@ function renderDash(){
       ?`<div style='font-size:13px;color:var(--mut)'>Burn <strong style='color:var(--txt)'>${entry.cals.toLocaleString()}</strong> cal &nbsp;·&nbsp; ${entry.startDate} → ${entry.endDate}</div>`
       :`<div style='font-size:13px;color:var(--mut)'>No goal set — tap ${isSunday?'"Plan Week"':'"Edit"'} to configure.</div>`}
     ${cardioHTML}
+    ${vo2HTML}
   </div>`;
 
   const recentLogs=S.logs.slice(-3).reverse().map(l=>`
@@ -2125,6 +2257,11 @@ function renderWorkout(){
       </div>
       <button class='abandon' style='width:auto;padding:8px 12px;border-radius:10px' data-action='abandon'>✕ Quit</button>
     </div>
+    ${S.active.autoRegNotes?.length?`<div class='wu-box' style='margin-bottom:14px'>
+      <div class='wu-title'>⚖️ Auto-Regulation · 2nd Session Today</div>
+      ${S.active.autoRegNotes.map(n=>`<div class='wu-row'>${n}</div>`).join('')}
+      <div class='wu-note'>Volume adjusted from what you actually logged earlier today (60% rule).</div>
+    </div>`:''}
     ${hipPrehabHTML}
     <div class='ex-card'>
       ${sessionTag}
@@ -2253,18 +2390,18 @@ function renderCustomWorkoutLog(){
       <div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px'>
         <div>
           <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Sets</div>
-          <input type='number' class='ni' min='1' max='20' value='${ex.sets || 3}'
-                 onchange='updateCustomExercise(${idx}, "sets", parseInt(this.value))'>
+          <input type='number' class='ni' id='cust-sets-${idx}' min='1' max='20' value='${ex.sets || 3}'
+                 oninput='updateCustomExercise(${idx}, "sets", parseInt(this.value))'>
         </div>
         <div>
           <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Reps</div>
-          <input type='number' class='ni' min='1' max='100' value='${ex.reps || 10}'
-                 onchange='updateCustomExercise(${idx}, "reps", parseInt(this.value))'>
+          <input type='number' class='ni' id='cust-reps-${idx}' min='1' max='100' value='${ex.reps || 10}'
+                 oninput='updateCustomExercise(${idx}, "reps", parseInt(this.value))'>
         </div>
         <div>
           <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Weight (lbs)</div>
-          <input type='number' class='ni' min='0' max='500' value='${ex.weight || 0}'
-                 onchange='updateCustomExercise(${idx}, "weight", parseInt(this.value))' placeholder='0 if bodyweight'>
+          <input type='number' class='ni' id='cust-weight-${idx}' min='0' max='500' value='${ex.weight || 0}'
+                 oninput='updateCustomExercise(${idx}, "weight", parseFloat(this.value))' placeholder='0 if bodyweight'>
         </div>
       </div>
       <button class='btn btn-g btn-sm' onclick='removeCustomExercise(${idx})' style='width:100%;margin-top:10px;color:var(--bad)'>✕ Remove exercise</button>
@@ -2798,8 +2935,24 @@ function hideExSuggest(idx) {
   }, 200);
 }
 
+// Pull the live DOM values into state before any re-render. The inputs also
+// commit per keystroke (oninput), but this guards the case where a render is
+// triggered before an input event lands (e.g. tapping "+ Add Exercise" with
+// the keyboard still open) — previously that wiped unsaved weights/reps.
+function harvestCustomInputs() {
+  if (!S.customWorkoutLog || !S.customWorkoutLog.exercises) return;
+  S.customWorkoutLog.exercises.forEach((ex, idx) => {
+    const g = id => document.getElementById(id);
+    const n = g('cust-name-' + idx);   if (n && n.value !== '') ex.name = n.value;
+    const s = g('cust-sets-' + idx);   if (s && s.value !== '') ex.sets = parseInt(s.value) || ex.sets;
+    const r = g('cust-reps-' + idx);   if (r && r.value !== '') ex.reps = parseInt(r.value) || ex.reps;
+    const w = g('cust-weight-' + idx); if (w && w.value !== '') ex.weight = parseFloat(w.value) || 0;
+  });
+}
+
 function removeCustomExercise(idx) {
   if (!S.customWorkoutLog || !S.customWorkoutLog.exercises) return;
+  harvestCustomInputs();
   S.customWorkoutLog.exercises.splice(idx, 1);
   render();
 }
@@ -2807,6 +2960,7 @@ function removeCustomExercise(idx) {
 function addCustomExerciseRow() {
   if (!S.customWorkoutLog) return;
   if (!S.customWorkoutLog.exercises) S.customWorkoutLog.exercises = [];
+  harvestCustomInputs();
   S.customWorkoutLog.exercises.push({name: '', sets: 3, reps: 10, weight: 0});
   render();
 }
@@ -3417,6 +3571,14 @@ document.addEventListener('click',e=>{
     S.view = 'custom-workout-log';
     render();return;
   }
+  if(a==='log-vo2-session'){
+    const p=currentVO2Protocol();
+    // isCardio + empty exercises → invisible to MRV set volumes, the lifting
+    // two-per-day cap, completed-day detection, and progression
+    S.logs.push({id:Date.now().toString(),date:new Date().toISOString(),dayName:`VO2 Max · ${p.name}`,isCardio:true,vo2:true,duration:p.mins,exercises:[]});
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    save();render();return;
+  }
   if(a==='log-past-workout'){
     // Retroactive entry: date/time chosen in the form; dow derived on save
     S.customWorkoutLog = {
@@ -3471,6 +3633,7 @@ document.addEventListener('click',e=>{
       alert('Please add at least one exercise');
       return;
     }
+    harvestCustomInputs(); // capture any not-yet-committed input values
 
     // Backdated entries: resolve the chosen historic date/time and derive the
     // day-of-week from it; reject future timestamps.
@@ -3486,8 +3649,15 @@ document.addEventListener('click',e=>{
       }
       S.customWorkoutLog.dow = entryDate.getDay();
     }
-    // A backdated workout only ties into the program week if it falls inside it
-    const inCurrentWeek = entryDate.toISOString().slice(0,10) >= thisMonday();
+    // A backdated workout only ties into the program week if it falls inside
+    // it — judged on the user's LOCAL calendar day
+    const inCurrentWeek = localDateStr(entryDate) >= thisMonday();
+
+    // Two-per-day cap applies to logged entries on any local calendar day
+    if(!S.customWorkoutLog.isPlanning && liftingSessionsOn(localDateStr(entryDate)) >= 2){
+      alert(`Daily limit: ${localDateStr(entryDate)} already has two lifting sessions logged (max two per calendar day).`);
+      return;
+    }
 
     // Create a workout entry
     const customData = {
@@ -3502,12 +3672,16 @@ document.addEventListener('click',e=>{
         // logged weights feed the same 4% progression history as regular workouts;
         // otherwise create a stable slug id tracked on its own.
         const { match } = resolveEx(ex.name);
+        // Guard against NaN/0 from in-progress numeric edits
+        const nSets = Math.max(1, parseInt(ex.sets) || 1);
+        const nReps = Math.max(1, parseInt(ex.reps) || 1);
+        const nWeight = parseFloat(ex.weight) || 0;
         return {
           id: match ? match.id : (ex.name||'').toLowerCase().replace(/[^a-z0-9]/g, '_'),
           name: match ? match.name : ex.name,
           muscle: ex.muscle || (match ? match.muscle : estimateMuscleGroup(ex.name)),
-          sets: [{weight: ex.weight, reps: ex.reps}].concat(
-            Array(ex.sets - 1).fill().map(() => ({weight: ex.weight, reps: ex.reps}))
+          sets: [{weight: nWeight, reps: nReps}].concat(
+            Array(nSets - 1).fill().map(() => ({weight: nWeight, reps: nReps}))
           )
         };
       })
@@ -3723,7 +3897,7 @@ document.addEventListener('click',e=>{
 
     // Re-attach custom workouts to their program day when still applicable
     if(entry.log.isCustom&&entry.wasOnDow!=null&&S.program?.week?.[entry.wasOnDow]
-       &&entry.log.date.slice(0,10)>=thisMonday()&&!S.program.week[entry.wasOnDow].customWorkout){
+       &&logDay(entry.log.date)>=thisMonday()&&!S.program.week[entry.wasOnDow].customWorkout){
       S.program.week[entry.wasOnDow].customWorkout=true;
       S.program.week[entry.wasOnDow].customLog=entry.log;
       if(S.weekPlan?.availability)rebalanceCustomWorkouts();
@@ -3987,9 +4161,40 @@ async function initFirebase(cfg){
 async function saveToCloud(){
   if(!fbReady||!fbUser||!fbDb)return;
   try{
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],updatedAt:S.updatedAt||new Date().toISOString()};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString()};
     await fbDb.collection('users').doc(fbUser.uid).set(data);
   }catch(e){console.error('Cloud save failed',e);}
+}
+
+// Generic union-by-id: every row created on any device survives the merge.
+// Additive collections (logs, custom exercises, deleted sessions) must NEVER
+// be last-writer-wins — that's how one device's entries were getting dropped.
+function unionById(localArr,cloudArr,idOf){
+  idOf=idOf||(x=>x.id);
+  const out=[...(cloudArr||[])];
+  (localArr||[]).forEach(l=>{if(!out.find(c=>idOf(c)===idOf(l)))out.push(l);});
+  return out;
+}
+
+// Post-merge consistency: another device may have logged a planned workout
+// (program here still carries planned flags → MRV would count the muscle
+// volume TWICE), or deleted a session this program still references.
+function reconcileProgramWithLogs(){
+  if(!S.program?.week)return;
+  const mon=thisMonday();
+  S.program.week.forEach(day=>{
+    if(!day)return;
+    if(day.plannedCustomWorkout){
+      const hit=(S.logs||[]).find(l=>!l.isCardio&&logDay(l.date)>=mon&&new Date(l.date).getDay()===day.dow);
+      if(hit){
+        delete day.plannedCustomWorkout;delete day.plannedCustomLog;
+        if(hit.isCustom){day.customWorkout=true;day.customLog=hit;}
+      }
+    }
+    if(day.customWorkout&&day.customLog&&!(S.logs||[]).find(l=>l.id===day.customLog.id)){
+      delete day.customWorkout;delete day.customLog; // deleted on another device
+    }
+  });
 }
 
 async function loadFromCloud(){
@@ -3998,21 +4203,25 @@ async function loadFromCloud(){
     const doc=await fbDb.collection('users').doc(fbUser.uid).get();
     if(doc.exists){
       const cloud=doc.data();
-      // Merge logs by ID union — preserves this week's local sessions
-      const localLogs=S.logs||[];
-      const cloudLogs=cloud.logs||[];
-      const merged=[...cloudLogs];
-      localLogs.forEach(l=>{if(!merged.find(c=>c.id===l.id))merged.push(l);});
-      merged.sort((a,b)=>a.id>b.id?1:-1);
+      // Additive collections: union by id on EVERY sync, regardless of which
+      // side is newer. Logs stay sorted by workout DATE (not record id) so
+      // backdated entries keep progression chronology intact.
+      const merged=unionById(S.logs,cloud.logs);
+      merged.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+      const customEx=unionById(S.customExercises,cloud.customExercises);
+      const deleted=unionById(S.deletedSessions,cloud.deletedSessions,d=>d.log?.id);
       // Merge lastWeights: local takes precedence (most recent device)
       const weights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
-      // cfg/program/weekPlan come from whichever side saved most recently —
-      // the cloud copy can be stale if a local save happened before Firebase was ready
+      // Singleton state (cfg/program/weekPlan) from whichever side saved most
+      // recently — the cloud copy can be stale if a local save happened
+      // before Firebase was ready
       const cloudNewer=cloud.updatedAt&&(!S.updatedAt||cloud.updatedAt>S.updatedAt);
       if(cloudNewer){
-        Object.assign(S,{cfg:cloud.cfg||S.cfg,program:cloud.program||S.program,weekPlan:cloud.weekPlan||S.weekPlan,eveningMins:cloud.eveningMins??S.eveningMins,eveningLocation:cloud.eveningLocation??S.eveningLocation,customExercises:cloud.customExercises||S.customExercises});
+        Object.assign(S,{cfg:cloud.cfg||S.cfg,program:cloud.program||S.program,weekPlan:cloud.weekPlan||S.weekPlan,eveningMins:cloud.eveningMins??S.eveningMins,eveningLocation:cloud.eveningLocation??S.eveningLocation});
       }
-      Object.assign(S,{logs:merged.slice(-10),lastWeights:weights});
+      Object.assign(S,{logs:merged.slice(-10),lastWeights:weights,customExercises:customEx,deletedSessions:deleted.slice(-20)});
+      reconcileProgramWithLogs();
+      recalcLastWeights();
       save();// persists merged state and uploads it back to the cloud
     }else{
       await saveToCloud();// first login — push local data up
