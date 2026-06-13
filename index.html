@@ -697,6 +697,29 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
   return exercise||null;
 }
 
+// Backfill a freed session slot (dropped via lockout/MRV-max, or a template
+// shorter than the time-based exercise limit) with a movement for whichever
+// OTHER muscle has the most headroom below its weekly MRV max — so session
+// time isn't wasted while useful volume still fits. Ranks muscles by deficit
+// (max - committed), then tries compound/isolation/rotational for the most
+// under-volumed muscle before moving to the next.
+function pickBackfillEx(equip,used,isLunch,budget,exFreq,excludeMuscles){
+  const limits=(budget&&budget.limits)||{};
+  const perEx=(budget&&budget.perExercise)||3;
+  const candidates=Object.keys(limits)
+    .filter(m=>!(excludeMuscles&&excludeMuscles.has(m)))
+    .map(m=>({m,deficit:limits[m].max-(budget.vol[m]||0)}))
+    .filter(c=>c.deficit>=perEx)
+    .sort((a,b)=>b.deficit-a.deficit);
+  for(const {m} of candidates){
+    for(const type of ['compound','isolation','rotational']){
+      const e=pickEx({muscle:m,type},equip,used,isLunch,budget,exFreq);
+      if(e)return e;
+    }
+  }
+  return null;
+}
+
 function genProgram(cfg,av,workoutHistoryLog){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
 
@@ -822,6 +845,25 @@ function genProgram(cfg,av,workoutHistoryLog){
 
       return modifiedEx;
     }).filter(Boolean);
+
+    // Backfill freed slots (dropped via lockout/MRV-max, or a template shorter
+    // than the time-based limit) with movements for under-volumed muscles —
+    // keep adding sets as long as a muscle has headroom below its weekly MRV
+    // max AND the session still has room under its time-based exercise limit.
+    while(exs.length<limit){
+      const e=pickBackfillEx(equip,used,slot.isLunch,budget,exFreq,lockedMuscles);
+      if(!e)break;
+      used.push(e.id);
+      exFreq[e.id]=(exFreq[e.id]||0)+1;
+      let modifiedEx={...e,sets:3,sessionMins:slot.mins};
+      if(isCircuitStyle && !slot.isLunch){
+        modifiedEx.rest=Math.max(60, e.rest ? e.rest/2 : 60);
+        modifiedEx.sets=e.circuit?4:3;
+        if(e.circuit)modifiedEx.circuitStyle=true;
+      }
+      budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+modifiedEx.sets;
+      exs.push(modifiedEx);
+    }
 
     // Restore the real weekly ceilings — the lockout only applied to today's pick.
     Object.entries(lockedLimits).forEach(([m,lim])=>{budget.limits[m]=lim;});
