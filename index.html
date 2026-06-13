@@ -754,11 +754,19 @@ function genProgram(cfg,av,workoutHistoryLog){
   // fills toward optimal without exceeding each muscle's recoverable max.
   const budget = { vol: getCommittedVolumes(), limits: getMRVLimits(), perExercise: 3 };
 
+  // Calendar date (YYYY-MM-DD) for a program-week dow, for the fatigue matrix's
+  // day-by-day lockout lookback. dow 1-5 = Mon-Fri, 6 = Sat, 0 = next Sun.
+  const dateForDow=(dow)=>dow===0?addDays(mon,6):dow===6?addDays(mon,5):addDays(mon,dow-1);
+  // Muscles trained per date, accumulated as sessions are assigned this run —
+  // lets getLockedMuscles see "preceding" days within the same generation pass.
+  const assignedMuscles={};
+
   function buildSession(slot,tk,oldData){
     // Use per-session equipment from availability
     const equipmentKey=slot.equipmentKey||'ymca';
     const selectedPreset=EQUIPMENT_PRESETS[equipmentKey]||EQUIPMENT_PRESETS.ymca;
     const equip=selectedPreset.equipment;
+    const dateStr=dateForDow(slot.dow);
     if(oldData===undefined)oldData=oldWeek?.[slot.dow];
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
     if(oldData&&!oldData.rest&&(completedDows.has(slot.dow)||(oldData.tk===tk&&oldData.loc===slot.loc))){
@@ -772,12 +780,27 @@ function genProgram(cfg,av,workoutHistoryLog){
           if(e&&e.id) exFreq[e.id]=(exFreq[e.id]||0)+1;
         });
       }
+      // Record which muscles land on this date so the fatigue matrix can see
+      // this preserved session as "preceding" when evaluating later days.
+      (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
+      (od.exercises||[]).forEach(e=>{if(e&&e.muscle)assignedMuscles[dateStr].add(e.muscle);});
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,preserved:true};
     }
     const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
     const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
     const used=[];
     const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
+
+    // Muscle group fatigue matrix: pin the MRV ceiling for any muscle still
+    // inside its recovery-lockout window (relative to dateStr) to its current
+    // committed volume, so pickEx drops new sets for it this session — same
+    // "fewer sets" path as a muscle that's already at its weekly MRV max.
+    const lockedMuscles=getLockedMuscles(dateStr,history,assignedMuscles);
+    const lockedLimits={};
+    lockedMuscles.forEach(m=>{
+      if(budget.limits[m]){lockedLimits[m]=budget.limits[m];budget.limits[m]={min:budget.limits[m].min,max:budget.vol[m]||0};}
+    });
+
     const exs=tmpl.slots.slice(0,limit).map(sl=>{
       const e=pickEx(sl,equip,used,slot.isLunch,budget,exFreq);
       if(!e) return null;
@@ -800,10 +823,17 @@ function genProgram(cfg,av,workoutHistoryLog){
       return modifiedEx;
     }).filter(Boolean);
 
+    // Restore the real weekly ceilings — the lockout only applied to today's pick.
+    Object.entries(lockedLimits).forEach(([m,lim])=>{budget.limits[m]=lim;});
+
     let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
 
     // Adjust session name for circuit training
     const sessionName = isCircuitStyle && !slot.isLunch ? tmpl.name.replace('Day', 'Circuit') : tmpl.name;
+
+    (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
+    exs.forEach(e=>{if(e.muscle)assignedMuscles[dateStr].add(e.muscle);});
+
     return{tk,name:sessionName,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
   function assignSlot(slot,idx){
@@ -1087,6 +1117,41 @@ function getFatiguedMuscles(){
     }
   });
   return fatigued;
+}
+
+// ─── MUSCLE GROUP FATIGUE MATRIX ───
+// Hard recovery-lockout windows per muscle group, in hours. When the
+// reconfiguration engine evaluates a calendar day, it scans the historical log
+// (plus any sessions already assigned earlier in this same generation run) for
+// each muscle's lockout period. A muscle inside its window has its MRV ceiling
+// pinned to its already-committed volume for that day, so pickEx drops rather
+// than adds sets for it — the same "fewer sets" path used when a muscle hits
+// its weekly MRV max.
+const MUSCLE_LOCKOUT_HOURS={chest:48,shoulders:48,back:48,legs:72,biceps:24,triceps:24,core:24};
+
+// Hours between the noon-anchored timestamps of two local calendar dates (YYYY-MM-DD).
+function hoursBetweenDates(fromDateStr,toDateStr){
+  return (new Date(toDateStr+'T12:00:00')-new Date(fromDateStr+'T12:00:00'))/3600000;
+}
+
+// Muscles locked for `dateStr`, scanning `history` (logged sessions on any date
+// strictly before dateStr) plus `assigned` (a {dateStr: Set<muscle>} map of
+// sessions already built earlier in this generation run).
+function getLockedMuscles(dateStr,history,assigned){
+  const locked=new Set();
+  Object.entries(MUSCLE_LOCKOUT_HOURS).forEach(([muscle,hrs])=>{
+    const fromHistory=(history||[]).some(l=>{
+      if(l.isCardio)return false;
+      const d=logDay(l.date);
+      if(!(d<dateStr))return false;
+      if(!(l.exercises||[]).some(e=>e.muscle===muscle))return false;
+      return hoursBetweenDates(d,dateStr)<hrs;
+    });
+    const fromRun=fromHistory?false:Object.entries(assigned||{}).some(([d,muscles])=>
+      d<dateStr&&muscles.has(muscle)&&hoursBetweenDates(d,dateStr)<hrs);
+    if(fromHistory||fromRun)locked.add(muscle);
+  });
+  return locked;
 }
 
 // Sets already committed this week by muscle: completed/logged workouts PLUS any
