@@ -577,7 +577,11 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 // ─────────────────────────────────────────────
 let S={
   view:'setup',step:1,
-  cfg:{days:5,mins:60,goal:'hyp',bodyLbs:175,hipCaution:true,conditioning:false},
+  cfg:{days:5,mins:60,goal:'lean',bodyLbs:199,hipCaution:true,conditioning:true,
+    // Seeded from the InBody-style body-composition scan (Starfit, 2026-05-24).
+    // Muscle already sits above the normal range — the score gap is pure fat, so
+    // the program is tuned to strip fat while preserving muscle (see bodyScoreCard).
+    bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,
@@ -613,6 +617,13 @@ function load(){
       }
       // Migrate: add conditioning default if missing
       if(S.cfg.conditioning===undefined)S.cfg.conditioning=false;
+      // Migrate: seed the body-composition scan + lean focus for the score goal.
+      // Muscle is already above range, so the only lever to 100 is fat loss while
+      // holding muscle — switch the goal to lean recomp and turn conditioning on.
+      if(!S.cfg.bodyScore){
+        S.cfg.bodyScore={score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'};
+        S.cfg.goal='lean';S.cfg.conditioning=true;S.cfg.bodyLbs=199;
+      }
       // Clear mid-week planStartDow if the stored week plan is from a previous week
       if(S.cfg?.planStartDow&&(!S.weekPlan||S.weekPlan.weekOf<thisMonday())){
         delete S.cfg.planStartDow;
@@ -1177,6 +1188,65 @@ function renderMRVWidget(){
     </div>
     ${rows}
     ${fatigueNote}
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+// BODY SCORE GOAL CARD
+// ─────────────────────────────────────────────
+// Translates the body-composition scan into a TRAINING plan. The scan shows
+// muscle already above the normal range, so the only lever from 79→100 is
+// dropping fat while holding that muscle. Everything surfaced here is on the
+// training side (lift to retain muscle, move to spend energy) — the app stays
+// out of nutrition prescription by design.
+function renderBodyScoreCard(){
+  const b=S.cfg&&S.cfg.bodyScore;
+  if(!b)return'';
+  const score=b.score||0;
+  const pct=Math.max(4,Math.min(100,score));
+  const toLose=Math.max(0,+(b.weight-b.target).toFixed(1));
+  const muscleOver=+(b.skeletalMuscle-b.smRangeHi).toFixed(1); // lb above the normal-range ceiling
+  const ring=score>=95?'var(--ok)':score>=85?'#a5b4fc':'var(--warn)';
+  const stat=(label,val,note,col)=>`<div style='flex:1;min-width:84px'>
+    <div style='font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px'>${label}</div>
+    <div style='font-size:17px;font-weight:800;color:${col||'var(--txt)'}'>${val}</div>
+    <div style='font-size:10px;color:var(--mut)'>${note}</div>
+  </div>`;
+  const step=(icon,title,body)=>`<div style='display:flex;gap:9px;margin-bottom:9px'>
+    <span style='font-size:15px;flex-shrink:0'>${icon}</span>
+    <div><span style='font-size:13px;font-weight:700'>${title}</span>
+    <span style='font-size:12px;color:var(--mut)'> — ${body}</span></div>
+  </div>`;
+  return`<div class='card' style='margin-bottom:14px;border:1px solid rgba(129,140,248,.3);background:linear-gradient(135deg,var(--surf2) 0%,rgba(129,140,248,.06) 100%)'>
+    <div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px'>
+      <div>
+        <div class='sec-lbl' style='margin-bottom:2px'>🎯 Body Score Goal</div>
+        <div style='font-size:11px;color:var(--mut)'>Scan ${b.testDate||''} · target 100</div>
+      </div>
+      <button class='btn btn-s btn-sm' data-action='edit-body-score' style='width:auto'>Update scan</button>
+    </div>
+    <div style='display:flex;align-items:baseline;gap:8px;margin-bottom:6px'>
+      <span style='font-size:38px;font-weight:800;color:${ring};line-height:1'>${score}</span>
+      <span style='font-size:16px;color:var(--mut)'>/ 100</span>
+      <span style='margin-left:auto;font-size:12px;color:var(--mut)'>${100-score>0?`${100-score} to go`:'goal hit 🎉'}</span>
+    </div>
+    <div style='background:var(--surf2);border-radius:5px;height:9px;margin-bottom:14px;overflow:hidden'>
+      <div style='background:${ring};height:100%;width:${pct}%;border-radius:5px'></div>
+    </div>
+    <div style='display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px'>
+      ${stat('Body Fat',`${b.bodyFatPct}%`,'above target','var(--warn)')}
+      ${stat('Skeletal Muscle',`${b.skeletalMuscle} lb`,muscleOver>0?`+${muscleOver} over range`:'in range','var(--ok)')}
+      ${stat('Fat to Lose',`${toLose} lb`,`→ ${b.target} lb`,'var(--acc)')}
+    </div>
+    <div style='font-size:12px;color:var(--txt);background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.2);border-radius:8px;padding:10px;margin-bottom:14px;line-height:1.5'>
+      Your muscle already sits <strong style='color:var(--ok)'>above the normal range</strong> — the scan says add <strong>0 lb</strong> of muscle. The whole gap to 100 is body fat. So the job isn't to build, it's to <strong>strip ${toLose} lb of fat while keeping every pound of muscle.</strong> "Muscular individuals may score above 100," so holding your muscle through the cut is what lets the score climb.
+    </div>
+    <div class='sec-lbl' style='margin-bottom:8px'>Your plan to 100</div>
+    ${step('🏋️','Lift heavy to keep your muscle','in a deficit, hard compound work is the signal to retain muscle. Goal is set to <strong>Lean / Recomp</strong> — keep the weight on the bar, don\'t drop training volume.')}
+    ${step('🚶','Hit the 1-hour daily walk','your biggest no-impact lever — NEAT is now flagged on every rest-day card.')}
+    ${step('🏃','LISS incline cardio','3.0 mph @ 6% incline, fasted AM or pre-sleep — added to your cardio options for steady fat oxidation.')}
+    ${step('🔥','Conditioning finishers','short high-burn circuits, now auto-enabled, tack extra expenditure onto lifting days.')}
+    <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.5'>Fat loss ultimately needs an energy deficit. This app runs the <strong>training side</strong> — preserving muscle and driving expenditure; pair it with your own nutrition for the calorie side.</div>
   </div>`;
 }
 
@@ -1842,6 +1912,7 @@ function renderSetup(){
   const av=S.weekPlan.availability;
 
   const goalOpts=[
+    {id:'lean',label:'Lean / Recomp',sub:'Strip fat, keep muscle'},
     {id:'ath',label:'Athletic Performance',sub:'Power, speed, movement quality'},
     {id:'hyp',label:'Hypertrophy',sub:'Size + definition'},
     {id:'str',label:'Strength',sub:'Max force output'},
@@ -2097,6 +2168,7 @@ function renderDash(){
 
   return`<div class='view'>
     <div class='hdg'>My Program</div>
+    ${renderBodyScoreCard()}
     <div class='sec-lbl'>This Week</div>
     <div class='wk-grid'>${wkGrid}</div>
     ${todayHTML}
@@ -3276,7 +3348,24 @@ document.addEventListener('click',e=>{
   if(a==='setup-next'){S.step=Math.min(3,S.step+1);render();return;}
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
   if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);save();render();return;}
-  if(a==='set-goal'){S.cfg.goal=btn.dataset.val;save();render();return;}
+  if(a==='edit-body-score'){
+    const b=S.cfg.bodyScore||{};
+    const ask=(label,cur)=>{const v=prompt(label,cur==null?'':String(cur));return v==null?cur:(v.trim()===''?cur:(isNaN(parseFloat(v))?cur:parseFloat(v)));};
+    b.score=ask('Body Score (out of 100)',b.score);
+    b.weight=ask('Current weight (lb)',b.weight);
+    b.target=ask('Recommended target weight (lb)',b.target);
+    b.bodyFatPct=ask('Body fat %',b.bodyFatPct);
+    b.skeletalMuscle=ask('Skeletal muscle (lb)',b.skeletalMuscle);
+    const td=prompt('Scan date (YYYY-MM-DD)',b.testDate||'');if(td&&td.trim())b.testDate=td.trim();
+    S.cfg.bodyScore=b;
+    if(b.weight)S.cfg.bodyLbs=Math.round(b.weight);
+    save();render();return;
+  }
+  if(a==='set-goal'){S.cfg.goal=btn.dataset.val;
+    // Lean/recomp leans on training expenditure — turn conditioning finishers on
+    // so the deficit gets help from short high-burn circuits.
+    if(btn.dataset.val==='lean')S.cfg.conditioning=true;
+    save();render();return;}
   if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
   if(a==='generate'){
     const bwEl=document.getElementById('bw-input');
