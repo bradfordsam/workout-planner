@@ -636,7 +636,7 @@ function load(){
 // ─────────────────────────────────────────────
 // PROGRAM GENERATOR
 // ─────────────────────────────────────────────
-function pickEx(slot,equip,used,isLunch,budget){
+function pickEx(slot,equip,used,isLunch,budget,freq){
   const eq=new Set([...equip,'bodyweight']);
   const overworkedMuscles = getOverworkedMuscles();
   const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
@@ -651,6 +651,14 @@ function pickEx(slot,equip,used,isLunch,budget){
     return (budget.vol[e.muscle] || 0) + perEx <= budget.limits[e.muscle].max;
   };
 
+  // Rolling-week movement frequency (seeded from the past 7 days of history plus
+  // whatever this generation run has already assigned). Used to (a) cap how often
+  // a single movement repeats in the microcycle and (b) spread variety across
+  // days instead of deterministically returning the first match every time.
+  const f = freq || {};
+  const FREQ_CAP = 2; // max appearances of one movement per rolling 7-day window
+  const freqOf = (e) => f[e.id] || 0;
+
   // Shared slot constraints (muscle/type/tag/equipment/hip-caution/lunch sweat).
   // Hip-caution mode also bans plyometrics (impact loading on a sensitive hip)
   // — that volume is redistributed to the remaining non-impact pool, which
@@ -664,23 +672,49 @@ function pickEx(slot,equip,used,isLunch,budget){
     !(S.cfg.hipCaution && (e.tags||[]).includes('plyometric')) &&
     !(isLunch && e.highSweat);
 
-  // For circuit training, prefer circuit-tagged exercises (still within MRV)
+  // Among the candidates, take the LEAST-used movement (lowest weekly frequency),
+  // breaking ties by EX array order — so a slot that recurs across days rotates
+  // through the available movements instead of repeating barbell bench every time.
+  const leastUsed = (list) => list.length
+    ? list.reduce((best,e)=> freqOf(e) < freqOf(best) ? e : best)
+    : null;
+
+  // For circuit training, prefer circuit-tagged exercises (still within MRV + cap)
   if(isCircuitStyle && !isLunch) {
-    const circuitEx = allExercises.find(e => base(e) && !overworkedMuscles.has(e.muscle) && fitsMRV(e) && e.circuit);
+    const circuitEx = leastUsed(allExercises.filter(e => base(e) && !overworkedMuscles.has(e.muscle) && fitsMRV(e) && freqOf(e)<FREQ_CAP && e.circuit));
     if(circuitEx) return circuitEx;
   }
 
-  // 1) Best: avoid overworked muscles AND stay within MRV max
-  let exercise = allExercises.find(e => base(e) && !overworkedMuscles.has(e.muscle) && fitsMRV(e));
-  // 2) Next: stay within MRV max (allow a recently-worked muscle if needed)
-  if(!exercise) exercise = allExercises.find(e => base(e) && fitsMRV(e));
+  // 1) Best: avoid overworked muscles, stay within MRV max, under the frequency cap
+  let exercise = leastUsed(allExercises.filter(e => base(e) && !overworkedMuscles.has(e.muscle) && fitsMRV(e) && freqOf(e)<FREQ_CAP));
+  // 2) Next: within MRV max + under cap (allow a recently-worked muscle if needed)
+  if(!exercise) exercise = leastUsed(allExercises.filter(e => base(e) && fitsMRV(e) && freqOf(e)<FREQ_CAP));
+  // 3) Cap relaxed: a constrained equipment pool may have no alternative left
+  // under the cap — better to repeat a movement than to drop the slot entirely.
+  if(!exercise) exercise = leastUsed(allExercises.filter(e => base(e) && fitsMRV(e)));
   // If the muscle has hit its weekly MRV max, intentionally return null so this
   // slot is dropped (fewer sets) rather than exceeding the recoverable volume.
   return exercise||null;
 }
 
-function genProgram(cfg,av){
+function genProgram(cfg,av,workoutHistoryLog){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
+
+  // The historical workout log is a REQUIRED input for reconfiguration. Reset
+  // clears only the forward-looking schedule (S.program) — it never purges the
+  // logs — so the generator can read what was actually trained recently. Treated
+  // as immutable here: we only read from it.
+  const history = workoutHistoryLog || S.logs || [];
+  // Lookback constraint: tally how many times each movement was logged in the
+  // past 7 days. pickEx blocks any movement that has hit its frequency cap and
+  // substitutes an alternative; the same map keeps accumulating as this run
+  // assigns movements, so a slot won't repeat the same lift across days.
+  const freqStart = addDays(todayStr(), -7);
+  const exFreq = {};
+  history.forEach(l=>{
+    if(l.isCardio || logDay(l.date) < freqStart) return;
+    (l.exercises||[]).forEach(e=>{ if(e&&e.id) exFreq[e.id]=(exFreq[e.id]||0)+1; });
+  });
 
   // Collect lunch slots and available evening slots separately
   const lunchSlots=[];const eveSlots=[];
@@ -729,10 +763,14 @@ function genProgram(cfg,av){
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
     if(oldData&&!oldData.rest&&(completedDows.has(slot.dow)||(oldData.tk===tk&&oldData.loc===slot.loc))){
       const od=oldData;
-      // Count a preserved upcoming session toward the budget (completed days and
-      // custom/planned days are already counted via getCommittedVolumes).
+      // Count a preserved upcoming session toward the budget AND the movement
+      // frequency map (completed days are already in the history seed; custom/
+      // planned days are already counted via getCommittedVolumes).
       if(!completedDows.has(slot.dow) && !od.customWorkout && !od.plannedCustomWorkout){
-        (od.exercises||[]).forEach(e=>{ if(e&&e.muscle) budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+(e.sets||3); });
+        (od.exercises||[]).forEach(e=>{
+          if(e&&e.muscle) budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+(e.sets||3);
+          if(e&&e.id) exFreq[e.id]=(exFreq[e.id]||0)+1;
+        });
       }
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,preserved:true};
     }
@@ -741,9 +779,12 @@ function genProgram(cfg,av){
     const used=[];
     const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
     const exs=tmpl.slots.slice(0,limit).map(sl=>{
-      const e=pickEx(sl,equip,used,slot.isLunch,budget);
+      const e=pickEx(sl,equip,used,slot.isLunch,budget,exFreq);
       if(!e) return null;
       used.push(e.id);
+      // Record this assignment so later days/sessions in the same run see it and
+      // rotate to a different movement once the cap is reached.
+      exFreq[e.id]=(exFreq[e.id]||0)+1;
 
       // Modify exercise for circuit training
       let modifiedEx = {...e, sets:3, sessionMins:slot.mins};
@@ -3139,7 +3180,7 @@ function adaptWeekForCustomWorkout(customLog, customDow) {
   S.weekPlan.recentWorkouts = `Custom workouts this week: ${customMuscleList}`;
 
   // Completely regenerate the week program to adapt around ALL custom workouts
-  S.program = genProgram(S.cfg, S.weekPlan.availability);
+  S.program = genProgram(S.cfg, S.weekPlan.availability, S.logs);
 
   // Restore ALL custom workout days (including the new one)
   existingCustomWorkouts[customDow] = {
@@ -3205,7 +3246,7 @@ function planCustomWorkout(customLog, customDow) {
   S.weekPlan.recentWorkouts = `Custom/planned workouts this week: ${customMuscleList}`;
 
   // Completely regenerate the week program to adapt around ALL custom workouts
-  S.program = genProgram(S.cfg, S.weekPlan.availability);
+  S.program = genProgram(S.cfg, S.weekPlan.availability, S.logs);
 
   // Apply all custom/planned workouts back to the regenerated program
   Object.entries(existingWorkouts).forEach(([dow, workoutData]) => {
@@ -3256,7 +3297,7 @@ function rebalanceCustomWorkouts() {
   }
 
   // Regenerate the week and re-apply remaining custom/planned workouts
-  S.program = genProgram(S.cfg, S.weekPlan.availability);
+  S.program = genProgram(S.cfg, S.weekPlan.availability, S.logs);
   Object.entries(existingWorkouts).forEach(([dow, workoutData]) => {
     const dayIndex = parseInt(dow);
     if (S.program.week[dayIndex]) {
@@ -3314,7 +3355,7 @@ function cancelPlannedWorkout(cancelDow) {
   }
 
   // Regenerate the week program
-  S.program = genProgram(S.cfg, S.weekPlan.availability);
+  S.program = genProgram(S.cfg, S.weekPlan.availability, S.logs);
 
   // Restore remaining custom workouts
   Object.entries(existingWorkouts).forEach(([dow, workoutData]) => {
@@ -3374,7 +3415,7 @@ document.addEventListener('click',e=>{
     if(!S.weekPlan)S.weekPlan={weekOf:todayStr(),availability:defaultAvailability(),calGoal:null};
     S.weekPlan.weekOf=todayStr();
     if(recentEl)S.weekPlan.recentWorkouts=recentEl.value||'';
-    S.program=genProgram(S.cfg,S.weekPlan.availability);
+    S.program=genProgram(S.cfg,S.weekPlan.availability,S.logs);
     delete S.cfg.planStartDow; // clear so next week starts fresh
     S.view='dash';save();render();return;
   }
@@ -3485,7 +3526,7 @@ document.addEventListener('click',e=>{
     // Keep existing cardio style if not set
     if(!S.weekPlan.cardioStyle) S.weekPlan.cardioStyle='separate';
     // Regenerate program with new availability and cardio style consideration
-    S.program=genProgram(S.cfg,S.weekPlan.availability);
+    S.program=genProgram(S.cfg,S.weekPlan.availability,S.logs);
     save();S.view='dash';render();return;
   }
   if(a==='clear-plan-goal'){
