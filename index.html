@@ -1637,7 +1637,12 @@ function calcWeekCardio(){
     const eve=d.eveningSession?estimateStrengthCals(d.eveningSession.mins||60,bodyLbs):0;
     return sum+primary+eve;
   },0);
-  const cardioCalsNeeded=Math.max(0,entry.cals-strengthCals);
+  // The calorie goal is a pure cardio target: prescribe cardio that adds up to
+  // the full goal. Lifting burns extra calories on top and is NOT subtracted —
+  // strengthCals is kept for display context only. (Subtracting it caused the
+  // goal to be fully "covered" by lifting on normal training weeks, which
+  // silently hid the cardio prescriptions.)
+  const cardioCalsNeeded=Math.max(0,entry.cals);
   const calsPerDay=Math.round(cardioCalsNeeded/daysLeft);
   return{strengthCals,cardioCalsNeeded,calsPerDay,daysLeft,options:cardioOptions(calsPerDay,bodyLbs)};
 }
@@ -2260,7 +2265,7 @@ function renderDash(){
       cardioHTML=`<div style='margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)'>
         <div class='sec-lbl' style='margin-bottom:6px'>Daily Cardio · ${cardio.calsPerDay} cal/day</div>
         <div class='cardio-list'>${rows}</div>
-        <div style='font-size:11px;color:var(--mut);margin-top:8px'>${cardio.cardioCalsNeeded} cardio cal needed · ${cardio.daysLeft} days left · strength ~${cardio.strengthCals} cal</div>
+        <div style='font-size:11px;color:var(--mut);margin-top:8px'>${cardio.cardioCalsNeeded} cardio cal target · ${cardio.daysLeft} days left · lifting burns ~${cardio.strengthCals} cal on top</div>
       </div>`;
     }
   }
