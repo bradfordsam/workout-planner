@@ -1573,6 +1573,118 @@ function recalcLastWeights(){
   });
   S.lastWeights=w;
 }
+
+// ─────────────────────────────────────────────
+// INTENSITY ESTIMATION ENGINE — starting weight for unperformed movements
+// ─────────────────────────────────────────────
+// When a movement appears in the schedule that the user has never logged there
+// is no progression history to anchor a working weight, so the input box would
+// otherwise open blank. This engine derives a conservative first-session
+// estimate from logged performance on related movements.
+//
+// Two-tier strategy:
+//   1. ANCHOR MATRIX (preferred): each derived movement maps to one or more
+//      "anchor" lifts sharing the primary muscle + movement pattern. The
+//      coefficient bridges BOTH relative strength and loading convention —
+//      a barbell's total load vs. a per-hand dumbbell vs. a machine stack.
+//      estimate = anchor working weight × coefficient.
+//   2. GROUP FLOOR (fallback): no anchor has logs → take the best estimated
+//      1RM among all logged weighted lifts in the same primary muscle group
+//      and prescribe 60% of it as a conservative working-weight floor.
+// Coefficients are deliberately rough: the goal is a safe, in-the-ballpark
+// opener the user then adjusts on the first set, not a precise prediction.
+
+// Derived movement id → ranked anchor list. coef = derived load ÷ anchor load,
+// so per-hand dumbbell anchors/targets carry sub-1 or >1 factors accordingly.
+const MOVEMENT_CLASS = {
+  // ─ Chest: horizontal / incline press ─
+  machine_press: [{from:'bench',coef:0.95},{from:'incline_db',coef:1.7}],
+  incline_db:    [{from:'bench',coef:0.38},{from:'machine_press',coef:0.40}], // per-DB
+  bench:         [{from:'machine_press',coef:1.05},{from:'incline_db',coef:2.6}],
+  // ─ Back: vertical / horizontal pull ─
+  lat_pulldown:  [{from:'pullups',coef:0.9},{from:'cable_row',coef:0.95},{from:'bb_row',coef:0.85}],
+  cable_row:     [{from:'bb_row',coef:0.9},{from:'lat_pulldown',coef:1.05},{from:'db_row',coef:1.7}],
+  bb_row:        [{from:'cable_row',coef:1.1},{from:'db_row',coef:1.9}],
+  db_row:        [{from:'bb_row',coef:0.5},{from:'cable_row',coef:0.55}], // per-DB
+  // ─ Shoulders: overhead press + lateral raise ─
+  seated_db_press:[{from:'ohp',coef:0.38},{from:'arnold_press',coef:1.0}], // per-DB
+  arnold_press:  [{from:'seated_db_press',coef:1.0},{from:'ohp',coef:0.38}],
+  ohp:           [{from:'seated_db_press',coef:2.4}],
+  cable_lateral: [{from:'db_lateral',coef:1.0}],
+  lying_cable_lat:[{from:'db_lateral',coef:0.8},{from:'cable_lateral',coef:0.8}],
+  incline_lateral:[{from:'db_lateral',coef:0.8}],
+  // ─ Biceps ─
+  cable_curl:    [{from:'db_curl',coef:1.8},{from:'hammer_curl',coef:1.8}], // straight bar vs per-DB
+  hammer_curl:   [{from:'db_curl',coef:1.0}],
+  incline_curl:  [{from:'db_curl',coef:0.8}],
+  // ─ Triceps ─
+  skull_crushers:[{from:'pushdown',coef:0.5},{from:'overhead_ext',coef:0.6}],
+  overhead_ext:  [{from:'pushdown',coef:0.8}],
+  // ─ Legs: squat / hinge / machine ─
+  goblet:        [{from:'squat',coef:0.35},{from:'leg_press',coef:0.25}], // single DB
+  leg_press:     [{from:'squat',coef:1.8}],
+  squat:         [{from:'leg_press',coef:0.55},{from:'goblet',coef:2.8}],
+  rdl:           [{from:'squat',coef:0.8},{from:'trap_bar_dl',coef:0.85}],
+  trap_bar_dl:   [{from:'rdl',coef:1.15},{from:'squat',coef:0.95}],
+  db_leg_curl:   [{from:'leg_curl',coef:0.5}],
+  leg_curl:      [{from:'db_leg_curl',coef:2.0}],
+};
+
+// Epley 1RM estimate from a single working set.
+function epley1RM(weight,reps){
+  if(!weight||!reps)return 0;
+  return weight*(1+reps/30);
+}
+
+// Most representative logged working weight for an exercise: the heaviest set
+// of its most recent logged session, falling back to a manually entered
+// lastWeights value. Returns {weight,reps} or null. Loaded sets only.
+function loggedBaseline(exId,logs){
+  for(let i=logs.length-1;i>=0;i--){
+    const e=logs[i].exercises?.find(x=>x.id===exId);
+    const sets=e?.sets?.filter(s=>s?.weight>0&&s?.reps>0);
+    if(sets?.length){
+      const top=sets.reduce((a,s)=>s.weight>a.weight?s:a,sets[0]);
+      return{weight:top.weight,reps:top.reps};
+    }
+  }
+  const lw=S.lastWeights?.[exId];
+  if(lw&&lw.weight>0)return{weight:lw.weight,reps:lw.reps||EX.find(e=>e.id===exId)?.rMax||8};
+  return null;
+}
+
+// Core engine. Returns {weight,source,from} or null when no basis exists.
+//   source 'anchor' → scaled from a related lift (from = anchor exercise id)
+//   source 'group'  → 60% of best in-group 1RM safety floor
+function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMatrix){
+  const logs=historicalPerformanceLogs||[];
+  const matrix=movementClassMatrix||MOVEMENT_CLASS;
+  const def=EX.find(e=>e.id===exId);
+  if(!def||def.noWeight||def.isTimed)return null;   // not a loaded lift
+  if(loggedBaseline(exId,logs))return null;         // already performed → progression() owns it
+
+  // Tier 1 — anchor matrix: first related lift with usable history wins.
+  for(const a of (matrix[exId]||[])){
+    const base=loggedBaseline(a.from,logs);
+    if(base&&base.weight>0){
+      const w=r5(base.weight*a.coef);
+      if(w>0)return{weight:w,source:'anchor',from:a.from};
+    }
+  }
+
+  // Tier 2 — same primary-muscle 1RM floor at 60% of best relative capacity.
+  let best1RM=0;
+  EX.forEach(e=>{
+    if(e.muscle!==def.muscle||e.noWeight||e.isTimed||e.id===exId)return;
+    const base=loggedBaseline(e.id,logs);
+    if(base&&base.weight>0)best1RM=Math.max(best1RM,epley1RM(base.weight,base.reps));
+  });
+  if(best1RM>0){
+    const w=r5(best1RM*0.6);
+    if(w>0)return{weight:w,source:'group'};
+  }
+  return null;
+}
 function fmtDate(iso){
   const d=new Date(iso);
   return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
@@ -1800,7 +1912,10 @@ function startWorkout(day,sessionType){
     dayName:src.name,dow:day.dow,startTime:Date.now(),isLunch:!isEve,
     sessionMins:src.mins||40,loc:src.loc||'ymca',restCap:(!isEve)?90:null,exIdx:0,
     autoRegNotes,
-    exercises:rawExs.map(e=>({...e,done:[]})),
+    // Initialization attaches an estimatedStartingWeight to any movement the
+    // user has never logged, derived from related lifts via the intensity
+    // estimation engine. null for movements with their own history.
+    exercises:rawExs.map(e=>({...e,done:[],estW:estimateStartingWeight(e.id,S.logs,MOVEMENT_CLASS)})),
   };
   S.view='workout';save();render();
 }
@@ -2194,8 +2309,10 @@ function renderDash(){
       const exp=S.viewExDetail===e.id;
       const lw=S.lastWeights?.[e.id];
       const prog=progression(e.id,e.rMax);
+      const estP=(!prog&&!e.noWeight&&!e.isTimed)?estimateStartingWeight(e.id,S.logs,MOVEMENT_CLASS):null;
       const detail=exp?`<div style='margin:4px 0 4px 0;padding:8px;background:var(--surf2);border-radius:8px;font-size:12px'>
         ${prog?`<div style='margin-bottom:8px'>Last: <strong>${prog.summary}</strong> &nbsp;→&nbsp; <span style='color:var(--acc)'>Goal: ${prog.suggest} lb</span></div>`
+              :estP?`<div style='margin-bottom:8px'>No history yet — <span style='color:var(--acc)'>estimated start ~${estP.weight} lb</span> (${estP.source==='anchor'?`from your ${EX.find(x=>x.id===estP.from)?.name||'related lift'}`:`60% floor from your ${e.muscle} work`}). Adjust if needed:</div>`
               :`<div style='color:var(--mut);margin-bottom:8px'>No history on this device — enter your last session:</div>`}
         <div style='display:flex;gap:6px;align-items:center;margin-bottom:${e.cue?'8px':'0'}'>
           <input type='number' id='ew-${e.id}' placeholder='lb' value='${lw?.weight||''}' class='ni' step='5' min='0' inputmode='decimal' style='width:72px'>
@@ -2373,6 +2490,11 @@ function renderWorkout(){
   const ex=exercises[exIdx];
   const total=exercises.length;
   const prog=progression(ex.id,ex.rMax);
+  // No history for this loaded movement → fall back to the intensity estimation
+  // engine for a conservative opener (uses the value attached at startWorkout,
+  // recomputing defensively for sessions started before this field existed).
+  const est=(!prog&&!ex.noWeight&&!ex.isTimed)?(ex.estW||estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS)):null;
+  const estLbl=est?(est.source==='anchor'?`scaled from your ${EX.find(e=>e.id===est.from)?.name||'related lift'}`:`60% floor from your ${ex.muscle} work`):'';
   const mcolor=MCOL[ex.muscle]||'var(--acc)';
 
   const locLabel=S.active.loc==='home'?'🏠 Home · Pull-up Bar':'🏋️ YMCA';
@@ -2395,7 +2517,7 @@ function renderWorkout(){
     <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>6</span><span class='wu-val'>Clamshells</span><span style='color:var(--mut);font-size:12px'> · 15 reps/side · hips stacked</span></div>
   </div>`:'';
 
-  const sugW0=prog?prog.suggest:null;
+  const sugW0=prog?prog.suggest:(est?est.weight:null);
   const wu1Lbl=sugW0?`${r5(sugW0*0.5)} lb`:'~50%';
   const wu2Lbl=sugW0?`${r5(sugW0*0.75)} lb`:'~75%';
   const wu3Lbl=sugW0?`${r5(sugW0*0.9)} lb`:'~90%';
@@ -2433,6 +2555,7 @@ function renderWorkout(){
   } else {
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
       ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} lb today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Target ${prog.suggest} lb — fill ${ex.rMin}–${ex.rMax} reps on every set</div>`}`
+      :est?`<div class='prog-hint'>🧮 Estimated start: ~${est.weight} lb (${estLbl}) — first time, leave 1–2 reps in the tank and adjust from there</div>`
       :'<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative, leave 1–2 reps in the tank.</div>';
   }
 
@@ -2455,7 +2578,7 @@ function renderWorkout(){
   const rowGrid=(isNoWeight||isTimed)?'grid-template-columns:36px 64px 1fr 42px':'';
   const setsRows=Array.from({length:ex.sets},(_,i)=>{
     const done=ex.done[i];
-    const sugW=prog?prog.suggest:(done?.weight||'');
+    const sugW=prog?prog.suggest:(est?est.weight:(done?.weight||''));
     const sugR=done?.reps||ex.rMax;
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
