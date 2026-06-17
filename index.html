@@ -3681,6 +3681,22 @@ document.addEventListener('click',e=>{
     }catch(e){alert('Invalid config JSON: '+e.message);}
     return;
   }
+  if(a==='copy-fb-config'){
+    const cfg=getStoredFbConfig();
+    if(!cfg){alert('No config saved on this device yet.');return;}
+    const txt=JSON.stringify(cfg);
+    const done=()=>alert('Config copied. Paste it into Cloud Sync on your other device, then sign in with the same email.');
+    if(navigator.clipboard?.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(()=>{
+        const el=document.getElementById('fb-config-input');if(el){el.focus();el.select();}
+        alert('Could not copy automatically — the config is selected above, copy it manually.');
+      });
+    }else{
+      const el=document.getElementById('fb-config-input');if(el){el.focus();el.select();}
+      alert('Tap and hold the highlighted config above to copy it.');
+    }
+    return;
+  }
   if(a==='save-anthropic-key'){
     const k=document.getElementById('anthropic-key-input')?.value?.trim();
     if(k)localStorage.setItem('anthropicKey',k);
@@ -4633,6 +4649,7 @@ function renderCloudCard(){
         <div style='font-size:12px;color:var(--ok)'>✓ Synced · ${fbUser.displayName||fbUser.email}</div></div>
       <button class='btn btn-g btn-sm' data-action='cloud-sign-out' style='width:auto'>Sign out</button>
     </div>
+    <button class='btn btn-g btn-sm' data-action='go-cloud-setup' style='margin-top:10px'>🔑 View / copy config (to sync a new device) →</button>
   </div>`;
 }
 
@@ -4660,7 +4677,9 @@ function renderCloudSetup(){
     </div>
     <div class='sec-lbl' style='margin-bottom:6px'>Paste your firebaseConfig JSON here:</div>
     <textarea id='fb-config-input' class='ni' style='width:100%;height:160px;font-size:11px;font-family:monospace;padding:10px;text-align:left;line-height:1.5;resize:vertical' placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'>${val}</textarea>
-    <button class='btn btn-ok' data-action='save-fb-config' style='margin-top:12px'>Connect →</button>
+    ${existing?`<button class='btn btn-ok' data-action='copy-fb-config' style='margin-top:12px'>📋 Copy config (for a new device)</button>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>On the new device, open Cloud Sync, paste this config, tap Connect, then sign in with the same email to pull your data.</div>`:''}
+    <button class='btn ${existing?'btn-g btn-sm':'btn-ok'}' data-action='save-fb-config' style='margin-top:${existing?'8':'12'}px'>${existing?'Re-connect with edited config':'Connect →'}</button>
     ${existing?`<button class='btn btn-g btn-sm' data-action='clear-fb-config' style='margin-top:8px'>Remove config &amp; disconnect</button>`:''}
 
     <div class='sec-lbl' style='margin-top:24px;margin-bottom:6px'>AI Assistant (optional)</div>
