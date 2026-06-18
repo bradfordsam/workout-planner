@@ -1583,22 +1583,26 @@ function recalcLastWeights(){
 // ─────────────────────────────────────────────
 // INTENSITY ESTIMATION ENGINE — starting weight for unperformed movements
 // ─────────────────────────────────────────────
-// When a movement appears in the schedule that the user has never logged there
-// is no progression history to anchor a working weight, so the input box would
-// otherwise open blank. This engine derives a conservative first-session
-// estimate from logged performance on related movements.
+// CONTRACT: estimateStartingWeight() ALWAYS returns a numeric weight plus a
+// confidence tag (high/medium/low) for any exercise — it never returns null,
+// undefined, or a blank. No loaded movement in a generated workout may render
+// without a starting estimate.
 //
-// Two-tier strategy:
-//   1. ANCHOR MATRIX (preferred): each derived movement maps to one or more
-//      "anchor" lifts sharing the primary muscle + movement pattern. The
-//      coefficient bridges BOTH relative strength and loading convention —
-//      a barbell's total load vs. a per-hand dumbbell vs. a machine stack.
-//      estimate = anchor working weight × coefficient.
-//   2. GROUP FLOOR (fallback): no anchor has logs → take the best estimated
-//      1RM among all logged weighted lifts in the same primary muscle group
-//      and prescribe 60% of it as a conservative working-weight floor.
-// Coefficients are deliberately rough: the goal is a safe, in-the-ballpark
-// opener the user then adjusts on the first set, not a precise prediction.
+// Strict fallback order — stop at the FIRST step that produces a value, but
+// never exit early without one; the chain always terminates at step 4:
+//   1. HISTORY (high):   logged sets for THIS exact exercise → most recent
+//      working weight.
+//   2/3. RELATED (medium): related movements via the anchor matrix — same
+//      muscle-group-focus accessories AND primary compounds — scaled by
+//      movement-ratio coefficients that bridge relative strength AND loading
+//      convention (barbell total vs. per-hand dumbbell vs. machine stack).
+//   3b. GROUP FLOOR (low): best estimated 1RM among any logged lift in the
+//      same primary muscle group, taken at a conservative 60% working floor.
+//   4. DEFAULT (low):    no reference data at all → a conservative default
+//      derived from bodyweight × an experience multiplier × the movement's
+//      loading convention. This step can ALWAYS produce a number.
+// Coefficients/defaults are deliberately rough: the goal is a safe, in-the-
+// ballpark opener the user adjusts on set one, not a precise prediction.
 
 // Derived movement id → ranked anchor list. coef = derived load ÷ anchor load,
 // so per-hand dumbbell anchors/targets carry sub-1 or >1 factors accordingly.
@@ -1659,37 +1663,102 @@ function loggedBaseline(exId,logs){
   return null;
 }
 
-// Core engine. Returns {weight,source,from} or null when no basis exists.
-//   source 'anchor' → scaled from a related lift (from = anchor exercise id)
-//   source 'group'  → 60% of best in-group 1RM safety floor
+// Experience proxy for the step-4 default. Honors an explicit cfg.experience
+// if ever set; otherwise infers from how many sessions the user has logged.
+// (logs are capped at ~10 on save, so this saturates at 'intermediate' — a
+// deliberately conservative ceiling for a no-data cold-start guess.)
+function experienceLevel(){
+  if(S.cfg?.experience)return S.cfg.experience;
+  const n=(S.logs||[]).filter(l=>!l.isCardio).length;
+  return n>=6?'intermediate':'beginner';
+}
+
+// Step 4 terminal default: a conservative working weight derived from
+// bodyweight × experience multiplier × the movement's loading convention.
+// ALWAYS returns a positive number — this is the floor that guarantees the
+// engine never comes up empty.
+function coldStartWeight(def,bodyLbs,exp){
+  const eq=def.eq||[];
+  const load=eq.includes('barbell')?'bb':eq.includes('machine')?'mach':eq.includes('cables')?'cable':eq.includes('dumbbells')?'db':'bw';
+  // Beginner working-set load as a fraction of bodyweight. DB = per hand.
+  const COMPOUND={
+    legs:     {bb:0.75,mach:1.10,cable:0.50,db:0.30,bw:0.30},
+    chest:    {bb:0.50,mach:0.55,cable:0.30,db:0.22,bw:0.20},
+    back:     {bb:0.45,mach:0.55,cable:0.45,db:0.22,bw:0.20},
+    shoulders:{bb:0.30,mach:0.35,cable:0.20,db:0.13,bw:0.15},
+    core:     {bb:0.30,mach:0.35,cable:0.25,db:0.15,bw:0.15},
+  };
+  const ISO={
+    legs:     {mach:0.45,cable:0.25,db:0.15,bb:0.30,bw:0.15},
+    chest:    {mach:0.25,cable:0.15,db:0.10,bb:0.20,bw:0.10},
+    back:     {mach:0.30,cable:0.20,db:0.10,bb:0.20,bw:0.10},
+    shoulders:{mach:0.15,cable:0.07,db:0.05,bb:0.10,bw:0.05},
+    biceps:   {mach:0.20,cable:0.18,db:0.10,bb:0.15,bw:0.10},
+    triceps:  {mach:0.20,cable:0.18,db:0.10,bb:0.15,bw:0.10},
+    core:     {mach:0.20,cable:0.15,db:0.08,bb:0.10,bw:0.08},
+  };
+  const table=def.type==='compound'?COMPOUND:ISO;
+  const fallbackRow=def.type==='compound'?{bb:0.4,mach:0.5,cable:0.3,db:0.2,bw:0.2}:{mach:0.2,cable:0.15,db:0.1,bb:0.15,bw:0.1};
+  const row=table[def.muscle]||fallbackRow;
+  const frac=row[load]!=null?row[load]:(def.type==='compound'?0.3:0.1);
+  const mult=exp==='advanced'?1.6:exp==='intermediate'?1.3:1.0;
+  const floor=load==='db'?5:10;
+  return Math.max(r5(bodyLbs*frac*mult),floor);
+}
+
+// Core engine — see CONTRACT above. ALWAYS returns {weight,source,confidence}
+// (with optional `from`), never null. confidence ∈ high|medium|low.
+//   source: 'history' | 'anchor' | 'group' | 'default' | 'bodyweight'
 function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMatrix){
   const logs=historicalPerformanceLogs||[];
   const matrix=movementClassMatrix||MOVEMENT_CLASS;
   const def=EX.find(e=>e.id===exId);
-  if(!def||def.noWeight||def.isTimed)return null;   // not a loaded lift
-  if(loggedBaseline(exId,logs))return null;         // already performed → progression() owns it
+  const bodyLbs=S.cfg?.bodyLbs||175;
+  const exp=experienceLevel();
+  if(!def)return{weight:coldStartWeight({eq:[],type:'isolation',muscle:''},bodyLbs,exp),source:'default',confidence:'low'};
 
-  // Tier 1 — anchor matrix: first related lift with usable history wins.
+  // Bodyweight / timed movements carry no external load — the "starting weight"
+  // is bodyweight itself (the UI still renders reps/seconds, not a weight box).
+  if(def.noWeight||def.isTimed)return{weight:bodyLbs,source:'bodyweight',confidence:'high'};
+
+  // Step 1 — logged history for THIS exact exercise → most recent working weight.
+  const own=loggedBaseline(exId,logs);
+  if(own&&own.weight>0)return{weight:own.weight,source:'history',from:exId,confidence:'high'};
+
+  // Steps 2/3 — related movements via the anchor matrix, scaled by ratio.
   for(const a of (matrix[exId]||[])){
     const base=loggedBaseline(a.from,logs);
     if(base&&base.weight>0){
       const w=r5(base.weight*a.coef);
-      if(w>0)return{weight:w,source:'anchor',from:a.from};
+      if(w>0)return{weight:w,source:'anchor',from:a.from,confidence:'medium'};
     }
   }
 
-  // Tier 2 — same primary-muscle 1RM floor at 60% of best relative capacity.
-  let best1RM=0;
+  // Step 3b — best estimated 1RM in the same primary muscle, at a 60% floor.
+  let best1RM=0,bestFrom=null;
   EX.forEach(e=>{
     if(e.muscle!==def.muscle||e.noWeight||e.isTimed||e.id===exId)return;
     const base=loggedBaseline(e.id,logs);
-    if(base&&base.weight>0)best1RM=Math.max(best1RM,epley1RM(base.weight,base.reps));
+    if(base&&base.weight>0){const o=epley1RM(base.weight,base.reps);if(o>best1RM){best1RM=o;bestFrom=e.id;}}
   });
   if(best1RM>0){
     const w=r5(best1RM*0.6);
-    if(w>0)return{weight:w,source:'group'};
+    if(w>0)return{weight:w,source:'group',from:bestFrom,confidence:'low'};
   }
-  return null;
+
+  // Step 4 — no reference data anywhere: conservative bodyweight-based default.
+  // This branch can always produce a number, so the engine never returns null.
+  return{weight:coldStartWeight(def,bodyLbs,exp),source:'default',confidence:'low'};
+}
+
+// Human-readable basis for an estimate, for the workout UI hints.
+function estBasisLabel(est){
+  if(!est)return'';
+  if(est.source==='history')return'your last session';
+  if(est.source==='anchor')return`scaled from your ${EX.find(e=>e.id===est.from)?.name||'related lift'}`;
+  if(est.source==='group')return`60% floor from your ${EX.find(e=>e.id===est.from)?.name||'best in-group lift'}`;
+  if(est.source==='default')return`${experienceLevel()}-level default from your bodyweight`;
+  return'estimate';
 }
 function fmtDate(iso){
   const d=new Date(iso);
@@ -2317,7 +2386,7 @@ function renderDash(){
       const prog=progression(e.id,e.rMax);
       const estP=(!prog&&!e.noWeight&&!e.isTimed)?estimateStartingWeight(e.id,S.logs,MOVEMENT_CLASS):null;
       const detail=exp?`<div style='margin:4px 0 4px 0;padding:8px;background:var(--surf2);border-radius:8px;font-size:12px'>
-        ${(()=>{const isDbEd=e.eq?.includes('dumbbells')&&!e.eq?.includes('barbell');const wUnitEd=isDbEd?'lb ea':'lb';return prog?`<div style='margin-bottom:8px'>Last: <strong>${prog.summary}</strong> &nbsp;→&nbsp; <span style='color:var(--acc)'>Goal: ${prog.suggest} ${wUnitEd}</span></div>`:estP?`<div style='margin-bottom:8px'>No history yet — <span style='color:var(--acc)'>estimated start ~${estP.weight} ${wUnitEd}</span> (${estP.source==='anchor'?`from your ${EX.find(x=>x.id===estP.from)?.name||'related lift'}`:`60% floor from your ${e.muscle} work`}). Adjust if needed:</div>`:`<div style='color:var(--mut);margin-bottom:8px'>No history on this device — enter your last session:</div>`;})()}
+        ${(()=>{const isDbEd=e.eq?.includes('dumbbells')&&!e.eq?.includes('barbell');const wUnitEd=isDbEd?'lb ea':'lb';return prog?`<div style='margin-bottom:8px'>Last: <strong>${prog.summary}</strong> &nbsp;→&nbsp; <span style='color:var(--acc)'>Goal: ${prog.suggest} ${wUnitEd}</span></div>`:estP?`<div style='margin-bottom:8px'>No history yet — <span style='color:var(--acc)'>estimated start ~${estP.weight} ${wUnitEd}</span> · ${estP.confidence} confidence (${estBasisLabel(estP)}). Adjust if needed:</div>`:`<div style='color:var(--mut);margin-bottom:8px'>No history on this device — enter your last session:</div>`;})()}
         <div style='display:flex;gap:6px;align-items:center;margin-bottom:${e.cue?'8px':'0'}'>
           <input type='number' id='ew-${e.id}' placeholder='${e.eq?.includes('dumbbells')&&!e.eq?.includes('barbell')?'lb ea':'lb'}' value='${lw?.weight||''}' class='ni' step='5' min='0' inputmode='decimal' style='width:72px'>
           <input type='number' id='er-${e.id}' placeholder='reps' value='${lw?.reps||''}' class='ni' min='1' max='50' inputmode='numeric' style='width:60px'>
@@ -2515,7 +2584,7 @@ function renderWorkout(){
   // engine for a conservative opener (uses the value attached at startWorkout,
   // recomputing defensively for sessions started before this field existed).
   const est=(!prog&&!ex.noWeight&&!ex.isTimed)?(ex.estW||estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS)):null;
-  const estLbl=est?(est.source==='anchor'?`scaled from your ${EX.find(e=>e.id===est.from)?.name||'related lift'}`:`60% floor from your ${ex.muscle} work`):'';
+  const estLbl=estBasisLabel(est);
   const mcolor=MCOL[ex.muscle]||'var(--acc)';
 
   const locLabel=S.active.loc==='home'?'🏠 Home · Pull-up Bar':'🏋️ YMCA';
@@ -2578,7 +2647,7 @@ function renderWorkout(){
   } else {
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
       ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} ${wUnit} today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Target ${prog.suggest} ${wUnit} — fill ${ex.rMin}–${ex.rMax} reps on every set</div>`}`
-      :est?`<div class='prog-hint'>🧮 Estimated start: ~${est.weight} ${wUnit} (${estLbl}) — first time, leave 1–2 reps in the tank and adjust from there</div>`
+      :est?`<div class='prog-hint'>🧮 Estimated start: ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}) — first time, leave 1–2 reps in the tank and adjust from there</div>`
       :'<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative, leave 1–2 reps in the tank.</div>';
   }
 
