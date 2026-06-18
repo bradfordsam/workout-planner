@@ -2454,6 +2454,23 @@ function renderDash(){
 // ─────────────────────────────────────────────
 // RENDER – WORKOUT
 // ─────────────────────────────────────────────
+
+function renderSwapSearchResults(query,exIdx){
+  const q=(query||'').toLowerCase().trim();
+  if(!q)return`<div style='font-size:13px;color:var(--mut)'>Type to search all 89 exercises…</div>`;
+  const ex=S.active?.exercises?.[exIdx];
+  const allEx=[...EX,...(S.customExercises||[])];
+  const results=allEx.filter(e=>
+    e.id!==(ex?.id) &&
+    !S.active.exercises.some(ae=>ae.id===e.id) &&
+    !(S.cfg.hipCaution&&e.hipRisk) &&
+    !(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')) &&
+    (e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q)||e.type.toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
+  ).slice(0,15);
+  if(!results.length)return`<div style='font-size:13px;color:var(--mut)'>No matches for "${query.replace(/</g,'&lt;')}"</div>`;
+  return results.map(a=>`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left;width:100%' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.muscle} · ${a.type}</span></button>`).join('');
+}
+
 function renderWorkout(){
   if(!S.active){
     const today=todayDay();
@@ -2568,11 +2585,18 @@ function renderWorkout(){
   const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
   const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
   const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric'))&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
+  const swapSearchOpen=swapOpen&&S.active.swapSearch;
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
     ${alts.map(a=>`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.type}</span></button>`).join('')}
-    ${!alts.length?`<div style='font-size:13px;color:var(--mut)'>No alternatives found for this slot.</div>`:''}
-    <button class='btn btn-g btn-sm' style='margin-top:4px' data-action='toggle-swap'>Cancel</button>
+    ${!alts.length?`<div style='font-size:13px;color:var(--mut);margin-bottom:6px'>No equipment-matched alternatives found.</div>`:''}
+    ${swapSearchOpen?`
+    <div style='margin-top:10px;border-top:1px solid var(--brd);padding-top:10px'>
+      <div class='sec-lbl' style='margin-bottom:6px'>Search all exercises:</div>
+      <input id='swap-search-input' type='text' class='ni' placeholder='Name, muscle, or type…' value='${(S.active.swapQuery||'').replace(/'/g,"&#39;")}' style='width:100%;margin-bottom:8px' autocomplete='off' autocorrect='off' spellcheck='false'>
+      <div id='swap-search-results'>${renderSwapSearchResults(S.active.swapQuery||'',exIdx)}</div>
+    </div>`:`<button class='btn btn-g btn-sm' style='margin-top:2px' data-action='swap-more' data-idx='${exIdx}'>+ More options</button>`}
+    <button class='btn btn-g btn-sm' style='margin-top:6px' data-action='toggle-swap'>Cancel</button>
   </div>`:'';
 
   const repRange=isTimed?`${ex.rMin}–${ex.rMax}s`:`${ex.rMin}–${ex.rMax}`;
@@ -4151,15 +4175,23 @@ document.addEventListener('click',e=>{
   if(a==='start-wu-rest'){startRest(parseInt(btn.dataset.secs),'Warm-up rest');return;}
   if(a==='toggle-swap'){
     S.active.swapMode=S.active.swapMode===S.active.exIdx?null:S.active.exIdx;
+    S.active.swapSearch=false;S.active.swapQuery='';
     render();return;
+  }
+  if(a==='swap-more'){
+    S.active.swapSearch=true;S.active.swapQuery='';
+    render();
+    setTimeout(()=>{const el=document.getElementById('swap-search-input');if(el)el.focus();},50);
+    return;
   }
   if(a==='swap-ex'){
     const idx=parseInt(btn.dataset.idx),newId=btn.dataset.id;
-    const newEx=EX.find(e=>e.id===newId);
+    const allEx=[...EX,...(S.customExercises||[])];
+    const newEx=allEx.find(e=>e.id===newId);
     if(newEx&&S.active.exercises[idx]){
       const old=S.active.exercises[idx];
       S.active.exercises[idx]={...newEx,sets:old.sets,sessionMins:old.sessionMins,done:[],isFirst:old.isFirst};
-      S.active.swapMode=null;save();render();
+      S.active.swapMode=null;S.active.swapSearch=false;S.active.swapQuery='';save();render();
     }
     return;
   }
@@ -4302,6 +4334,11 @@ document.addEventListener('input',e=>{
   if(e.target.id==='bw-input'){
     const v=parseInt(e.target.value);
     if(v>=80&&v<=400)S.cfg.bodyLbs=v;
+  }
+  if(e.target.id==='swap-search-input'){
+    S.active.swapQuery=e.target.value;
+    const el=document.getElementById('swap-search-results');
+    if(el)el.innerHTML=renderSwapSearchResults(S.active.swapQuery,S.active.swapMode);
   }
 });
 
