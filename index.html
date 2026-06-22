@@ -1957,8 +1957,11 @@ function startWorkout(day,sessionType){
   }
   const isEve=sessionType==='eve'&&day.eveningSession;
   const src=isEve?day.eveningSession:day;
-  const limit=isEve?(EX_LIMIT[src.mins]||5):3;
-  let rawExs=src.exercises.slice(0,limit);
+  // Use every exercise the program built for this session — it's already sized
+  // at generation time (lunch=3, longer sessions=EX_LIMIT[mins]). Re-slicing
+  // here with a hardcoded 3 for non-evening sessions hid exercises on 60/90-min
+  // primary days; this keeps the started workout in sync with the Program tab.
+  let rawExs=src.exercises.slice();
   // Makeup logic only for primary (lunch) sessions
   if(!isEve){
     const missed=getMissedDays();
@@ -2758,8 +2761,11 @@ function renderReviewWorkout(){
   const {day, sessionType} = S.reviewWorkout;
   const isEve = sessionType === 'eve' && day.eveningSession;
   const src = isEve ? day.eveningSession : day;
-  const limit = isEve ? (EX_LIMIT[src.mins] || 5) : 3;
-  let rawExs = src.exercises.slice(0, limit);
+  // Show every exercise the program built for this session — matches the
+  // Program tab (which renders src.exercises in full) and the started workout.
+  // The array is already sized at generation time (lunch=3, longer sessions=
+  // EX_LIMIT[mins]), so a true 40-min lunch still shows 3.
+  let rawExs = src.exercises.slice();
 
   // Show makeup exercises logic (same as startWorkout)
   if(!isEve){
