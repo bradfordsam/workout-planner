@@ -723,6 +723,22 @@ function pickBackfillEx(equip,used,isLunch,budget,exFreq,excludeMuscles){
   return null;
 }
 
+// Order a freshly built session and flag its warm-up target. Compounds are
+// moved to the front (stable, preserving order within each group) so the heavy
+// work is done fresh — equipment filtering (e.g. a hotel gym with no barbell/
+// cables) could otherwise leave isolations leading the list. The warm-up box
+// keys off `isFirst`: assign it to the first compound, or — when a session has
+// no compound — the first LOADED movement (bodyweight/timed-only sessions get
+// none, since weight-acclimation warm-ups don't apply). Mutates exs in place.
+function flagFirstWorkingSet(exs){
+  const compounds=exs.filter(e=>e.type==='compound');
+  const rest=exs.filter(e=>e.type!=='compound');
+  exs.length=0;exs.push(...compounds,...rest);
+  exs.forEach(e=>{delete e.isFirst;});
+  const target=exs.find(e=>e.type==='compound')||exs.find(e=>!e.noWeight&&!e.isTimed);
+  if(target)target.isFirst=true;
+}
+
 function genProgram(cfg,av,workoutHistoryLog){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
 
@@ -871,7 +887,7 @@ function genProgram(cfg,av,workoutHistoryLog){
     // Restore the real weekly ceilings — the lockout only applied to today's pick.
     Object.entries(lockedLimits).forEach(([m,lim])=>{budget.limits[m]=lim;});
 
-    let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
+    flagFirstWorkingSet(exs); // compounds first; warm-up flag on first loaded lift
 
     // Adjust session name for circuit training
     const sessionName = isCircuitStyle && !slot.isLunch ? tmpl.name.replace('Day', 'Circuit') : tmpl.name;
@@ -1505,7 +1521,7 @@ function pickEveningExercises(day,sessionMins){
     budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+3;
     return {...e,sets:3,sessionMins};
   }).filter(Boolean);
-  let fc=false;exs.forEach(e=>{if(e.type==='compound'&&!fc){e.isFirst=true;fc=true;}});
+  flagFirstWorkingSet(exs); // compounds first; warm-up flag on first loaded lift
   return exs;
 }
 
@@ -1987,8 +2003,14 @@ function startWorkout(day,sessionType){
     }
   }
   S.active={
-    dayName:src.name,dow:day.dow,startTime:Date.now(),isLunch:!isEve,
-    sessionMins:src.mins||40,loc:src.loc||'ymca',restCap:(!isEve)?90:null,exIdx:0,
+    // Classify from the session's OWN flag, not from isEve. isEve is only true
+    // when the day has a separate sibling eveningSession, which exists only on
+    // days that ALSO have a lunch. An after-work session on a lunch-less day is
+    // the day's PRIMARY session (eveningSession=null), so keying lunch off isEve
+    // misread it as a 40-min lunch → 90s rest cap + wrong duration. src.isLunch
+    // is set correctly at generation time for both the primary and the sibling.
+    dayName:src.name,dow:day.dow,startTime:Date.now(),isLunch:!!src.isLunch,
+    sessionMins:src.mins||src.sessionMins||40,loc:src.loc||'ymca',restCap:src.isLunch?90:null,exIdx:0,
     autoRegNotes,
     // Initialization attaches an estimatedStartingWeight to any movement the
     // user has never logged, derived from related lifts via the intensity
@@ -2784,7 +2806,7 @@ function renderReviewWorkout(){
     }
   }
 
-  const sessionLabel = isEve ? `${src.name} · ${src.mins} min` : `${src.name} · Lunch`;
+  const sessionLabel = src.isLunch ? `${src.name} · Lunch` : `${src.name} · ${src.mins||src.sessionMins||60} min`;
 
   const exerciseCards = rawExs.map((ex, idx) => {
     const mcolor = MCOL[ex.muscle] || 'var(--acc)';
