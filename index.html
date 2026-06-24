@@ -294,7 +294,7 @@ const EX = [
   {id:'back_ext',name:'Back Extension',muscle:'legs',type:'isolation',eq:['machine','bodyweight'],rMin:10,rMax:15,rest:120,cue:'Hips hinge over the pad. Lower with control until you feel a hamstring/glute stretch, keep spine neutral — don\'t hyperextend at the top. Squeeze glutes to rise. On a machine with a chest pad, hold a light plate to the chest for added load and build the spinal erectors ("Christmas tree" lower-back development).',tags:['hinge','hamstring','glute']},
   {id:'leg_ext',name:'Leg Extension',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Full lockout, hold 1s at top. Slow 2-count negative — resist the weight down. Lumbar support against pad.',tags:['quad']},
   {id:'leg_curl',name:'Lying Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Flex hard at end range. 2-count descent — resist the weight back to start. Hips stay down.',tags:['hamstring']},
-  {id:'db_leg_curl',name:'DB Leg Curl',muscle:'legs',type:'isolation',eq:['dumbbells'],rMin:10,rMax:15,rest:120,cue:'Lie face down, hold DB between feet. Curl to 90°. Slow 2-count negative back down.',tags:['hamstring']},
+  {id:'seated_leg_curl',name:'Seated Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Pad just above the heels, thighs locked under the support. Curl down hard and squeeze the hamstrings at end range, hold 1s. Resist the weight back up with a 2-count negative — don\'t let it slam. Keep hips planted. Best isolated-hamstring builder.',tags:['hamstring']},
   {id:'nordic_curl',name:'Nordic Hamstring Curl',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:120,noWeight:true,cue:'Kneel with ankles anchored (partner, bar, or under a couch). Brace and lower your torso toward the floor as SLOWLY as possible, resisting the whole way — catch yourself with your hands at the bottom and push back to kneeling. The eccentric lowering is the entire point: builds hamstring/tendon resilience and is one of the best-evidenced exercises for reducing strain injuries. Start with 3-5s descents.',tags:['hamstring','eccentric']},
   // rest 60→90s: Singer et al. 2024 Bayesian meta-analysis ("Give it a Rest", Frontiers Sports Act Living) — hypertrophy slightly favors >60s rest, no further benefit beyond ~90s; ≤60s is the only clearly suboptimal zone.
   {id:'calf_raise',name:'Calf Raises',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Full stretch at bottom (off step edge). Full contraction at top. Slow tempo — calves are resistant to fast reps.',tags:['calf']},
@@ -319,6 +319,10 @@ const EX = [
   {id:'hip_90_90',name:'90/90 Hip Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Sit with both knees at 90°. Front leg externally rotated, back leg internally rotated. Lean forward over your front shin to the max comfortable stretch (PAILS/RAILS): hold, then gently push the front knee into the floor for 5s (contract the stretched muscle), relax, then use the back leg to pull yourself deeper for 5s (assisted by the antagonist) — repeat 2-3x per side. This targets hip internal rotation, which is often restricted with impingement. Count seconds per side.',tags:['mobility','internal_rotation']},
   {id:'hip_flexor_half_kneel',name:'Half-Kneeling Hip Flexor Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Down knee on pad, front foot forward. FIRST: posteriorly tilt your pelvis (tuck tailbone). THEN drive hips forward. That pelvic tilt is the key — without it you compress the hip instead of stretching the flexor. Hold, breathe. Count seconds per side.',tags:['mobility','hip_flexor']},
   {id:'hip_cars',name:'Hip CARs',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:5,rMax:8,rest:30,cue:'Stand near wall for balance. Lift one knee high, then rotate it OUT and sweep the full circle (Controlled Articular Rotation). Goal is to find and explore your full active range. Go slow — speed defeats the purpose. Squeeze glute at the back. Count full circles per side.',tags:['mobility','rotation']},
+  // ─── Hip Flexor Rehab (strengthening entry points) ───
+  {id:'straight_leg_raise',name:'Straight Leg Raise',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:8,rMax:15,rest:60,noWeight:true,cue:'Lie on your back, one knee bent (foot flat), the other leg straight. Tighten the quad to lock the knee, then lift the straight leg to the height of the bent knee. Slow, controlled — no jerking. Lower under control without touching down between reps. A safe low-level entry point for hip-flexor and quad strength. Count per side.\n\nProgression: (1) build strict reps → (2) add a 2s hold at the top → (3) slow the lower to 3 counts → (4) add an ankle weight.',tags:['rehab','hip_flexor']},
+  {id:'hip_flexor_rock_back',name:'Eccentric Hip Flexor Rock Back',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:6,rMax:10,rest:60,noWeight:true,cue:'Half-kneeling (down knee on a pad), front foot planted. Keeping a tall torso and a posterior pelvic tilt (tuck the tailbone), slowly rock your hips BACK over the down leg — loading the hip flexor as it lengthens — then return. The control on the way back is the point: a slow eccentric is what builds tolerance in an irritated hip flexor. Stop short of any pinch. Count per side.',tags:['rehab','hip_flexor','eccentric']},
+  {id:'hip_flexor_90_90',name:'90/90 Knee Extension Hold',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:40,rest:45,noWeight:true,isTimed:true,cue:'Sit tall on the floor or a low box, hips and knees at 90°. Brace your core, then actively lift one foot to straighten the knee toward extension and HOLD — the hip flexor and quad fire isometrically to keep the thigh up. Keep the spine tall, don\'t lean back. A band over the shin or light ankle weight adds load. Count seconds per side.',tags:['rehab','hip_flexor','isometric']},
 
   // Athletic/Performance focused exercises
   {id:'burpees',name:'Burpees',muscle:'core',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'Drop to push-up, jump feet back in, explosive jump up with hands overhead. Full-body power endurance. Focus on smooth transitions and explosive jump.',tags:['plyometric','conditioning'],highSweat:true},
@@ -1570,7 +1574,12 @@ function progression(exId,rMax){
   let baseline,ready;
   if(topW!=null){
     baseline=topW;
-    ready=sets.every(s=>(s.weight||0)>=topW&&s.reps>=rMax);
+    // Ready to progress when the TOP-weight set(s) hit the rep ceiling. Back-off
+    // sets are intentionally lighter (see back-off model), so only sets at or
+    // above the top weight gate progression — otherwise the lighter back-off
+    // sets would make `ready` permanently false. For uniform (non-back-off)
+    // sessions every set is at the top weight, so this is unchanged.
+    ready=sets.filter(s=>(s.weight||0)>=topW).every(s=>s.reps>=rMax);
   }else{
     baseline=wMax;
     ready=false;
@@ -1653,8 +1662,8 @@ const MOVEMENT_CLASS = {
   squat:         [{from:'leg_press',coef:0.55},{from:'goblet',coef:2.8}],
   rdl:           [{from:'squat',coef:0.8},{from:'trap_bar_dl',coef:0.85}],
   trap_bar_dl:   [{from:'rdl',coef:1.15},{from:'squat',coef:0.95}],
-  db_leg_curl:   [{from:'leg_curl',coef:0.5}],
-  leg_curl:      [{from:'db_leg_curl',coef:2.0}],
+  seated_leg_curl:[{from:'leg_curl',coef:1.0}],
+  leg_curl:      [{from:'seated_leg_curl',coef:1.0}],
 };
 
 // Epley 1RM estimate from a single working set.
@@ -2649,6 +2658,13 @@ function renderWorkout(){
 
   const isNoWeight=ex.noWeight===true;
   const isTimed=ex.isTimed===true;
+  // Back-off set model: set 1 is the heavy "top set" (rMin–rMax to ~1–2 reps
+  // shy of failure); the remaining sets are "back-off" sets at ~15% less weight
+  // for higher reps. Straight sets for bodyweight, timed, single-set, and
+  // circuit-style work.
+  const useBackoff=!isNoWeight&&!isTimed&&!ex.circuitStyle&&ex.sets>1;
+  const backoffW=(useBackoff&&sugW0)?r5(sugW0*0.85):null;
+  const backoffRepLo=ex.rMax, backoffRepHi=ex.rMax+5;
   let progHTML;
   if(isTimed){
     if(prog){
@@ -2671,10 +2687,12 @@ function renderWorkout(){
       progHTML=`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — strict form, full dead hang, 3-count descent on every rep.</div>`;
     }
   } else {
+    const topTarget=`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} to 1–2 reps shy of failure`;
+    const backoffTarget=useBackoff&&(backoffW||(est&&r5(est.weight*0.85)))?` · then back-off ${backoffW||r5(est.weight*0.85)} ${wUnit} × ${backoffRepLo}–${backoffRepHi}`:'';
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
-      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Try ${prog.suggest} ${wUnit} today</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Target ${prog.suggest} ${wUnit} — fill ${ex.rMin}–${ex.rMax} reps on every set</div>`}`
-      :est?`<div class='prog-hint'>🧮 Estimated start: ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}) — first time, leave 1–2 reps in the tank and adjust from there</div>`
-      :'<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative, leave 1–2 reps in the tank.</div>';
+      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Top set: ${topTarget}${backoffTarget}</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Top set: ${topTarget}${backoffTarget}</div>`}`
+      :est?`<div class='prog-hint'>🧮 Estimated start ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}). Top set: ${topTarget}${backoffTarget} — adjust from there.</div>`
+      :`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative. Top set ${ex.rMin}–${ex.rMax} to 1–2 reps shy${useBackoff?`, then a back-off set ~15% lighter for ${backoffRepLo}–${backoffRepHi}`:''}.</div>`;
   }
 
   const swapOpen=S.active.swapMode===exIdx;
@@ -2701,13 +2719,17 @@ function renderWorkout(){
 
   const repRange=isTimed?`${ex.rMin}–${ex.rMax}s`:`${ex.rMin}–${ex.rMax}`;
   const rowGrid=(isNoWeight||isTimed)?'grid-template-columns:36px 64px 1fr 42px':'';
+  const baseW=prog?prog.suggest:(est?est.weight:null);
   const setsRows=Array.from({length:ex.sets},(_,i)=>{
     const done=ex.done[i];
-    const sugW=prog?prog.suggest:(est?est.weight:(done?.weight||''));
-    const sugR=done?.reps||ex.rMax;
+    const isBackoffSet=useBackoff&&i>0;
+    const sugW=isBackoffSet?(backoffW||(baseW!=null?r5(baseW*0.85):'')):(baseW!=null?baseW:(done?.weight||''));
+    const setRep=isBackoffSet?`${backoffRepLo}–${backoffRepHi}`:repRange;
+    const sugR=done?.reps||(isBackoffSet?backoffRepLo:ex.rMax);
+    const setTag=(isNoWeight||isTimed||!useBackoff)?'':`<div style='font-size:9px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px'>${isBackoffSet?'back-off':'top set'}</div>`;
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
-      <div class='st'>${repRange}</div>
+      <div class='st'>${setRep}${setTag}</div>
       ${(isNoWeight||isTimed)?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='${isDumbbellEx?'each':'lb'}' value='${done?done.weight:sugW||''}' min='0' step='5' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`}
       <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' inputmode='numeric' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
