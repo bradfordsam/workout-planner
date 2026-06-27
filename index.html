@@ -592,7 +592,7 @@ let S={
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
-  customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,
+  customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
 };
 let timerIv=null;
 
@@ -3240,9 +3240,38 @@ function renderUndoBanner(){
     <button class='btn btn-s btn-sm' data-action='restore-log' data-id='${b.id}' style='width:auto;padding:7px 14px'>↩ Restore</button>
   </div>`;
 }
+// In-app editor for the body-composition scan. Replaces a chain of blocking
+// prompt() dialogs (which mobile/PWA browsers suppress, freezing the page).
+function renderScanModal(){
+  const b=S.editScan;if(!b)return'';
+  const fld=(id,label,val,attrs)=>`<label style='display:block;margin-bottom:10px'>
+    <span style='display:block;font-size:12px;color:var(--mut);margin-bottom:4px'>${label}</span>
+    <input id='${id}' class='ni' value='${val==null?'':String(val).replace(/'/g,"&#39;")}' style='width:100%' ${attrs||"type='number' inputmode='decimal' step='0.1' min='0'"}>
+  </label>`;
+  return`<div style='position:fixed;inset:0;background:rgba(10,10,18,.88);backdrop-filter:blur(8px);z-index:998;display:flex;align-items:center;justify-content:center;padding:20px'>
+    <div style='background:var(--surf);border:1px solid var(--bdr-strong);border-radius:16px;max-width:440px;width:100%;max-height:85vh;display:flex;flex-direction:column'>
+      <div style='padding:16px 16px 8px'>
+        <div style='font-size:16px;font-weight:800'>Update body scan</div>
+        <div style='font-size:12px;color:var(--mut);margin-top:3px'>Enter the latest numbers from your composition scan.</div>
+      </div>
+      <div style='padding:4px 16px;overflow-y:auto;flex:1'>
+        ${fld('scan-score','Body Score (out of 100)',b.score)}
+        ${fld('scan-weight','Current weight (lb)',b.weight)}
+        ${fld('scan-target','Recommended target weight (lb)',b.target)}
+        ${fld('scan-bf','Body fat %',b.bodyFatPct)}
+        ${fld('scan-sm','Skeletal muscle (lb)',b.skeletalMuscle)}
+        ${fld('scan-date','Scan date (YYYY-MM-DD)',b.testDate,"type='text' inputmode='numeric' placeholder='2026-05-24'")}
+      </div>
+      <div style='padding:12px 16px 16px;display:flex;gap:8px'>
+        <button class='btn btn-g' data-action='cancel-scan' style='flex:1'>Cancel</button>
+        <button class='btn btn-s' data-action='save-scan' style='flex:1'>Save</button>
+      </div>
+    </div>
+  </div>`;
+}
 function updateModals(){
   const mr=document.getElementById('modal-root');
-  if(mr)mr.innerHTML=(S.confirmDelete?renderDeleteModal():'')+renderUndoBanner();
+  if(mr)mr.innerHTML=(S.confirmDelete?renderDeleteModal():'')+(S.editScan?renderScanModal():'')+renderUndoBanner();
 }
 
 function render(){
@@ -3778,17 +3807,26 @@ document.addEventListener('click',e=>{
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
   if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);save();render();return;}
   if(a==='edit-body-score'){
-    const b=S.cfg.bodyScore||{};
-    const ask=(label,cur)=>{const v=prompt(label,cur==null?'':String(cur));return v==null?cur:(v.trim()===''?cur:(isNaN(parseFloat(v))?cur:parseFloat(v)));};
-    b.score=ask('Body Score (out of 100)',b.score);
-    b.weight=ask('Current weight (lb)',b.weight);
-    b.target=ask('Recommended target weight (lb)',b.target);
-    b.bodyFatPct=ask('Body fat %',b.bodyFatPct);
-    b.skeletalMuscle=ask('Skeletal muscle (lb)',b.skeletalMuscle);
-    const td=prompt('Scan date (YYYY-MM-DD)',b.testDate||'');if(td&&td.trim())b.testDate=td.trim();
+    // Open an in-app modal editor. The old implementation fired a chain of
+    // blocking prompt() dialogs, which installed PWAs and many mobile browsers
+    // suppress after the first one — making the page appear frozen.
+    S.editScan={...(S.cfg.bodyScore||{})};
+    render();return;
+  }
+  if(a==='cancel-scan'){S.editScan=null;render();return;}
+  if(a==='save-scan'){
+    const b={...(S.cfg.bodyScore||{}),...(S.editScan||{})};
+    const num=(id,cur)=>{const el=document.getElementById(id);if(!el)return cur;const v=el.value;return v.trim()===''?cur:(isNaN(parseFloat(v))?cur:parseFloat(v));};
+    b.score=num('scan-score',b.score);
+    b.weight=num('scan-weight',b.weight);
+    b.target=num('scan-target',b.target);
+    b.bodyFatPct=num('scan-bf',b.bodyFatPct);
+    b.skeletalMuscle=num('scan-sm',b.skeletalMuscle);
+    const tdEl=document.getElementById('scan-date');
+    if(tdEl&&tdEl.value.trim())b.testDate=tdEl.value.trim();
     S.cfg.bodyScore=b;
     if(b.weight)S.cfg.bodyLbs=Math.round(b.weight);
-    save();render();return;
+    S.editScan=null;save();render();return;
   }
   if(a==='set-goal'){S.cfg.goal=btn.dataset.val;
     // Lean/recomp leans on training expenditure — turn conditioning finishers on
