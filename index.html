@@ -317,6 +317,7 @@ const EX = [
   {id:'dead_bug',name:'Dead Bug',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:8,rMax:12,rest:60,cue:'Lower opposite arm and leg simultaneously, back stays flat. Exhale on the way down. Slow and controlled — speed kills the point of this exercise. Count per side.',tags:['anti-rotation']},
   {id:'side_plank_dip',name:'Side Plank Hip Dips',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:10,rMax:15,rest:60,cue:'Full side plank. Dip hip to floor and drive back up. Resist lateral flexion the whole time. Count per side.',tags:['lateral']},
   {id:'crunches',name:'Crunches',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on back, knees bent. Curl shoulder blades off the floor, exhale at the top. Keep lower back pressed down — small controlled range, no momentum.',tags:['flexion']},
+  {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on your back, knees bent, feet flat (anchor them if needed). Curl up through a full range until your torso is upright, leading with the chest — don\'t yank on your neck. Exhale at the top, then lower under control all the way down. Cross arms on the chest to regress, or hold a plate at the chest to add load.',tags:['flexion']},
   {id:'hanging_leg_raise',name:'Hanging Leg Raise',muscle:'core',type:'isolation',eq:['pullup_bar','bodyweight'],rMin:8,rMax:15,rest:90,noWeight:true,cue:'Hang from a bar with shoulders active (slight pull-down, not a loose dead hang). Curl your PELVIS up toward your ribs — don\'t just lift the legs from the hips. No swinging or momentum: pause briefly at the top, lower under control (2–3 counts). Bend the knees to regress, keep legs straighter to progress. Considered the elite movement for full core training.',tags:['flexion','anti-extension']},
   {id:'incline_leg_raise',name:'Incline Elevated Leg Raises',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:20,rest:75,noWeight:true,cue:'Lie back on a decline/incline bench set head-up, gripping the top pad behind your head for an anchor. Keeping legs fairly straight, curl the pelvis and raise the legs up toward vertical — drive from the lower abs, not momentum. Lower under control without letting the feet touch down between reps to keep tension on the abs. Bend the knees to regress.',tags:['flexion']},
   {id:'body_v',name:'Body V (V-Ups)',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:8,rMax:15,rest:75,noWeight:true,cue:'Lie flat on your back, arms extended overhead, legs straight. Simultaneously lift the torso and legs, reaching the hands toward the feet so the body folds into a "V" balanced on the glutes. Exhale and squeeze the abs hard at the top, then lower both halves under control without slamming down. Bend the knees or do tuck-ups to regress.',tags:['flexion']},
@@ -3332,6 +3333,9 @@ const EX_ABBR = {
 function exTokens(s) {
   if (!s) return [];
   let t = s.toLowerCase().trim().replace(/[^a-z0-9\s]/g, ' ');
+  // Canonicalize "X up" compounds so "situps", "sit ups" and "sit-ups" all
+  // converge to one token — same for push/pull/chin/step/lay/leg up(s).
+  t = t.replace(/\b(push|pull|sit|chin|step|lay|leg|hand|knee)\s+ups?\b/g, '$1up');
   let tokens = t.split(/\s+/).filter(Boolean).map(w => EX_ABBR[w] || w);
   tokens = tokens.join(' ').split(/\s+/).filter(Boolean);
   // crude singularize so "curls"/"squats"/"press" compare consistently
