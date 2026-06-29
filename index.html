@@ -303,6 +303,19 @@ const EX = [
   {id:'leg_curl',name:'Lying Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Flex hard at end range. 2-count descent — resist the weight back to start. Hips stay down.',tags:['hamstring']},
   {id:'seated_leg_curl',name:'Seated Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Pad just above the heels, thighs locked under the support. Curl down hard and squeeze the hamstrings at end range, hold 1s. Resist the weight back up with a 2-count negative — don\'t let it slam. Keep hips planted. Best isolated-hamstring builder.',tags:['hamstring']},
   {id:'nordic_curl',name:'Nordic Hamstring Curl',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:120,noWeight:true,cue:'Kneel with ankles anchored (partner, bar, or under a couch). Brace and lower your torso toward the floor as SLOWLY as possible, resisting the whole way — catch yourself with your hands at the bottom and push back to kneeling. The eccentric lowering is the entire point: builds hamstring/tendon resilience and is one of the best-evidenced exercises for reducing strain injuries. Start with 3-5s descents.',tags:['hamstring','eccentric']},
+  // ─── Explosive (low-impact) + tendon-stiffness leg work ───
+  // Power = explosive concentric intent with NO flight/landing (hip-caution safe,
+  // never tagged 'plyometric'). Isometric/eccentric + 'tendon' = stiffness & RFD
+  // for bounce and acceleration. Builds athletic explosiveness without impact.
+  {id:'speed_box_squat',name:'Speed Box Squat (Dynamic Effort)',muscle:'legs',type:'compound',eq:['barbell','dumbbells'],rMin:3,rMax:5,rest:150,cue:'Sub-maximal load (~50–60% of your squat). Sit back to a box that caps depth just above parallel — hip-friendly — pause for a beat to kill the stretch reflex, then explode up as FAST as humanly possible. Bar speed is the whole point, not the weight. Reset every rep. Builds rate of force development for jumping and acceleration.',tags:['quad','squat','power']},
+  {id:'speed_trap_bar',name:'Speed Trap-Bar Pull (Dynamic Effort)',muscle:'legs',type:'compound',eq:['barbell'],rMin:3,rMax:5,rest:150,cue:'~50–60% load in the hex bar. Pull the slack out, then drive the floor away as explosively as possible into full triple extension (ankles/knees/hips) — without leaving the ground. Stand tall and fast, control back down, fully reset each rep. The most direct low-impact builder of vertical and acceleration power.',tags:['hinge','quad','power']},
+  {id:'speed_hip_thrust',name:'Explosive Hip Thrust',muscle:'legs',type:'compound',eq:['barbell','bodyweight'],rMin:4,rMax:6,rest:150,cue:'Shoulders on bench, ribs down, shins vertical at the top. Drive the hips up as FAST as possible to full lockout — snap the glutes — then lower under control. Moderate load, maximal concentric speed. Trains the hip-extension power that drives sprint acceleration.',tags:['hinge','glute','power']},
+  {id:'db_swing',name:'Dumbbell / KB Swing',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Hike the weight back between the legs, then snap the hips forward explosively so it floats to chest height — arms are just ropes. It\'s a ballistic hip hinge, not a squat or a front raise. Crisp hip snap each rep. Low-impact power for the posterior chain.',tags:['hinge','glute','power']},
+  {id:'spanish_squat',name:'Spanish Squat (Isometric)',muscle:'legs',type:'isolation',eq:['cables','bodyweight'],rMin:20,rMax:45,rest:120,isTimed:true,cue:'Loop a band behind your knees anchored to a rig (or brace against a fixed post). Sit straight DOWN with vertical shins to about 90°, weight through mid-foot, and HOLD. Builds patellar-tendon stiffness and knee resilience with zero impact — one of the best-evidenced tendon-loading drills for jumpers. Count seconds.',tags:['quad','isometric','tendon']},
+  {id:'iso_split_squat',name:'Isometric Split Squat Hold',muscle:'legs',type:'isolation',eq:['bodyweight','dumbbells'],rMin:20,rMax:40,rest:120,isTimed:true,cue:'Split stance, drop to a 90/90 bottom position (front shin vertical, rear knee under hip), brace, and hold dead still. Add DBs to load it. Builds single-leg tendon stiffness and the positional strength that feeds acceleration. Count seconds per leg.',tags:['quad','isometric','tendon','unilateral']},
+  {id:'wall_sit',name:'Wall Sit (Isometric Quad)',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:30,rMax:60,rest:90,isTimed:true,cue:'Back flat on the wall, thighs parallel to the floor, knees over ankles. Brace and hold — no sliding up. Progress to a single-leg hold once 60s is easy. Low-impact quad-tendon stiffness and isometric strength. Count seconds.',tags:['quad','isometric','tendon']},
+  {id:'iso_calf',name:'Isometric Calf Hold',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:20,rMax:45,rest:90,isTimed:true,cue:'Rise to the top of a calf raise (single-leg once able) and HOLD at full plantarflexion, or mid-range for more Achilles load. Stiff, tall ankle — don\'t sink. Directly builds the Achilles/ankle stiffness that returns energy in every bounce and sprint step. Count seconds.',tags:['calf','isometric','tendon']},
+  {id:'tempo_calf',name:'Springy Calf Bounces (Stiff Ankle)',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:20,rest:90,cue:'Fast, short rebounds driven by the ankle — touch the bottom and snap back up with minimal ground-contact time, like a stiff spring. Feet stay grounded (no jumping) so it stays low-impact, but the quick stretch-shorten action trains reactive Achilles stiffness and bounce.',tags:['calf','tendon','power']},
   // rest 60→90s: Singer et al. 2024 Bayesian meta-analysis ("Give it a Rest", Frontiers Sports Act Living) — hypertrophy slightly favors >60s rest, no further benefit beyond ~90s; ≤60s is the only clearly suboptimal zone.
   {id:'calf_raise',name:'Calf Raises',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Full stretch at bottom (off step edge). Full contraction at top. Slow tempo — calves are resistant to fast reps.',tags:['calf']},
   {id:'single_leg_calf_raise',name:'Single-Leg Calf Raise',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Balance on one foot (hold something for stability). Full stretch at bottom (off step edge). Full contraction at top. Slow tempo. Count per side.',tags:['calf','unilateral']},
@@ -421,9 +434,9 @@ const LUNCH_TMPLS = {
     {muscle:'biceps',type:'isolation'},
     {muscle:'back',type:'isolation',tag:'rear_delt'},
   ]},
-  legs_light:{name:'Light Lower · Lunch',desc:'Machine-based leg work (minimal sweat)',slots:[
-    {muscle:'legs',type:'isolation',tag:'quad'},
-    {muscle:'legs',type:'isolation',tag:'hamstring'},
+  legs_light:{name:'Lower Tendon · Lunch',desc:'Isometric & tendon work (minimal sweat)',slots:[
+    {muscle:'legs',type:'isolation',tag:'isometric'},
+    {muscle:'legs',type:'isolation',tag:'calf'},
     {muscle:'hips',type:'stability'},
   ]},
   core_focus:{name:'Core · Lunch',desc:'Controlled core + upper accessories',slots:[
@@ -458,12 +471,12 @@ const TMPLS = {
     {muscle:'biceps',type:'isolation'},
     {muscle:'core',type:'rotational'},
   ]},
-  legs:{name:'Legs Day',desc:'Quads · Hamstrings · Glutes',slots:[
-    {muscle:'legs',type:'compound',tag:'quad'},
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'legs',type:'isolation',tag:'quad'},
-    {muscle:'legs',type:'isolation',tag:'hamstring'},
-    {muscle:'legs',type:'isolation',tag:'glute'},
+  legs:{name:'Explosive Legs',desc:'Power · Tendon Stiffness · Bounce',slots:[
+    {muscle:'legs',type:'compound',tag:'power'},
+    {muscle:'legs',type:'compound',tag:'power'},
+    {muscle:'legs',type:'compound',tag:'eccentric'},
+    {muscle:'legs',type:'isolation',tag:'isometric'},
+    {muscle:'legs',type:'isolation',tag:'calf'},
     {muscle:'core',type:'rotational'},
   ]},
   upper_push:{name:'Upper A',desc:'Push Focus + Horizontal Pull',slots:[
@@ -484,18 +497,18 @@ const TMPLS = {
     {muscle:'shoulders',type:'isolation'},
     {muscle:'core',type:'rotational'},
   ]},
-  lower_a:{name:'Lower A',desc:'Quad Dominant',slots:[
-    {muscle:'legs',type:'compound',tag:'quad'},
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'legs',type:'isolation',tag:'quad'},
-    {muscle:'legs',type:'isolation',tag:'hamstring'},
+  lower_a:{name:'Lower A',desc:'Explosive Quad + Knee Tendon',slots:[
+    {muscle:'legs',type:'compound',tag:'power'},
+    {muscle:'legs',type:'isolation',tag:'isometric'},
+    {muscle:'legs',type:'compound',tag:'eccentric'},
+    {muscle:'legs',type:'isolation',tag:'calf'},
     {muscle:'core',type:'rotational'},
   ]},
-  lower_b:{name:'Lower B',desc:'Posterior Chain',slots:[
-    {muscle:'legs',type:'compound',tag:'hinge'},
-    {muscle:'legs',type:'compound',tag:'quad'},
-    {muscle:'legs',type:'isolation',tag:'glute'},
-    {muscle:'legs',type:'isolation',tag:'hamstring'},
+  lower_b:{name:'Lower B',desc:'Explosive Posterior + Bounce',slots:[
+    {muscle:'legs',type:'compound',tag:'power'},
+    {muscle:'legs',type:'compound',tag:'power'},
+    {muscle:'legs',type:'compound',tag:'eccentric'},
+    {muscle:'legs',type:'isolation',tag:'isometric'},
     {muscle:'legs',type:'isolation',tag:'calf'},
     {muscle:'core',type:'rotational'},
   ]},
