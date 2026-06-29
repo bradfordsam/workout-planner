@@ -377,11 +377,11 @@ const EX = [
 // ─────────────────────────────────────────────
 // Equipment Presets - User's 4 main categories
 const EQUIPMENT_PRESETS = {
-  pullup_only: {
-    name: '🏠 Pull-up Bar Only',
-    desc: 'Home setup with just a pull-up bar',
-    equipment: ['pullup_bar', 'bodyweight'],
-    location: 'home'
+  apartment_gym: {
+    name: '🏢 Apartment Gym',
+    desc: 'Dumbbells & bench, cable machine, treadmill',
+    equipment: ['dumbbells', 'cables', 'bodyweight'],
+    location: 'apartment'
   },
   hotel_gym: {
     name: '🏨 Hotel Gym',
@@ -405,7 +405,7 @@ const EQUIPMENT_PRESETS = {
 
 // Legacy constants for backward compatibility
 const YMCA_EQUIP = EQUIPMENT_PRESETS.ymca.equipment;
-const HOME_EQUIP = EQUIPMENT_PRESETS.pullup_only.equipment;
+const HOME_EQUIP = EQUIPMENT_PRESETS.apartment_gym.equipment;
 
 // Low-sweat templates for YMCA lunch sessions (no shower needed!)
 const LUNCH_TMPLS = {
@@ -2373,21 +2373,18 @@ function renderSetup(){
   if(!S.weekPlan.availability)S.weekPlan.availability=defaultAvailability();
   const av=S.weekPlan.availability;
 
-  const goalOpts=[
-    {id:'lean',label:'Lean / Recomp',sub:'Strip fat, keep muscle'},
-    {id:'ath',label:'Athletic Performance',sub:'Power, speed, movement quality'},
-    {id:'hyp',label:'Hypertrophy',sub:'Size + definition'},
-    {id:'str',label:'Strength',sub:'Max force output'},
-    {id:'bal',label:'Balanced',sub:'Size and strength'},
-  ].map(g=>`<div class='opt col1 ${cfg.goal===g.id?'on':''}' data-action='set-goal' data-val='${g.id}'><div class='opt-v' style='font-size:18px'>${g.label}</div><div class='opt-l'>${g.sub}</div></div>`).join('');
-
+  // Goal is pinned to Lean / Recomp (set in the generate handler), so the goal
+  // selection page is intentionally omitted from this wizard.
   const steps=[
     `<div class='s-title'>Your available sessions & equipment</div>
-     <div class='s-sub'>Tap each session you can train and choose equipment. All 4 equipment options are: Pull-up Bar Only, Hotel Gym, YMCA, Bodyweight Only.</div>
+     <div class='s-sub'>Tap each session you can train and choose equipment. The 4 equipment options are: Apartment Gym, Hotel Gym, YMCA, Bodyweight Only.</div>
      ${renderAvailGrid(av,true)}`,
-    `<div class='s-title'>Primary training goal?</div>
-     <div class='s-sub'>Sets your rep ranges and exercise selection priorities.</div>
-     <div class='opts col1'>${goalOpts}</div>
+    `<div class='s-title'>Your body weight?</div>
+     <div class='s-sub'>Used to estimate calorie burn from workouts and cardio prescriptions.</div>
+     <div class='bw-input-wrap'>
+       <input type='number' class='ni bw-big' id='bw-input' value='${cfg.bodyLbs||175}' min='80' max='400' step='5' inputmode='decimal'>
+       <span style='font-size:20px;font-weight:600;color:var(--mut)'>lbs</span>
+     </div>
      <div class='sec-lbl' style='margin-top:20px'>Conditioning</div>
      <div class='plan-chk${cfg.conditioning?' on':''}' data-action='toggle-conditioning' style='margin-bottom:0'>
        <div class='plan-chk-box'>${cfg.conditioning?'✓':''}</div>
@@ -2395,12 +2392,6 @@ function renderSetup(){
          <div style='font-size:13px;font-weight:700'>Add conditioning finishers</div>
          <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>8–15 min of sprint intervals, circuits, or HIIT after each strength session — good for athleticism and cardio capacity.</div>
        </div>
-     </div>`,
-    `<div class='s-title'>Your body weight?</div>
-     <div class='s-sub'>Used to estimate calorie burn from workouts and cardio prescriptions.</div>
-     <div class='bw-input-wrap'>
-       <input type='number' class='ni bw-big' id='bw-input' value='${cfg.bodyLbs||175}' min='80' max='400' step='5' inputmode='decimal'>
-       <span style='font-size:20px;font-weight:600;color:var(--mut)'>lbs</span>
      </div>
      <div style='margin-top:20px'>
        <div class='sec-lbl'>Recent External Workouts (Optional)</div>
@@ -2409,8 +2400,8 @@ function renderSetup(){
          style='width:100%;min-height:60px;resize:vertical;font-size:13px;line-height:1.4;padding:10px'>${S.weekPlan?.recentWorkouts || ''}</textarea>
      </div>`,
   ];
-  const dots=[1,2,3].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
-  const isLast=step===3;
+  const dots=[1,2].map(i=>`<div class='dot${i===step?' on':''}'></div>`).join('');
+  const isLast=step===2;
   return`<div class='setup'>
     ${step>1?`<button class='s-back' data-action='setup-back'><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back</button>`:'<div style="height:40px"></div>'}
     ${steps[step-1]}
@@ -2705,7 +2696,7 @@ function renderWorkout(){
   const estLbl=estBasisLabel(est);
   const mcolor=MCOL[ex.muscle]||'var(--acc)';
 
-  const locLabel=S.active.loc==='home'?'🏠 Home · Pull-up Bar':'🏋️ YMCA';
+  const locLabel=S.active.loc==='home'?'🏢 Apartment Gym':'🏋️ YMCA';
   const sessionTag=ex.isMakeup
     ?`<span class='badge badge-makeup' style='margin-bottom:12px;display:inline-block'>⚡ Make-up · ${ex.makeupFrom}</span>`
     :S.active.isLunch
@@ -3889,7 +3880,7 @@ document.addEventListener('click',e=>{
     S.viewDay=null;
     render();return;
   }
-  if(a==='setup-next'){S.step=Math.min(3,S.step+1);render();return;}
+  if(a==='setup-next'){S.step=Math.min(2,S.step+1);render();return;}
   if(a==='setup-back'){S.step=Math.max(1,S.step-1);render();return;}
   if(a==='set-days'){S.cfg.days=parseInt(btn.dataset.val);save();render();return;}
   if(a==='edit-body-score'){
@@ -3921,6 +3912,7 @@ document.addEventListener('click',e=>{
     save();render();return;}
   if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
   if(a==='generate'){
+    S.cfg.goal='lean'; // pinned to recomp — goal page removed from setup
     const bwEl=document.getElementById('bw-input');
     const recentEl=document.getElementById('setup-recent-workouts');
     if(bwEl){const v=parseInt(bwEl.value);if(v>=80&&v<=400)S.cfg.bodyLbs=v;}
