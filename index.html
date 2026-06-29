@@ -793,7 +793,10 @@ function genProgram(cfg,av,workoutHistoryLog){
   const lunchDows=new Set(lunchSlots.map(s=>s.dow));
   const eveNonLunch=eveSlots.filter(s=>!lunchDows.has(s.dow));
   const count=Math.max(2,Math.min(lunchSlots.length+eveNonLunch.length,5));
-  const split=SPLITS[count]||SPLITS[5];
+  // Reorder so the freshest (least-recently-trained) muscle groups get the
+  // earliest days — maximizing rest for recently-worked groups without
+  // violating the hard recovery lockout enforced later in buildSession.
+  const split=orderSplitByRecovery(SPLITS[count]||SPLITS[5],history);
 
   // Completed sessions this calendar week — preserve their templates
   const mon=thisMonday();
@@ -1228,6 +1231,49 @@ function getLockedMuscles(dateStr,history,assigned){
     if(fromHistory||fromRun)locked.add(muscle);
   });
   return locked;
+}
+
+// Most recent calendar date (YYYY-MM-DD) each muscle was last trained, scanning
+// the historical log. Used to prioritize the freshest (least-recently-trained)
+// muscle groups onto the earliest days of the week.
+function muscleLastTrained(history){
+  const last={};
+  (history||[]).forEach(l=>{
+    if(l.isCardio)return;
+    const d=logDay(l.date);
+    (l.exercises||[]).forEach(e=>{
+      if(e&&e.muscle&&(!last[e.muscle]||d>last[e.muscle]))last[e.muscle]=d;
+    });
+  });
+  return last;
+}
+
+// Reorder the week's split so the template whose muscles are LEAST recently
+// trained lands on the earliest day. The binding constraint for a template is
+// its most-recently-trained muscle (that's the one most owed rest), so each
+// template scores as the latest training date among its non-core muscles, and
+// we sort ascending — a template no muscle of which was trained recently
+// (score '') sorts first. The lockout matrix (getLockedMuscles) still enforces
+// the hard recovery floor; this only improves spacing within what's legal.
+// Stable: with no history every score is '' so the canonical SPLITS order is
+// preserved unchanged.
+function orderSplitByRecovery(split,history){
+  const last=muscleLastTrained(history);
+  const score=tk=>{
+    const tmpl=TMPLS[tk];
+    if(!tmpl)return '';
+    let recent='';
+    tmpl.slots.forEach(sl=>{
+      if(sl.muscle==='core')return;
+      const d=last[sl.muscle];
+      if(d&&d>recent)recent=d;
+    });
+    return recent;
+  };
+  return split
+    .map((tk,i)=>({tk,i,s:score(tk)}))
+    .sort((a,b)=>a.s<b.s?-1:a.s>b.s?1:a.i-b.i)
+    .map(o=>o.tk);
 }
 
 // Sets already committed this week by muscle: completed/logged workouts PLUS any
