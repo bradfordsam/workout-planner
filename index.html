@@ -515,14 +515,14 @@ const TMPLS = {
   full_a:{name:'Full Body A',desc:'Push Focus',slots:[
     {muscle:'chest',type:'compound'},
     {muscle:'back',type:'compound',tag:'vertical'},
-    {muscle:'legs',type:'compound',tag:'quad'},
+    {muscle:'legs',type:'compound',tag:'power'},
     {muscle:'shoulders',type:'isolation'},
     {muscle:'biceps',type:'isolation'},
     {muscle:'core',type:'rotational'},
   ]},
   full_b:{name:'Full Body B',desc:'Pull Focus',slots:[
     {muscle:'back',type:'compound',tag:'horizontal'},
-    {muscle:'legs',type:'compound',tag:'hinge'},
+    {muscle:'legs',type:'compound',tag:'power'},
     {muscle:'chest',type:'compound'},
     {muscle:'back',type:'isolation',tag:'rear_delt'},
     {muscle:'triceps',type:'isolation'},
@@ -667,6 +667,19 @@ function load(){
 // ─────────────────────────────────────────────
 // PROGRAM GENERATOR
 // ─────────────────────────────────────────────
+// Leg programming is restricted to an explosive + tendon-stiffness emphasis:
+// a leg movement is only AUTO-selectable (by templates or backfill) if it
+// carries one of these tags. Everything else in the leg pool — back squats,
+// RDLs, leg press, machine curls, plain calf raises, glute isolation — is pure
+// hypertrophy/strength and is excluded from auto-generation everywhere (it
+// stays in the EX database for manual/custom logging). Using an allowlist
+// rather than naming each retired lift means any leg exercise added later is
+// excluded by default unless explicitly tagged for the emphasis.
+// 'plyometric' is allowed here (it's explosive) but still filtered separately
+// by hip-caution, so it only surfaces for users without the hip flag.
+const LEG_EMPHASIS_TAGS=['power','isometric','tendon','eccentric','plyometric'];
+const legAutoOK=(e)=>e.muscle!=='legs'||LEG_EMPHASIS_TAGS.some(t=>(e.tags||[]).includes(t));
+
 function pickEx(slot,equip,used,isLunch,budget,freq){
   const eq=new Set([...equip,'bodyweight']);
   const overworkedMuscles = getOverworkedMuscles();
@@ -699,6 +712,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     (!slot.tag || ((e.tags||[]).includes(slot.tag))) &&
     !used.includes(e.id) &&
     e.eq.some(q=>eq.has(q)) &&
+    legAutoOK(e) &&
     !(S.cfg.hipCaution && e.hipRisk) &&
     !(S.cfg.hipCaution && (e.tags||[]).includes('plyometric')) &&
     !(isLunch && e.highSweat);
