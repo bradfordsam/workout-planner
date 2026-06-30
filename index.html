@@ -772,11 +772,21 @@ function pickBackfillEx(equip,used,isLunch,budget,exFreq,excludeMuscles){
 // no compound — the first LOADED movement (bodyweight/timed-only sessions get
 // none, since weight-acclimation warm-ups don't apply). Mutates exs in place.
 function flagFirstWorkingSet(exs){
+  // A movement supports graded warm-up sets only if it can be externally loaded.
+  // Bodyweight-only moves (noWeight, or bodyweight as the only equipment) and
+  // timed isometric holds can't be scaled down for a warm-up, so they must not
+  // lead the session — the first/warm-up slot needs a loadable exercise.
+  const scalable=e=>!e.noWeight&&!e.isTimed&&(e.eq||[]).some(q=>q!=='bodyweight');
   const compounds=exs.filter(e=>e.type==='compound');
   const rest=exs.filter(e=>e.type!=='compound');
-  exs.length=0;exs.push(...compounds,...rest);
+  let ordered=[...compounds,...rest];
+  // Pull a loadable movement to the front (prefer a loadable compound) so the
+  // warm-up can ramp; only fall back to a bodyweight lead if nothing is loadable.
+  const lead=ordered.find(e=>e.type==='compound'&&scalable(e))||ordered.find(e=>scalable(e));
+  if(lead)ordered=[lead,...ordered.filter(e=>e!==lead)];
+  exs.length=0;exs.push(...ordered);
   exs.forEach(e=>{delete e.isFirst;});
-  const target=exs.find(e=>e.type==='compound')||exs.find(e=>!e.noWeight&&!e.isTimed);
+  const target=lead||exs.find(e=>e.type==='compound')||exs[0];
   if(target)target.isFirst=true;
 }
 
@@ -934,12 +944,26 @@ function genProgram(cfg,av,workoutHistoryLog){
     flagFirstWorkingSet(exs); // compounds first; warm-up flag on first loaded lift
 
     // Adjust session name for circuit training
-    const sessionName = isCircuitStyle && !slot.isLunch ? tmpl.name.replace('Day', 'Circuit') : tmpl.name;
+    let sessionName = isCircuitStyle && !slot.isLunch ? tmpl.name.replace('Day', 'Circuit') : tmpl.name;
+    let sessionDesc = tmpl.desc;
+    // If the template's target muscles were ALL dropped (locked for recovery or
+    // at their weekly MRV max) and the slots got backfilled with other muscles,
+    // the template name no longer describes the session. Relabel from the actual
+    // content so a day isn't mislabeled (e.g. "Explosive Legs" with zero leg work).
+    const tmplMuscles=new Set(tmpl.slots.filter(s=>s.muscle!=='core').map(s=>s.muscle));
+    const actualNonCore=exs.filter(e=>e.muscle&&e.muscle!=='core');
+    if(actualNonCore.length&&!actualNonCore.some(e=>tmplMuscles.has(e.muscle))){
+      const counts={};
+      actualNonCore.forEach(e=>{counts[e.muscle]=(counts[e.muscle]||0)+1;});
+      const present=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+      sessionName=present.slice(0,2).map(m=>MNAME[m]||m).join(' · ');
+      sessionDesc='Accessory / recovery work — '+present.map(m=>MNAME[m]||m).join(', ')+' (primary muscles still recovering)';
+    }
 
     (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
     exs.forEach(e=>{if(e.muscle)assignedMuscles[dateStr].add(e.muscle);});
 
-    return{tk,name:sessionName,desc:tmpl.desc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
+    return{tk,name:sessionName,desc:sessionDesc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
   function assignSlot(slot,idx){
     return buildSession(slot,split[idx%split.length]);
