@@ -192,6 +192,7 @@ body{
 .badge-makeup{background:rgba(248,113,113,.15);color:var(--bad)}
 .pg-day.pg-skip{opacity:.45;border-style:dashed}
 .pg-day.pg-missed{border-color:rgba(248,113,113,.4)}
+.pg-day.pg-done{border-color:rgba(74,222,128,.4);background:linear-gradient(135deg,var(--surf) 0%,rgba(74,222,128,.05) 100%)}
 /* availability plan rows */
 .plan-slot-row{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;margin-bottom:8px}
 .plan-slot-day{font-size:13px;font-weight:700;margin-bottom:8px}
@@ -1579,6 +1580,22 @@ function getMissedDays(){
   }).map(d=>d.dow);
 }
 
+// Program-week dows (non-rest) that have a completed session logged on their
+// calendar date this week — a regular finished workout or a custom-logged one.
+// Used to mark planned days as "completed" in the dashboard and program views.
+function getCompletedDows(){
+  const set=new Set();
+  if(!S.program)return set;
+  const thisMon=thisMonday();
+  const dateFor=(dow)=>dow===0?addDays(thisMon,6):dow===6?addDays(thisMon,5):addDays(thisMon,dow-1);
+  const loggedDates=new Set(S.logs.filter(l=>!l.isCardio).map(l=>logDay(l.date)));
+  S.program.week.forEach(d=>{
+    if(d.rest)return;
+    if(loggedDates.has(dateFor(d.dow)))set.add(d.dow);
+  });
+  return set;
+}
+
 function getEveningMins(){
   if(S.eveningMins&&S.eveningMins.date===todayStr())return S.eveningMins.mins;
   return S.cfg.mins;
@@ -2420,17 +2437,20 @@ function renderSetup(){
 function renderDash(){
   const today=todayDay();const dow=todayDow();const isSunday=dow===0;
   const missed=getMissedDays();
+  const completedDows=getCompletedDows();
   const wkGrid=S.program.week.map((d,i)=>{
     const isToday=i===dow;
     const isViewing=S.viewDay===i;
     const isMissed=missed.includes(i);
+    const isCompleted=completedDows.has(i);
     let dot;
     if(d.rest)dot='background:var(--bdr)';
+    else if(isCompleted)dot='background:var(--ok)';
     else if(isMissed)dot='background:var(--bad)';
     else if(isToday)dot='background:var(--ok)';
     else dot='background:var(--warn)';
     return`<div class='wk-day${isToday?' today':''}${isViewing?' viewing':''}' data-action='view-day' data-dow='${i}'>
-      <div class='wk-dn'>${DOW[i].slice(0,1)}</div>
+      <div class='wk-dn'${isCompleted?" style='color:var(--ok)'":''}>${isCompleted?'✓':DOW[i].slice(0,1)}</div>
       <div class='wk-dot' style='${dot}'></div>
     </div>`;
   }).join('');
@@ -2511,8 +2531,10 @@ function renderDash(){
         ${detail}
       </div>`;
     };
+    const isCompleted=completedDows.has(displayDow);
     const exList=d.exercises.slice(0,3).map(exRow).join('');
     const makeupNote=isActualToday&&missed.length>0?`<div style='font-size:12px;color:var(--bad);margin-bottom:10px'>⚡ +${missed.length} make-up exercise${missed.length>1?'s':''} added (${missed.map(m=>DOW[m]).join(', ')} missed)</div>`:'';
+    const completedBanner=isCompleted?`<div style='display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 12px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3);border-radius:10px'><span style='font-size:16px'>✅</span><span style='font-size:13px;font-weight:700;color:var(--ok)'>Completed${isActualToday?' today':''} — nice work!</span></div>`:'';
     const lunchBadge=d.isLunch?`<span class='badge badge-lunch' style='margin-left:8px'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve' style='margin-left:8px'>${d.sessionMins||60} min</span>`;
     // Evening session block
     let eveBlock='';
@@ -2525,13 +2547,15 @@ function renderDash(){
         ${isActualToday?`<button class='btn btn-s' data-action='start-workout' data-session='eve' style='margin-top:8px'>Start Evening Workout →</button>`:''}
       </div>`;
     }
-    return`<div class='today'>
-      <div class='t-lbl' style='display:flex;align-items:center;flex-wrap:wrap;gap:4px'>${isActualToday?'Today':''}${isActualToday?' · ':''}${DOW[displayDow]}${lunchBadge}</div>
+    return`<div class='today'${isCompleted?" style='border-color:rgba(74,222,128,.4)'":''}>
+      <div class='t-lbl' style='display:flex;align-items:center;flex-wrap:wrap;gap:4px'>${isActualToday?'Today':''}${isActualToday?' · ':''}${DOW[displayDow]}${lunchBadge}${isCompleted?`<span class='badge' style='margin-left:8px;background:rgba(74,222,128,.15);color:var(--ok)'>✓ Completed</span>`:''}</div>
       <div class='t-name'>${d.name}</div>
       <div class='t-desc'>${d.desc}</div>
       <div class='t-exlist'>${exList}</div>
+      ${completedBanner}
       ${makeupNote}
-      ${isActualToday?`<button class='btn btn-p' data-action='start-workout' data-session='lunch'>Start${d.eveningSession?' Lunch':''} Workout →</button>`:''}
+      ${isActualToday&&!isCompleted?`<button class='btn btn-p' data-action='start-workout' data-session='lunch'>Start${d.eveningSession?' Lunch':''} Workout →</button>`:''}
+      ${isActualToday&&isCompleted?`<button class='btn btn-g btn-sm' data-action='start-workout' data-session='lunch' style='width:100%'>↻ Repeat Workout</button>`:''}
       ${displayDow > todayDow() || (displayDow === 0 && todayDow() < 6) ?
         `<button class='btn btn-g btn-sm' data-action='plan-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📅 Plan Custom Workout</button>` :
         `<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 ${isActualToday?'Log Custom Workout Instead':'Log Custom Workout'}</button>`
@@ -3029,6 +3053,7 @@ function renderProgram(){
   const dow=todayDow();
   const cardio=calcWeekCardio();
   const missed=getMissedDays();
+  const completedDows=getCompletedDows();
   const cardioBlurb=cardio&&cardio.calsPerDay>0
     ?cardio.options.slice(0,3).map(o=>`${o.icon} ${o.name}: ${o.min} min${o.dist&&o.dist!=='—'?' · '+o.dist:''}`).join(' · ')
     :'';
@@ -3037,8 +3062,9 @@ function renderProgram(){
 
   const days=S.program.week.map(d=>{
     const isToday=d.dow===dow;
-    const isSkipped=!d.rest&&isDaySkipped(d.dow);
-    const isMissed=!d.rest&&!isSkipped&&missed.includes(d.dow);
+    const isCompleted=!d.rest&&completedDows.has(d.dow);
+    const isSkipped=!d.rest&&!isCompleted&&isDaySkipped(d.dow);
+    const isMissed=!d.rest&&!isSkipped&&!isCompleted&&missed.includes(d.dow);
     if(d.rest||isSkipped){
       if(d.dow===0||d.dow===6)return''; // skip weekend rest rows
       let cn='';
@@ -3055,6 +3081,7 @@ function renderProgram(){
     }
     const badge=d.isLunch?`<span class='badge badge-lunch'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve'>${d.sessionMins||60} min</span>`;
     const missedTag=isMissed?`<span style='font-size:11px;color:var(--bad);font-weight:700;margin-left:6px'>⚠️ missed</span>`:'';
+    const completedTag=isCompleted?`<span style='font-size:11px;color:var(--ok);font-weight:700;margin-left:6px'>✓ completed</span>`:'';
     const exList=d.exercises.map(exRow).join('');
     let eveBlock='';
     if(d.eveningSession){
@@ -3071,9 +3098,9 @@ function renderProgram(){
         <div style='font-size:11px;color:var(--mut)'>${cardioBlurb}</div>
       </div>`;
     }
-    return`<div class='pg-day${isToday?' today-day':''}${isMissed?' pg-missed':''}'>
+    return`<div class='pg-day${isToday?' today-day':''}${isMissed?' pg-missed':''}${isCompleted?' pg-done':''}'>
       <div class='pg-dh'>
-        <div><div class='pg-dn' style='display:flex;align-items:center;gap:4px;flex-wrap:wrap'>${d.name}${missedTag} ${badge}</div><div class='pg-dd'>${DOW[d.dow]}</div></div>
+        <div><div class='pg-dn' style='display:flex;align-items:center;gap:4px;flex-wrap:wrap'>${d.name}${completedTag}${missedTag} ${badge}</div><div class='pg-dd'>${DOW[d.dow]}</div></div>
         ${isToday?`<span style='font-size:11px;font-weight:700;color:var(--acc);background:var(--acc2);padding:3px 8px;border-radius:20px'>TODAY</span>`:''}
       </div>
       <div>${exList}</div>

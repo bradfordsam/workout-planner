@@ -1,6 +1,6 @@
 // Service Worker for Workout Planner PWA
 // Bump this version whenever you want to force a refresh of cached files
-const CACHE_NAME = 'workout-planner-v4';
+const CACHE_NAME = 'workout-planner-v5';
 const urlsToCache = [
   './',
   './index.html',
