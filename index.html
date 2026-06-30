@@ -883,7 +883,17 @@ function genProgram(cfg,av,workoutHistoryLog){
     if(!elig.length)elig=rows.filter(r=>r.rested).sort(byDebt);
     if(!elig.length)return null; // nothing adequately rested → rest/recovery day
     const muscleSlots=Math.max(1,limit-1); // reserve a slot for core
-    const top=elig.slice(0,Math.min(3,elig.length));
+    // Light natural-pairing nudge: the anchor is the most-overdue rested muscle;
+    // fill the rest of the day preferring muscles from the same natural group
+    // (push: chest/shoulders/triceps · pull: back/biceps · legs), but let a
+    // clearly-more-overdue muscle from another group still win. NOT a fixed
+    // split — which group anchors a day is decided by recovery debt each day.
+    const GROUP={chest:'push',shoulders:'push',triceps:'push',back:'pull',biceps:'pull',legs:'legs'};
+    const PAIR_BONUS=36; // hours of virtual debt for sharing the anchor's group
+    const anchor=elig[0];
+    const ag=GROUP[anchor.m];
+    const rest2=elig.slice(1).map(r=>({r,score:r.hrs+(GROUP[r.m]===ag?PAIR_BONUS:0)})).sort((a,b)=>b.score-a.score).map(o=>o.r);
+    const top=[anchor,...rest2].slice(0,Math.min(3,elig.length));
     const slots=[];
     for(let i=0;i<muscleSlots;i++)slots.push({muscle:top[i%top.length].m,type:i<top.length?'compound':'isolation'});
     slots.push({muscle:'core',type:'rotational'});
