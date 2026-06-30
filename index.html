@@ -1261,46 +1261,54 @@ function getLockedMuscles(dateStr,history,assigned){
   return locked;
 }
 
-// Most recent calendar date (YYYY-MM-DD) each muscle was last trained, scanning
-// the historical log. Used to prioritize the freshest (least-recently-trained)
-// muscle groups onto the earliest days of the week.
-function muscleLastTrained(history){
-  const last={};
+// Recent fatigue load per muscle, weighting BOTH how much volume was done and
+// how recently. Each logged set counts for `1 - daysAgo/LOOKBACK` (≈1 today,
+// fading to ~0 a week out), summed per muscle over the lookback window. Using
+// volume — not just the single most-recent date — means a "mostly push" day
+// correctly marks push (3+ movements) as fatigued rather than letting one stray
+// accessory (e.g. a single row) flag the whole pull group as freshly trained.
+function muscleRecentLoad(history){
+  const load={};
+  const today=todayStr();
+  const LOOKBACK=7;
   (history||[]).forEach(l=>{
     if(l.isCardio)return;
-    const d=logDay(l.date);
+    const daysAgo=daysBetween(logDay(l.date),today);
+    if(daysAgo<0||daysAgo>=LOOKBACK)return; // future or older than the window
+    const w=1-(daysAgo/LOOKBACK);
     (l.exercises||[]).forEach(e=>{
-      if(e&&e.muscle&&(!last[e.muscle]||d>last[e.muscle]))last[e.muscle]=d;
+      if(!e||!e.muscle)return;
+      const sets=Array.isArray(e.sets)?e.sets.filter(s=>s&&s.reps>0).length:(parseInt(e.sets)||1);
+      load[e.muscle]=(load[e.muscle]||0)+sets*w;
     });
   });
-  return last;
+  return load;
 }
 
-// Reorder the week's split so the template whose muscles are LEAST recently
-// trained lands on the earliest day. The binding constraint for a template is
-// its most-recently-trained muscle (that's the one most owed rest), so each
-// template scores as the latest training date among its non-core muscles, and
-// we sort ascending — a template no muscle of which was trained recently
-// (score '') sorts first. The lockout matrix (getLockedMuscles) still enforces
-// the hard recovery floor; this only improves spacing within what's legal.
-// Stable: with no history every score is '' so the canonical SPLITS order is
-// preserved unchanged.
+// Reorder the week's split so the template whose muscles carry the LEAST recent
+// fatigue lands on the earliest day, and the most-fatigued template lands last.
+// The binding constraint for a template is its most-fatigued muscle (the one
+// most owed rest), so each template scores as the max recent load among its
+// non-core muscles, sorted ascending. The lockout matrix (getLockedMuscles)
+// still enforces the hard recovery floor; this only improves spacing within
+// what's legal. Stable: with no recent history every score is 0 so the
+// canonical SPLITS order is preserved unchanged.
 function orderSplitByRecovery(split,history){
-  const last=muscleLastTrained(history);
+  const load=muscleRecentLoad(history);
   const score=tk=>{
     const tmpl=TMPLS[tk];
-    if(!tmpl)return '';
-    let recent='';
+    if(!tmpl)return 0;
+    let max=0;
     tmpl.slots.forEach(sl=>{
       if(sl.muscle==='core')return;
-      const d=last[sl.muscle];
-      if(d&&d>recent)recent=d;
+      const v=load[sl.muscle]||0;
+      if(v>max)max=v;
     });
-    return recent;
+    return max;
   };
   return split
     .map((tk,i)=>({tk,i,s:score(tk)}))
-    .sort((a,b)=>a.s<b.s?-1:a.s>b.s?1:a.i-b.i)
+    .sort((a,b)=>a.s-b.s||a.i-b.i)
     .map(o=>o.tk);
 }
 
@@ -3723,6 +3731,29 @@ function adaptWeekForCustomWorkout(customLog, customDow) {
   });
 }
 
+// Regenerate THIS week's program from full history without injecting a new day.
+// Used when a session from the last few days is logged that fell in the PRIOR
+// calendar week: it can't be placed on a current-week day, but it should still
+// reshuffle the split order (via orderSplitByRecovery's recent-load weighting)
+// so the freshest muscle groups lead the week. Preserves any custom / planned
+// custom workout days already placed this week.
+function replanCurrentWeek(){
+  if(!S.program||!S.program.week||!S.weekPlan?.availability)return;
+  const preserved={};
+  S.program.week.forEach((day,dow)=>{
+    if(day&&day.customWorkout&&day.customLog){
+      preserved[dow]={customWorkout:true,customLog:day.customLog,name:day.name,desc:day.desc};
+    }else if(day&&day.plannedCustomWorkout&&day.plannedCustomLog){
+      preserved[dow]={plannedCustomWorkout:true,plannedCustomLog:day.plannedCustomLog,name:day.name,desc:day.desc};
+    }
+  });
+  S.program=genProgram(S.cfg,S.weekPlan.availability,S.logs);
+  Object.entries(preserved).forEach(([dow,data])=>{
+    const i=parseInt(dow);
+    if(S.program.week[i])S.program.week[i]={...S.program.week[i],...data};
+  });
+}
+
 function planCustomWorkout(customLog, customDow) {
   if (!S.program || !S.program.week || !S.weekPlan?.availability) return;
 
@@ -4395,9 +4426,16 @@ document.addEventListener('click',e=>{
       // derived from log dates (getWeeklySetVolumes / getCommittedVolumes).
       recalcLastWeights();
 
-      // Regenerate rest of week to adapt (current-week entries only — a
-      // workout from a prior week doesn't change this week's plan)
-      if(inCurrentWeek) adaptWeekForCustomWorkout(customData, S.customWorkoutLog.dow);
+      // Regenerate rest of week to adapt. Current-week entries tie into a
+      // specific day; a session from the last few days that fell in the prior
+      // calendar week can't be placed on a day, but it still reshuffles this
+      // week's split order so the freshest muscle groups lead off.
+      if(inCurrentWeek){
+        adaptWeekForCustomWorkout(customData, S.customWorkoutLog.dow);
+      } else {
+        const sinceDays=daysBetween(localDateStr(entryDate),todayStr());
+        if(sinceDays>=0&&sinceDays<=6) replanCurrentWeek();
+      }
     }
 
     S.customWorkoutLog = null;
