@@ -825,14 +825,10 @@ function genProgram(cfg,av,workoutHistoryLog){
     [1,2,3,4,5].filter(d=>ps!==0&&d>=ps).forEach(dow=>lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`,equipmentKey:'ymca'}));
   }
 
-  // Split size: lunches fill first, evenings on non-lunch days fill remaining gaps (max 5)
+  // No fixed split or week-ahead template cycle: every available day is planned
+  // on demand from recovery debt (see dayTemplate). lunchDows lets evening slots
+  // know which days already train at lunch.
   const lunchDows=new Set(lunchSlots.map(s=>s.dow));
-  const eveNonLunch=eveSlots.filter(s=>!lunchDows.has(s.dow));
-  const count=Math.max(2,Math.min(lunchSlots.length+eveNonLunch.length,5));
-  // Reorder so the freshest (least-recently-trained) muscle groups get the
-  // earliest days — maximizing rest for recently-worked groups without
-  // violating the hard recovery lockout enforced later in buildSession.
-  const split=orderSplitByRecovery(SPLITS[count]||SPLITS[5],history);
 
   // Completed sessions this calendar week — preserve their templates
   const mon=thisMonday();
@@ -861,6 +857,40 @@ function genProgram(cfg,av,workoutHistoryLog){
   // evening) this week, if any — the source of truth for a completed day.
   const loggedFor=(slot)=>(S.logs||[]).find(l=>!l.isCardio&&logDay(l.date)===dateForDow(slot.dow)&&(!!l.isLunch)===(!!slot.isLunch));
 
+  // Plan a single day on demand from recovery debt: the muscle groups that are
+  // most overdue AND adequately rested (past their MUSCLE_LOCKOUT_HOURS window),
+  // assembled into that day's session. No fixed split — a group recurs as soon
+  // as it's rested, and the day is named for whatever it actually trains.
+  // Returns {name,desc,slots,tk} or null when nothing is recovered → rest day.
+  function dayTemplate(dateStr,limit){
+    const MUSCLES=['legs','back','chest','shoulders','biceps','triceps'];
+    // Most recent training date per muscle (logs + sessions already assigned
+    // earlier this run), on or before dateStr.
+    const lastDate={};
+    const consider=(d,muscles)=>{if(!d||d>dateStr)return;muscles.forEach(m=>{if(m&&(!lastDate[m]||d>lastDate[m]))lastDate[m]=d;});};
+    (history||[]).forEach(l=>{if(l.isCardio)return;consider(logDay(l.date),(l.exercises||[]).map(e=>e&&e.muscle));});
+    Object.entries(assignedMuscles).forEach(([d,set])=>consider(d,[...set]));
+    const rows=MUSCLES.map(m=>{
+      const ld=lastDate[m];
+      const hrs=ld?hoursBetweenDates(ld,dateStr):9999; // never trained → max debt
+      const max=budget.limits[m]?.max??20;
+      return{m,hrs,rested:hrs>=(MUSCLE_LOCKOUT_HOURS[m]||48),headroom:max-(budget.vol[m]||0)};
+    });
+    // Eligible = rested with weekly MRV headroom, most-overdue first. If headroom
+    // rules everything out, fall back to rested-only.
+    const byDebt=(a,b)=>b.hrs-a.hrs||MUSCLES.indexOf(a.m)-MUSCLES.indexOf(b.m);
+    let elig=rows.filter(r=>r.rested&&r.headroom>=2).sort(byDebt);
+    if(!elig.length)elig=rows.filter(r=>r.rested).sort(byDebt);
+    if(!elig.length)return null; // nothing adequately rested → rest/recovery day
+    const muscleSlots=Math.max(1,limit-1); // reserve a slot for core
+    const top=elig.slice(0,Math.min(3,elig.length));
+    const slots=[];
+    for(let i=0;i<muscleSlots;i++)slots.push({muscle:top[i%top.length].m,type:i<top.length?'compound':'isolation'});
+    slots.push({muscle:'core',type:'rotational'});
+    const names=top.map(t=>MNAME[t.m]||t.m);
+    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')};
+  }
+
   function buildSession(slot,tk,oldData){
     // Use per-session equipment from availability
     const equipmentKey=slot.equipmentKey||'ymca';
@@ -883,9 +913,14 @@ function genProgram(cfg,av,workoutHistoryLog){
       });
       return{tk,name:completedLog.dayName,desc:`Completed · ${completedLog.exercises.length} exercise${completedLog.exercises.length!==1?'s':''} logged`,isLunch:!!completedLog.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc,preserved:true,completed:true};
     }
+    const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
+    // Plan this day on demand from recovery debt (most-overdue rested muscles).
+    const tmpl=dayTemplate(dateStr,limit);
+    if(!tmpl)return null; // nothing adequately rested → this day stays a rest day
     if(oldData===undefined)oldData=oldWeek?.[slot.dow];
-    // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
-    if(oldData&&!oldData.rest&&(completedDows.has(slot.dow)||(oldData.tk===tk&&oldData.loc===slot.loc))){
+    // Preserve existing exercises if already completed this week, OR the same
+    // recovery template would be rebuilt at the same location (avoids churn).
+    if(oldData&&!oldData.rest&&(completedDows.has(slot.dow)||(oldData.tk===tmpl.tk&&oldData.loc===slot.loc))){
       const od=oldData;
       // Count a preserved upcoming session toward the budget AND the movement
       // frequency map (completed days are already in the history seed; custom/
@@ -902,8 +937,6 @@ function genProgram(cfg,av,workoutHistoryLog){
       (od.exercises||[]).forEach(e=>{if(e&&e.muscle)assignedMuscles[dateStr].add(e.muscle);});
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,preserved:true};
     }
-    const tmpl=slot.isLunch?(LUNCH_TMPLS[tk]||TMPLS[tk]):TMPLS[tk];
-    const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
     const used=[];
     const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
 
@@ -985,112 +1018,31 @@ function genProgram(cfg,av,workoutHistoryLog){
 
     return{tk,name:sessionName,desc:sessionDesc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
-  // Lockout-aware template assignment. The split is already in recovery-priority
-  // order (orderSplitByRecovery); here we additionally skip any template whose
-  // muscles are still inside their recovery window for THIS day's date and take
-  // the highest-priority template that IS rested instead — so a day whose split
-  // slot is locked gets reassigned to a different, sufficiently-rested slot
-  // rather than backfilled/relabeled. Each template is used once per cycle (the
-  // pool refills if exhausted). Falls back to the next in order only when no
-  // remaining template is rested at all.
-  let splitPool=[...split];
-  const tmplPrimaries=tk=>[...new Set((TMPLS[tk]?.slots||[]).filter(s=>s.muscle!=='core').map(s=>s.muscle))];
-  function takeTemplateFor(slot){
-    if(!splitPool.length)splitPool=[...split];
-    const dateStr=dateForDow(slot.dow);
-    const locked=getLockedMuscles(dateStr,history,assignedMuscles);
-    const fully=i=>tmplPrimaries(splitPool[i]).every(m=>!locked.has(m));
-    const partly=i=>tmplPrimaries(splitPool[i]).some(m=>!locked.has(m));
-    let idx=splitPool.findIndex((_,i)=>fully(i));        // fully rested, highest priority
-    if(idx<0)idx=splitPool.findIndex((_,i)=>partly(i));  // else partially rested
-    if(idx<0)idx=0;                                      // else nothing rested — fall back
-    return splitPool.splice(idx,1)[0];
-  }
-  function assignSlot(slot){
-    // If this day is already completed, consume the split template that best
-    // matches the LOGGED muscles, so the remaining days cover the rest of the
-    // split instead of repeating what was just trained; buildSession then locks
-    // the day to its log.
-    const log=loggedFor(slot);
-    if(log){
-      if(!splitPool.length)splitPool=[...split];
-      const logMus=new Set((log.exercises||[]).map(e=>e&&e.muscle).filter(Boolean));
-      let bi=0,bs=-1;
-      splitPool.forEach((t,i)=>{const o=tmplPrimaries(t).filter(m=>logMus.has(m)).length;if(o>bs){bs=o;bi=i;}});
-      return buildSession(slot,splitPool.splice(bi,1)[0]);
-    }
-    return buildSession(slot,takeTemplateFor(slot));
-  }
+  // Each available day is planned independently from recovery debt. Days are
+  // processed in calendar order so a session assigned earlier in the week feeds
+  // the lockout/recency picture for later days (a muscle trained Monday is "just
+  // trained" when Tuesday is planned). buildSession returns null when nothing is
+  // adequately rested → that day stays a rest day.
+  function assignSlot(slot){return buildSession(slot);}
 
-  const slotMap={};let assigned=0;
-  // Pass 1: lunches always get lifting
-  lunchSlots.forEach(slot=>{slotMap[slot.key]=assignSlot(slot);assigned++;});
-  // Pass 2: evenings — only lift if split not complete AND no lunch that same day
+  const slotMap={};
+  // Pass 1: lunch days.
+  lunchSlots.forEach(slot=>{const s=assignSlot(slot);if(s)slotMap[slot.key]=s;});
+  // Pass 2: evening lifting on days WITHOUT a lunch session (e.g. weekends).
   eveSlots.forEach(slot=>{
-    if(lunchDows.has(slot.dow))return; // lifted at lunch today → evening = cardio
-    if(assigned>=count)return;         // split fully covered → cardio
-    slotMap[slot.key]=assignSlot(slot);assigned++;
+    if(lunchDows.has(slot.dow))return; // a lunch+evening day is handled in Pass 3
+    const s=assignSlot(slot);if(s)slotMap[slot.key]=s;
   });
-
-  // Pass 3: double-lifting days — if a day has both lunch + evening lifting
-  // available and the split is otherwise complete, give the evening slot a
-  // full bonus session using a DIFFERENT template than lunch. Research favors
-  // hitting an under-volumed muscle group on a separate day/session over
-  // stacking extra same-muscle sets onto one workout, so pick whichever
-  // template targets the muscle furthest below its weekly volume target.
-  const BONUS_TMPLS=['legs','lower_a','lower_b','push','pull','upper_push','upper_pull'];
-  const VOL_TARGET_BUFFER=4; // a muscle "needs more volume" if it's this far below its weekly MRV max
+  // Pass 3: double-lifting days — a day with both lunch and evening available
+  // gets a SECOND session in the evening. Because the lunch muscles are now
+  // recorded for today, dayTemplate naturally picks different, still-rested
+  // muscle groups for the evening (or returns null → evening stays cardio).
   eveSlots.forEach(slot=>{
-    if(!lunchDows.has(slot.dow))return;   // only relevant for lunch+evening days
-    if(slotMap[slot.key])return;          // already assigned
-    const lunchSession=slotMap[`${slot.dow}-lunch`];
-    if(!lunchSession?.exercises?.length)return;
-
-    // Which muscles get compound work on each planned day, so the bonus
-    // session can avoid hitting a muscle on back-to-back days.
-    const muscleDows={};
-    Object.entries(slotMap).forEach(([key,sess])=>{
-      const sdow=parseInt(key);
-      (sess.exercises||[]).forEach(e=>{
-        if(e.type==='compound')(muscleDows[e.muscle]=muscleDows[e.muscle]||new Set()).add(sdow);
-      });
-    });
-
-    let best=null,bestScore=0;
-    BONUS_TMPLS.forEach(tk=>{
-      // Same-day duplicate templates (and their compound movements) are
-      // ALLOWED — multi-session days are gated on aggregate volume, not an
-      // identity block: lunch's sets have already consumed budget.vol, the
-      // deficit scoring below only repeats a split when its muscles remain
-      // genuinely under-volumed, and pickEx's fitsMRV enforces the hard
-      // weekly ceiling per muscle. A mild variety preference breaks ties
-      // toward a different split without forbidding the repeat.
-      const sameAsLunch=tk===lunchSession.tk;
-      const muscles=new Set(TMPLS[tk].slots.filter(s=>s.type==='compound').map(s=>s.muscle));
-      // Rank by the single most under-volumed muscle the template trains (the
-      // muscle that most needs a second weekly session), using total deficit
-      // only as a tie-breaker — otherwise multi-muscle upper days always beat
-      // a legs day on summed deficit.
-      let maxDef=0,sumDef=0,maxDefMuscle=null;
-      muscles.forEach(m=>{
-        const max=budget.limits[m]?.max??20;
-        const def=Math.max(0,max-VOL_TARGET_BUFFER-(budget.vol[m]||0));
-        if(def>maxDef){maxDef=def;maxDefMuscle=m;}
-        sumDef+=def;
-      });
-      let score=maxDef*100+sumDef;
-      // Soft penalty if the target muscle is already trained on an adjacent
-      // day — same-muscle sessions <24h apart compromise recovery.
-      const dows=maxDefMuscle?muscleDows[maxDefMuscle]:null;
-      if(dows&&(dows.has(slot.dow-1)||dows.has(slot.dow+1)))score*=0.25;
-      // Variety preference (soft), not a block: a repeat of the lunch split
-      // must clearly out-score the alternatives on volume deficit to win.
-      if(sameAsLunch)score*=0.5;
-      if(maxDef>0&&score>bestScore){bestScore=score;best=tk;}
-    });
-    if(!best)return; // nothing meaningfully under-volumed → evening stays cardio
-
-    slotMap[slot.key]=buildSession(slot,best,oldWeek?.[slot.dow]?.eveningSession);
+    if(!lunchDows.has(slot.dow))return;
+    if(slotMap[slot.key])return;
+    if(!slotMap[`${slot.dow}-lunch`]?.exercises?.length)return; // no lunch session → no bonus
+    const s=buildSession(slot,null,oldWeek?.[slot.dow]?.eveningSession||null);
+    if(s&&s.exercises?.length)slotMap[slot.key]=s;
   });
 
   // Build week array
