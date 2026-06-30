@@ -225,8 +225,6 @@ body{
 </head>
 <body>
 <div id="root"></div>
-<button class="chat-btn" id="chat-btn" onclick="toggleChat()" title="Ask about exercises">💬</button>
-<div id="chat-float"></div>
 <div id="modal-root"></div>
 <div id="rest-ov">
   <div class="rest-inner">
@@ -2899,7 +2897,6 @@ function renderWorkout(){
     </div>`:''}
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
     <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s rest between sets (lunch time-box)':smartRestLabel(ex)} · slow eccentric</div>
-    ${renderInlineChat(ex)}
   </div>`;
 }
 
@@ -3387,10 +3384,6 @@ function render(){
   const root=document.getElementById('root');
   if(!S.program&&S.view!=='setup'){S.view='setup';}
   updateModals();
-  // Mid-workout chat is embedded inline in the execution screen — hide the
-  // floating chat button there so no detached overlay competes with it.
-  const chatBtn=document.getElementById('chat-btn');
-  if(chatBtn)chatBtn.style.display=(S.view==='workout')?'none':'flex';
   if(S.view==='setup'){root.innerHTML=renderSetup();return;}
   if(S.view==='workout'){root.innerHTML=renderWorkout();return;}
   if(S.view==='mrv-breakdown'){root.innerHTML=renderMRVBreakdown();return;}
