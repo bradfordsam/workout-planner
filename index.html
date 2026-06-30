@@ -1719,6 +1719,30 @@ function getCompletedDows(){
   return set;
 }
 
+// The actual logged (non-cardio) session for a program-week dow's calendar date
+// this week, if any. A completed day should display what was REALLY trained —
+// the planned template can differ (e.g. the week was regenerated after the
+// session was logged), so completed cards/rows read from the log, not the plan.
+function getLoggedSessionForDow(dow){
+  if(!S.program)return null;
+  const thisMon=thisMonday();
+  const dateFor=(dw)=>dw===0?addDays(thisMon,6):dw===6?addDays(thisMon,5):addDays(thisMon,dw-1);
+  const target=dateFor(dow);
+  return (S.logs||[]).find(l=>!l.isCardio&&logDay(l.date)===target)||null;
+}
+
+// Read-only exercise rows for a logged session (name + muscle dot + what was
+// actually done), self-contained so it renders in both the dashboard and the
+// program page.
+function loggedExRows(log){
+  return (log.exercises||[]).map(e=>{
+    const done=(e.sets||[]).filter(s=>s&&s.reps>0);
+    const last=done[done.length-1];
+    const summ=done.length?`${done.length}×${last.reps}${last.weight?' @ '+last.weight+' lb':''}`:'logged';
+    return`<div style='display:flex;align-items:center;gap:6px;font-size:13px;padding:3px 0'><span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]||'var(--mut)'};flex-shrink:0;display:inline-block'></span>${e.name}<span style='font-size:11px;color:var(--mut);margin-left:auto'>${summ}</span></div>`;
+  }).join('');
+}
+
 function getEveningMins(){
   if(S.eveningMins&&S.eveningMins.date===todayStr())return S.eveningMins.mins;
   return S.cfg.mins;
@@ -2655,7 +2679,12 @@ function renderDash(){
       </div>`;
     };
     const isCompleted=completedDows.has(displayDow);
-    const exList=d.exercises.slice(0,3).map(exRow).join('');
+    // A completed day shows what was actually logged, not the (possibly since-
+    // regenerated) planned template.
+    const loggedSess=isCompleted?getLoggedSessionForDow(displayDow):null;
+    const dispName=loggedSess?loggedSess.dayName:d.name;
+    const dispDesc=loggedSess?`Completed · ${loggedSess.exercises.length} exercise${loggedSess.exercises.length!==1?'s':''} logged`:d.desc;
+    const exList=loggedSess?loggedExRows(loggedSess):d.exercises.slice(0,3).map(exRow).join('');
     const makeupNote=isActualToday&&missed.length>0?`<div style='font-size:12px;color:var(--bad);margin-bottom:10px'>⚡ +${missed.length} make-up exercise${missed.length>1?'s':''} added (${missed.map(m=>DOW[m]).join(', ')} missed)</div>`:'';
     const completedBanner=isCompleted?`<div style='display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 12px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3);border-radius:10px'><span style='font-size:16px'>✅</span><span style='font-size:13px;font-weight:700;color:var(--ok)'>Completed${isActualToday?' today':''} — nice work!</span></div>`:'';
     const lunchBadge=d.isLunch?`<span class='badge badge-lunch' style='margin-left:8px'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve' style='margin-left:8px'>${d.sessionMins||60} min</span>`;
@@ -2672,8 +2701,8 @@ function renderDash(){
     }
     return`<div class='today'${isCompleted?" style='border-color:rgba(74,222,128,.4)'":''}>
       <div class='t-lbl' style='display:flex;align-items:center;flex-wrap:wrap;gap:4px'>${isActualToday?'Today':''}${isActualToday?' · ':''}${DOW[displayDow]}${lunchBadge}${isCompleted?`<span class='badge' style='margin-left:8px;background:rgba(74,222,128,.15);color:var(--ok)'>✓ Completed</span>`:''}</div>
-      <div class='t-name'>${d.name}</div>
-      <div class='t-desc'>${d.desc}</div>
+      <div class='t-name'>${dispName}</div>
+      <div class='t-desc'>${dispDesc}</div>
       <div class='t-exlist'>${exList}</div>
       ${completedBanner}
       ${makeupNote}
@@ -3205,7 +3234,9 @@ function renderProgram(){
     const badge=d.isLunch?`<span class='badge badge-lunch'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve'>${d.sessionMins||60} min</span>`;
     const missedTag=isMissed?`<span style='font-size:11px;color:var(--bad);font-weight:700;margin-left:6px'>⚠️ missed</span>`:'';
     const completedTag=isCompleted?`<span style='font-size:11px;color:var(--ok);font-weight:700;margin-left:6px'>✓ completed</span>`:'';
-    const exList=d.exercises.map(exRow).join('');
+    // Completed days display the actual logged session, not the planned template.
+    const loggedSess=isCompleted?getLoggedSessionForDow(d.dow):null;
+    const exList=loggedSess?loggedExRows(loggedSess):d.exercises.map(exRow).join('');
     let eveBlock='';
     if(d.eveningSession){
       const eveList=d.eveningSession.exercises.map(exRow).join('');
@@ -3223,7 +3254,7 @@ function renderProgram(){
     }
     return`<div class='pg-day${isToday?' today-day':''}${isMissed?' pg-missed':''}${isCompleted?' pg-done':''}'>
       <div class='pg-dh'>
-        <div><div class='pg-dn' style='display:flex;align-items:center;gap:4px;flex-wrap:wrap'>${d.name}${completedTag}${missedTag} ${badge}</div><div class='pg-dd'>${DOW[d.dow]}</div></div>
+        <div><div class='pg-dn' style='display:flex;align-items:center;gap:4px;flex-wrap:wrap'>${loggedSess?loggedSess.dayName:d.name}${completedTag}${missedTag} ${badge}</div><div class='pg-dd'>${DOW[d.dow]}</div></div>
         ${isToday?`<span style='font-size:11px;font-weight:700;color:var(--acc);background:var(--acc2);padding:3px 8px;border-radius:20px'>TODAY</span>`:''}
       </div>
       <div>${exList}</div>
