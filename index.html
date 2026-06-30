@@ -965,18 +965,37 @@ function genProgram(cfg,av,workoutHistoryLog){
 
     return{tk,name:sessionName,desc:sessionDesc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
   }
-  function assignSlot(slot,idx){
-    return buildSession(slot,split[idx%split.length]);
+  // Lockout-aware template assignment. The split is already in recovery-priority
+  // order (orderSplitByRecovery); here we additionally skip any template whose
+  // muscles are still inside their recovery window for THIS day's date and take
+  // the highest-priority template that IS rested instead — so a day whose split
+  // slot is locked gets reassigned to a different, sufficiently-rested slot
+  // rather than backfilled/relabeled. Each template is used once per cycle (the
+  // pool refills if exhausted). Falls back to the next in order only when no
+  // remaining template is rested at all.
+  let splitPool=[...split];
+  const tmplPrimaries=tk=>[...new Set((TMPLS[tk]?.slots||[]).filter(s=>s.muscle!=='core').map(s=>s.muscle))];
+  function takeTemplateFor(slot){
+    if(!splitPool.length)splitPool=[...split];
+    const dateStr=dateForDow(slot.dow);
+    const locked=getLockedMuscles(dateStr,history,assignedMuscles);
+    const fully=i=>tmplPrimaries(splitPool[i]).every(m=>!locked.has(m));
+    const partly=i=>tmplPrimaries(splitPool[i]).some(m=>!locked.has(m));
+    let idx=splitPool.findIndex((_,i)=>fully(i));        // fully rested, highest priority
+    if(idx<0)idx=splitPool.findIndex((_,i)=>partly(i));  // else partially rested
+    if(idx<0)idx=0;                                      // else nothing rested — fall back
+    return splitPool.splice(idx,1)[0];
   }
+  function assignSlot(slot){return buildSession(slot,takeTemplateFor(slot));}
 
-  const slotMap={};let splitIdx=0;
+  const slotMap={};let assigned=0;
   // Pass 1: lunches always get lifting
-  lunchSlots.forEach(slot=>{slotMap[slot.key]=assignSlot(slot,splitIdx);splitIdx++;});
+  lunchSlots.forEach(slot=>{slotMap[slot.key]=assignSlot(slot);assigned++;});
   // Pass 2: evenings — only lift if split not complete AND no lunch that same day
   eveSlots.forEach(slot=>{
     if(lunchDows.has(slot.dow))return; // lifted at lunch today → evening = cardio
-    if(splitIdx>=count)return;         // split fully covered → cardio
-    slotMap[slot.key]=assignSlot(slot,splitIdx);splitIdx++;
+    if(assigned>=count)return;         // split fully covered → cardio
+    slotMap[slot.key]=assignSlot(slot);assigned++;
   });
 
   // Pass 3: double-lifting days — if a day has both lunch + evening lifting
