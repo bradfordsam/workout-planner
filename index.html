@@ -1259,6 +1259,80 @@ function getLockedMuscles(dateStr,history,assigned){
   return locked;
 }
 
+// Suggest a rest day once consecutive training days reach this many.
+const REST_SUGGEST_STREAK=6;
+
+// Additive recovery monitor (READ-ONLY): surfaces rest-requirement advisories
+// without changing the generated plan or any existing scheduling logic. It
+// layers on top of the split ordering and the MUSCLE_LOCKOUT_HOURS windows:
+//   (1) flags two sessions of the same muscle group scheduled closer than that
+//       group's required recovery window (e.g. legs <72h, chest <48h), and
+//   (2) suggests a rest day when consecutive training days — recent logs through
+//       the planned week — reach REST_SUGGEST_STREAK.
+// Builds on, never overrides, orderSplitByRecovery and getLockedMuscles.
+function getRecoveryAdvisories(){
+  if(!S.program||!S.program.week)return[];
+  const today=todayStr();
+  const thisMon=thisMonday();
+  const dateFor=(dow)=>dow===0?addDays(thisMon,6):dow===6?addDays(thisMon,5):addDays(thisMon,dow-1);
+  const dlabel=(d)=>DOW[new Date(d+'T12:00:00').getDay()];
+
+  // Muscles trained per calendar date: recent logs (last 10 days) + planned week.
+  const dateMuscles={};
+  const add=(d,muscles)=>{if(!d)return;(dateMuscles[d]=dateMuscles[d]||new Set());muscles.forEach(m=>m&&dateMuscles[d].add(m));};
+  (S.logs||[]).forEach(l=>{
+    if(l.isCardio)return;
+    const d=logDay(l.date);
+    if(daysBetween(d,today)<0||daysBetween(d,today)>10)return;
+    add(d,(l.exercises||[]).map(e=>e&&e.muscle));
+  });
+  S.program.week.forEach((day,dow)=>{
+    if(!day||day.rest)return;
+    const d=dateFor(dow);
+    if(d<today)return; // past planned days are already covered by logs above
+    const log=day.customLog||day.plannedCustomLog;
+    const exs=log?log.exercises:day.exercises;
+    add(d,(exs||[]).map(e=>e&&e.muscle));
+  });
+
+  const advisories=[];
+
+  // (1) Same-muscle spacing vs required recovery window. Core is intentionally
+  // skipped — it's light rotational work programmed every day by design.
+  Object.entries(MUSCLE_LOCKOUT_HOURS).forEach(([muscle,hrs])=>{
+    if(muscle==='core')return;
+    const days=Object.keys(dateMuscles).filter(d=>dateMuscles[d].has(muscle)).sort();
+    for(let i=1;i<days.length;i++){
+      if(days[i]<today)continue; // only warn about upcoming conflicts
+      if(hoursBetweenDates(days[i-1],days[i])<hrs)
+        advisories.push(`${MNAME[muscle]||muscle} is set for ${dlabel(days[i-1])} & ${dlabel(days[i])} — under the ${hrs}h it needs to recover. Consider spacing them out.`);
+    }
+  });
+
+  // (2) Consecutive training-day streak (spans the week boundary via log dates).
+  const liftDates=Object.keys(dateMuscles).sort();
+  if(liftDates.length){
+    let run=[liftDates[0]],best=null;
+    const consider=(r)=>{if(r.length>=REST_SUGGEST_STREAK&&r[r.length-1]>=today&&(!best||r.length>best.length))best=r;};
+    for(let i=1;i<liftDates.length;i++){
+      if(daysBetween(liftDates[i-1],liftDates[i])===1)run.push(liftDates[i]);
+      else{consider(run);run=[liftDates[i]];}
+    }
+    consider(run);
+    if(best)advisories.push(`You're scheduled to train ${best.length} days in a row (${dlabel(best[0])}–${dlabel(best[best.length-1])}). Consider a rest day in there to recover and avoid overtraining.`);
+  }
+  return advisories;
+}
+
+function renderRecoveryBanner(){
+  const a=getRecoveryAdvisories();
+  if(!a.length)return'';
+  return`<div class='card' style='border-color:rgba(251,191,36,.4);background:linear-gradient(135deg,var(--surf2) 0%,rgba(251,191,36,.05) 100%);margin-bottom:14px'>
+    <div class='sec-lbl' style='color:var(--warn);margin-bottom:8px'>⚠️ Recovery Check</div>
+    ${a.map(x=>`<div style='font-size:13px;color:var(--txt-dim);line-height:1.5;margin-bottom:6px'>• ${x}</div>`).join('')}
+  </div>`;
+}
+
 // Recent fatigue load per muscle, weighting BOTH how much volume was done and
 // how recently. Each logged set counts for `1 - daysAgo/LOOKBACK` (≈1 today,
 // fading to ~0 a week out), summed per muscle over the lookback window. Using
@@ -2654,6 +2728,7 @@ function renderDash(){
     ${renderBodyScoreCard()}
     <div class='sec-lbl'>This Week</div>
     <div class='wk-grid'>${wkGrid}</div>
+    ${renderRecoveryBanner()}
     ${todayHTML}
     ${planCard}
     ${renderMRVWidget()}
