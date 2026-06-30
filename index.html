@@ -857,12 +857,32 @@ function genProgram(cfg,av,workoutHistoryLog){
   // lets getLockedMuscles see "preceding" days within the same generation pass.
   const assignedMuscles={};
 
+  // The actual logged session for a slot's date AND session type (lunch vs
+  // evening) this week, if any — the source of truth for a completed day.
+  const loggedFor=(slot)=>(S.logs||[]).find(l=>!l.isCardio&&logDay(l.date)===dateForDow(slot.dow)&&(!!l.isLunch)===(!!slot.isLunch));
+
   function buildSession(slot,tk,oldData){
     // Use per-session equipment from availability
     const equipmentKey=slot.equipmentKey||'ymca';
     const selectedPreset=EQUIPMENT_PRESETS[equipmentKey]||EQUIPMENT_PRESETS.ymca;
     const equip=selectedPreset.equipment;
     const dateStr=dateForDow(slot.dow);
+    // A completed day is locked to what was ACTUALLY logged — the source of
+    // truth — so regenerating/resetting can never reassign or relabel it, and
+    // the rest of the week generates around what was really trained (its muscles
+    // feed the lockout + recovery ordering via the history seed below).
+    const completedLog=loggedFor(slot);
+    if(completedLog){
+      (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
+      (completedLog.exercises||[]).forEach(e=>{if(e&&e.muscle)assignedMuscles[dateStr].add(e.muscle);});
+      const allEx=[...EX,...(S.customExercises||[])];
+      const exs=(completedLog.exercises||[]).map(e=>{
+        const full=allEx.find(x=>x.id===e.id);
+        const done=(e.sets||[]).filter(s=>s&&s.reps>0).length;
+        return full?{...full,sets:done||3}:{id:e.id,name:e.name,muscle:e.muscle,type:'isolation',rMin:8,rMax:12,sets:done||3};
+      });
+      return{tk,name:completedLog.dayName,desc:`Completed · ${completedLog.exercises.length} exercise${completedLog.exercises.length!==1?'s':''} logged`,isLunch:!!completedLog.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc,preserved:true,completed:true};
+    }
     if(oldData===undefined)oldData=oldWeek?.[slot.dow];
     // Preserve existing exercises if: (a) already completed this week, OR (b) same template + same location
     if(oldData&&!oldData.rest&&(completedDows.has(slot.dow)||(oldData.tk===tk&&oldData.loc===slot.loc))){
@@ -986,7 +1006,21 @@ function genProgram(cfg,av,workoutHistoryLog){
     if(idx<0)idx=0;                                      // else nothing rested — fall back
     return splitPool.splice(idx,1)[0];
   }
-  function assignSlot(slot){return buildSession(slot,takeTemplateFor(slot));}
+  function assignSlot(slot){
+    // If this day is already completed, consume the split template that best
+    // matches the LOGGED muscles, so the remaining days cover the rest of the
+    // split instead of repeating what was just trained; buildSession then locks
+    // the day to its log.
+    const log=loggedFor(slot);
+    if(log){
+      if(!splitPool.length)splitPool=[...split];
+      const logMus=new Set((log.exercises||[]).map(e=>e&&e.muscle).filter(Boolean));
+      let bi=0,bs=-1;
+      splitPool.forEach((t,i)=>{const o=tmplPrimaries(t).filter(m=>logMus.has(m)).length;if(o>bs){bs=o;bi=i;}});
+      return buildSession(slot,splitPool.splice(bi,1)[0]);
+    }
+    return buildSession(slot,takeTemplateFor(slot));
+  }
 
   const slotMap={};let assigned=0;
   // Pass 1: lunches always get lifting
@@ -2318,6 +2352,11 @@ function finishWorkout(fatigue){
   });
   const log={id:Date.now().toString(),date:new Date().toISOString(),dayName:S.active.dayName,isLunch:S.active.isLunch,duration:Math.round((Date.now()-S.active.startTime)/60000),exercises:exData,fatigue:fatigue||null};
   S.logs.push(log);S.active=null;S.view='dash';
+  // Re-plan the rest of the week around what was just trained: recovery ordering
+  // + the lockout windows push the just-worked muscle groups to later days (e.g.
+  // a pull session today moves the next pull off of Wednesday in favor of a
+  // rested split slot), while completed days stay locked to their logs.
+  replanCurrentWeek();
   stopRest();save();render();
 }
 
