@@ -3030,6 +3030,10 @@ function renderWorkout(){
   const nextBtn=allDone
     ?`<button class='btn ${isLast?'btn-ok':'btn-p'}' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`
     :`<button class='btn btn-p' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px;display:none'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`;
+  // Visible only while sets remain unfinished — the primary Next/Finish button
+  // above already covers "move on" once every set is logged. This is the
+  // explicit "I can't/won't finish every set of THIS exercise" escape hatch.
+  const skipBtn=!allDone?`<button class='cue-btn' data-action='skip-ex' style='margin-top:8px;color:var(--mut)'>⏭ Skip this exercise${isLast?' & finish workout':''}</button>`:'';
 
   const prevBtn=exIdx>0?`<button class='ex-nav-btn' data-action='prev-ex'>← Previous</button>`:'';
 
@@ -3039,7 +3043,10 @@ function renderWorkout(){
         <div class='wkt-day'>${dayName}</div>
         <div class='wkt-prog'>Exercise ${exIdx+1} of ${total}</div>
       </div>
-      <button class='abandon' style='width:auto;padding:8px 12px;border-radius:10px' data-action='abandon'>✕ Quit</button>
+      <div style='display:flex;gap:6px'>
+        <button class='abandon' style='width:auto;padding:8px 12px;border-radius:10px' data-action='end-now'>🏁 End Now</button>
+        <button class='abandon' style='width:auto;padding:8px 12px;border-radius:10px' data-action='abandon'>✕ Quit</button>
+      </div>
     </div>
     ${S.active.autoRegNotes?.length?`<div class='wu-box' style='margin-bottom:14px'>
       <div class='wu-title'>⚖️ Auto-Regulation · 2nd Session Today</div>
@@ -3067,6 +3074,7 @@ function renderWorkout(){
       ${setsRows}
       ${condBlock}
       ${nextBtn}
+      ${skipBtn}
     </div>
     ${(exIdx<total-1)?`<div class='card2' style='margin-top:12px'>
       <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:8px;display:flex;align-items:center;gap:4px'>
@@ -4655,6 +4663,26 @@ document.addEventListener('click',e=>{
   if(a==='finish-workout'){S.active.ratePending=true;save();render();return;}
   if(a==='rate-fatigue'){finishWorkout(parseInt(btn.dataset.val)||null);return;}
   if(a==='abandon'){abandonWorkout();return;}
+  // Skip the CURRENT exercise (leave its unfinished sets as-is) and move on —
+  // for when a set can't be completed as prescribed, without losing progress
+  // already logged on other exercises. On the last exercise, this finishes
+  // the workout instead, same as tapping "Finish Workout" early.
+  if(a==='skip-ex'){
+    const next=S.active.exIdx+1;
+    if(next<S.active.exercises.length){goToEx(next);}
+    else{S.active.ratePending=true;save();render();}
+    return;
+  }
+  // End the workout right now, saving whatever sets are already completed —
+  // for finishing early or cutting a session short. With zero sets logged
+  // there's nothing to save, so it falls back to the discard (abandon) flow.
+  if(a==='end-now'){
+    const hasProgress=S.active.exercises.some(e=>e.done.some(Boolean));
+    if(!hasProgress){abandonWorkout();return;}
+    if(!confirm('End workout now? Sets you\'ve completed will be saved to your log; remaining exercises will be skipped.'))return;
+    S.active.ratePending=true;save();render();
+    return;
+  }
   if(a==='undo-set'){
     const ei=parseInt(btn.dataset.ex),si=parseInt(btn.dataset.set);
     if(S.active?.exercises[ei]){S.active.exercises[ei].done[si]=null;save();render();}
