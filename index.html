@@ -2650,6 +2650,14 @@ function renderSetup(){
          <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Restricts all leg training to a dumbbell-only, knee-safe set: Goblet Squat, RDL, Reverse Lunge, Sumo Squat, B-Stance Hip Thrust.</div>
        </div>
      </div>
+     <div class='sec-lbl' style='margin-top:16px'>Shoulder Discomfort</div>
+     <div class='plan-chk${cfg.shoulderCaution?' on':''}' data-action='toggle-shoulder-caution' style='margin-bottom:0'>
+       <div class='plan-chk-box'>${cfg.shoulderCaution?'✓':''}</div>
+       <div>
+         <div style='font-size:13px;font-weight:700'>Achy shoulder / poor posture</div>
+         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Swaps your pre-workout warm-up for a decompression + posture sequence: Dead Hang, Face Pulls, Band Pull-aparts, Doorway Stretch.</div>
+       </div>
+     </div>
      <div style='margin-top:20px'>
        <div class='sec-lbl'>Recent External Workouts (Optional)</div>
        <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>Describe any workouts you've done recently outside this app:</div>
@@ -3019,6 +3027,28 @@ function renderWorkout(){
     <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>6</span><span class='wu-val'>Clamshells</span><span style='color:var(--mut);font-size:12px'> · 15 reps/side · hips stacked</span></div>
   </div>`:'';
 
+  // "Achy Shoulder" protocol: replaces the generic warm-up mindset with a
+  // decompression + posture-correction sequence when the user has flagged
+  // shoulder discomfort or poor posture, shown before the first exercise.
+  const achyShoulderHTML=S.cfg.shoulderCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-bottom:14px'>
+    <div class='wu-title' style='color:var(--acc)'>🩹 Achy Shoulder Warm-up (do this instead of a generic warm-up)</div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>1</span><span class='wu-val'>Dead Hang</span><span style='color:var(--mut);font-size:12px'> · 30–60 sec · shoulder decompression</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>2</span><span class='wu-val'>Face Pulls</span><span style='color:var(--mut);font-size:12px'> · 15 reps · rear-delt/rotator-cuff stability</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>3</span><span class='wu-val'>Band Pull-aparts</span><span style='color:var(--mut);font-size:12px'> · 15 reps · upper-back posture</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>4</span><span class='wu-val'>Doorway Stretch</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · pec/anterior shoulder mobility</span></div>
+  </div>`:'';
+
+  // "Machine Mode" prehab: on a heavy, low-rep compound press (chest/shoulders/
+  // back, rMax<=8) as the FIRST lift, add rotator-cuff/stabilizer priming —
+  // Cuban or Czech press — so the joint is locked in before real load goes on.
+  const isHeavyPressFirst=ex.isFirst&&ex.type==='compound'&&ex.rMax<=8&&['chest','shoulders','back'].includes(ex.muscle);
+  const machineModeHTML=isHeavyPressFirst?`<div class='wu-box' style='border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.04);margin-bottom:14px'>
+    <div class='wu-title' style='color:var(--warn)'>🔧 Machine Mode Prehab (heavy compound ahead — lock in the shoulder first)</div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>1</span><span class='wu-val'>Cuban Press</span><span style='color:var(--mut);font-size:12px'> · 10 reps · light DBs: upright row → external rotation → overhead press, one fluid rep</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>2</span><span class='wu-val'>Czech Press</span><span style='color:var(--mut);font-size:12px'> · 10 reps · light DBs flared out behind the body, press up and slightly forward</span></div>
+    <div class='wu-note'>Both drill the rotator cuff and scapular stabilizers through the exact ranges the heavy lift will load — do these before your warm-up sets, not instead of them.</div>
+  </div>`:'';
+
   const sugW0=prog?prog.suggest:(est?est.weight:null);
   const isDumbbellEx=!!(ex.eq?.includes('dumbbells')&&!ex.eq?.includes('barbell'));
   const wUnit=isDumbbellEx?'lb ea':'lb';
@@ -3143,6 +3173,8 @@ function renderWorkout(){
       <div class='wu-note'>Volume adjusted from what you actually logged earlier today (60% rule).</div>
     </div>`:''}
     ${hipPrehabHTML}
+    ${achyShoulderHTML}
+    ${machineModeHTML}
     <div class='ex-card'>
       ${sessionTag}
       <div class='ex-name'>${ex.name}</div>
@@ -4255,6 +4287,7 @@ document.addEventListener('click',e=>{
     save();render();return;}
   if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
   if(a==='toggle-knee-caution'){S.cfg.kneeCaution=!S.cfg.kneeCaution;save();render();return;}
+  if(a==='toggle-shoulder-caution'){S.cfg.shoulderCaution=!S.cfg.shoulderCaution;save();render();return;}
   if(a==='generate'){
     S.cfg.goal='lean'; // pinned to recomp — goal page removed from setup
     const bwEl=document.getElementById('bw-input');
