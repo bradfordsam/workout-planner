@@ -2199,6 +2199,33 @@ function estimateStrengthCals(mins,bodyLbs){
   return Math.round(bodyLbs*0.033*mins);
 }
 
+// ─── CARDIO ACTIVITY LOGGING ───
+// Loggable activities for the "Log Cardio Activity" flow (distinct from the
+// pre-workout cardioOptions() suggestion card above/below — this computes
+// calories FROM a duration you already did, rather than a duration to hit a
+// target). Incline Walking and Weighted Vest Walking are pinned to exactly 2x
+// the flat-walk rate per instruction, rather than the more granular ACSM-grade
+// formula cardioOptions uses for its own incline-treadmill suggestion.
+const CARDIO_ACTIVITIES=[
+  {id:'walk',name:'Walk (flat)',icon:'🚶'},
+  {id:'incline_walk',name:'Incline Walking',icon:'⛰️',multiplier:2},
+  {id:'weighted_vest_walk',name:'Weighted Vest Walking',icon:'🎒',multiplier:2},
+  {id:'stair_stepper',name:'Stair Stepper',icon:'🪜'},
+  {id:'elliptical',name:'Elliptical',icon:'⚡'},
+  {id:'run',name:'Run',icon:'🏃‍♂️'},
+];
+function cardioCalPerMin(activityId,bodyLbs){
+  const walkCpm=bodyLbs*0.0245; // 3 mph flat walk baseline, MET ~3.5
+  switch(activityId){
+    case 'incline_walk': return walkCpm*2;
+    case 'weighted_vest_walk': return walkCpm*2;
+    case 'stair_stepper': return bodyLbs*0.063;
+    case 'elliptical': return bodyLbs*0.038;
+    case 'run': return bodyLbs*0.070;
+    case 'walk': default: return walkCpm;
+  }
+}
+
 function cardioOptions(cals,bodyLbs){
   if(cals<=0)return[];
   const m=(cpm)=>Math.round(cals/cpm);
@@ -2986,6 +3013,7 @@ function renderDash(){
     <div class='sec-lbl'>This Week</div>
     <div class='wk-grid'>${wkGrid}</div>
     ${renderSleepCard()}
+    <button class='btn btn-g btn-sm' data-action='open-log-cardio' style='width:100%;margin-bottom:14px'>🏃 Log Cardio Activity</button>
     ${renderRecoveryBanner()}
     ${todayHTML}
     ${planCard}
@@ -3679,7 +3707,7 @@ function renderHistory(){
     const badge=l.isLunch?`<span class='badge badge-lunch' style='margin-left:6px'>Lunch</span>`:'';
     return`<div class='log-item' data-action='toggle-log' data-id='${l.id}'>
       <div class='log-hdr'><div class='log-date'>${l.dayName}${badge}</div><div style='color:var(--mut);font-size:18px'>${open?'▲':'▼'}</div></div>
-      <div class='log-meta'>${fmtDate(l.date)} · ${fmtDur(l.duration)} · ${l.exercises.length} exercises</div>
+      <div class='log-meta'>${fmtDate(l.date)} · ${fmtDur(l.duration)}${l.cals?` · ${l.cals} cal`:` · ${l.exercises.length} exercises`}</div>
       <div class='log-body${open?' open':''}' id='${id}'>
         ${exSummary}
         <div style='display:flex;gap:8px;margin-top:10px'>
@@ -3792,9 +3820,43 @@ function renderScanModal(){
     </div>
   </div>`;
 }
+// Pick what you did and for how long; calories are estimated from body weight
+// via cardioCalPerMin — logs a real, completed cardio session (distinct from
+// the pre-workout cardioOptions() suggestion card, which only recommends a
+// duration to hit a calorie target).
+function renderCardioLogModal(){
+  const d=S.cardioLogDraft;if(!d)return'';
+  const bodyLbs=S.cfg.bodyLbs||175;
+  const cpm=cardioCalPerMin(d.activity,bodyLbs);
+  const cals=Math.round(cpm*(d.mins||0));
+  const isBoosted=d.activity==='incline_walk'||d.activity==='weighted_vest_walk';
+  return`<div style='position:fixed;inset:0;background:rgba(10,10,18,.88);backdrop-filter:blur(8px);z-index:998;display:flex;align-items:center;justify-content:center;padding:20px'>
+    <div style='background:var(--surf);border:1px solid var(--bdr-strong);border-radius:16px;max-width:440px;width:100%;max-height:85vh;display:flex;flex-direction:column'>
+      <div style='padding:16px 16px 8px'>
+        <div style='font-size:16px;font-weight:800'>Log Cardio Activity</div>
+        <div style='font-size:12px;color:var(--mut);margin-top:3px'>Pick what you did and for how long — calories are estimated from your body weight.</div>
+      </div>
+      <div style='padding:4px 16px;overflow-y:auto;flex:1'>
+        <div class='sec-lbl' style='margin-bottom:6px'>Activity</div>
+        <div style='display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px'>
+          ${CARDIO_ACTIVITIES.map(a=>`<button class='btn btn-sm ${d.activity===a.id?'btn-p':'btn-g'}' data-action='set-cardio-activity' data-id='${a.id}' style='flex:1;min-width:130px'>${a.icon} ${a.name}</button>`).join('')}
+        </div>
+        <label style='display:block;margin-bottom:10px'>
+          <span style='display:block;font-size:12px;color:var(--mut);margin-bottom:4px'>Duration (minutes)</span>
+          <input id='cardio-log-mins' class='ni' type='number' inputmode='numeric' min='1' max='300' value='${d.mins||''}' style='width:100%'>
+        </label>
+        <div style='font-size:13px;color:var(--mut)' id='cardio-log-est'>Estimated burn: <strong style='color:var(--txt)' id='cardio-log-cals'>${cals}</strong> cal${isBoosted?` <span style='color:var(--acc)'>(2× flat-walk rate)</span>`:''}</div>
+      </div>
+      <div style='padding:12px 16px 16px;display:flex;gap:8px'>
+        <button class='btn btn-g' data-action='cancel-log-cardio' style='flex:1'>Cancel</button>
+        <button class='btn btn-s' data-action='save-log-cardio' style='flex:1'>Save</button>
+      </div>
+    </div>
+  </div>`;
+}
 function updateModals(){
   const mr=document.getElementById('modal-root');
-  if(mr)mr.innerHTML=(S.confirmDelete?renderDeleteModal():'')+(S.editScan?renderScanModal():'')+renderUndoBanner();
+  if(mr)mr.innerHTML=(S.confirmDelete?renderDeleteModal():'')+(S.editScan?renderScanModal():'')+(S.cardioLogDraft?renderCardioLogModal():'')+renderUndoBanner();
 }
 
 function render(){
@@ -4385,6 +4447,23 @@ document.addEventListener('click',e=>{
     S.sleepLog=S.sleepLog||{};
     S.sleepLog[todayStr()]=parseFloat(btn.dataset.hours);
     save();render();return;
+  }
+  if(a==='open-log-cardio'){S.cardioLogDraft={activity:'walk',mins:30};render();return;}
+  if(a==='cancel-log-cardio'){S.cardioLogDraft=null;render();return;}
+  if(a==='set-cardio-activity'){
+    if(!S.cardioLogDraft)return;
+    S.cardioLogDraft.activity=btn.dataset.id;render();return;
+  }
+  if(a==='save-log-cardio'){
+    const d=S.cardioLogDraft;if(!d)return;
+    const minsEl=document.getElementById('cardio-log-mins');
+    const mins=parseInt(minsEl?.value)||0;
+    if(mins<=0){alert('Enter how many minutes you did this for.');return;}
+    const bodyLbs=S.cfg.bodyLbs||175;
+    const cals=Math.round(cardioCalPerMin(d.activity,bodyLbs)*mins);
+    const activity=CARDIO_ACTIVITIES.find(a=>a.id===d.activity)||CARDIO_ACTIVITIES[0];
+    S.logs.push({id:Date.now().toString(),date:new Date().toISOString(),dayName:activity.name,isCardio:true,duration:mins,cals,activityId:activity.id,exercises:[]});
+    S.cardioLogDraft=null;save();render();return;
   }
   if(a==='generate'){
     S.cfg.goal='lean'; // pinned to recomp — goal page removed from setup
@@ -5085,6 +5164,13 @@ document.addEventListener('input',e=>{
     S.active.swapQuery=e.target.value;
     const el=document.getElementById('swap-search-results');
     if(el)el.innerHTML=renderSwapSearchResults(S.active.swapQuery,S.active.swapMode);
+  }
+  if(e.target.id==='cardio-log-mins'&&S.cardioLogDraft){
+    S.cardioLogDraft.mins=parseInt(e.target.value)||0;
+    const bodyLbs=S.cfg.bodyLbs||175;
+    const cals=Math.round(cardioCalPerMin(S.cardioLogDraft.activity,bodyLbs)*S.cardioLogDraft.mins);
+    const el=document.getElementById('cardio-log-cals');
+    if(el)el.textContent=cals;
   }
 });
 
