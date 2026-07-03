@@ -378,9 +378,14 @@ const EX = [
 const EQUIPMENT_PRESETS = {
   apartment_gym: {
     name: '🏢 Apartment Gym',
-    desc: 'Dumbbells (≤45 lb ea), bench, cable machine (rope + EZ bar), pull-up bar, treadmill/elliptical, medicine balls',
+    desc: 'Dumbbells (5–50 lb ea, no 30s/35s), bench, cable machine (rope + EZ bar), pull-up bar, treadmill/elliptical, medicine balls',
     equipment: ['dumbbells', 'cables', 'pullup_bar', 'bodyweight'],
-    dumbbellMax: 45, // dumbbells top out at 45 lb each here — caps weight suggestions
+    // Exact pairs on hand — 5 lb steps to 25, then a gap (no 30/35) straight to
+    // 40/45/50. Weight suggestions round DOWN to the nearest weight in this list
+    // rather than just capping at the max, so a "38 lb" suggestion never lands
+    // on a pair that doesn't exist.
+    dumbbellWeights: [5,10,15,20,25,40,45,50],
+    dumbbellMax: 50,
     location: 'apartment'
   },
   hotel_gym: {
@@ -1073,6 +1078,15 @@ function genProgram(cfg,av,workoutHistoryLog){
 // UTILITIES
 // ─────────────────────────────────────────────
 function r5(n){return Math.round(n/5)*5;}
+// Snap a suggested weight down to the nearest pair actually on hand (e.g. a rack
+// with gaps — no 30s/35s). Rounds DOWN so we never prescribe a weight heavier
+// than what's available; floors at the lightest pair if the suggestion is below it.
+function roundToAvailable(n,weights){
+  if(!weights||!weights.length)return n;
+  const sorted=[...weights].sort((a,b)=>a-b);
+  const fit=sorted.filter(w=>w<=n);
+  return fit.length?fit[fit.length-1]:sorted[0];
+}
 function todayDow(){return new Date().getDay();}
 function todayDay(){return S.program?S.program.week[todayDow()]:null;}
 // ─── LOCAL CALENDAR DAY ───
@@ -2874,17 +2888,26 @@ function renderWorkout(){
   let est=(!prog&&!ex.noWeight&&!ex.isTimed)?(ex.estW||estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS)):null;
   const estLbl=estBasisLabel(est);
 
-  // Per-equipment dumbbell ceiling (e.g. apartment gym tops out at 45 lb each).
-  // Clamp the suggested/estimated load so we never prescribe a weight the user
-  // can't load here — once capped, progress via reps and tempo, not more weight.
-  const dbCap=EQUIPMENT_PRESETS[S.active.equipmentKey]?.dumbbellMax;
-  const capDb=!!dbCap && ex.eq?.includes('dumbbells') && !ex.eq?.includes('barbell');
+  // Per-equipment dumbbell rack (e.g. apartment gym: 5/10/15/20/25/40/45/50 —
+  // a gap at 30/35). Snap the suggested/estimated load DOWN to a pair actually
+  // on hand so we never prescribe a weight that doesn't exist here — once
+  // capped by the gap or the max, progress via reps and tempo, not more load.
+  const activePreset=EQUIPMENT_PRESETS[S.active.equipmentKey];
+  const dbWeights=activePreset?.dumbbellWeights;
+  const dbCap=activePreset?.dumbbellMax;
+  const capDb=!!(dbWeights||dbCap) && ex.eq?.includes('dumbbells') && !ex.eq?.includes('barbell');
   let dbCapped=false;
   if(capDb){
-    if(prog && prog.suggest>dbCap){prog={...prog,suggest:dbCap};dbCapped=true;}
-    if(est && est.weight>dbCap){est={...est,weight:dbCap};dbCapped=true;}
+    if(prog){
+      const snapped=dbWeights?roundToAvailable(prog.suggest,dbWeights):Math.min(prog.suggest,dbCap);
+      if(snapped!==prog.suggest){prog={...prog,suggest:snapped};dbCapped=true;}
+    }
+    if(est){
+      const snapped=dbWeights?roundToAvailable(est.weight,dbWeights):Math.min(est.weight,dbCap);
+      if(snapped!==est.weight){est={...est,weight:snapped};dbCapped=true;}
+    }
   }
-  const dbCapNote=capDb&&dbCapped?`<div style='font-size:12px;color:var(--warn);margin-bottom:10px'>🏢 Capped at ${dbCap} lb ea — max dumbbell here. Progress by adding reps or slowing the tempo, not load.</div>`:'';
+  const dbCapNote=capDb&&dbCapped?`<div style='font-size:12px;color:var(--warn);margin-bottom:10px'>🏢 Rounded to ${prog?prog.suggest:est.weight} lb ea — nearest pair on hand${dbCap?` (max ${dbCap} lb)`:''}. Progress by adding reps or slowing the tempo once you're maxed out.</div>`:'';
   const mcolor=MCOL[ex.muscle]||'var(--acc)';
 
   const locLabel=S.active.loc==='home'?'🏢 Apartment Gym':'🏋️ YMCA';
