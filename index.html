@@ -299,8 +299,12 @@ const EX = [
   {id:'single_rdl',name:'Single-leg RDL',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Hinge at hip, hips square throughout. Slow descent — feel the hamstring load. Soft bend in standing knee. Count per leg.',tags:['hinge','hamstring','unilateral']},
   {id:'back_ext',name:'Back Extension',muscle:'legs',type:'isolation',eq:['machine','bodyweight'],rMin:10,rMax:15,rest:120,cue:'Hips hinge over the pad. Lower with control until you feel a hamstring/glute stretch, keep spine neutral — don\'t hyperextend at the top. Squeeze glutes to rise. On a machine with a chest pad, hold a light plate to the chest for added load and build the spinal erectors ("Christmas tree" lower-back development).',tags:['hinge','hamstring','glute']},
   {id:'leg_ext',name:'Leg Extension',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Full lockout, hold 1s at top. Slow 2-count negative — resist the weight down. Lumbar support against pad.',tags:['quad']},
-  {id:'leg_curl',name:'Lying Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Flex hard at end range. 2-count descent — resist the weight back to start. Hips stay down.',tags:['hamstring']},
+  // Seated listed before Lying: on a frequency tie, pickEx's leastUsed() keeps
+  // the earliest array match, so this ordering makes Seated Leg Curl the
+  // default pick — the added hip flexion gives a bigger hamstring stretch
+  // (biarticular muscle) than the lying variant, which improves development.
   {id:'seated_leg_curl',name:'Seated Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Pad just above the heels, thighs locked under the support. Curl down hard and squeeze the hamstrings at end range, hold 1s. Resist the weight back up with a 2-count negative — don\'t let it slam. Keep hips planted. Best isolated-hamstring builder.',tags:['hamstring']},
+  {id:'leg_curl',name:'Lying Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Flex hard at end range. 2-count descent — resist the weight back to start. Hips stay down.',tags:['hamstring']},
   {id:'nordic_curl',name:'Nordic Hamstring Curl',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:120,noWeight:true,cue:'Kneel with ankles anchored (partner, bar, or under a couch). Brace and lower your torso toward the floor as SLOWLY as possible, resisting the whole way — catch yourself with your hands at the bottom and push back to kneeling. The eccentric lowering is the entire point: builds hamstring/tendon resilience and is one of the best-evidenced exercises for reducing strain injuries. Start with 3-5s descents.',tags:['hamstring','eccentric']},
   // ─── Explosive (low-impact) + tendon-stiffness leg work ───
   // Power = explosive concentric intent with NO flight/landing (hip-caution safe,
@@ -487,13 +491,17 @@ const TMPLS = {
     {muscle:'biceps',type:'isolation'},
     {muscle:'core',type:'rotational'},
   ]},
-  legs:{name:'Explosive Legs',desc:'Power · Tendon Stiffness · Bounce',slots:[
+  // Hip hinge + knee flexion lead the slot list (not trailing) so they survive
+  // the exercise-count cutoff on shorter (e.g. 45-min/3-exercise) sessions too
+  // — squat/power patterns alone don't train the hamstrings effectively.
+  legs:{name:'Explosive Legs',desc:'Hinge · Hamstring · Power · Tendon Stiffness',slots:[
+    {muscle:'legs',type:'compound',tag:'hinge'},
+    {muscle:'legs',type:'isolation',tag:'hamstring'},
     {muscle:'legs',type:'compound',tag:'power'},
     {muscle:'legs',type:'compound',tag:'power'},
     {muscle:'legs',type:'compound',tag:'eccentric'},
     {muscle:'legs',type:'isolation',tag:'isometric'},
     {muscle:'legs',type:'isolation',tag:'calf'},
-    {muscle:'core',type:'rotational'},
   ]},
   upper_push:{name:'Upper A',desc:'Push Focus + Horizontal Pull',slots:[
     {muscle:'chest',type:'compound'},
@@ -513,20 +521,22 @@ const TMPLS = {
     {muscle:'shoulders',type:'isolation'},
     {muscle:'core',type:'rotational'},
   ]},
-  lower_a:{name:'Lower A',desc:'Explosive Quad + Knee Tendon',slots:[
+  lower_a:{name:'Lower A',desc:'Hinge · Hamstring · Explosive Quad',slots:[
+    {muscle:'legs',type:'compound',tag:'hinge'},
+    {muscle:'legs',type:'isolation',tag:'hamstring'},
     {muscle:'legs',type:'compound',tag:'power'},
     {muscle:'legs',type:'isolation',tag:'isometric'},
     {muscle:'legs',type:'compound',tag:'eccentric'},
     {muscle:'legs',type:'isolation',tag:'calf'},
-    {muscle:'core',type:'rotational'},
   ]},
-  lower_b:{name:'Lower B',desc:'Explosive Posterior + Bounce',slots:[
+  lower_b:{name:'Lower B',desc:'Hinge · Hamstring · Explosive Posterior',slots:[
+    {muscle:'legs',type:'compound',tag:'hinge'},
+    {muscle:'legs',type:'isolation',tag:'hamstring'},
     {muscle:'legs',type:'compound',tag:'power'},
     {muscle:'legs',type:'compound',tag:'power'},
     {muscle:'legs',type:'compound',tag:'eccentric'},
     {muscle:'legs',type:'isolation',tag:'isometric'},
     {muscle:'legs',type:'isolation',tag:'calf'},
-    {muscle:'core',type:'rotational'},
   ]},
   full_a:{name:'Full Body A',desc:'Push Focus',slots:[
     {muscle:'chest',type:'compound'},
@@ -536,9 +546,13 @@ const TMPLS = {
     {muscle:'biceps',type:'isolation'},
     {muscle:'core',type:'rotational'},
   ]},
-  full_b:{name:'Full Body B',desc:'Pull Focus',slots:[
+  // Leg slot is 'hinge' here (vs 'power' in Full Body A) so a 2-day full-body
+  // split still guarantees a hip-hinge session across the week — squat/power
+  // patterns alone don't train the hamstrings — and it pairs naturally with
+  // this day's posterior-chain pull focus.
+  full_b:{name:'Full Body B',desc:'Pull Focus · Hip Hinge',slots:[
     {muscle:'back',type:'compound',tag:'horizontal'},
-    {muscle:'legs',type:'compound',tag:'power'},
+    {muscle:'legs',type:'compound',tag:'hinge'},
     {muscle:'chest',type:'compound'},
     {muscle:'back',type:'isolation',tag:'rear_delt'},
     {muscle:'triceps',type:'isolation'},
@@ -723,12 +737,17 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
   // Hip-caution mode also bans plyometrics (impact loading on a sensitive hip)
   // — that volume is redistributed to the remaining non-impact pool, which
   // includes eccentric tendon work like the Nordic curl.
+  // legAutoOK restricts leg picks to the explosive/tendon emphasis tags — but
+  // the hamstring mandate's 'hinge' and 'hamstring' slots exist specifically to
+  // guarantee RDL/hip-hinge and leg-curl-family work, none of which carry those
+  // tags. Those two mandate tags are an explicit, deliberate exception to the
+  // emphasis gate; every other leg slot still goes through it unchanged.
   const base = (e) =>
     e.muscle===slot.muscle && e.type===slot.type &&
     (!slot.tag || ((e.tags||[]).includes(slot.tag))) &&
     !used.includes(e.id) &&
     e.eq.some(q=>eq.has(q)) &&
-    legAutoOK(e) &&
+    (slot.tag==='hinge'||slot.tag==='hamstring'||legAutoOK(e)) &&
     !(S.cfg.hipCaution && e.hipRisk) &&
     !(S.cfg.hipCaution && (e.tags||[]).includes('plyometric')) &&
     !(isLunch && e.highSweat);
@@ -753,6 +772,14 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
   // 3) Cap relaxed: a constrained equipment pool may have no alternative left
   // under the cap — better to repeat a movement than to drop the slot entirely.
   if(!exercise) exercise = leastUsed(allExercises.filter(e => base(e) && fitsMRV(e)));
+  // 4) Mandate override: 'hinge' and 'hamstring' slots exist specifically so a
+  // leg session never trains quads/squats without also hitting the hamstrings
+  // (squat patterns alone don't train them). Stacking two dedicated leg slots
+  // in one session can burn through that muscle's weekly MRV headroom before
+  // reaching this one — dropping it here would silently defeat the mandate via
+  // the untagged backfill pass. A small, deliberate MRV overage on this single
+  // corrective-pattern slot beats skipping hamstring/hinge work outright.
+  if(!exercise && (slot.tag==='hinge'||slot.tag==='hamstring')) exercise = leastUsed(allExercises.filter(e => base(e)));
   // If the muscle has hit its weekly MRV max, intentionally return null so this
   // slot is dropped (fewer sets) rather than exceeding the recoverable volume.
   return exercise||null;
@@ -913,6 +940,16 @@ function genProgram(cfg,av,workoutHistoryLog){
     const top=[anchor,...rest2].slice(0,Math.min(3,elig.length));
     const slots=[];
     for(let i=0;i<muscleSlots;i++)slots.push({muscle:top[i%top.length].m,type:i<top.length?'compound':'isolation'});
+    // Hamstring mandate: squat/quad patterns don't train the hamstrings on their
+    // own. Any day that trains legs gets its first leg slot tagged 'hinge'
+    // (RDL/trap-bar/hip-thrust family — still a compound slot) and, when the
+    // day has room for a second leg slot, tags it 'hamstring' (leg curl family)
+    // so knee flexion is covered directly rather than left to chance.
+    const legSlotIdx=slots.map((s,i)=>s.muscle==='legs'?i:-1).filter(i=>i>=0);
+    if(legSlotIdx.length){
+      slots[legSlotIdx[0]].tag='hinge';
+      if(legSlotIdx.length>1)slots[legSlotIdx[1]].tag='hamstring';
+    }
     slots.push({muscle:'core',type:'rotational'});
     const names=top.map(t=>MNAME[t.m]||t.m);
     return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')};
