@@ -340,6 +340,12 @@ const EX = [
   {id:'hanging_leg_raise',name:'Hanging Leg Raise',muscle:'core',type:'isolation',eq:['pullup_bar','bodyweight'],rMin:8,rMax:15,rest:90,noWeight:true,cue:'Hang from a bar with shoulders active (slight pull-down, not a loose dead hang). Curl your PELVIS up toward your ribs — don\'t just lift the legs from the hips. No swinging or momentum: pause briefly at the top, lower under control (2–3 counts). Bend the knees to regress, keep legs straighter to progress. Considered the elite movement for full core training.',tags:['flexion','anti-extension']},
   {id:'incline_leg_raise',name:'Incline Elevated Leg Raises',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:20,rest:75,noWeight:true,cue:'Set the bench to a 30–40° incline (~58–84% grade), head-up, gripping the top pad behind your head for an anchor. Keeping legs fairly straight, curl the pelvis and raise the legs up toward vertical — drive from the lower abs, not momentum. Lower under control without letting the feet touch down between reps to keep tension on the abs. Bend the knees to regress.',tags:['flexion']},
   {id:'body_v',name:'Body V (V-Ups)',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:8,rMax:15,rest:75,noWeight:true,cue:'Lie flat on your back, arms extended overhead, legs straight. Simultaneously lift the torso and legs, reaching the hands toward the feet so the body folds into a "V" balanced on the glutes. Exhale and squeeze the abs hard at the top, then lower both halves under control without slamming down. Bend the knees or do tuck-ups to regress.',tags:['flexion']},
+  // Dragon Flag progression track — 3 tiers, gated by dragonFlagUnlocked() below.
+  // Tier 1 is always available; Tier 2/3 unlock after logging 10 clean reps in
+  // a single set on the tier before it (see DRAGON_FLAG_TRACK).
+  {id:'leg_lifts_lying',name:'Lying Leg Lifts',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:8,rMax:15,rest:75,noWeight:true,dragonTier:1,cue:'Lie flat on your back, hands tucked under your glutes (or gripping something behind your head) for a stable anchor. Keeping legs straight, lift them together from the floor to vertical using the lower abs — not momentum. Lower under control without letting your feet touch down between reps. Tier 1 of the Dragon Flag progression: log 10 clean reps in a single set to unlock the Bent-Knee Dragon Flag.',tags:['flexion']},
+  {id:'dragon_flag_bent',name:'Bent-Knee Dragon Flag',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:5,rMax:10,rest:90,noWeight:true,dragonTier:2,cue:'Lie on a bench, gripping it behind your head for anchoring. Keeping only your shoulder blades in contact with the bench, lift your hips and bent legs into a straight line from shoulders to knees — a jackknife with the knees bent. Lower under control, keeping the line rigid, without letting your lower back sag or your hips touch down. Tier 2 of the Dragon Flag progression: log 10 clean reps in a single set to unlock the Full Dragon Flag.',tags:['flexion','anti-extension']},
+  {id:'dragon_flag_full',name:'Full Dragon Flag',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:3,rMax:8,rest:120,noWeight:true,dragonTier:3,cue:'Lie on a bench, gripping it behind your head. Keeping the ENTIRE body dead straight from shoulders to pointed toes, lift into a rigid plank floating above the bench, pivoting only at the shoulder blades. Lower as slowly as you can control — the eccentric is the hardest part and the whole point. Elite-level core strength. Bend the knees (regressing toward the Bent-Knee variation) if the straight line breaks.',tags:['flexion','anti-extension']},
   // ─── Hip Health (stability & mobility) ───
   {id:'clamshell',name:'Clamshell',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,noWeight:true,cue:'Side-lying, knees bent ~45°. Rotate top knee up like a clamshell lid. Keep hips stacked — they WILL want to roll back. Squeeze hard at top, slow negative. This is pure glute med. Count per side.\n\nProgression without bands: (1) Build to 20 strict reps per side → (2) Add a 2s pause at the top of each rep → (3) Slow the negative to 3 counts → (4) Move to straight-leg side-lying abduction (harder leverage) → (5) Ankle weights when available. No band needed to keep progressing for a long time.',tags:['glute_med']},
   {id:'fire_hydrant',name:'Fire Hydrant',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:12,rMax:15,rest:60,noWeight:true,cue:'Hands and knees (quadruped). Lift one knee out to the side — drive from the hip, not by rotating your torso. Keep hips level and core braced. Slow and controlled. Count per side.\n\nProgression without bands: (1) Build reps → (2) Add a 2s pause at peak → (3) Slow negative to 3 counts → (4) Add small circles at the top → (5) Progress to a higher, fuller ROM → (6) Ankle weights when you have them.',tags:['glute_med']},
@@ -722,6 +728,18 @@ const KNEE_SAFE_IDS=new Set(['goblet','rdl','db_rdl','reverse_lunge','sumo_squat
 // pickEx's per-slot gate above) — Knee-Caution there is a flat allow-list
 // check: exclude any leg exercise outside the knee-safe set.
 const kneeCautionBlocks=(e)=>S.cfg.kneeCaution&&e.muscle==='legs'&&!KNEE_SAFE_IDS.has(e.id);
+
+// Dragon Flag progression track: Tier 1 (Lying Leg Lifts) is always offered;
+// Tier 2/3 unlock only after logging 10+ reps in a single set on the tier
+// directly before it — an automatic gate rather than a manual "mark achieved"
+// button, read straight from the workout log.
+const DRAGON_FLAG_TRACK=['leg_lifts_lying','dragon_flag_bent','dragon_flag_full'];
+const hasLoggedRepsOf=(exId,minReps)=>(S.logs||[]).some(l=>!l.isCardio&&(l.exercises||[]).some(e=>e.id===exId&&(e.sets||[]).some(s=>s&&s.reps>=minReps)));
+function dragonFlagUnlocked(exId){
+  const idx=DRAGON_FLAG_TRACK.indexOf(exId);
+  if(idx<=0) return true; // tier 1, or not part of the track
+  return hasLoggedRepsOf(DRAGON_FLAG_TRACK[idx-1],10);
+}
 
 function pickEx(slot,equip,used,isLunch,budget,freq){
   const eq=new Set([...equip,'bodyweight']);
@@ -2930,7 +2948,7 @@ function renderSwapSearchResults(query,exIdx){
   if(!q)return`<div style='font-size:13px;color:var(--mut)'>Type to search all 89 exercises…</div>`;
   const ex=S.active?.exercises?.[exIdx];
   const allEx=[...EX,...(S.customExercises||[])];
-  const results=allEx.filter(e=>
+  const matches=allEx.filter(e=>
     e.id!==(ex?.id) &&
     !S.active.exercises.some(ae=>ae.id===e.id) &&
     !(S.cfg.hipCaution&&e.hipRisk) &&
@@ -2938,8 +2956,18 @@ function renderSwapSearchResults(query,exIdx){
     !kneeCautionBlocks(e) &&
     (e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q)||e.type.toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
   ).slice(0,15);
-  if(!results.length)return`<div style='font-size:13px;color:var(--mut)'>No matches for "${query.replace(/</g,'&lt;')}"</div>`;
-  return results.map(a=>`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left;width:100%' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.muscle} · ${a.type}</span></button>`).join('');
+  if(!matches.length)return`<div style='font-size:13px;color:var(--mut)'>No matches for "${query.replace(/</g,'&lt;')}"</div>`;
+  // Dragon Flag tiers still surface when locked (rather than vanish silently),
+  // shown disabled with what's needed to unlock — so the progression is
+  // discoverable, not a dead end you'd only find by luck once qualified.
+  return matches.map(a=>{
+    if(!dragonFlagUnlocked(a.id)){
+      const idx=DRAGON_FLAG_TRACK.indexOf(a.id);
+      const prereqName=allEx.find(e=>e.id===DRAGON_FLAG_TRACK[idx-1])?.name||'the prior tier';
+      return`<div class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left;width:100%;opacity:.5;cursor:default'><span>🔒 ${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>log 10 reps of ${prereqName} to unlock</span></div>`;
+    }
+    return`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left;width:100%' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.muscle} · ${a.type}</span></button>`;
+  }).join('');
 }
 
 function renderWorkout(){
@@ -3109,7 +3137,7 @@ function renderWorkout(){
   const todayAv=av[today]||{};
   const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
   const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric'))&&!kneeCautionBlocks(e)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric'))&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
   const swapSearchOpen=swapOpen&&S.active.swapSearch;
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
@@ -5005,7 +5033,7 @@ function localAnswer(q){
     if(/equipment|need|require|use/.test(ql))
       return`<strong>${ex.name}</strong> uses: ${ex.eq.join(', ')}`;
     if(/alternative|substitute|instead|replace|swap/.test(ql)){
-      const alts=EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)).slice(0,5);
+      const alts=EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id)).slice(0,5);
       return`Alternatives for <strong>${ex.name}</strong> (${ex.muscle}):<br><br>${alts.map(a=>`• ${a.name}`).join('<br>')}`;
     }
     return`<strong>${ex.name}</strong> — ${ex.muscle}, ${ex.type}<br>Equipment: ${ex.eq.join(', ')}<br><br>${ex.cue}`;
@@ -5013,7 +5041,7 @@ function localAnswer(q){
   // Muscle group
   const muscle=['chest','back','shoulders','biceps','triceps','legs','core','hips'].find(m=>ql.includes(m));
   if(muscle){
-    const list=EX.filter(e=>e.muscle===muscle&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e));
+    const list=EX.filter(e=>e.muscle===muscle&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id));
     return`<strong>${muscle.charAt(0).toUpperCase()+muscle.slice(1)} exercises:</strong><br><br>${list.map(e=>`• ${e.name} (${e.type})`).join('<br>')}`;
   }
   return null;
