@@ -1327,8 +1327,34 @@ function getWeeklySetVolumes(){
 // meta-regression (67 studies, n=2058) — hypertrophy rises with volume with
 // diminishing returns and ≥10 weekly sets/muscle outperforms <10; strength
 // plateaus far earlier. No numeric change warranted; ranges retained.
+// Number of distinct calendar days per week with at least one training session,
+// computed from availability directly (not the generated program) — reading
+// S.program here would be circular, since getMRVLimits() feeds the very
+// generation that decides which days end up training.
+function trainingDayCount(av){
+  av=av||(S.weekPlan?.availability)||defaultAvailability();
+  const dows=new Set();
+  [1,2,3,4,5].forEach(dow=>{
+    const d=av[dow]||{};
+    if(d.lunch!==false)dows.add(dow);
+    if(d.eve?.on)dows.add(dow);
+  });
+  [6,0].forEach(dow=>{
+    const d=av[dow]||{};
+    if(d.on)dows.add(dow);
+  });
+  return dows.size;
+}
+// Efficiency Mode: training 3 days/week triggers a much lower, higher-
+// intensity volume floor — near-failure sets (0-2 RIR) can still trigger
+// growth on far less weekly volume than a moderate-intensity approach needs.
+// The UI's efficiencyModeHTML banner carries the RIR target and the side-delt
+// guidance (this app tracks all deltoid work, including compound presses,
+// under one 'shoulders' bucket, so that nuance can't live in the weekly cap).
+function isEfficiencyMode(av){ return trainingDayCount(av)===3; }
+
 function getMRVLimits(){
-  const limits = {
+  let limits = {
     chest: {min: 10, max: 20},
     back: {min: 12, max: 22},
     shoulders: {min: 8, max: 18},
@@ -1338,6 +1364,9 @@ function getMRVLimits(){
     core: {min: 8, max: 18},
     hips: {min: 6, max: 16}
   };
+  if(isEfficiencyMode()){
+    limits=Object.fromEntries(Object.keys(limits).map(m=>[m,{min:3,max:10}]));
+  }
   // Recovery auto-regulation: muscles trained in a high-fatigue session
   // (rating ≥4) within the last 72h get a temporarily reduced ceiling, so
   // the generator backs off volume until they've recovered. 72h window is
@@ -3077,6 +3106,14 @@ function renderWorkout(){
     <div class='wu-note'>Both drill the rotator cuff and scapular stabilizers through the exact ranges the heavy lift will load — do these before your warm-up sets, not instead of them.</div>
   </div>`:'';
 
+  // Efficiency Mode reminder: shown once at the top of the session (not every
+  // exercise) so the lower weekly volume this mode prescribes doesn't read as
+  // an accident — the intensity target is the whole point.
+  const efficiencyModeHTML=exIdx===0&&isEfficiencyMode()?`<div class='wu-box' style='border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.04);margin-bottom:14px'>
+    <div class='wu-title' style='color:var(--bad)'>⚡ Efficiency Mode · 3 days/week</div>
+    <div class='wu-note' style='margin-top:0'>Weekly volume is intentionally low (3–10 hard sets/muscle) — every set needs to count. Push each working set to 0–2 reps in reserve (RIR), not a comfortable stopping point. For side delts specifically: 1–3 crisp, perfect-technique sets per session beats spamming lateral-raise variations.</div>
+  </div>`:'';
+
   const sugW0=prog?prog.suggest:(est?est.weight:null);
   const isDumbbellEx=!!(ex.eq?.includes('dumbbells')&&!ex.eq?.includes('barbell'));
   const wUnit=isDumbbellEx?'lb ea':'lb';
@@ -3203,6 +3240,7 @@ function renderWorkout(){
     ${hipPrehabHTML}
     ${achyShoulderHTML}
     ${machineModeHTML}
+    ${efficiencyModeHTML}
     <div class='ex-card'>
       ${sessionTag}
       <div class='ex-name'>${ex.name}</div>
