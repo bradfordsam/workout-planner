@@ -378,8 +378,9 @@ const EX = [
 const EQUIPMENT_PRESETS = {
   apartment_gym: {
     name: '🏢 Apartment Gym',
-    desc: 'Dumbbells & bench, cable machine, treadmill',
-    equipment: ['dumbbells', 'cables', 'bodyweight'],
+    desc: 'Dumbbells (≤45 lb ea), bench, cable machine (rope + EZ bar), pull-up bar, treadmill/elliptical, medicine balls',
+    equipment: ['dumbbells', 'cables', 'pullup_bar', 'bodyweight'],
+    dumbbellMax: 45, // dumbbells top out at 45 lb each here — caps weight suggestions
     location: 'apartment'
   },
   hotel_gym: {
@@ -945,7 +946,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       // this preserved session as "preceding" when evaluating later days.
       (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
       (od.exercises||[]).forEach(e=>{if(e&&e.muscle)assignedMuscles[dateStr].add(e.muscle);});
-      return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,preserved:true};
+      return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,equipmentKey,preserved:true};
     }
     const used=[];
     const isCircuitStyle = S.weekPlan?.cardioStyle === 'circuits';
@@ -1026,7 +1027,7 @@ function genProgram(cfg,av,workoutHistoryLog){
     (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
     exs.forEach(e=>{if(e.muscle)assignedMuscles[dateStr].add(e.muscle);});
 
-    return{tk,name:sessionName,desc:sessionDesc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc};
+    return{tk,name:sessionName,desc:sessionDesc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc,equipmentKey};
   }
   // Each available day is planned independently from recovery debt. Days are
   // processed in calendar order so a session assigned earlier in the week feeds
@@ -1062,8 +1063,8 @@ function genProgram(cfg,av,workoutHistoryLog){
     if(!lunch&&!eve)return{dow,rest:true};
     const primary=lunch||eve;
     return{dow,rest:false,name:primary.name,desc:primary.desc,tk:primary.tk,
-      isLunch:!!lunch,exercises:primary.exercises,sessionMins:primary.mins,loc:primary.loc||'ymca',
-      eveningSession:lunch&&eve?{name:eve.name,desc:eve.desc,tk:eve.tk,isLunch:false,exercises:eve.exercises,mins:eve.mins,loc:eve.loc||'ymca'}:null};
+      isLunch:!!lunch,exercises:primary.exercises,sessionMins:primary.mins,loc:primary.loc||'ymca',equipmentKey:primary.equipmentKey||'ymca',
+      eveningSession:lunch&&eve?{name:eve.name,desc:eve.desc,tk:eve.tk,isLunch:false,exercises:eve.exercises,mins:eve.mins,loc:eve.loc||'ymca',equipmentKey:eve.equipmentKey||'ymca'}:null};
   });
   return{at:Date.now(),week};
 }
@@ -2263,7 +2264,7 @@ function startWorkout(day,sessionType){
     // misread it as a 40-min lunch → 90s rest cap + wrong duration. src.isLunch
     // is set correctly at generation time for both the primary and the sibling.
     dayName:src.name,dow:day.dow,startTime:Date.now(),isLunch:!!src.isLunch,
-    sessionMins:src.mins||src.sessionMins||40,loc:src.loc||'ymca',restCap:src.isLunch?90:null,exIdx:0,
+    sessionMins:src.mins||src.sessionMins||40,loc:src.loc||'ymca',equipmentKey:src.equipmentKey||'ymca',restCap:src.isLunch?90:null,exIdx:0,
     autoRegNotes,
     // Initialization attaches an estimatedStartingWeight to any movement the
     // user has never logged, derived from related lifts via the intensity
@@ -2866,12 +2867,24 @@ function renderWorkout(){
   const{exercises,exIdx,dayName,isLunch}=S.active;
   const ex=exercises[exIdx];
   const total=exercises.length;
-  const prog=progression(ex.id,ex.rMax);
+  let prog=progression(ex.id,ex.rMax);
   // No history for this loaded movement → fall back to the intensity estimation
   // engine for a conservative opener (uses the value attached at startWorkout,
   // recomputing defensively for sessions started before this field existed).
-  const est=(!prog&&!ex.noWeight&&!ex.isTimed)?(ex.estW||estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS)):null;
+  let est=(!prog&&!ex.noWeight&&!ex.isTimed)?(ex.estW||estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS)):null;
   const estLbl=estBasisLabel(est);
+
+  // Per-equipment dumbbell ceiling (e.g. apartment gym tops out at 45 lb each).
+  // Clamp the suggested/estimated load so we never prescribe a weight the user
+  // can't load here — once capped, progress via reps and tempo, not more weight.
+  const dbCap=EQUIPMENT_PRESETS[S.active.equipmentKey]?.dumbbellMax;
+  const capDb=!!dbCap && ex.eq?.includes('dumbbells') && !ex.eq?.includes('barbell');
+  let dbCapped=false;
+  if(capDb){
+    if(prog && prog.suggest>dbCap){prog={...prog,suggest:dbCap};dbCapped=true;}
+    if(est && est.weight>dbCap){est={...est,weight:dbCap};dbCapped=true;}
+  }
+  const dbCapNote=capDb&&dbCapped?`<div style='font-size:12px;color:var(--warn);margin-bottom:10px'>🏢 Capped at ${dbCap} lb ea — max dumbbell here. Progress by adding reps or slowing the tempo, not load.</div>`:'';
   const mcolor=MCOL[ex.muscle]||'var(--acc)';
 
   const locLabel=S.active.loc==='home'?'🏢 Apartment Gym':'🏋️ YMCA';
@@ -3023,6 +3036,7 @@ function renderWorkout(){
       ${swapPanel}
       ${warmupHTML}
       ${progHTML}
+      ${dbCapNote}
       <div class='sets-hdr' style='${rowGrid}'>
         <div class='sh'>Set</div><div class='sh'>Target</div>
         ${(isNoWeight||isTimed)?'':`<div class='sh'>Weight</div>`}<div class='sh'>${isTimed?'Sec':'Reps'}</div><div class='sh'></div>
