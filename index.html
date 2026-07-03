@@ -400,6 +400,17 @@ const EQUIPMENT_PRESETS = {
     equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'bodyweight'],
     location: 'ymca'
   },
+  westminster_gym: {
+    name: '🏟️ Westminster Gym',
+    desc: 'Squat racks, GHD, plyo boxes, kettlebells & unlimited dumbbells, assault bikes, resistance bands, pull-up bar, medicine balls',
+    // No cable stack and no selectorized machines here (no leg press, pec
+    // deck, lat pulldown, etc.) — squat racks cover barbell work, kettlebells
+    // are trained the same as dumbbells (existing KB/DB swing movements
+    // already tag 'dumbbells'), and GHD/plyo box/med ball work falls under
+    // bodyweight movements (e.g. Back Extension's bodyweight variant).
+    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'bodyweight'],
+    location: 'westminster'
+  },
   bodyweight: {
     name: '🌱 Bodyweight Only',
     desc: 'Grassy field, no equipment needed',
