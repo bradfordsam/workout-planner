@@ -1717,16 +1717,18 @@ function getMissedDays(){
 // Program-week dows (non-rest) that have a completed session logged on their
 // calendar date this week — a regular finished workout or a custom-logged one.
 // Used to mark planned days as "completed" in the dashboard and program views.
+// Driven ENTIRELY by S.logs — not by S.program.week's current shape — so a day
+// stays marked completed even after a full regeneration reassigns that dow to
+// a different template or to rest (the new split just doesn't place a lifting
+// session there; the log itself is untouched and remains the source of truth).
 function getCompletedDows(){
   const set=new Set();
-  if(!S.program)return set;
   const thisMon=thisMonday();
   const dateFor=(dow)=>dow===0?addDays(thisMon,6):dow===6?addDays(thisMon,5):addDays(thisMon,dow-1);
   const loggedDates=new Set(S.logs.filter(l=>!l.isCardio).map(l=>logDay(l.date)));
-  S.program.week.forEach(d=>{
-    if(d.rest)return;
-    if(loggedDates.has(dateFor(d.dow)))set.add(d.dow);
-  });
+  for(let dow=0;dow<7;dow++){
+    if(loggedDates.has(dateFor(dow)))set.add(dow);
+  }
   return set;
 }
 
@@ -2606,9 +2608,12 @@ function renderDash(){
     const isViewing=S.viewDay===i;
     const isMissed=missed.includes(i);
     const isCompleted=completedDows.has(i);
+    // isCompleted checked FIRST — a regenerated week can mark this day rest
+    // even though it was actually trained; the log (behind isCompleted) is
+    // the source of truth and always wins over the plan's current shape.
     let dot;
-    if(d.rest)dot='background:var(--bdr)';
-    else if(isCompleted)dot='background:var(--ok)';
+    if(isCompleted)dot='background:var(--ok)';
+    else if(d.rest)dot='background:var(--bdr)';
     else if(isMissed)dot='background:var(--bad)';
     else if(isToday)dot='background:var(--ok)';
     else dot='background:var(--warn)';
@@ -2661,7 +2666,13 @@ function renderDash(){
       </div>`;
     }
 
-    if(!d||d.rest){
+    const isCompleted=completedDows.has(displayDow);
+    // Loaded BEFORE the rest-day check — a full regeneration can mark this
+    // dow as rest even though it was actually trained; the log is unaffected
+    // by that and remains the source of truth for whether/what was done.
+    const loggedSess=isCompleted?getLoggedSessionForDow(displayDow):null;
+
+    if((!d||d.rest)&&!loggedSess){
       const label=isActualToday?(isSunday?'Sunday · Plan Your Week':'Rest Day 😴'):(DOW[displayDow]+' · Rest');
       return isActualToday&&isSunday
         ?`<div class='today' style='border-color:rgba(251,191,36,.35);background:linear-gradient(135deg,var(--surf2) 0%,rgba(251,191,36,.04) 100%)'>
@@ -2672,6 +2683,10 @@ function renderDash(){
           </div>`
         :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div>${isActualToday?recoveryHTML(displayDow):''}</div>`;
     }
+    // The plan's own view of this dow — null when the (possibly regenerated)
+    // program disagrees with what was actually logged (marks it rest, or is
+    // simply absent). All fields below fall back to the log in that case.
+    const dd=(d&&!d.rest)?d:null;
     const exRow=e=>{
       const exp=S.viewExDetail===e.id;
       const lw=S.lastWeights?.[e.id];
@@ -2694,23 +2709,21 @@ function renderDash(){
         ${detail}
       </div>`;
     };
-    const isCompleted=completedDows.has(displayDow);
     // A completed day shows what was actually logged, not the (possibly since-
     // regenerated) planned template.
-    const loggedSess=isCompleted?getLoggedSessionForDow(displayDow):null;
-    const dispName=loggedSess?loggedSess.dayName:d.name;
-    const dispDesc=loggedSess?`Completed · ${loggedSess.exercises.length} exercise${loggedSess.exercises.length!==1?'s':''} logged`:d.desc;
-    const exList=loggedSess?loggedExRows(loggedSess):d.exercises.slice(0,3).map(exRow).join('');
+    const dispName=loggedSess?loggedSess.dayName:dd.name;
+    const dispDesc=loggedSess?`Completed · ${loggedSess.exercises.length} exercise${loggedSess.exercises.length!==1?'s':''} logged`:dd.desc;
+    const exList=loggedSess?loggedExRows(loggedSess):dd.exercises.slice(0,3).map(exRow).join('');
     const makeupNote=isActualToday&&missed.length>0?`<div style='font-size:12px;color:var(--bad);margin-bottom:10px'>⚡ +${missed.length} make-up exercise${missed.length>1?'s':''} added (${missed.map(m=>DOW[m]).join(', ')} missed)</div>`:'';
     const completedBanner=isCompleted?`<div style='display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 12px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3);border-radius:10px'><span style='font-size:16px'>✅</span><span style='font-size:13px;font-weight:700;color:var(--ok)'>Completed${isActualToday?' today':''} — nice work!</span></div>`:'';
-    const lunchBadge=d.isLunch?`<span class='badge badge-lunch' style='margin-left:8px'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve' style='margin-left:8px'>${d.sessionMins||60} min</span>`;
+    const lunchBadge=dd?.isLunch?`<span class='badge badge-lunch' style='margin-left:8px'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve' style='margin-left:8px'>${dd?.sessionMins||60} min</span>`;
     // Evening session block
     let eveBlock='';
-    if(d.eveningSession){
-      const eveExs=d.eveningSession.exercises.slice(0,3).map(exRow).join('');
+    if(dd?.eveningSession){
+      const eveExs=dd.eveningSession.exercises.slice(0,3).map(exRow).join('');
       eveBlock=`<div style='margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)'>
-        <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px'>After Work · ${d.eveningSession.mins} min</div>
-        <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${d.eveningSession.name}</div>
+        <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px'>After Work · ${dd.eveningSession.mins} min</div>
+        <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${dd.eveningSession.name}</div>
         <div class='t-exlist'>${eveExs}</div>
         ${isActualToday?`<button class='btn btn-s' data-action='start-workout' data-session='eve' style='margin-top:8px'>Start Evening Workout →</button>`:''}
       </div>`;
@@ -2722,7 +2735,7 @@ function renderDash(){
       <div class='t-exlist'>${exList}</div>
       ${completedBanner}
       ${makeupNote}
-      ${isActualToday&&!isCompleted?`<button class='btn btn-p' data-action='start-workout' data-session='lunch'>Start${d.eveningSession?' Lunch':''} Workout →</button>`:''}
+      ${isActualToday&&!isCompleted?`<button class='btn btn-p' data-action='start-workout' data-session='lunch'>Start${dd?.eveningSession?' Lunch':''} Workout →</button>`:''}
       ${isActualToday&&isCompleted?`<button class='btn btn-g btn-sm' data-action='start-workout' data-session='lunch' style='width:100%'>↻ Repeat Workout</button>`:''}
       ${displayDow > todayDow() || (displayDow === 0 && todayDow() < 6) ?
         `<button class='btn btn-g btn-sm' data-action='plan-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📅 Plan Custom Workout</button>` :
@@ -3260,10 +3273,14 @@ function renderProgram(){
 
   const days=S.program.week.map(d=>{
     const isToday=d.dow===dow;
-    const isCompleted=!d.rest&&completedDows.has(d.dow);
+    const isCompleted=completedDows.has(d.dow);
+    // Loaded BEFORE the rest/skip check — a full regeneration can mark this
+    // dow as rest even though it was actually trained; the log is unaffected
+    // by that and remains the source of truth for whether/what was done.
+    const loggedSess=isCompleted?getLoggedSessionForDow(d.dow):null;
     const isSkipped=!d.rest&&!isCompleted&&isDaySkipped(d.dow);
     const isMissed=!d.rest&&!isSkipped&&!isCompleted&&missed.includes(d.dow);
-    if(d.rest||isSkipped){
+    if((d.rest||isSkipped)&&!loggedSess){
       if(d.dow===0||d.dow===6)return''; // skip weekend rest rows
       let cn='';
       if(cardio&&cardio.calsPerDay>0&&!isSkipped){
@@ -3277,17 +3294,20 @@ function renderProgram(){
         ${cn}
       </div>`;
     }
-    const badge=d.isLunch?`<span class='badge badge-lunch'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve'>${d.sessionMins||60} min</span>`;
+    // The plan's own view of this dow — null when the (possibly regenerated)
+    // program disagrees with what was actually logged (marks it rest). All
+    // fields below fall back to the log in that case.
+    const dd=(d&&!d.rest)?d:null;
+    const badge=dd?.isLunch?`<span class='badge badge-lunch'>YMCA · 35–40 min</span>`:`<span class='badge badge-eve'>${dd?.sessionMins||60} min</span>`;
     const missedTag=isMissed?`<span style='font-size:11px;color:var(--bad);font-weight:700;margin-left:6px'>⚠️ missed</span>`:'';
     const completedTag=isCompleted?`<span style='font-size:11px;color:var(--ok);font-weight:700;margin-left:6px'>✓ completed</span>`:'';
     // Completed days display the actual logged session, not the planned template.
-    const loggedSess=isCompleted?getLoggedSessionForDow(d.dow):null;
-    const exList=loggedSess?loggedExRows(loggedSess):d.exercises.map(exRow).join('');
+    const exList=loggedSess?loggedExRows(loggedSess):(dd?.exercises||[]).map(exRow).join('');
     let eveBlock='';
-    if(d.eveningSession){
-      const eveList=d.eveningSession.exercises.map(exRow).join('');
+    if(dd?.eveningSession){
+      const eveList=dd.eveningSession.exercises.map(exRow).join('');
       eveBlock=`<div style='margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)'>
-        <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px'>After Work · ${d.eveningSession.name} · ${d.eveningSession.mins} min</div>
+        <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px'>After Work · ${dd.eveningSession.name} · ${dd.eveningSession.mins} min</div>
         ${eveList}
       </div>`;
     }
@@ -3300,7 +3320,7 @@ function renderProgram(){
     }
     return`<div class='pg-day${isToday?' today-day':''}${isMissed?' pg-missed':''}${isCompleted?' pg-done':''}'>
       <div class='pg-dh'>
-        <div><div class='pg-dn' style='display:flex;align-items:center;gap:4px;flex-wrap:wrap'>${loggedSess?loggedSess.dayName:d.name}${completedTag}${missedTag} ${badge}</div><div class='pg-dd'>${DOW[d.dow]}</div></div>
+        <div><div class='pg-dn' style='display:flex;align-items:center;gap:4px;flex-wrap:wrap'>${loggedSess?loggedSess.dayName:(dd?.name||DOW[d.dow])}${completedTag}${missedTag} ${badge}</div><div class='pg-dd'>${DOW[d.dow]}</div></div>
         ${isToday?`<span style='font-size:11px;font-weight:700;color:var(--acc);background:var(--acc2);padding:3px 8px;border-radius:20px'>TODAY</span>`:''}
       </div>
       <div>${exList}</div>
