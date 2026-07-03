@@ -251,13 +251,14 @@ const EX = [
   {id:'machine_press',name:'Machine Chest Press',muscle:'chest',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:150,cue:'Set seat so handles are at mid-chest. Retract shoulder blades before pressing. Tuck elbows to ~45° (not flared) and keep forearms vertical so tension stays on the chest, not the triceps. Control the descent — 2 full counts down. Take the last set to 1–2 reps shy of failure.'},
   {id:'pushups_w',name:'Push-ups (+ Weighted Vest)',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:120,cue:'Hands shoulder-width, body straight. Chest to floor, lock out top. Slow descent. Add vest for progressive overload.'},
   {id:'perfect_pushups',name:'Perfect Pushups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'Rotating-handle push-up grips (or dumbbells). Grip the handles and let them rotate naturally as you lower — this opens up a deeper stretch at the bottom and is easier on the wrists. Hands under shoulders, body in a straight line, brace the core. Lower under control until the chest is below the hands, press back to full lockout. Slow descent every rep. Add a vest to progressively overload.'},
-  {id:'cable_fly',name:'Cable Fly',muscle:'chest',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing in the middle of the cable crossover station, both pulleys set at shoulder height for a flat, mid-chest line — set them higher (above the head) to bias the lower chest on a high-to-low fly, or lower (near the floor) to bias the upper chest on a low-to-high fly. Slight elbow bend. Full stretch at bottom — feel it. Slow eccentric back. Squeeze hard at contraction.'},
-  {id:'db_fly',name:'Dumbbell Fly',muscle:'chest',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower only to shoulder level. 2-count descent — slow and controlled. Soft elbows throughout.'},
+  {id:'cable_fly',name:'Cable Fly',muscle:'chest',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing in the middle of the cable crossover station, both pulleys set at shoulder height for a flat, mid-chest line — set them higher (above the head) to bias the lower chest on a high-to-low fly, or lower (near the floor) to bias the upper chest on a low-to-high fly. Slight elbow bend. Reach your chest to the sky as you descend to maximize the stretch. Full stretch at bottom — feel it. Slow eccentric back. Squeeze hard at contraction.'},
+  {id:'db_fly',name:'Dumbbell Fly',muscle:'chest',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower only to shoulder level. Reach your chest to the sky as you descend to maximize the stretch. 2-count descent — slow and controlled. Soft elbows throughout.'},
   {id:'pec_deck',name:'Pec Deck',muscle:'chest',type:'isolation',eq:['machine'],rMin:8,rMax:12,rest:120,cue:'Full ROM, hard squeeze at contraction. Slow negative — resist the weight on the way back. Great for overload tracking.'},
   {id:'scap_pullups',name:'Scapular Pull-ups',muscle:'back',type:'isolation',eq:['pullup_bar'],rMin:8,rMax:12,rest:90,noWeight:true,cue:'Dead hang, arms straight. Without bending the elbows, shrug down and back to lift your body a few inches — depress and retract the shoulder blades. Pause at the top, slow return. Pure scapular control, no arm pulling.',tags:['vertical','scapular']},
   {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,rest:180,noWeight:true,cue:'Dead hang start. Drive elbows to hips — think about that, not pulling with hands. 3-count descent every rep, no dropping. Progression ladder: (1) build to 8 strict reps → (2) add 1s pause chin-over-bar each rep → (3) slow negative to 4 counts → (4) L-sit pull-ups (legs parallel) → (5) archer pull-ups. Weight is the last tool, not the first.',tags:['vertical']},
   {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,rest:180,noWeight:true,cue:'Supinated grip. Full dead hang, drive elbows down and back. 3-count descent. Progression: build reps → 1s top pause → 4-count negative → mixed grip → neutral grip → weighted. Great for both back and biceps.',tags:['vertical']},
   {id:'lat_pulldown',name:'Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Slight lean back. Pull to upper chest, feel lat stretch fully at the top. Don\'t let elbows drift forward.',tags:['vertical']},
+  {id:'bumstead_pulldown',name:'Bumstead Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:8,rMax:12,rest:150,isoHoldSecs:5,cue:'Wide overhand grip. Pull the bar down to the upper chest, but stop and HOLD at the mid-position (elbows roughly level with your ribs) for a full 5 seconds — squeeze the shoulder blades down and together to lock in the lat contraction before finishing the rep. The mid-position pause is the whole point: it kills momentum and forces the lats, not the arms, to do the work. Use the 5s hold timer below at that point each rep.',tags:['vertical']},
   {id:'bb_row',name:'Barbell Row',muscle:'back',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Hip hinge, chest up. Bar to lower sternum. Drive elbows back and up. Control the negative — don\'t drop the bar.',tags:['horizontal']},
   {id:'db_row',name:'Dumbbell Row',muscle:'back',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Brace hand on bench. Drive elbow to hip — not to the ceiling. Full stretch at bottom, full row.',tags:['horizontal']},
   {id:'cable_row',name:'Seated Cable Row',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Sit tall, slight forward lean to stretch. Drive elbows back past your sides. No momentum.',tags:['horizontal']},
@@ -291,6 +292,8 @@ const EX = [
   {id:'leg_press',name:'Leg Press',muscle:'legs',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:180,cue:'Feet shoulder-width on platform. Lower until knees reach ~90°, don\'t let lower back round off the pad. Press through full foot, stop just short of lockout.',tags:['quad']},
   {id:'step_ups',name:'Step-ups',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step onto stable surface, drive through full foot. Keep hips level throughout movement. Control the step down. Count per leg.',tags:['quad','unilateral']},
   {id:'reverse_lunge',name:'Reverse Lunge (DB)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step BACK — hip-friendly. Front shin vertical. Drive through front heel to return. Control the descent. Count per leg.',tags:['quad','unilateral']},
+  {id:'sumo_squat',name:'Sumo Squat',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:8,rMax:12,rest:150,cue:'Wide stance, toes turned out ~30°. Hold a dumbbell vertically at arm\'s length between your legs (or goblet-style at the chest). Sit straight down and back, keeping the torso tall — the wide stance keeps the shins closer to vertical than a standard squat, reducing knee shear stress while emphasizing the glutes and adductors. Drive through the whole foot to stand.',tags:['quad','squat','glute']},
+  {id:'bstance_hip_thrust',name:'B-Stance Hip Thrust',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:8,rMax:12,rest:150,cue:'Shoulders on a bench, a dumbbell across the hips if loading. Plant one foot flat and slide the other foot forward, resting lightly on the toe for balance — most of the load stays on the planted "working" leg without going fully single-leg. Drive through the planted heel to full hip extension, squeeze the glute at the top, lower under control. Nearly all the unilateral benefit of a single-leg hip thrust with much better stability. Count per side.',tags:['hinge','glute','unilateral']},
   {id:'rdl',name:'Romanian Deadlift',muscle:'legs',type:'compound',eq:['barbell','dumbbells'],rMin:6,rMax:10,rest:180,cue:'Push hips BACK, feel hamstring stretch. Bar close to legs. Drive hips forward at top. Not a squat.',tags:['hinge','hamstring']},
   {id:'db_rdl',name:'Dumbbell RDL',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:8,rMax:12,rest:150,cue:'Hold a dumbbell in each hand. Push hips BACK — feel the hamstring stretch — keeping the DBs close to your legs. Drive hips forward to stand, squeeze glutes at top. Slow, controlled descent every rep.',tags:['hinge','hamstring']},
   {id:'trap_bar_dl',name:'Trap Bar Deadlift (Restricted Depth)',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Stand inside the hex bar, neutral spine, chest up. Pull the slack out of the bar, then drive through the floor — hips and shoulders rise together. Set up on a small block/mats if needed so the bar starts a few inches higher, keeping hip flexion shallower than a deep squat. A hip-friendly substitute for deep bilateral squats.',tags:['hinge','quad']},
@@ -710,6 +713,16 @@ function load(){
 const LEG_EMPHASIS_TAGS=['power','isometric','tendon','eccentric','plyometric'];
 const legAutoOK=(e)=>e.muscle!=='legs'||LEG_EMPHASIS_TAGS.some(t=>(e.tags||[]).includes(t));
 
+// Knee-Caution mode (mirrors hipCaution): when active, ALL leg work is
+// restricted to this small dumbbell-only, knee-friendly whitelist — an
+// absolute allowlist rather than a tag filter, since it's meant to override
+// the explosive/tendon emphasis gate entirely, not layer on top of it.
+const KNEE_SAFE_IDS=new Set(['goblet','rdl','db_rdl','reverse_lunge','sumo_squat','bstance_hip_thrust']);
+// Manual swap/suggestion lists don't have a slot.tag to reason about (unlike
+// pickEx's per-slot gate above) — Knee-Caution there is a flat allow-list
+// check: exclude any leg exercise outside the knee-safe set.
+const kneeCautionBlocks=(e)=>S.cfg.kneeCaution&&e.muscle==='legs'&&!KNEE_SAFE_IDS.has(e.id);
+
 function pickEx(slot,equip,used,isLunch,budget,freq){
   const eq=new Set([...equip,'bodyweight']);
   const overworkedMuscles = getOverworkedMuscles();
@@ -737,17 +750,23 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
   // Hip-caution mode also bans plyometrics (impact loading on a sensitive hip)
   // — that volume is redistributed to the remaining non-impact pool, which
   // includes eccentric tendon work like the Nordic curl.
-  // legAutoOK restricts leg picks to the explosive/tendon emphasis tags — but
-  // the hamstring mandate's 'hinge' and 'hamstring' slots exist specifically to
-  // guarantee RDL/hip-hinge and leg-curl-family work, none of which carry those
-  // tags. Those two mandate tags are an explicit, deliberate exception to the
-  // emphasis gate; every other leg slot still goes through it unchanged.
+  // Leg-exercise gate: Knee-Caution mode (when on) is an absolute whitelist
+  // that overrides everything else for legs — it exists to hand-pick a small
+  // knee-safe set, not to layer on top of the explosive/tendon emphasis gate.
+  // Otherwise legAutoOK's emphasis-tag restriction applies as normal, except
+  // for the hamstring mandate's 'hinge'/'hamstring' slots (see legAutoOK),
+  // which guarantee RDL/hip-hinge and leg-curl-family work regardless.
+  const legGateOK = (e) => {
+    if(e.muscle!=='legs') return true;
+    if(S.cfg.kneeCaution) return KNEE_SAFE_IDS.has(e.id);
+    return slot.tag==='hinge'||slot.tag==='hamstring'||legAutoOK(e);
+  };
   const base = (e) =>
     e.muscle===slot.muscle && e.type===slot.type &&
     (!slot.tag || ((e.tags||[]).includes(slot.tag))) &&
     !used.includes(e.id) &&
     e.eq.some(q=>eq.has(q)) &&
-    (slot.tag==='hinge'||slot.tag==='hamstring'||legAutoOK(e)) &&
+    legGateOK(e) &&
     !(S.cfg.hipCaution && e.hipRisk) &&
     !(S.cfg.hipCaution && (e.tags||[]).includes('plyometric')) &&
     !(isLunch && e.highSweat);
@@ -2607,7 +2626,7 @@ function renderSetup(){
   // selection page is intentionally omitted from this wizard.
   const steps=[
     `<div class='s-title'>Your available sessions & equipment</div>
-     <div class='s-sub'>Tap each session you can train and choose equipment. The 4 equipment options are: Apartment Gym, Hotel Gym, YMCA, Bodyweight Only.</div>
+     <div class='s-sub'>Tap each session you can train and choose equipment. Options: Apartment Gym, Hotel Gym, YMCA, Westminster Gym, Bodyweight Only.</div>
      ${renderAvailGrid(av,true)}`,
     `<div class='s-title'>Your body weight?</div>
      <div class='s-sub'>Used to estimate calorie burn from workouts and cardio prescriptions.</div>
@@ -2621,6 +2640,14 @@ function renderSetup(){
        <div>
          <div style='font-size:13px;font-weight:700'>Add conditioning finishers</div>
          <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>8–15 min of sprint intervals, circuits, or HIIT after each strength session — good for athleticism and cardio capacity.</div>
+       </div>
+     </div>
+     <div class='sec-lbl' style='margin-top:16px'>Knee Caution</div>
+     <div class='plan-chk${cfg.kneeCaution?' on':''}' data-action='toggle-knee-caution' style='margin-bottom:0'>
+       <div class='plan-chk-box'>${cfg.kneeCaution?'✓':''}</div>
+       <div>
+         <div style='font-size:13px;font-weight:700'>Knee-friendly leg work only</div>
+         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Restricts all leg training to a dumbbell-only, knee-safe set: Goblet Squat, RDL, Reverse Lunge, Sumo Squat, B-Stance Hip Thrust.</div>
        </div>
      </div>
      <div style='margin-top:20px'>
@@ -2900,6 +2927,7 @@ function renderSwapSearchResults(query,exIdx){
     !S.active.exercises.some(ae=>ae.id===e.id) &&
     !(S.cfg.hipCaution&&e.hipRisk) &&
     !(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')) &&
+    !kneeCautionBlocks(e) &&
     (e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q)||e.type.toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
   ).slice(0,15);
   if(!results.length)return`<div style='font-size:13px;color:var(--mut)'>No matches for "${query.replace(/</g,'&lt;')}"</div>`;
@@ -3051,7 +3079,7 @@ function renderWorkout(){
   const todayAv=av[today]||{};
   const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
   const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric'))&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric'))&&!kneeCautionBlocks(e)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
   const swapSearchOpen=swapOpen&&S.active.swapSearch;
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
@@ -3124,6 +3152,7 @@ function renderWorkout(){
         <button class='cue-btn' data-action='toggle-swap' style='margin-bottom:0;margin-left:auto;color:var(--mut)'>↕ Swap</button>
       </div>
       <div class='cue-txt' id='cue-${exIdx}'>${ex.cue||''}</div>
+      ${ex.isoHoldSecs?`<button class='btn btn-g btn-sm' data-action='start-iso-hold' data-secs='${ex.isoHoldSecs}' style='margin-bottom:10px;width:100%'>⏱ Start ${ex.isoHoldSecs}s mid-position hold</button>`:''}
       ${swapPanel}
       ${warmupHTML}
       ${progHTML}
@@ -4225,6 +4254,7 @@ document.addEventListener('click',e=>{
     if(btn.dataset.val==='lean')S.cfg.conditioning=true;
     save();render();return;}
   if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
+  if(a==='toggle-knee-caution'){S.cfg.kneeCaution=!S.cfg.kneeCaution;save();render();return;}
   if(a==='generate'){
     S.cfg.goal='lean'; // pinned to recomp — goal page removed from setup
     const bwEl=document.getElementById('bw-input');
@@ -4757,6 +4787,7 @@ document.addEventListener('click',e=>{
     return;
   }
   if(a==='start-wu-rest'){startRest(parseInt(btn.dataset.secs),'Warm-up rest');return;}
+  if(a==='start-iso-hold'){startRest(parseInt(btn.dataset.secs),'Mid-position hold');return;}
   if(a==='toggle-swap'){
     S.active.swapMode=S.active.swapMode===S.active.exIdx?null:S.active.exIdx;
     S.active.swapSearch=false;S.active.swapQuery='';
@@ -4941,7 +4972,7 @@ function localAnswer(q){
     if(/equipment|need|require|use/.test(ql))
       return`<strong>${ex.name}</strong> uses: ${ex.eq.join(', ')}`;
     if(/alternative|substitute|instead|replace|swap/.test(ql)){
-      const alts=EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!(S.cfg.hipCaution&&e.hipRisk)).slice(0,5);
+      const alts=EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)).slice(0,5);
       return`Alternatives for <strong>${ex.name}</strong> (${ex.muscle}):<br><br>${alts.map(a=>`• ${a.name}`).join('<br>')}`;
     }
     return`<strong>${ex.name}</strong> — ${ex.muscle}, ${ex.type}<br>Equipment: ${ex.eq.join(', ')}<br><br>${ex.cue}`;
@@ -4949,7 +4980,7 @@ function localAnswer(q){
   // Muscle group
   const muscle=['chest','back','shoulders','biceps','triceps','legs','core','hips'].find(m=>ql.includes(m));
   if(muscle){
-    const list=EX.filter(e=>e.muscle===muscle&&!(S.cfg.hipCaution&&e.hipRisk));
+    const list=EX.filter(e=>e.muscle===muscle&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e));
     return`<strong>${muscle.charAt(0).toUpperCase()+muscle.slice(1)} exercises:</strong><br><br>${list.map(e=>`• ${e.name} (${e.type})`).join('<br>')}`;
   }
   return null;
