@@ -1382,6 +1382,9 @@ function getMRVLimits(){
 // Muscles trained in a session the user rated 4-5 ("Hard"/"Maxed out")
 // within the last 72 hours.
 function getFatiguedMuscles(){
+  // S-Tier sleep shield: 7-9h logged for last night overrides the fatigue-rating
+  // penalty entirely (see sleepShieldActive below) — full planned volume today.
+  if(sleepShieldActive())return new Set();
   const cutoff=Date.now()-72*3600*1000;
   const fatigued=new Set();
   (S.logs||[]).forEach(l=>{
@@ -1490,6 +1493,29 @@ function getRecoveryAdvisories(){
     if(best)advisories.push(`You're scheduled to train ${best.length} days in a row (${dlabel(best[0])}–${dlabel(best[best.length-1])}). Consider a rest day in there to recover and avoid overtraining.`);
   }
   return advisories;
+}
+
+// Sleep-based recovery boost — S-Tier: 7-9 hours logged for last night shields
+// against the 72h high-fatigue MRV reduction below, so a well-rested muscle
+// gets the full planned volume back even right after a hard session. Sleep is
+// the top-ranked recovery lever, so it overrides the fatigue-rating penalty
+// entirely rather than just softening it.
+function sleepShieldActive(){
+  const hrs=S.sleepLog?.[todayStr()];
+  return hrs!=null&&hrs>=7&&hrs<=9;
+}
+function renderSleepCard(){
+  const today=todayStr();
+  const logged=S.sleepLog?.[today];
+  const opts=[{v:5,label:'<6h'},{v:6.5,label:'6–7h'},{v:8,label:'7–9h'},{v:9.5,label:'9h+'}];
+  const shielded=logged!=null&&logged>=7&&logged<=9;
+  return`<div class='card' style='margin-bottom:14px'>
+    <div class='sec-lbl' style='margin-bottom:8px'>😴 Last Night's Sleep${logged!=null?` <span style='color:var(--mut);font-weight:400;text-transform:none;letter-spacing:0'>· logged</span>`:''}</div>
+    <div style='display:flex;gap:6px;flex-wrap:wrap'>
+      ${opts.map(o=>`<button class='btn btn-sm ${logged===o.v?'btn-p':'btn-g'}' data-action='log-sleep' data-hours='${o.v}' style='flex:1;min-width:70px'>${o.label}</button>`).join('')}
+    </div>
+    ${shielded?`<div class='prog-hint' style='margin-top:8px'>✅ Well rested — full planned volume applies today, even after a hard session.</div>`:''}
+  </div>`;
 }
 
 function renderRecoveryBanner(){
@@ -2959,6 +2985,7 @@ function renderDash(){
     ${renderBodyScoreCard()}
     <div class='sec-lbl'>This Week</div>
     <div class='wk-grid'>${wkGrid}</div>
+    ${renderSleepCard()}
     ${renderRecoveryBanner()}
     ${todayHTML}
     ${planCard}
@@ -4354,6 +4381,11 @@ document.addEventListener('click',e=>{
   if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
   if(a==='toggle-knee-caution'){S.cfg.kneeCaution=!S.cfg.kneeCaution;save();render();return;}
   if(a==='toggle-shoulder-caution'){S.cfg.shoulderCaution=!S.cfg.shoulderCaution;save();render();return;}
+  if(a==='log-sleep'){
+    S.sleepLog=S.sleepLog||{};
+    S.sleepLog[todayStr()]=parseFloat(btn.dataset.hours);
+    save();render();return;
+  }
   if(a==='generate'){
     S.cfg.goal='lean'; // pinned to recomp — goal page removed from setup
     const bwEl=document.getElementById('bw-input');
