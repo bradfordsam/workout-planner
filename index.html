@@ -251,6 +251,11 @@ const EX = [
   {id:'machine_press',name:'Machine Chest Press',muscle:'chest',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:150,cue:'Set seat so handles are at mid-chest. Retract shoulder blades before pressing. Tuck elbows to ~45° (not flared) and keep forearms vertical so tension stays on the chest, not the triceps. Control the descent — 2 full counts down. Take the last set to 1–2 reps shy of failure.'},
   {id:'pushups_w',name:'Push-ups (+ Weighted Vest)',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:120,cue:'Hands shoulder-width, body straight. Chest to floor, lock out top. Slow descent. Add vest for progressive overload.'},
   {id:'perfect_pushups',name:'Perfect Pushups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'Rotating-handle push-up grips (or dumbbells). Grip the handles and let them rotate naturally as you lower — this opens up a deeper stretch at the bottom and is easier on the wrists. Hands under shoulders, body in a straight line, brace the core. Lower under control until the chest is below the hands, press back to full lockout. Slow descent every rep. Add a vest to progressively overload.'},
+  // Athletic power accents (goal: look like a bodybuilder, MOVE like an athlete).
+  // Tagged 'power'/'ballistic' — NOT 'plyometric' — because the hip-caution
+  // plyo ban targets lower-body flight/landing impact, which these don't have.
+  {id:'med_ball_chest_pass',name:'Med Ball Chest Pass',muscle:'chest',type:'compound',eq:['medball'],rMin:5,rMax:8,rest:120,noWeight:true,highSweat:true,tags:['power','ballistic'],cue:'Stand facing a solid wall a few feet away, ball at the chest. Explode the ball into the wall like a two-hand pass — maximal intent, full arm extension — catch the rebound (or pick it up) and reset. Throw as HARD as possible every rep; stop the set when velocity visibly drops. Builds the pressing power a barbell can\'t train, because you can\'t let go of a barbell.'},
+  {id:'plyo_pushup',name:'Plyo Push-up',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:150,noWeight:true,highSweat:true,tags:['power','ballistic'],cue:'Push-up position, lower under control, then explode up hard enough that your hands leave the floor. Land soft with elbows unlocked, absorb, reset, repeat with full intent. End the set the moment your height drops — this is power work, not a burnout. Regress to hands on a bench; progress to a clap.'},
   {id:'cable_fly',name:'Cable Fly',muscle:'chest',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing in the middle of the cable crossover station, both pulleys set at shoulder height for a flat, mid-chest line — set them higher (above the head) to bias the lower chest on a high-to-low fly, or lower (near the floor) to bias the upper chest on a low-to-high fly. Slight elbow bend. Reach your chest to the sky as you descend to maximize the stretch. Full stretch at bottom — feel it. Slow eccentric back. Squeeze hard at contraction.'},
   {id:'db_fly',name:'Dumbbell Fly',muscle:'chest',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower only to shoulder level. Reach your chest to the sky as you descend to maximize the stretch. 2-count descent — slow and controlled. Soft elbows throughout.'},
   {id:'pec_deck',name:'Pec Deck',muscle:'chest',type:'isolation',eq:['machine'],rMin:8,rMax:12,rest:120,cue:'Full ROM, hard squeeze at contraction. Slow negative — resist the weight on the way back. Great for overload tracking.'},
@@ -269,6 +274,7 @@ const EX = [
   {id:'bb_shrug',name:'Barbell Shrugs',muscle:'back',type:'isolation',eq:['barbell'],rMin:10,rMax:15,rest:120,cue:'Hold a loaded barbell at arm\'s length, shoulders relaxed. Shrug straight UP toward your ears — no rolling, which adds nothing and stresses the joint. Pause and squeeze the traps hard at the top, then lower under control to a full stretch. Let the traps do the work; don\'t bounce with the knees.',tags:['trap']},
   {id:'ohp',name:'Overhead Press',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Standing, feet shoulder-width. Bar at clavicle, slightly in front of face. Press straight overhead, lock out. Brace core, no excessive lean.'},
   {id:'seated_db_press',name:'Seated DB Shoulder Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'Start at ear height, press up and slightly in. Full lockout. Control descent back to ear height.'},
+  {id:'push_press',name:'Push Press',muscle:'shoulders',type:'compound',eq:['barbell','dumbbells'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'Bar (or DBs) racked at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch the weight overhead in one motion to lockout. Lower under control back to the shoulders. The leg drive lets you overload the press beyond strict-press weights while training total-body explosiveness — the classic athlete\'s overhead lift.'},
   {id:'arnold_press',name:'Arnold Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Seated on a bench with back support. Start palms facing you, rotate to facing out as you press. All three delt heads involved. Control the descent.'},
   {id:'db_lateral',name:'DB Lateral Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Standing, slight forward lean, lead with elbows. Imagine "scraping the wall" with your knuckles as you raise — keeps the path in the scapular plane. Pause at top. Slow 2-count negative. Lateral delts respond well to higher reps.'},
   {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Standing, cross-body cable. "Scrape the wall" with your hand on the way up to keep the arm path in the scapular plane. Constant tension throughout ROM. Resist the weight on the way down — don\'t let it snap back.'},
@@ -329,6 +335,9 @@ const EX = [
   {id:'glute_bridge_2leg',name:'Glute Bridges',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'Lie on back, knees bent, feet flat on the floor. Drive through both heels to full hip extension — squeeze glutes hard at the top, avoid arching through the lower back. Slow controlled descent.\n\nProgression: once 20 reps feel easy, move to the Single-leg Glute Bridge below for added difficulty.',tags:['glute']},
   {id:'glute_bridge',name:'Single-leg Glute Bridge',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'Single leg raises difficulty. Drive through heel. Full hip extension. Squeeze hard at top.\n\nProgression without bands: (1) Build reps → (2) Add 2s hold at top each rep → (3) Elevate your foot on a bench (increases ROM and difficulty) → (4) Add a backpack or a heavy book on your hip for resistance → (5) Barbell hip thrust when you reach a gym.',tags:['glute']},
   {id:'pallof',name:'Pallof Press',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Press out fully, hold 2s, return. Resist rotation — your core fights the cable the whole time. Count per side.',tags:['anti-rotation']},
+  {id:'med_ball_slam',name:'Med Ball Slam',muscle:'core',type:'rotational',eq:['medball'],rMin:6,rMax:10,rest:90,noWeight:true,highSweat:true,tags:['power','anti-extension','conditioning'],cue:'Ball overhead at full stretch, up on the toes — then slam it into the floor as violently as you can, folding through the core (not just the arms). Catch the rebound or pick it up, reset tall, repeat with full intent. Total-body power expressed through the trunk.'},
+  {id:'med_ball_rot_throw',name:'Med Ball Rotational Throw',muscle:'core',type:'rotational',eq:['medball'],rMin:5,rMax:8,rest:90,noWeight:true,highSweat:true,tags:['power','rotation'],cue:'Stand side-on to a solid wall, ball at the back hip. Load into the rear hip, then snap the hips through and fire the ball into the wall — the power comes from the ground up through the hips; the arms just deliver it. Catch or collect, reset, repeat. Count per side. The purest expression of rotational athletic power.'},
+  {id:'suitcase_carry',name:'Suitcase Carry',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:30,rMax:45,rest:90,isTimed:true,tags:['carry','anti-rotation','unilateral'],cue:'One heavy dumbbell at your side like a suitcase. Walk tall — shoulders and hips level, ribs stacked, zero lean toward or away from the load. The offset weight forces the lateral core and grip to fight the whole time. Count seconds per side. The most athletic "abs" exercise there is.'},
   {id:'woodchop',name:'Cable Woodchop',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Rotate from thoracic spine, diagonal plane. Arms stay relatively straight. Count per side.',tags:['rotation']},
   {id:'half_kneel_press',name:'Half-kneeling Press',muscle:'core',type:'rotational',eq:['dumbbells','cables'],rMin:10,rMax:15,rest:90,cue:'Down knee is the loaded side. Tall posture. Press without leaning — core fights lateral forces. Per side.',tags:['asymmetrical']},
   {id:'sa_cable_row',name:'Single-arm Cable Row',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:12,rest:90,cue:'Core resists rotation as you row. Back AND anti-rotation in one. Count per side.',tags:['unilateral']},
@@ -392,7 +401,7 @@ const EQUIPMENT_PRESETS = {
   apartment_gym: {
     name: '🏢 Apartment Gym',
     desc: 'Dumbbells (5–50 lb ea, no 30s/35s), bench, cable machine (rope + EZ bar), pull-up bar, treadmill/elliptical, medicine balls',
-    equipment: ['dumbbells', 'cables', 'pullup_bar', 'bodyweight'],
+    equipment: ['dumbbells', 'cables', 'pullup_bar', 'medball', 'bodyweight'],
     // Exact pairs on hand — 5 lb steps to 25, then a gap (no 30/35) straight to
     // 40/45/50. Weight suggestions round DOWN to the nearest weight in this list
     // rather than just capping at the max, so a "38 lb" suggestion never lands
@@ -410,7 +419,7 @@ const EQUIPMENT_PRESETS = {
   ymca: {
     name: '🏋️ YMCA',
     desc: 'Full gym with all equipment available',
-    equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'bodyweight'],
+    equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'bodyweight'],
     location: 'ymca'
   },
   westminster_gym: {
@@ -421,7 +430,7 @@ const EQUIPMENT_PRESETS = {
     // are trained the same as dumbbells (existing KB/DB swing movements
     // already tag 'dumbbells'), and GHD/plyo box/med ball work falls under
     // bodyweight movements (e.g. Back Extension's bodyweight variant).
-    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'bodyweight'],
+    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'medball', 'bodyweight'],
     location: 'westminster'
   },
   bodyweight: {
@@ -802,6 +811,15 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     if(circuitEx) return circuitEx;
   }
 
+  // Hybrid-athlete soft preference (goal: look like a bodybuilder, move like an
+  // athlete): a powerPreferred slot tries explosive/ballistic variants first
+  // (med ball slam, rotational throw, ...) and falls through to the normal
+  // tiers below when none fit the equipment/caps — a bias, never a constraint.
+  if(slot.powerPreferred && !isLunch) {
+    const powerEx = leastUsed(allExercises.filter(e => base(e) && (e.tags||[]).includes('power') && !overworkedMuscles.has(e.muscle) && fitsMRV(e) && freqOf(e)<FREQ_CAP));
+    if(powerEx) return powerEx;
+  }
+
   // 1) Best: avoid overworked muscles, stay within MRV max, under the frequency cap
   let exercise = leastUsed(allExercises.filter(e => base(e) && !overworkedMuscles.has(e.muscle) && fitsMRV(e) && freqOf(e)<FREQ_CAP));
   // 2) Next: within MRV max + under cap (allow a recently-worked muscle if needed)
@@ -943,7 +961,7 @@ function genProgram(cfg,av,workoutHistoryLog){
   // assembled into that day's session. No fixed split — a group recurs as soon
   // as it's rested, and the day is named for whatever it actually trains.
   // Returns {name,desc,slots,tk} or null when nothing is recovered → rest day.
-  function dayTemplate(dateStr,limit){
+  function dayTemplate(dateStr,limit,isLunch){
     const MUSCLES=['legs','back','chest','shoulders','biceps','triceps'];
     // Most recent training date per muscle (logs + sessions already assigned
     // earlier this run), on or before dateStr.
@@ -987,7 +1005,30 @@ function genProgram(cfg,av,workoutHistoryLog){
       slots[legSlotIdx[0]].tag='hinge';
       if(legSlotIdx.length>1)slots[legSlotIdx[1]].tag='hamstring';
     }
-    slots.push({muscle:'core',type:'rotational'});
+    // Hybrid-athlete accent (goal: look like a bodybuilder, MOVE like an
+    // athlete): evening sessions convert ONE isolation fill slot of a
+    // power-capable muscle into an explosive 'power' compound (push press,
+    // med-ball throws, plyo push-up, ballistic leg work). Deliberately the
+    // ISOLATION slot, never a main compound — the heavy hypertrophy lift
+    // stays untouched (that's the "look jacked" half), and one accessory
+    // trades for athletic power expression (the "move like an athlete" half).
+    // Lunch sessions skip this: too short, and the throw/plyo pool is
+    // highSweat anyway. 45-min evenings (2 muscle slots, no isolation fill)
+    // also skip naturally — short sessions keep every heavy compound.
+    let accented=false;
+    if(!isLunch){
+      const POWER_CAPABLE=new Set(['legs','chest','shoulders']);
+      for(let i=slots.length-1;i>=0;i--){
+        const s=slots[i];
+        if(s.type==='isolation'&&!s.tag&&POWER_CAPABLE.has(s.muscle)){s.type='compound';s.tag='power';accented=true;break;}
+      }
+    }
+    // No convertible slot (isolation fill was mandate-tagged or a non-power
+    // muscle)? Fall back to biasing the core slot toward explosive work —
+    // powerPreferred is a SOFT preference in pickEx (med ball slam/rotational
+    // throw first, normal core picks when unavailable), so gyms without med
+    // balls degrade gracefully instead of dropping the core slot.
+    slots.push({muscle:'core',type:'rotational',powerPreferred:!isLunch&&!accented});
     const names=top.map(t=>MNAME[t.m]||t.m);
     return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')};
   }
@@ -1016,7 +1057,7 @@ function genProgram(cfg,av,workoutHistoryLog){
     }
     const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
     // Plan this day on demand from recovery debt (most-overdue rested muscles).
-    const tmpl=dayTemplate(dateStr,limit);
+    const tmpl=dayTemplate(dateStr,limit,slot.isLunch);
     if(!tmpl)return null; // nothing adequately rested → this day stays a rest day
     if(oldData===undefined)oldData=oldWeek?.[slot.dow];
     // Preserve existing exercises if already completed this week, OR the same
@@ -3029,7 +3070,7 @@ function renderDash(){
 
 function renderSwapSearchResults(query,exIdx){
   const q=(query||'').toLowerCase().trim();
-  if(!q)return`<div style='font-size:13px;color:var(--mut)'>Type to search all 89 exercises…</div>`;
+  if(!q)return`<div style='font-size:13px;color:var(--mut)'>Type to search all ${EX.length+(S.customExercises||[]).length} exercises…</div>`;
   const ex=S.active?.exercises?.[exIdx];
   const allEx=[...EX,...(S.customExercises||[])];
   const matches=allEx.filter(e=>
@@ -5270,6 +5311,7 @@ async function askAssistant(q){
   }
   try{
     const hipNote=S.cfg.hipCaution?'User has hip impingement (FAI) — avoid deep squat patterns and compressive end-range hip flexion.':'';
+    const goalNote='User\'s overarching goal: look jacked like a bodybuilder but train and MOVE like an athlete — hypertrophy base with explosive/ballistic power accents, rotational core work, and carries, mainly in evening sessions (lunch sessions are time-boxed and low-sweat).';
     const prog=S.program?`Current split: ${S.program.week.filter(d=>!d.rest).map(d=>DOW[d.dow]+': '+d.name).join(', ')}.`:'';
     const ctx=chatExerciseContext();
     const res=await fetch('https://api.anthropic.com/v1/messages',{
@@ -5277,7 +5319,7 @@ async function askAssistant(q){
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-client-side-allowlist-v1':'true'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',max_tokens:600,
-        system:`You are a concise personal trainer in a workout app. ${hipNote} ${prog}
+        system:`You are a concise personal trainer in a workout app. ${goalNote} ${hipNote} ${prog}
 ${ctx?ctx.prompt+'\n':''}
 CORE TRAINING PRINCIPLES (synthesize these with current athletic research when the static technique notes leave a gap — e.g. unilateral set order, breathing, tempo, grip width):
 - Controlled eccentrics (2-3 count) and full ROM beat load; last rep should be hard, form never breaks.
