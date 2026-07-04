@@ -3175,12 +3175,29 @@ function renderWorkout(){
   const wu1Lbl=sugW0?`${r5(sugW0*0.5)} ${wUnit}`:'~50%';
   const wu2Lbl=sugW0?`${r5(sugW0*0.75)} ${wUnit}`:'~75%';
   const wu3Lbl=sugW0?`${r5(sugW0*0.9)} ${wUnit}`:'~90%';
+  // Weight-acclimation coverage beyond the session's lead lift: the recovery-
+  // debt scheduler mixes muscle groups within one session (e.g. Legs · Back ·
+  // Chest), so the first LOADABLE lift of each NEW muscle group also gets a
+  // ramp — abbreviated to 2 sets since the body is already warm by then and
+  // only the new muscle/pattern needs acclimation. Computed at render time
+  // (not generation) so swaps and preserved sessions are covered too. Lunch
+  // sessions are excluded (hard 40-min time-box); core/hips excluded (light
+  // rotational/stability work doesn't need a graded ramp).
+  const loadable=!ex.noWeight&&!ex.isTimed&&(ex.eq||[]).some(q=>q!=='bodyweight');
+  const isGroupFirst=!ex.isFirst&&!S.active.isLunch&&loadable&&!['core','hips'].includes(ex.muscle)
+    &&exercises.slice(0,exIdx).every(p=>p.muscle!==ex.muscle);
   const warmupHTML=ex.isFirst?`<div class='wu-box'>
     <div class='wu-title'>⚡ Warm-up Sets — Weight Acclimation (do these first)</div>
     <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>${wu1Lbl}</span><span style='color:var(--mut);font-size:13px'> × 8 reps — groove the pattern</span><button data-action='start-wu-rest' data-secs='60' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>60s rest</button></div>
     <div class='wu-row'><span class='wu-set'>WU2</span><span class='wu-val' id='wu2-${exIdx}'>${wu2Lbl}</span><span style='color:var(--mut);font-size:13px'> × 3 reps — sharpen bar path</span><button data-action='start-wu-rest' data-secs='90' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>90s rest</button></div>
     <div class='wu-row'><span class='wu-set'>WU3</span><span class='wu-val' id='wu3-${exIdx}'>${wu3Lbl}</span><span style='color:var(--mut);font-size:13px'> × 1 rep — prime the CNS</span><button data-action='start-wu-rest' data-secs='120' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>2 min rest</button></div>
     <div class='wu-note'>No cardio, static stretching, or ab work before this.${sugW0?' Warm-up weights calculated from your target — update if you adjust the working weight below.':' Enter working weight below → warm-up loads update automatically.'}</div>
+  </div>`
+  :isGroupFirst?`<div class='wu-box'>
+    <div class='wu-title'>⚡ New Muscle Group — Quick Acclimation (2 sets)</div>
+    <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>${wu1Lbl}</span><span style='color:var(--mut);font-size:13px'> × 5 reps — wake up the ${MNAME[ex.muscle]||ex.muscle}</span><button data-action='start-wu-rest' data-secs='45' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>45s rest</button></div>
+    <div class='wu-row'><span class='wu-set'>WU2</span><span class='wu-val' id='wu2-${exIdx}'>${wu2Lbl}</span><span style='color:var(--mut);font-size:13px'> × 2 reps — groove the pattern under load</span><button data-action='start-wu-rest' data-secs='60' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>60s rest</button></div>
+    <div class='wu-note'>First ${MNAME[ex.muscle]||ex.muscle} lift of the session — you're warm overall, but this muscle is cold. Two quick ramp sets, then work.${sugW0?'':' Enter working weight below → warm-up loads update automatically.'}</div>
   </div>`:'';
 
   const isNoWeight=ex.noWeight===true;
@@ -3257,7 +3274,7 @@ function renderWorkout(){
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
       <div class='st'>${setRep}${setTag}</div>
-      ${(isNoWeight||isTimed)?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='${isDumbbellEx?'each':'lb'}' value='${done?done.weight:sugW||''}' min='0' step='5' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${ex.isFirst&&i===0?exIdx:''}'>`}
+      ${(isNoWeight||isTimed)?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='${isDumbbellEx?'each':'lb'}' value='${done?done.weight:sugW||''}' min='0' step='5' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${(ex.isFirst||isGroupFirst)&&i===0?exIdx:''}'>`}
       <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' inputmode='numeric' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
     </div>`;
