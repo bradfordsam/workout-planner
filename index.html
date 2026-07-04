@@ -254,7 +254,10 @@ const EX = [
   // Athletic power accents (goal: look like a bodybuilder, MOVE like an athlete).
   // Tagged 'power'/'ballistic' — NOT 'plyometric' — because the hip-caution
   // plyo ban targets lower-body flight/landing impact, which these don't have.
-  {id:'med_ball_chest_pass',name:'Med Ball Chest Pass',muscle:'chest',type:'compound',eq:['medball'],rMin:5,rMax:8,rest:120,noWeight:true,highSweat:true,tags:['power','ballistic'],cue:'Stand facing a solid wall a few feet away, ball at the chest. Explode the ball into the wall like a two-hand pass — maximal intent, full arm extension — catch the rebound (or pick it up) and reset. Throw as HARD as possible every rep; stop the set when velocity visibly drops. Builds the pressing power a barbell can\'t train, because you can\'t let go of a barbell.'},
+  // Wall throws use the 'medball_wall' key (med ball + a solid wall to throw
+  // against) — the apartment gym has med balls but no throwing wall, so it
+  // carries 'medball' (floor slams OK) without 'medball_wall'.
+  {id:'med_ball_chest_pass',name:'Med Ball Chest Pass',muscle:'chest',type:'compound',eq:['medball_wall'],rMin:5,rMax:8,rest:120,noWeight:true,highSweat:true,tags:['power','ballistic'],cue:'Stand facing a solid wall a few feet away, ball at the chest. Explode the ball into the wall like a two-hand pass — maximal intent, full arm extension — catch the rebound (or pick it up) and reset. Throw as HARD as possible every rep; stop the set when velocity visibly drops. Builds the pressing power a barbell can\'t train, because you can\'t let go of a barbell.'},
   {id:'plyo_pushup',name:'Plyo Push-up',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:150,noWeight:true,highSweat:true,tags:['power','ballistic'],cue:'Push-up position, lower under control, then explode up hard enough that your hands leave the floor. Land soft with elbows unlocked, absorb, reset, repeat with full intent. End the set the moment your height drops — this is power work, not a burnout. Regress to hands on a bench; progress to a clap.'},
   {id:'cable_fly',name:'Cable Fly',muscle:'chest',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing in the middle of the cable crossover station, both pulleys set at shoulder height for a flat, mid-chest line — set them higher (above the head) to bias the lower chest on a high-to-low fly, or lower (near the floor) to bias the upper chest on a low-to-high fly. Slight elbow bend. Reach your chest to the sky as you descend to maximize the stretch. Full stretch at bottom — feel it. Slow eccentric back. Squeeze hard at contraction.'},
   {id:'db_fly',name:'Dumbbell Fly',muscle:'chest',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower only to shoulder level. Reach your chest to the sky as you descend to maximize the stretch. 2-count descent — slow and controlled. Soft elbows throughout.'},
@@ -336,7 +339,7 @@ const EX = [
   {id:'glute_bridge',name:'Single-leg Glute Bridge',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'Single leg raises difficulty. Drive through heel. Full hip extension. Squeeze hard at top.\n\nProgression without bands: (1) Build reps → (2) Add 2s hold at top each rep → (3) Elevate your foot on a bench (increases ROM and difficulty) → (4) Add a backpack or a heavy book on your hip for resistance → (5) Barbell hip thrust when you reach a gym.',tags:['glute']},
   {id:'pallof',name:'Pallof Press',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Press out fully, hold 2s, return. Resist rotation — your core fights the cable the whole time. Count per side.',tags:['anti-rotation']},
   {id:'med_ball_slam',name:'Med Ball Slam',muscle:'core',type:'rotational',eq:['medball'],rMin:6,rMax:10,rest:90,noWeight:true,highSweat:true,tags:['power','anti-extension','conditioning'],cue:'Ball overhead at full stretch, up on the toes — then slam it into the floor as violently as you can, folding through the core (not just the arms). Catch the rebound or pick it up, reset tall, repeat with full intent. Total-body power expressed through the trunk.'},
-  {id:'med_ball_rot_throw',name:'Med Ball Rotational Throw',muscle:'core',type:'rotational',eq:['medball'],rMin:5,rMax:8,rest:90,noWeight:true,highSweat:true,tags:['power','rotation'],cue:'Stand side-on to a solid wall, ball at the back hip. Load into the rear hip, then snap the hips through and fire the ball into the wall — the power comes from the ground up through the hips; the arms just deliver it. Catch or collect, reset, repeat. Count per side. The purest expression of rotational athletic power.'},
+  {id:'med_ball_rot_throw',name:'Med Ball Rotational Throw',muscle:'core',type:'rotational',eq:['medball_wall'],rMin:5,rMax:8,rest:90,noWeight:true,highSweat:true,tags:['power','rotation'],cue:'Stand side-on to a solid wall, ball at the back hip. Load into the rear hip, then snap the hips through and fire the ball into the wall — the power comes from the ground up through the hips; the arms just deliver it. Catch or collect, reset, repeat. Count per side. The purest expression of rotational athletic power.'},
   {id:'suitcase_carry',name:'Suitcase Carry',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:30,rMax:45,rest:90,isTimed:true,tags:['carry','anti-rotation','unilateral'],cue:'One heavy dumbbell at your side like a suitcase. Walk tall — shoulders and hips level, ribs stacked, zero lean toward or away from the load. The offset weight forces the lateral core and grip to fight the whole time. Count seconds per side. The most athletic "abs" exercise there is.'},
   {id:'woodchop',name:'Cable Woodchop',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Rotate from thoracic spine, diagonal plane. Arms stay relatively straight. Count per side.',tags:['rotation']},
   {id:'half_kneel_press',name:'Half-kneeling Press',muscle:'core',type:'rotational',eq:['dumbbells','cables'],rMin:10,rMax:15,rest:90,cue:'Down knee is the loaded side. Tall posture. Press without leaning — core fights lateral forces. Per side.',tags:['asymmetrical']},
@@ -419,7 +422,7 @@ const EQUIPMENT_PRESETS = {
   ymca: {
     name: '🏋️ YMCA',
     desc: 'Full gym with all equipment available',
-    equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'bodyweight'],
+    equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'bodyweight'],
     location: 'ymca'
   },
   westminster_gym: {
@@ -430,7 +433,7 @@ const EQUIPMENT_PRESETS = {
     // are trained the same as dumbbells (existing KB/DB swing movements
     // already tag 'dumbbells'), and GHD/plyo box/med ball work falls under
     // bodyweight movements (e.g. Back Extension's bodyweight variant).
-    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'medball', 'bodyweight'],
+    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'medball', 'medball_wall', 'bodyweight'],
     location: 'westminster'
   },
   bodyweight: {
