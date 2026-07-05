@@ -334,6 +334,7 @@ const EX = [
   {id:'tempo_calf',name:'Springy Calf Bounces (Stiff Ankle)',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:20,rest:90,cue:'Fast, short rebounds driven by the ankle — touch the bottom and snap back up with minimal ground-contact time, like a stiff spring. Feet stay grounded (no jumping) so it stays low-impact, but the quick stretch-shorten action trains reactive Achilles stiffness and bounce.',tags:['calf','tendon','power']},
   // rest 60→90s: Singer et al. 2024 Bayesian meta-analysis ("Give it a Rest", Frontiers Sports Act Living) — hypertrophy slightly favors >60s rest, no further benefit beyond ~90s; ≤60s is the only clearly suboptimal zone.
   {id:'calf_raise',name:'Calf Raises',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Full stretch at bottom (off step edge). Full contraction at top. Slow tempo — calves are resistant to fast reps.',tags:['calf']},
+  {id:'tib_raise',name:'Tibialis Raises',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:15,rMax:25,rest:60,noWeight:true,cue:'Lean your back against a wall, feet a foot or so out in front, legs straight. Lift your toes toward your shins as high as possible, pause, lower under control — don\'t let the toes slap down. The shin muscle (tibialis anterior) absorbs impact on every walking/running step, especially incline work: strengthening it is what relieves chronic shin stiffness, not just stretching. Walk your feet further from the wall to make it harder; progress toward single-leg.',tags:['tibialis','tendon']},
   {id:'single_leg_calf_raise',name:'Single-Leg Calf Raise',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Balance on one foot (hold something for stability). Full stretch at bottom (off step edge). Full contraction at top. Slow tempo. Count per side.',tags:['calf','unilateral']},
   {id:'hip_abduct',name:'Hip Abduction',muscle:'legs',type:'isolation',eq:['machine'],rMin:15,rMax:20,rest:90,cue:'Slow and controlled. Feel glute med. No momentum or pelvic tilt.',tags:['glute']},
   {id:'glute_bridge_2leg',name:'Glute Bridges',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'Lie on back, knees bent, feet flat on the floor. Drive through both heels to full hip extension — squeeze glutes hard at the top, avoid arching through the lower back. Slow controlled descent.\n\nProgression: once 20 reps feel easy, move to the Single-leg Glute Bridge below for added difficulty.',tags:['glute']},
@@ -736,7 +737,7 @@ const legAutoOK=(e)=>e.muscle!=='legs'||LEG_EMPHASIS_TAGS.some(t=>(e.tags||[]).i
 // restricted to this small dumbbell-only, knee-friendly whitelist — an
 // absolute allowlist rather than a tag filter, since it's meant to override
 // the explosive/tendon emphasis gate entirely, not layer on top of it.
-const KNEE_SAFE_IDS=new Set(['goblet','rdl','db_rdl','reverse_lunge','sumo_squat','bstance_hip_thrust']);
+const KNEE_SAFE_IDS=new Set(['goblet','rdl','db_rdl','reverse_lunge','sumo_squat','bstance_hip_thrust','tib_raise']);
 // Manual swap/suggestion lists don't have a slot.tag to reason about (unlike
 // pickEx's per-slot gate above) — Knee-Caution there is a flat allow-list
 // check: exclude any leg exercise outside the knee-safe set.
@@ -3214,6 +3215,16 @@ function renderWorkout(){
     <div class='wu-note' style='margin-top:0'>Weekly volume is intentionally low (3–10 hard sets/muscle) — every set needs to count. Push each working set to 0–2 reps in reserve (RIR), not a comfortable stopping point. For side delts specifically: 1–3 crisp, perfect-technique sets per session beats spamming lateral-raise variations.</div>
   </div>`:'';
 
+  // Desk-reversal primer (~45s, evening sessions): the day's sitting leaves the
+  // deep neck flexors asleep and the lumbar spine parked in flexion — wake both
+  // BEFORE loading. Dynamic activation belongs pre-lift; the static relief work
+  // for the same areas lives in the post-session cool-down (cooldownHTML).
+  const deskReversalHTML=exIdx===0&&!S.active.isLunch?`<div class='wu-box' style='border-color:rgba(74,222,128,.25);background:rgba(74,222,128,.03);margin-bottom:14px'>
+    <div class='wu-title' style='color:var(--ok)'>🖥️ Desk Reversal (~45 sec, before lifting)</div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>1</span><span class='wu-val'>Chin Tucks</span><span style='color:var(--mut);font-size:12px'> · 10 reps · glide the head straight BACK (make a double chin), hold 2s — wakes the deep neck flexors before pressing</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>2</span><span class='wu-val'>Standing Pelvic Tilts</span><span style='color:var(--mut);font-size:12px'> · 10 slow reps · rock the pelvis fully forward and back — unglues the lower back from its chair shape</span></div>
+  </div>`:'';
+
   const sugW0=prog?prog.suggest:(est?est.weight:null);
   const isDumbbellEx=!!(ex.eq?.includes('dumbbells')&&!ex.eq?.includes('barbell'));
   const wUnit=isDumbbellEx?'lb ea':'lb';
@@ -3328,6 +3339,20 @@ function renderWorkout(){
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
   const isLast=exIdx===total-1;
   const condBlock=isLast&&S.cfg.conditioning&&allDone?finisherHTML(S.active.dow,false):'';
+  // Post-session cool-down (~5 min, evening/weekend sessions only — lunch is
+  // hard time-boxed): static relief for the desk-stiff areas (neck, lower
+  // back) plus tibialis work for incline-walking shin stiffness. The tib
+  // raises come FIRST and are strengthening, not stretching — a stronger
+  // tibialis is what stops the shins tightening up on every incline walk.
+  const cooldownHTML=isLast&&allDone&&!S.active.isLunch?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-top:14px'>
+    <div class='wu-title' style='color:var(--acc)'>🧊 Cool-down · ~5 min (neck · lower back · shins)</div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>1</span><span class='wu-val'>Tibialis Raises</span><span style='color:var(--mut);font-size:12px'> · 20 reps · back on a wall, lift toes to shins — strengthens away incline-walk shin stiffness</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>2</span><span class='wu-val'>Kneeling Shin Stretch</span><span style='color:var(--mut);font-size:12px'> · 45 sec · sit back on your heels, tops of the feet flat on the floor</span><button data-action='start-hold' data-secs='45' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>45s</button></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>3</span><span class='wu-val'>Upper Trap Stretch</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · ear toward shoulder, opposite hand reaching at the floor</span><button data-action='start-hold' data-secs='30' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>30s</button></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>4</span><span class='wu-val'>Child's Pose</span><span style='color:var(--mut);font-size:12px'> · 60 sec · arms long, sit toward the heels, slow nasal breathing — lumbar decompression</span><button data-action='start-hold' data-secs='60' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>60s</button></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>5</span><span class='wu-val'>Supine Twist</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · on your back, knees dropped to one side, shoulders flat</span><button data-action='start-hold' data-secs='30' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>30s</button></div>
+    <div class='wu-note'>Static holds live HERE, after training — pre-lift work stays dynamic on purpose. Do this before tapping Finish.</div>
+  </div>`:'';
   const nextBtn=allDone
     ?`<button class='btn ${isLast?'btn-ok':'btn-p'}' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`
     :`<button class='btn btn-p' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px;display:none'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`;
@@ -3358,6 +3383,7 @@ function renderWorkout(){
     ${achyShoulderHTML}
     ${machineModeHTML}
     ${efficiencyModeHTML}
+    ${deskReversalHTML}
     <div class='ex-card'>
       ${sessionTag}
       <div class='ex-name'>${ex.name}</div>
@@ -3378,6 +3404,7 @@ function renderWorkout(){
       </div>
       ${setsRows}
       ${condBlock}
+      ${cooldownHTML}
       ${nextBtn}
       ${skipBtn}
     </div>
@@ -5060,6 +5087,7 @@ document.addEventListener('click',e=>{
   }
   if(a==='start-wu-rest'){startRest(parseInt(btn.dataset.secs),'Warm-up rest');return;}
   if(a==='start-iso-hold'){startRest(parseInt(btn.dataset.secs),'Mid-position hold');return;}
+  if(a==='start-hold'){startRest(parseInt(btn.dataset.secs),'Stretch hold');return;}
   if(a==='toggle-swap'){
     S.active.swapMode=S.active.swapMode===S.active.exIdx?null:S.active.exIdx;
     S.active.swapSearch=false;S.active.swapQuery='';
