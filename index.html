@@ -2103,7 +2103,7 @@ const MOVEMENT_CLASS = {
   // ─ Triceps ─
   skull_crushers:[{from:'pushdown',coef:0.5},{from:'overhead_ext',coef:0.6}],
   overhead_ext:  [{from:'pushdown',coef:0.8}],
-  db_overhead_ext:[{from:'overhead_ext',coef:0.5},{from:'pushdown',coef:0.4}], // per-DB vs cable stack
+  db_overhead_ext:[{from:'overhead_ext',coef:0.35},{from:'pushdown',coef:0.3}], // per-DB vs cable stack — DB reads well under half the cable number
   // ─ Legs: squat / hinge / machine ─
   goblet:        [{from:'squat',coef:0.35},{from:'leg_press',coef:0.25}], // single DB
   leg_press:     [{from:'squat',coef:1.8}],
