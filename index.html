@@ -803,21 +803,21 @@ let S={
     // the program is tuned to strip fat while preserving muscle (see bodyScoreCard).
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,lastWeights:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},sleepLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
 };
 let timerIv=null;
 
 function save(){
   S.updatedAt=new Date().toISOString();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt}));}catch(e){}
   saveToCloud();
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],updatedAt:d.updatedAt||new Date().toISOString()});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],updatedAt:d.updatedAt||new Date().toISOString()});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -2282,6 +2282,11 @@ function experienceLevel(){
   return n>=6?'intermediate':'beginner';
 }
 
+// Timed movements that still REQUIRE an external load (e.g. Suitcase Carry's
+// dumbbell) get a weight input alongside the seconds field; bodyweight holds
+// (wall sits, planks, L-sits, holds where load is optional) don't.
+function timedLoaded(ex){return !!ex&&ex.isTimed===true&&!ex.noWeight&&(ex.eq||[]).length>0&&!ex.eq.includes('bodyweight');}
+
 // Step 4 terminal default: a conservative working weight derived from
 // bodyweight × experience multiplier × the movement's loading convention.
 // ALWAYS returns a positive number — this is the floor that guarantees the
@@ -2328,7 +2333,8 @@ function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMa
 
   // Bodyweight / timed movements carry no external load — the "starting weight"
   // is bodyweight itself (the UI still renders reps/seconds, not a weight box).
-  if(def.noWeight||def.isTimed)return{weight:bodyLbs,source:'bodyweight',confidence:'high'};
+  // Exception: loaded timed movements (Suitcase Carry) go through the engine.
+  if(def.noWeight||(def.isTimed&&!timedLoaded(def)))return{weight:bodyLbs,source:'bodyweight',confidence:'high'};
 
   // Step 1 — logged history for THIS exact exercise → most recent working weight.
   const own=loggedBaseline(exId,logs);
@@ -2644,7 +2650,7 @@ function completeSet(exIdx,setIdx){
   const ex=S.active.exercises[exIdx];
   const wEl=document.getElementById(`w-${exIdx}-${setIdx}`);
   const rEl=document.getElementById(`r-${exIdx}-${setIdx}`);
-  const w=(ex?.noWeight||ex?.isTimed)?0:(parseFloat(wEl?.value)||0);
+  const w=(ex?.noWeight||(ex?.isTimed&&!timedLoaded(ex)))?0:(parseFloat(wEl?.value)||0);
   const reps=parseInt(rEl?.value)||0;
   if(!reps){if(rEl)rEl.focus();return;}
   ex.done[setIdx]={weight:w,reps};
@@ -3057,7 +3063,7 @@ function renderDash(){
       const exp=S.viewExDetail===e.id;
       const lw=S.lastWeights?.[e.id];
       const prog=progression(e.id,e.rMax);
-      const estP=(!prog&&!e.noWeight&&!e.isTimed)?estimateStartingWeight(e.id,S.logs,MOVEMENT_CLASS):null;
+      const estP=(!prog&&!e.noWeight&&(!e.isTimed||timedLoaded(e)))?estimateStartingWeight(e.id,S.logs,MOVEMENT_CLASS):null;
       const detail=exp?`<div style='margin:4px 0 4px 0;padding:8px;background:var(--surf2);border-radius:8px;font-size:12px'>
         ${(()=>{const isDbEd=e.eq?.includes('dumbbells')&&!e.eq?.includes('barbell');const wUnitEd=isDbEd?'lb ea':'lb';return prog?`<div style='margin-bottom:8px'>Last: <strong>${prog.summary}</strong> &nbsp;→&nbsp; <span style='color:var(--acc)'>Goal: ${prog.suggest} ${wUnitEd}</span></div>`:estP?`<div style='margin-bottom:8px'>No history yet — <span style='color:var(--acc)'>estimated start ~${estP.weight} ${wUnitEd}</span> · ${estP.confidence} confidence (${estBasisLabel(estP)}). Adjust if needed:</div>`:`<div style='color:var(--mut);margin-bottom:8px'>No history on this device — enter your last session:</div>`;})()}
         <div style='display:flex;gap:6px;align-items:center;margin-bottom:${e.cue?'8px':'0'}'>
@@ -3278,7 +3284,11 @@ function renderWorkout(){
   // No history for this loaded movement → fall back to the intensity estimation
   // engine for a conservative opener (uses the value attached at startWorkout,
   // recomputing defensively for sessions started before this field existed).
-  let est=(!prog&&!ex.noWeight&&!ex.isTimed)?(ex.estW||estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS)):null;
+  // For loaded timed movements, older logs may predate the weight box (weight
+  // 0) — the progression record exists but has no usable load, so the estimate
+  // still applies.
+  const progHasW=!!prog&&prog.weight>0;
+  let est=(!ex.noWeight&&(!ex.isTimed||timedLoaded(ex))&&(!prog||(timedLoaded(ex)&&!progHasW)))?(ex.estW||estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS)):null;
   const estLbl=estBasisLabel(est);
 
   // Per-equipment dumbbell rack (e.g. apartment gym: 5/10/15/20/25/40/45/50 —
@@ -3396,6 +3406,9 @@ function renderWorkout(){
 
   const isNoWeight=ex.noWeight===true;
   const isTimed=ex.isTimed===true;
+  // Loaded timed movements (Suitcase Carry) show BOTH a weight box and seconds.
+  const isLoadedTimed=timedLoaded(ex);
+  const hideWeight=isNoWeight||(isTimed&&!isLoadedTimed);
   // Back-off set model: set 1 is the heavy "top set" (rMin–rMax to ~1–2 reps
   // shy of failure); the remaining sets are "back-off" sets at ~15% less weight
   // for higher reps. Straight sets for bodyweight, timed, single-set, and
@@ -3407,10 +3420,14 @@ function renderWorkout(){
   if(isTimed){
     if(prog){
       const secStr=prog.minR===prog.maxR?`${prog.minR}s`:`${prog.minR}–${prog.maxR}s`;
+      const lastLbl=(isLoadedTimed&&prog.weight>0)?`${prog.weight} ${wUnit} × ${secStr} per side`:`${secStr} per side`;
       const tip=prog.ready
-        ?`<div class='prog-hint'>🔼 Hit top time — next: try ${prog.maxR+5}s per side</div>`
-        :`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Build to ${ex.rMax}s — same hold</div>`;
-      progHTML=`<div class='last-info'>Last: <strong>${secStr} per side</strong></div>${tip}`;
+        ?`<div class='prog-hint'>🔼 Hit top time — next: ${isLoadedTimed&&prog.weight>0?`go up ~5 lb at ${ex.rMin}s, or try ${prog.maxR+5}s per side`:`try ${prog.maxR+5}s per side`}</div>`
+        :`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Build to ${ex.rMax}s — same ${isLoadedTimed?'weight':'hold'}</div>`;
+      progHTML=`<div class='last-info'>Last: <strong>${lastLbl}</strong></div>${tip}`;
+      if(isLoadedTimed&&!progHasW&&est)progHTML+=`<div class='prog-hint'>🧮 Estimated load ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}) — adjust from there.</div>`;
+    } else if(isLoadedTimed&&est){
+      progHTML=`<div class='prog-hint'>🧮 Estimated start ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}). Build to ${ex.rMax}s per side — adjust the load from there.</div>`;
     } else {
       progHTML=`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservatively, focus on form over duration.</div>`;
     }
@@ -3456,8 +3473,8 @@ function renderWorkout(){
   </div>`:'';
 
   const repRange=isTimed?`${ex.rMin}–${ex.rMax}s`:`${ex.rMin}–${ex.rMax}`;
-  const rowGrid=(isNoWeight||isTimed)?'grid-template-columns:36px 64px 1fr 42px':'';
-  const baseW=prog?prog.suggest:(est?est.weight:null);
+  const rowGrid=hideWeight?'grid-template-columns:36px 64px 1fr 42px':'';
+  const baseW=prog?((isLoadedTimed&&!progHasW&&est)?est.weight:prog.suggest):(est?est.weight:null);
   const setsRows=Array.from({length:ex.sets},(_,i)=>{
     const done=ex.done[i];
     const isBackoffSet=useBackoff&&i>0;
@@ -3468,7 +3485,7 @@ function renderWorkout(){
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
       <div class='st'>${setRep}${setTag}</div>
-      ${(isNoWeight||isTimed)?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='${isDumbbellEx?'each':'lb'}' value='${done?done.weight:sugW||''}' min='0' step='5' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${(ex.isFirst||isGroupFirst)&&i===0?exIdx:''}'>`}
+      ${hideWeight?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='${isDumbbellEx?'each':'lb'}' value='${done?done.weight:sugW||''}' min='0' step='5' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${(ex.isFirst||isGroupFirst)&&i===0?exIdx:''}'>`}
       <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' inputmode='numeric' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
     </div>`;
@@ -3539,7 +3556,7 @@ function renderWorkout(){
       ${dbCapNote}
       <div class='sets-hdr' style='${rowGrid}'>
         <div class='sh'>Set</div><div class='sh'>Target</div>
-        ${(isNoWeight||isTimed)?'':`<div class='sh'>Weight</div>`}<div class='sh'>${isTimed?'Sec':'Reps'}</div><div class='sh'></div>
+        ${hideWeight?'':`<div class='sh'>Weight</div>`}<div class='sh'>${isTimed?'Sec':'Reps'}</div><div class='sh'></div>
       </div>
       ${setsRows}
       ${condBlock}
@@ -3929,7 +3946,7 @@ function renderHistory(){
       const exDef=EX.find(ex=>ex.id===e.id);
       const isNW=exDef?.noWeight;const isTm=exDef?.isTimed;
       const isDbH=!!(exDef&&exDef.eq?.includes('dumbbells')&&!exDef.eq?.includes('barbell'));
-      const setStr=e.sets.map(s=>isTm?`${s.reps}s`:isNW?`${s.reps} reps`:isDbH?`${s.weight}lb ea×${s.reps}`:`${s.weight}lb×${s.reps}`).join(' · ');
+      const setStr=e.sets.map(s=>isTm?`${s.weight>0?s.weight+'lb × ':''}${s.reps}s`:isNW?`${s.reps} reps`:isDbH?`${s.weight}lb ea×${s.reps}`:`${s.weight}lb×${s.reps}`).join(' · ');
       return`<div class='log-ex'><strong>${e.name}</strong><div class='log-sets'>${setStr||'—'}</div></div>`;
     }).join('');
     const badge=l.isLunch?`<span class='badge badge-lunch' style='margin-left:6px'>Lunch</span>`:'';
@@ -3983,7 +4000,7 @@ function renderDeleteModal(){
     const isNW=exDef?.noWeight;const isTm=exDef?.isTimed;
     const isDbH2=!!(exDef&&exDef.eq?.includes('dumbbells')&&!exDef.eq?.includes('barbell'));
     const setStr=(e.sets||[]).filter(s=>s&&s.reps>0)
-      .map(s=>isTm?`${s.reps}s`:isNW?`${s.reps} reps`:isDbH2?`${s.weight||0} lb ea × ${s.reps}`:`${s.weight||0} lb × ${s.reps}`).join(' · ');
+      .map(s=>isTm?`${s.weight>0?s.weight+' lb × ':''}${s.reps}s`:isNW?`${s.reps} reps`:isDbH2?`${s.weight||0} lb ea × ${s.reps}`:`${s.weight||0} lb × ${s.reps}`).join(' · ');
     return`<div style='padding:7px 0;border-bottom:1px solid var(--bdr)'>
       <div style='display:flex;align-items:center;gap:8px'>
         <span style='width:8px;height:8px;border-radius:50%;background:${MCOL[e.muscle]||'var(--acc)'};flex-shrink:0'></span>
@@ -5643,7 +5660,7 @@ async function initFirebase(cfg){
 async function saveToCloud(){
   if(!fbReady||!fbUser||!fbDb)return;
   try{
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString()};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString()};
     await fbDb.collection('users').doc(fbUser.uid).set(data);
   }catch(e){console.error('Cloud save failed',e);}
 }
@@ -5694,6 +5711,8 @@ async function loadFromCloud(){
       const deleted=unionById(S.deletedSessions,cloud.deletedSessions,d=>d.log?.id);
       // Merge lastWeights: local takes precedence (most recent device)
       const weights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
+      // Merge sleepLog the same way: additive per-date map, local wins on conflict
+      const sleep={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
       // Singleton state (cfg/program/weekPlan) from whichever side saved most
       // recently — the cloud copy can be stale if a local save happened
       // before Firebase was ready
@@ -5701,7 +5720,7 @@ async function loadFromCloud(){
       if(cloudNewer){
         Object.assign(S,{cfg:cloud.cfg||S.cfg,program:cloud.program||S.program,weekPlan:cloud.weekPlan||S.weekPlan,eveningMins:cloud.eveningMins??S.eveningMins,eveningLocation:cloud.eveningLocation??S.eveningLocation});
       }
-      Object.assign(S,{logs:merged.slice(-10),lastWeights:weights,customExercises:customEx,deletedSessions:deleted.slice(-20)});
+      Object.assign(S,{logs:merged.slice(-10),lastWeights:weights,sleepLog:sleep,customExercises:customEx,deletedSessions:deleted.slice(-20)});
       reconcileProgramWithLogs();
       recalcLastWeights();
       save();// persists merged state and uploads it back to the cloud
