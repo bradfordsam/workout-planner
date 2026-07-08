@@ -1123,11 +1123,22 @@ function genProgram(cfg,av,workoutHistoryLog){
       const ld=lastDate[m];
       const hrs=ld?hoursBetweenDates(ld,dateStr):9999; // never trained → max debt
       const max=budget.limits[m]?.max??20;
-      return{m,hrs,rested:hrs>=(MUSCLE_LOCKOUT_HOURS[m]||48),headroom:max-(budget.vol[m]||0)};
+      const min=budget.limits[m]?.min??8;
+      const vol=budget.vol[m]||0;
+      // under = still below the week's optimal range ("yellow" on the dashboard
+      // volume bars). Yellow muscles outrank green ones when picking a day.
+      return{m,hrs,rested:hrs>=(MUSCLE_LOCKOUT_HOURS[m]||48),headroom:max-vol,under:vol<min};
     });
-    // Eligible = rested with weekly MRV headroom, most-overdue first. If headroom
-    // rules everything out, fall back to rested-only.
-    const byDebt=(a,b)=>b.hrs-a.hrs||MUSCLES.indexOf(a.m)-MUSCLES.indexOf(b.m);
+    // Eligible = rested with weekly MRV headroom. Priority: under-range
+    // ("yellow") muscles first — get every group to its weekly minimum before
+    // adding more work for in-range ("green") ones — then most-overdue within
+    // each tier. The rested filter deliberately trumps yellow priority: a
+    // yellow muscle still inside its >24h lockout would need back-to-back
+    // days to chase its range, so the day trains green muscles instead and
+    // the yellow one resumes as soon as it's recovered. Muscles over range
+    // ("red") have no headroom and are never intentionally prescribed. If
+    // headroom rules everything out, fall back to rested-only.
+    const byDebt=(a,b)=>(b.under?1:0)-(a.under?1:0)||b.hrs-a.hrs||MUSCLES.indexOf(a.m)-MUSCLES.indexOf(b.m);
     let elig=rows.filter(r=>r.rested&&r.headroom>=2).sort(byDebt);
     if(!elig.length)elig=rows.filter(r=>r.rested).sort(byDebt);
     if(!elig.length)return null; // nothing adequately rested → rest/recovery day
@@ -1141,7 +1152,9 @@ function genProgram(cfg,av,workoutHistoryLog){
     const PAIR_BONUS=36; // hours of virtual debt for sharing the anchor's group
     const anchor=elig[0];
     const ag=GROUP[anchor.m];
-    const rest2=elig.slice(1).map(r=>({r,score:r.hrs+(GROUP[r.m]===ag?PAIR_BONUS:0)})).sort((a,b)=>b.score-a.score).map(o=>o.r);
+    // Pairing bonus applies WITHIN a volume tier — an in-range (green) muscle
+    // sharing the anchor's group never jumps ahead of an under-range (yellow) one.
+    const rest2=elig.slice(1).map(r=>({r,score:r.hrs+(GROUP[r.m]===ag?PAIR_BONUS:0)})).sort((a,b)=>(b.r.under?1:0)-(a.r.under?1:0)||b.score-a.score).map(o=>o.r);
     const top=[anchor,...rest2].slice(0,Math.min(3,elig.length));
     const slots=[];
     for(let i=0;i<muscleSlots;i++)slots.push({muscle:top[i%top.length].m,type:i<top.length?'compound':'isolation'});
@@ -1851,9 +1864,11 @@ function getMRVBreakdown(){
 }
 
 function getMRVStatus(){
-  // Include logged workouts (regular + custom) AND planned custom workouts so the
-  // dashboard reflects every committed set, matching how the generator budgets.
-  const volumes = getCommittedVolumes();
+  // Logged sets ONLY (completed + custom-logged) — the dashboard bars reflect
+  // what's actually been done this week, starting yellow every Monday and
+  // filling toward green. The generator budgets separately via
+  // getCommittedVolumes (which also counts planned custom workouts).
+  const volumes = getWeeklySetVolumes();
   const limits = getMRVLimits();
 
   const status = {};
@@ -1873,17 +1888,18 @@ function getMRVStatus(){
 function renderMRVWidget(){
   const mrvStatus = getMRVStatus();
   const overworkedMuscles = getOverworkedMuscles();
-  const hasData = Object.values(mrvStatus).some(m => m.current > 0) || overworkedMuscles.size > 0;
 
-  if (!hasData) return '';
-
+  // Every muscle shows every week — bars start yellow (under range) on Monday
+  // and fill toward green. Color is strictly range-based: yellow under min,
+  // green within min–max, red over max. ⚠️ still flags recent external work
+  // but no longer overrides the range color.
   const rows = Object.entries(mrvStatus)
-    .filter(([muscle, status]) => status.current > 0 || overworkedMuscles.has(muscle))
     .map(([muscle, status]) => {
       const {current, min, max, level} = status;
       const isOverworked = overworkedMuscles.has(muscle);
-      const color = isOverworked ? 'var(--warn)' : level === 'high' ? 'var(--bad)' : level === 'optimal' ? 'var(--ok)' : 'var(--warn)';
+      const color = level === 'high' ? 'var(--bad)' : level === 'optimal' ? 'var(--ok)' : 'var(--warn)';
       const pct = Math.min(100, (current / max) * 100);
+      const minPct = Math.min(100, (min / max) * 100); // tick where green starts
 
       return `<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px'>
         <div style='font-size:12px;font-weight:600;width:60px;text-transform:capitalize;display:flex;align-items:center;gap:4px'>
@@ -1892,9 +1908,10 @@ function renderMRVWidget(){
         </div>
         <div style='flex:1;background:var(--surf2);border-radius:4px;height:12px;position:relative'>
           <div style='background:${color};height:100%;width:${pct}%;border-radius:4px'></div>
+          <div style='position:absolute;top:-1px;bottom:-1px;left:${minPct}%;width:2px;background:var(--ok);opacity:.5;border-radius:1px'></div>
         </div>
         <div style='font-size:11px;color:${color};min-width:40px;text-align:right'>
-          ${isOverworked && current === 0 ? 'Recent' : `${current}/${max}`}
+          ${current}/${max}
         </div>
       </div>`;
     }).join('');
@@ -1904,7 +1921,7 @@ function renderMRVWidget(){
   return `<div class='card' data-action='view-mrv-breakdown' style='cursor:pointer'>
     <div style='font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px'>
       📊 Weekly Set Volume (MRV)
-      <span style='font-size:10px;color:var(--mut);font-weight:400'>10-20+ sets optimal · ⚠️ = recent external</span>
+      <span style='font-size:10px;color:var(--mut);font-weight:400'>🟡 under · 🟢 optimal · 🔴 over · ⚠️ recent external</span>
       <span style='margin-left:auto;color:var(--acc);font-size:12px;font-weight:600'>Breakdown ›</span>
     </div>
     ${rows}
