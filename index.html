@@ -2776,13 +2776,19 @@ function renderAvailGrid(av,inSetup){
       <div class='plan-slot-checks'>
         <div class='plan-chk${lunchOn?' on':''}' data-action='toggle-avail-lunch' data-dow='${dow}'>
           <div class='plan-chk-box'>${lunchOn?'✓':''}</div>
-          <div><div style='font-size:12px;font-weight:700'>Lunch</div><div style='font-size:11px;color:var(--mut)'>35–40 min · 🏋️ YMCA</div></div>
+          <div><div style='font-size:12px;font-weight:700'>Lunch</div><div style='font-size:11px;color:var(--mut)'>35–40 min · ${lunchEquipName}</div></div>
         </div>
         <div class='plan-chk${eveOn?' on':''}' data-action='toggle-avail-eve' data-dow='${dow}'>
           <div class='plan-chk-box'>${eveOn?'✓':''}</div>
           <div><div style='font-size:12px;font-weight:700'>After Work</div><div style='font-size:11px;color:var(--mut)'>${eveOn?(eveCardio?'Cardio only':eveMins+' min · '+eveEquipName):'Off'}</div></div>
         </div>
       </div>
+      ${lunchOn?`<div class='plan-eve-opts'>
+        <div style='font-size:12px;color:var(--txt);font-weight:600;margin-bottom:8px'>Lunch Equipment:</div>
+        <div style='display:flex;gap:4px;flex-wrap:wrap'>
+          ${['ymca','moms_and_dads'].map(key=>`<button class='btn btn-sm ${lunchEquipment===key?'btn-p':'btn-g'}' data-action='set-lunch-equipment' data-dow='${dow}' data-val='${key}' style='flex:1;min-width:120px;font-size:11px'>${EQUIPMENT_PRESETS[key].name}</button>`).join('')}
+        </div>
+      </div>`:''}
       ${eveOn?`<div class='plan-eve-opts'>
         <div style='font-size:12px;color:var(--txt);font-weight:600;margin-bottom:8px'>Equipment &amp; Session Length:</div>
         <div style='display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap'>
