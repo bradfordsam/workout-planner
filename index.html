@@ -257,7 +257,7 @@ const EX = [
   // Wall throws use the 'medball_wall' key (med ball + a solid wall to throw
   // against) — the apartment gym has med balls but no throwing wall, so it
   // carries 'medball' (floor slams OK) without 'medball_wall'.
-  {id:'med_ball_chest_pass',name:'Med Ball Chest Pass',muscle:'chest',type:'compound',eq:['medball_wall'],rMin:5,rMax:8,rest:120,noWeight:true,highSweat:true,tags:['power','ballistic'],cue:'Stand facing a solid wall a few feet away, ball at the chest. Explode the ball into the wall like a two-hand pass — maximal intent, full arm extension — catch the rebound (or pick it up) and reset. Throw as HARD as possible every rep; stop the set when velocity visibly drops. Builds the pressing power a barbell can\'t train, because you can\'t let go of a barbell.'},
+  {id:'med_ball_chest_pass',name:'Med Ball Chest Pass',muscle:'chest',type:'compound',eq:['medball_wall'],rMin:5,rMax:8,rest:120,startW:10,highSweat:true,tags:['power','ballistic'],cue:'Stand facing a solid wall a few feet away, ball at the chest. Log the ball\'s weight (printed on it) so you can track moving up in balls over time. Explode the ball into the wall like a two-hand pass — maximal intent, full arm extension — catch the rebound (or pick it up) and reset. Throw as HARD as possible every rep; stop the set when velocity visibly drops. Power work: if a heavier ball makes your throws visibly slow, drop back down. Builds the pressing power a barbell can\'t train, because you can\'t let go of a barbell.'},
   {id:'plyo_pushup',name:'Plyo Push-up',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:150,noWeight:true,highSweat:true,tags:['power','ballistic'],cue:'Push-up position, lower under control, then explode up hard enough that your hands leave the floor. Land soft with elbows unlocked, absorb, reset, repeat with full intent. End the set the moment your height drops — this is power work, not a burnout. Regress to hands on a bench; progress to a clap.'},
   {id:'cable_fly',name:'Cable Fly',muscle:'chest',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing in the middle of the cable crossover station, both pulleys set at shoulder height for a flat, mid-chest line — set them higher (above the head) to bias the lower chest on a high-to-low fly, or lower (near the floor) to bias the upper chest on a low-to-high fly. Slight elbow bend. Reach your chest to the sky as you descend to maximize the stretch. Full stretch at bottom — feel it. Slow eccentric back. Squeeze hard at contraction.'},
   {id:'db_fly',name:'Dumbbell Fly',muscle:'chest',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower only to shoulder level. Reach your chest to the sky as you descend to maximize the stretch. 2-count descent — slow and controlled. Soft elbows throughout.'},
@@ -861,7 +861,7 @@ function load(){
       if(!Object.keys(S.lastWeights).length){
         S.logs.forEach(log=>log.exercises?.forEach(e=>{
           const sets=e.sets?.filter(s=>s&&s.reps>0);
-          if(sets?.length&&!S.lastWeights[e.id]){const l=sets[sets.length-1];S.lastWeights[e.id]={weight:l.weight,reps:l.reps};}
+          if(sets?.length&&!S.lastWeights[e.id]){const l=sets[sets.length-1];S.lastWeights[e.id]={weight:l.weight,reps:l.reps,date:log.date};}
         }));
       }
       // migrate old calEntry format
@@ -2185,15 +2185,21 @@ function lastLog(exId){
 //   5. NOT factored: RPE/RIR (not tracked). Post-session fatigue ratings
 //      regulate weekly volume ceilings via getMRVLimits, never load.
 function progression(exId,rMax){
-  const l=lastLog(exId);
-  let sets=null;
-  if(l){
-    const done=l.sets.filter(s=>s.reps>0);
-    if(done.length)sets=done;
+  let sets=null,lastDate=null;
+  // Most recent log for this exact exercise — track the workout's DATE too,
+  // so a long layoff can decay the suggestion (see below).
+  for(let i=S.logs.length-1;i>=0;i--){
+    const e=S.logs[i].exercises?.find(x=>x.id===exId);
+    if(e?.sets?.length){
+      const done=e.sets.filter(s=>s.reps>0);
+      if(done.length){sets=done;lastDate=S.logs[i].date;}
+      break;
+    }
   }
   // Fall back to manually entered lastWeights when no log exists
   if(!sets&&S.lastWeights?.[exId]){
     sets=[{weight:S.lastWeights[exId].weight,reps:S.lastWeights[exId].reps}];
+    lastDate=S.lastWeights[exId].date||null;
   }
   if(!sets)return null;
   const minR=Math.min(...sets.map(s=>s.reps));
@@ -2216,13 +2222,29 @@ function progression(exId,rMax){
     baseline=wMax;
     ready=false;
   }
-  const suggest=ready?Math.max(r5(baseline*1.04),baseline+5):baseline;
+  let suggest=ready?Math.max(r5(baseline*1.04),baseline+5):baseline;
+  // Layoff decay: "repeat last time's weight" assumes last time was recent.
+  // After a real layoff detraining sets in, so the suggestion backs off —
+  // ≥4 weeks since this movement → 90%, ≥8 weeks → 80% — and the +4%
+  // progression bump never fires on top of stale numbers. Undated entries
+  // (legacy lastWeights) skip decay rather than guess.
+  let layoffWeeks=0;
+  if(lastDate){
+    const days=Math.floor((Date.now()-new Date(lastDate).getTime())/86400000);
+    const f=days>=56?0.8:days>=28?0.9:1;
+    if(f<1){
+      layoffWeeks=Math.floor(days/7);
+      baseline=Math.max(5,r5(baseline*f));
+      suggest=baseline;
+      ready=false;
+    }
+  }
   const allEx2=[...EX,...(S.customExercises||[])];
   const exDef2=allEx2.find(e=>e.id===exId);
   const isDb=!!(exDef2&&exDef2.eq.includes('dumbbells')&&!exDef2.eq.includes('barbell'));
   const wSuffix=isDb?' lb ea':' lb';
   const wLabel=wMin===wMax?`${wMax}${wSuffix}`:`${wMin}→${wMax}${wSuffix}`;
-  return{weight:baseline,minR,maxR,suggest,ready,summary:`${wLabel} × ${minR===maxR?minR:minR+'–'+maxR}`,isDb};
+  return{weight:baseline,minR,maxR,suggest,ready,layoffWeeks,summary:`${wLabel} × ${minR===maxR?minR:minR+'–'+maxR}`,isDb};
 }
 function recalcLastWeights(){
   const w={};
@@ -2232,7 +2254,7 @@ function recalcLastWeights(){
   [...S.logs].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0).forEach(log=>{
     log.exercises?.forEach(ex=>{
       const sets=ex.sets?.filter(s=>s?.reps>0);
-      if(sets?.length){const l=sets[sets.length-1];w[ex.id]={weight:l.weight,reps:l.reps};}
+      if(sets?.length){const l=sets[sets.length-1];w[ex.id]={weight:l.weight,reps:l.reps,date:log.date};}
     });
   });
   // MERGE, never replace: S.logs is capped at the last ~10 workouts on save,
@@ -2405,6 +2427,11 @@ function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMa
     }
   }
 
+  // Step 3a — explicit per-exercise preset (startW): equipment-constrained
+  // loads like a medicine ball, where a strength-scaled estimate from other
+  // lifts would be meaningless (nobody chest-passes 60% of their bench 1RM).
+  if(def.startW)return{weight:def.startW,source:'preset',confidence:'medium'};
+
   // Step 3b — best estimated 1RM in the same primary muscle, at a 60% floor.
   let best1RM=0,bestFrom=null;
   EX.forEach(e=>{
@@ -2427,6 +2454,7 @@ function estBasisLabel(est){
   if(!est)return'';
   if(est.source==='history')return'your last session';
   if(est.source==='anchor')return`scaled from your ${EX.find(e=>e.id===est.from)?.name||'related lift'}`;
+  if(est.source==='preset')return'typical starting load for this movement';
   if(est.source==='group')return`60% floor from your ${EX.find(e=>e.id===est.from)?.name||'best in-group lift'}`;
   if(est.source==='default')return`${experienceLevel()}-level default from your bodyweight`;
   return'estimate';
@@ -2739,7 +2767,7 @@ function finishWorkout(fatigue){
   // Update lastWeights — only last set's weight per exercise, that's all we need
   exData.forEach(e=>{
     const working=e.sets.filter(s=>s&&s.reps>0&&!e.isMakeup);
-    if(working.length){const last=working[working.length-1];S.lastWeights[e.id]={weight:last.weight,reps:last.reps};}
+    if(working.length){const last=working[working.length-1];S.lastWeights[e.id]={weight:last.weight,reps:last.reps,date:new Date().toISOString()};}
   });
   const log={id:Date.now().toString(),date:new Date().toISOString(),dayName:S.active.dayName,isLunch:S.active.isLunch,duration:Math.round((Date.now()-S.active.startTime)/60000),exercises:exData,fatigue:fatigue||null};
   S.logs.push(log);S.active=null;S.view='dash';
@@ -3507,6 +3535,7 @@ function renderWorkout(){
     const topTarget=`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} to 1–2 reps shy of failure`;
     const backoffTarget=useBackoff&&(backoffW||(est&&r5(est.weight*0.85)))?` · then back-off ${backoffW||r5(est.weight*0.85)} ${wUnit} × ${backoffRepLo}–${backoffRepHi}`:'';
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
+      ${prog.layoffWeeks?`<div class='prog-hint' style='color:var(--warn)'>⏸ ~${prog.layoffWeeks} weeks since you last did this — suggesting ${prog.layoffWeeks>=8?'80%':'90%'} of your old weight to ramp back in safely.</div>`:''}
       ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Top set: ${topTarget}${backoffTarget}</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Top set: ${topTarget}${backoffTarget}</div>`}`
       :est?`<div class='prog-hint'>🧮 Estimated start ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}). Top set: ${topTarget}${backoffTarget} — adjust from there.</div>`
       :`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative. Top set ${ex.rMin}–${ex.rMax} to 1–2 reps shy${useBackoff?`, then a back-off set ~15% lighter for ${backoffRepLo}–${backoffRepHi}`:''}.</div>`;
@@ -5263,7 +5292,7 @@ document.addEventListener('click',e=>{
     const id=btn.dataset.exid;
     const w=parseFloat(document.getElementById(`ew-${id}`)?.value)||0;
     const r=parseInt(document.getElementById(`er-${id}`)?.value)||0;
-    if(w>0&&r>0){S.lastWeights[id]={weight:w,reps:r};S.viewExDetail=null;save();render();}
+    if(w>0&&r>0){S.lastWeights[id]={weight:w,reps:r,date:new Date().toISOString()};S.viewExDetail=null;save();render();}
     return;
   }
   if(a==='done-set'){
