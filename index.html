@@ -399,140 +399,164 @@ const EX = [
   {id:'battle_ropes',name:'Battle Ropes (Alternating)',muscle:'core',type:'compound',eq:['bodyweight'],rMin:30,rMax:60,rest:60,isTimed:true,cue:'Alternating arm waves. Keep core tight, generate power from shoulders. High-intensity interval exercise. Count seconds.',tags:['circuit','conditioning','cardio'],highSweat:true,circuit:true},
 ];
 
-// Mind-muscle checkpoints — an objective, physical anchor for every rep
-// ("elbows to back pockets") rather than an abstract sensation to chase, so
-// there's a concrete thing to check that confirms the target muscle is doing
-// the work. Keyed by exercise id; shown during workouts.
-const FEELS = {
-  bench:"Drive your knuckles straight up toward the ceiling above your chest, not toward your face.",
-  incline_db:"Bring the dumbbells together over your upper chest at the top, like closing a book.",
-  flat_db_press:"Press the dumbbells toward each other at the top until they nearly touch.",
-  machine_press:"Push the handles together in front of your chest at the top of every rep.",
-  pushups_w:"Lower until your chest is a fist's-width off the floor, elbows at ~45° from your torso.",
-  perfect_pushups:"Let the handles rotate freely and lower until your chest is level with your hands.",
-  cable_fly:"Bring your hands together directly in front of your sternum, like hugging a barrel.",
-  db_fly:"Lower only until your upper arms are level with your torso, then bring the dumbbells together like closing a book.",
-  pec_deck:"Bring your forearms together directly in front of your chest until the pads touch.",
-  scap_pullups:"Keep your arms locked straight and pull your shoulder blades down into your back pockets.",
-  pullups:"Drive your elbows down to your hip pockets, not your hands up to the bar.",
-  chinups:"Pull your chest up to touch the bar, elbows finishing at your sides.",
-  lat_pulldown:"Pull the bar down while driving your elbows to your back pockets, not your hands to your lap.",
-  bb_row:"Pull your elbows straight back until they pass your ribs, bar brushing your shirt.",
-  db_row:"Drive your elbow straight back until it passes your hip, keeping it close to your side.",
-  cable_row:"Pull your elbows past your ribcage and pinch your shoulder blades together at the finish.",
-  straight_pull:"Keep your arms locked straight and sweep the bar down to touch your thighs.",
-  face_pulls:"Pull the rope to eye level and rotate your hands so your thumbs point behind you.",
-  rev_fly:"Raise the dumbbells out to the sides until your arms are level with your torso, thumbs down.",
-  pec_deck_rev_fly:"Drive your elbows back and out until your arms are in line with your shoulders.",
-  bb_shrug:"Lift your shoulders straight up toward your ears — no rolling forward or back.",
-  ohp:"Press the bar in a straight line until your arms are fully locked out overhead, ears visible from the side.",
-  seated_db_press:"Press until your arms are fully locked out overhead, dumbbells nearly touching.",
-  arnold_press:"Start with palms facing your ears, finish with palms facing forward and arms locked overhead.",
-  db_lateral:"Raise your elbows to shoulder height, leading with the elbow, not the hand.",
-  cable_lateral:"Pull your hand up and out to shoulder height across your body, elbow leading.",
-  lying_cable_lat:"Raise your arm from your side to straight up, leading with the elbow.",
-  incline_lateral:"Raise your arm from a dead hang to shoulder height, leading with the elbow.",
-  ezbar_upright_row:"Pull the bar straight up your torso until your elbows reach shoulder height — no higher.",
-  alt_front_raise:"Raise each dumbbell straight in front to eye level, then lower fully before the next.",
-  db_curl:"Rotate your palm to face your shoulder at the top, like turning a key.",
-  hammer_curl:"Keep your palm facing inward the entire rep, thumb up throughout.",
-  cable_curl:"Keep the cable taut at the bottom of every rep — never let it go slack.",
-  incline_curl:"Let your arm hang straight down behind you at the bottom before curling up.",
-  pushdown:"Keep your elbows pinned to your ribs and finish with your arms fully straight.",
-  overhead_ext:"Lower the weight until your elbows are fully bent behind your head, then straighten completely.",
-  skull_crushers:"Lower the weight to just above your forehead, elbows pointed at the ceiling.",
-  diamond_pu:"Form a diamond with your thumbs and index fingers under your chest, lower until it touches.",
-  ezbar_skull:"Lower the bar behind your head for a bigger stretch, then press to a full lockout.",
-  tricep_dips:"Keep your torso vertical and lower until your elbows hit about 90°.",
-  squat:"Sit down until your hip crease drops below your knee, then drive your heels through the floor.",
-  bulgarian:"Drop straight down until your rear knee nearly touches the floor, front shin staying vertical.",
-  goblet:"Sit down until your elbows touch the inside of your knees.",
-  leg_press:"Lower until your knees reach about 90°, then press through your whole foot, stopping short of lockout.",
-  step_ups:"Drive up through the working foot only — the trailing foot should push nothing.",
-  reverse_lunge:"Step straight back until your front thigh is level with the floor, front shin staying vertical.",
-  rdl:"Push your hips straight back until you feel the bar at mid-shin, then drive hips forward to stand tall.",
-  db_rdl:"Push your hips back while the dumbbells stay close to your legs, then squeeze your hips forward to finish.",
-  trap_bar_dl:"Push the floor away so your hips and shoulders rise at the same rate.",
-  hip_thrust:"Drive your hips up until your torso and thighs form a straight line, ribs staying down.",
-  single_leg_hip_thrust:"Drive through the planted heel until your hips are level and fully extended.",
-  single_rdl:"Push your hips straight back while your torso and free leg rise to form a T.",
-  back_ext:"Lower until you feel a stretch behind your thighs, then rise until your body forms a straight line.",
-  leg_ext:"Straighten your legs completely and pause a beat at full extension before lowering.",
-  leg_curl:"Curl your heels all the way to your glutes, then resist the weight back down slowly.",
-  seated_leg_curl:"Curl your heels down and under the pad as far as they'll go, then control the return.",
-  nordic_curl:"Lower as slowly as possible, fighting the fall the entire way down.",
-  speed_box_squat:"Pause fully on the box, then stand up as fast as you possibly can.",
-  speed_trap_bar:"Stand up explosively until your ankles, knees, and hips all lock out together.",
-  speed_hip_thrust:"Snap your hips to full lockout as fast as possible, then lower with control.",
-  db_swing:"Snap your hips forward to float the weight to chest height — don't lift with your arms.",
-  spanish_squat:"Sit back until your shins are vertical and your thighs are parallel to the floor, then hold still.",
-  iso_split_squat:"Drop into a 90/90 position — front shin vertical, back knee under your hip — and hold without shifting.",
-  wall_sit:"Slide down until your thighs are parallel to the floor and your knees sit directly over your ankles.",
-  iso_calf:"Rise all the way onto your toes and hold at the very top — don't let your heels drift down.",
-  tempo_calf:"Touch the bottom and spring back up as fast as possible, minimizing time on the ground.",
-  calf_raise:"Rise as high onto your toes as possible, then lower until your heels drop below the step edge.",
-  single_leg_calf_raise:"Rise fully onto your toes on one foot, then lower until your heel drops below the step edge.",
-  hip_abduct:"Push your knees apart against the pads without letting your pelvis tilt or rock.",
-  glute_bridge_2leg:"Drive your hips up until your torso and thighs form a straight line, squeezing at the top.",
-  glute_bridge:"Drive one hip up to full extension while the other leg stays still.",
-  pallof:"Press the handle straight out from your chest and hold — don't let your torso turn toward the cable.",
-  woodchop:"Rotate the cable from high on one side to low on the other, pivoting your back foot.",
-  half_kneel_press:"Press straight overhead without leaning toward the working side.",
-  sa_cable_row:"Pull your elbow past your ribs while your hips stay square to the cable.",
-  sa_db_row:"Row without a bench for support — keep your hips and shoulders square the entire rep.",
-  dead_bug:"Lower one arm and the opposite leg toward the floor while your lower back stays flat against it.",
-  side_plank_dip:"Drop your hip toward the floor, then drive it back up level with your shoulder.",
-  crunches:"Curl your ribs toward your hips a few inches — lower back stays on the floor.",
-  situps:"Lead with your chest and curl all the way up until your torso is vertical.",
-  hanging_leg_raise:"Curl your hips up toward your ribs — don't just swing your legs forward.",
-  incline_leg_raise:"Raise your legs to vertical without letting your feet touch down between reps.",
-  body_v:"Reach your hands toward your feet at the top, lifting both halves at the same time.",
-  clamshell:"Keep your heels together and rotate your top knee up like a clamshell opening — hips stay stacked.",
-  fire_hydrant:"Lift your knee straight out to the side without rotating your torso.",
-  side_lying_abduct:"Raise your straight top leg to about 45°, toes angled slightly down.",
-  copenhagen_plank:"Keep your body in a straight line from shoulder to ankle, top foot on the bench.",
-  hip_90_90:"Sit with both knees bent at 90° and lean your chest over your front shin.",
-  hip_flexor_half_kneel:"Tuck your tailbone under first, then push your hips forward.",
-  hip_cars:"Trace the largest circle your hip can make, moving slowly through every inch.",
-  straight_leg_raise:"Lock your knee straight and raise that leg to the height of your other bent knee.",
-  hip_flexor_rock_back:"Keep your torso tall and tuck your tailbone as you rock your hips back over your heel.",
-  hip_flexor_90_90:"Lift your foot until your knee is fully straight, keeping your spine tall.",
-  burpees:"Jump your feet back into a full plank, then explode up with your hands reaching overhead.",
-  mountain_climbers:"Drive your knee to your chest without letting your hips rise up.",
-  jump_squats:"Land softly back into a quarter-squat before exploding into the next rep.",
-  lateral_bounds:"Push off one leg and stick the landing on the other foot before bounding back.",
-  single_leg_bounds:"Push off one leg, land on the same leg, and stick it before the next hop.",
-  bear_crawl:"Move opposite hand and foot together while your hips stay level, knees hovering an inch up.",
-  turkish_getup_bw:"Keep your eyes on the weight and move through each position without rushing.",
-  archer_pushup:"Shift your weight almost entirely onto one arm as you lower, the other arm nearly straight.",
-  pistol_squat:"Lower on one leg until your hip is below your knee, free leg staying off the floor the whole time.",
-  handstand_pushup:"Lower your head to the floor, then press back up to a full lockout.",
-  l_sits:"Lift your legs to parallel with the floor and hold, arms locked straight at your sides.",
-  broad_jump:"Explode forward off two feet and land softly with both feet together.",
-  continuous_broad_jumps:"Land and immediately explode into the next jump, spending as little time on the ground as possible.",
-  skater_jumps:"Bound sideways and land on the outside edge of one foot before pushing back the other way.",
-  lateral_bound_broad_jump:"Stick a side bound on one foot, then immediately broad jump forward off it.",
-  burpee_to_jump:"Jump your feet in, then explode straight up with your arms overhead.",
-  kb_swings_circuit:"Snap your hips forward to send the weight to chest height, arms staying loose.",
-  thrusters:"Stand up out of the squat and press the dumbbells to full lockout in one motion.",
-  man_makers:"Move through each step — push-up, row, jump, press — without pausing between them.",
-  battle_ropes:"Whip each arm down hard enough to send a full wave to the anchor point.",
-  med_ball_chest_pass:"Extend your arms fully and release the ball at the wall with maximum speed.",
-  plyo_pushup:"Push hard enough that your hands leave the floor, landing soft with elbows unlocked.",
-  bumstead_pulldown:"Pull to mid-position — elbows level with your ribs — and hold there for a full 5 seconds.",
-  push_press:"Dip your knees a quarter-squat, then drive up and punch the weight to full lockout.",
-  db_overhead_ext:"Lower the dumbbell behind your head as far as you can, then straighten your arms fully overhead.",
-  sumo_squat:"Sit down between wide-set feet, knees tracking over your toes.",
-  cossack_squat:"Sink your weight over one bent leg while your other leg stays straight, heel down if possible.",
-  bstance_hip_thrust:"Keep most of your weight on your planted foot and drive your hips to full extension.",
-  tib_raise:"Lift your toes as high toward your shins as you can, then lower with control.",
-  med_ball_slam:"Reach the ball fully overhead, then slam it into the floor as hard as you can.",
-  med_ball_rot_throw:"Load your weight onto your back hip, then snap your hips through to release the ball.",
-  suitcase_carry:"Keep your shoulders and hips level the entire walk — no leaning toward or away from the weight.",
-  leg_lifts_lying:"Lift your straight legs until your hips leave the floor, then lower without touching down.",
-  dragon_flag_bent:"Keep only your shoulder blades on the bench as you lower your hips and knees as one rigid unit.",
-  dragon_flag_full:"Keep your whole body dead straight from shoulders to toes as you lower under control.",
+// ─── MIND-MUSCLE CONNECTION ───
+// What each rep should FEEL like when the target muscle is doing the work —
+// deliberately separate from the technique cue (how to perform it). Shown as
+// an always-visible line on the workout card so it guides every rep, while the
+// cue stays behind the collapsible "Technique tip". Internal-focus cues like
+// these measurably increase target-muscle activation vs thinking about the
+// weight (Calatayud 2016; Schoenfeld attentional-focus work).
+const FEELS={
+  // chest
+  bench:'Pecs stretch across the chest at the bottom and drive the press — not the front delts or triceps burning first.',
+  incline_db:'Upper chest (just below the collarbone) stretches and squeezes — if the front delts take over, lower the incline.',
+  flat_db_press:'Mid-chest loads through the deep bottom stretch; the pecs pull the DBs together at the top.',
+  machine_press:'Chest tension in both directions — squeeze the handles together through the pecs, not the hands.',
+  pushups_w:'Chest stretches at the floor and drives the push — abs braced like a moving plank.',
+  perfect_pushups:'A deeper pec stretch at the bottom of the handle rotation — chest working, wrists comfortable.',
+  med_ball_chest_pass:'The whole chest snapping forward explosively — raw power, not a controlled squeeze.',
+  plyo_pushup:'Chest loading like a spring on the way down, exploding on the way up.',
+  cable_fly:'Pecs stretched wide at the start, then clawing the arms together — the arms are just hooks.',
+  db_fly:'Deep stretch across the whole pec at the bottom; hug-a-barrel squeeze coming up.',
+  pec_deck:'Inner chest squeezing hard at full contraction, controlled stretch on the return.',
+  archer_pushup:'The working-side pec doing nearly everything while the straight arm just assists.',
+  man_makers:'Everything at once — chest on the push-up, back on the row, legs on the thruster. Output, not isolation.',
+  // back
+  scap_pullups:'Shoulder blades sliding down and together — mid-back working, arms completely quiet.',
+  pullups:'Lats pulling from the armpits toward the hips — elbows drive down, hands are just hooks.',
+  chinups:'Lats with a strong biceps assist — the pull starts under the armpits, not in the forearms.',
+  lat_pulldown:'Lats stretch fully at the top; the muscles under the armpits drag the elbows down.',
+  bumstead_pulldown:'Lats pinned during the 5-second hold — the burn lives under the armpits, not in the arms.',
+  bb_row:'Mid-back and lats contracting as the elbows drive back — the back pulls the bar, the arms never curl it.',
+  db_row:'One lat stretching long at the bottom, then an elbow-to-hip drag — back, not bicep.',
+  cable_row:'Shoulder blades squeezing together at the finish — mid-back thickness, torso dead still.',
+  straight_pull:'A pure lat sweep down the sides — feel it from armpit to waist with locked arms.',
+  face_pulls:'Rear delts and the muscles between the shoulder blades — traps stay calm.',
+  rev_fly:'Rear delts (back of the shoulder) lifting — the moment the traps take over, drop the weight.',
+  pec_deck_rev_fly:'Rear delts arcing back, shoulder blades pinching — shoulders pressed down the whole set.',
+  bb_shrug:'Traps bunching straight up toward the ears, with a big stretch at the bottom.',
+  // shoulders
+  ohp:'Front and side delts driving the bar while the whole trunk braces like a pillar.',
+  seated_db_press:'Delts working through the whole arc — side delts light up at the midpoint.',
+  push_press:'Legs snap, then the delts catch and finish — power transferring up through the trunk.',
+  arnold_press:'Delts loaded through the rotation — front delts at the start, side delts as the arms open.',
+  db_lateral:'The side delt lifting the elbow — a burn on the outside cap of the shoulder, traps quiet.',
+  cable_lateral:'Constant side-delt tension through the whole arc — especially the bottom third where dumbbells go slack.',
+  lying_cable_lat:'Isolated side-delt pull with zero momentum — working from the very first inch.',
+  incline_lateral:'The side delt working from a fully lengthened position — hardest right at the bottom stretch.',
+  ezbar_upright_row:'Side delts and traps lifting the elbows — the hands just hang on.',
+  alt_front_raise:'The front delt raising the weight alone — no lean, no swing.',
+  handstand_pushup:'The entire shoulder girdle pressing your bodyweight — delts, traps, and triceps as one unit.',
+  thrusters:'Legs drive, shoulders finish — a full-body engine, not an isolation.',
+  // biceps
+  db_curl:'The bicep bunching into a hard ball at the top with the twist; long stretch at the bottom.',
+  hammer_curl:'The outer arm (brachialis, under the bicep) and forearm doing the work.',
+  cable_curl:'Bicep tension every inch of the rep — no rest at the bottom, peak squeeze at the top.',
+  incline_curl:'A deep bicep stretch at the bottom — tension should feel strongest in the stretched position.',
+  // triceps
+  pushdown:'The horseshoe (outer tricep) locking out hard — elbows glued to the sides.',
+  overhead_ext:'The long head of the tricep stretched deep behind the head — that stretch IS the stimulus.',
+  db_overhead_ext:'The same deep stretch behind the head — the tricep lengthens fully, then drives to lockout.',
+  skull_crushers:'Triceps stretching as the DBs lower, all three heads firing on the press back.',
+  diamond_pu:'Triceps doing the pressing with the chest as backup — the inner arms burn at lockout.',
+  ezbar_skull:'Tricep stretch at the bottom, a hard lockout squeeze at the top — elbows never drift.',
+  tricep_dips:'Triceps loading through the bottom and powering the lockout — chest stays quiet with an upright torso.',
+  // legs — squat/quad
+  squat:'Quads and glutes loading as you sit in, then driving the floor away — the whole thigh works.',
+  bulgarian:'The front-leg quad and glute doing everything — the rear leg is only a kickstand.',
+  goblet:'Quads working deep while the upper back fights the dumbbell — feel tall the whole rep.',
+  leg_press:'Quads stretching under load at the bottom, pressing through the full foot.',
+  step_ups:'The top-leg quad and glute hoisting your whole body — zero push off the bottom foot.',
+  reverse_lunge:'The front quad and glute absorbing, then driving — stepping back keeps it in the front leg.',
+  sumo_squat:'Inner thighs and glutes stretching wide at the bottom — the adductors do real work here.',
+  cossack_squat:'A deep stretch through the inner thigh of the straight leg; the working-side quad and glute grind you back up.',
+  pistol_squat:'One quad owning your whole bodyweight with the glute steering — total control down and up.',
+  leg_ext:'A pure quad burn just above the knee — squeeze to full lockout.',
+  speed_box_squat:'Hips and quads snapping — judge the rep by bar speed, not effort.',
+  wall_sit:'Quads humming and building heat while everything else stays still.',
+  spanish_squat:'Quads and the tendon just below the kneecap loading isometrically — a steady burn, never pain.',
+  iso_split_squat:'The front quad and glute trembling to hold position — that shake is the point.',
+  jump_squats:'Springs in the quads and calves — explode up, land soft, repeat.',
+  // legs — hinge/hamstring/glute
+  rdl:'Hamstrings stretching like guitar strings as the hips travel back; glutes snap you upright.',
+  db_rdl:'The same hamstring stretch — if the lower back pumps instead, push the hips back further.',
+  trap_bar_dl:'The whole posterior chain plus quads driving the floor apart as one piece.',
+  hip_thrust:'Glutes squeezing to full lockout at the top — the lower back stays quiet.',
+  single_leg_hip_thrust:'One glute doing the entire lift — a near-cramp squeeze at the top.',
+  bstance_hip_thrust:'The front-leg glute doing ~80% — one cheek fires far harder than the other.',
+  single_rdl:'The standing-leg hamstring stretching deep while the glute steers the balance.',
+  back_ext:'Hamstrings and glutes hinging you up — glutes squeeze at the top, spine neutral.',
+  seated_leg_curl:'Hamstrings curling hard from a full stretch — deepest tension at end range.',
+  leg_curl:'Hamstrings bunching behind the knee — resist the return, hips glued down.',
+  nordic_curl:'Hamstrings screaming as brakes on the way down — the slow lowering is everything.',
+  speed_trap_bar:'Hips exploding into full extension — it should feel fast, not heavy.',
+  speed_hip_thrust:'Glutes snapping the hips up as fast as physically possible.',
+  db_swing:'Hips snapping like a whip with the glutes finishing hard — the arms are just ropes.',
+  glute_bridge_2leg:'Both glutes squeezing to lockout — if the hamstrings cramp, walk the feet slightly closer.',
+  glute_bridge:'One glute doing everything — squeeze it so hard it almost cramps.',
+  kb_swings_circuit:'The hip snap driving every rep as the heart rate climbs — glutes, not arms.',
+  broad_jump:'The whole lower body exploding forward as one piece — stick the landing soft and balanced.',
+  continuous_broad_jumps:'A springy rebound rhythm — minimal ground time, hips loading and firing.',
+  skater_jumps:'The outside leg absorbing then firing you back — the side of the hip catches every landing.',
+  lateral_bounds:'Side-to-side power from the hips — a controlled stick on one foot each landing.',
+  single_leg_bounds:'One leg loading and launching — hip, knee, and ankle springing together.',
+  lateral_bound_broad_jump:'The lateral catch flowing straight into a forward explosion — one continuous athletic move.',
+  burpee_to_jump:'Full-body output — the legs still exploding on every jump even as fatigue climbs.',
+  calf_raise:'A deep calf stretch off the edge, then a squeeze up to tiptoe — pause at both ends.',
+  single_leg_calf_raise:'One calf loading completely — stretch to squeeze with no bounce.',
+  iso_calf:'The calf and Achilles humming under a stiff, tall ankle hold.',
+  tempo_calf:'Ankles like pogo springs — energy bouncing back instantly through the Achilles.',
+  tib_raise:'A burn along the front of the shin — that burn is exactly the adaptation you want.',
+  hip_abduct:'The outer glute (side of the hip) squeezing outward — no rocking for momentum.',
+  // core
+  pallof:'Obliques and deep core fighting the cable\'s twist — slight shaking means it\'s working.',
+  med_ball_slam:'The abs folding you violently through the slam — trunk power, not arm speed.',
+  med_ball_rot_throw:'Power spiraling from the back hip up through the obliques and into the throw.',
+  suitcase_carry:'The side OPPOSITE the weight burning to keep you level.',
+  woodchop:'Obliques rotating the torso as one piece — the arms stay long and lazy.',
+  half_kneel_press:'The core bracing hard against tipping sideways — the press is the easy part.',
+  sa_cable_row:'The core locking the torso against rotation while one lat rows.',
+  sa_db_row:'The lat rows while the core resists the twist — feel both at once.',
+  dead_bug:'Lower back pressed flat, deep abs holding as the limbs lower — slow equals honest.',
+  side_plank_dip:'The bottom-side obliques lifting and lowering the hips.',
+  crunches:'Upper abs curling the rib cage toward the pelvis — a short, hard squeeze, not a big movement.',
+  situps:'The abs curling you up segment by segment — never yanked up by the neck.',
+  hanging_leg_raise:'Lower abs curling the PELVIS up — if only the hip flexors burn, curl more and lift less.',
+  incline_leg_raise:'Lower abs dragging the pelvis toward the ribs under constant tension — no resting at the bottom.',
+  body_v:'The entire ab wall folding you in half — balance point on the glutes.',
+  leg_lifts_lying:'Lower abs controlling the entire descent — the back stays glued down.',
+  dragon_flag_bent:'The whole core rigid as steel from shoulders to knees — the abs shake to hold the line.',
+  dragon_flag_full:'Every ab fiber holding a perfectly straight body — the slow negative burns most.',
+  burpees:'Full-body output — lungs, legs, chest. This one is conditioning, not connection.',
+  mountain_climbers:'The core holding a rock-solid plank while the legs sprint underneath it.',
+  bear_crawl:'The deep core keeping the hips dead level — crawl slow enough that nothing sways.',
+  turkish_getup_bw:'Core and shoulder stabilizing every transition — each position locks in before you move on.',
+  l_sits:'Abs and hip flexors fighting to hold the legs up while the shoulders press down hard.',
+  battle_ropes:'Shoulders and core generating the waves while the legs anchor — output work.',
+  // hips
+  clamshell:'The side-butt (glute med) burning — the deep pocket on the side of the hip.',
+  fire_hydrant:'The side of the working hip lifting — the torso stays dead still.',
+  side_lying_abduct:'The outer hip lifting the leg — the moment the waist or quad takes over, reset.',
+  copenhagen_plank:'The inner thigh of the top leg holding your entire body up.',
+  hip_90_90:'A stretch deep in the side and back of the front hip — breathe into it, no forcing.',
+  hip_flexor_half_kneel:'A stretch down the front of the rear hip and thigh — tuck the pelvis to find it.',
+  hip_cars:'The hip rotating through its full range — explore the edges of your control.',
+  straight_leg_raise:'The front of the hip and quad lifting — a burn near the hip crease is correct.',
+  hip_flexor_rock_back:'The front of the hip lengthening under control as you rock back.',
+  hip_flexor_90_90:'The hip flexor above the thigh firing hard to keep the foot up.',
 };
+// Per-muscle fallback for custom exercises with no dedicated entry.
+const MUSCLE_FEELS={
+  chest:'The pecs stretching and squeezing — not the shoulders or arms taking over.',
+  back:'The pull starting under the armpits or between the shoulder blades — arms are hooks.',
+  shoulders:'The delts lifting — traps stay quiet, no swing.',
+  biceps:'The bicep stretching long and squeezing to a hard peak.',
+  triceps:'The back of the arm stretching and locking out hard.',
+  legs:'The target thigh/glute muscle loading and driving — not the lower back.',
+  core:'The abs or obliques doing the work — no momentum, no neck strain.',
+  hips:'The small hip muscles working in isolation — the moment bigger muscles take over, reset.',
+};
+const feelFor=(ex)=>FEELS[ex.id]||MUSCLE_FEELS[ex.muscle]||'';
 
 // ─────────────────────────────────────────────
 // YMCA / LUNCH SESSION CONSTANTS
@@ -2211,7 +2235,13 @@ function recalcLastWeights(){
       if(sets?.length){const l=sets[sets.length-1];w[ex.id]={weight:l.weight,reps:l.reps};}
     });
   });
-  S.lastWeights=w;
+  // MERGE, never replace: S.logs is capped at the last ~10 workouts on save,
+  // so a full rebuild silently dropped the remembered weight for any exercise
+  // not trained inside that window — and the suggestion engine then fell back
+  // to anchor/muscle-group estimates for movements the user HAS done, which
+  // must always prefer the user's own history. Ids outside the log window keep
+  // their previous entry; anything present in the recent logs wins.
+  S.lastWeights=Object.assign({},S.lastWeights||{},w);
 }
 
 // ─────────────────────────────────────────────
@@ -3104,7 +3134,7 @@ function renderDash(){
           <button class='btn btn-s btn-sm' data-action='save-ex-weight' data-exid='${e.id}' style='flex:1'>Save</button>
         </div>
         ${e.cue?`<div style='color:var(--mut);line-height:1.6;padding-top:8px;border-top:1px solid var(--bdr)'>${e.cue}</div>`:''}
-        ${FEELS[e.id]?`<div style='color:var(--acc);line-height:1.6;padding-top:8px'>🎯 <strong>Checkpoint:</strong> ${FEELS[e.id]}</div>`:''}
+        ${feelFor(e)?`<div style='color:var(--acc);line-height:1.6;padding-top:8px'>🎯 <strong>Feel it:</strong> ${feelFor(e)}</div>`:''}
       </div>`:'';
       // Only the NAME ROW is the click target — detail panel sits outside it so inputs don't collapse the panel
       return`<div class='t-ex' style='flex-direction:column;align-items:flex-start'>
@@ -3575,7 +3605,7 @@ function renderWorkout(){
       ${sessionTag}
       <div class='ex-name'>${ex.name}</div>
       <span class='m-tag' style='background:${mcolor}22;color:${mcolor}'>${MNAME[ex.muscle]||ex.muscle} · ${ex.type}</span>
-      ${FEELS[ex.id]?`<div style='font-size:13px;color:var(--acc-bright);line-height:1.5;margin:2px 0 10px;display:flex;gap:6px'><span>🎯</span><span><strong style='color:var(--acc)'>Checkpoint:</strong> ${FEELS[ex.id]}</span></div>`:''}
+      ${feelFor(ex)?`<div style='font-size:12.5px;color:var(--txt-dim);line-height:1.5;margin:8px 0 10px;padding:8px 10px;background:${mcolor}0d;border-left:3px solid ${mcolor}66;border-radius:0 8px 8px 0'>🎯 <strong style='color:${mcolor}'>Feel it:</strong> ${feelFor(ex)}</div>`:''}
       <div style='display:flex;gap:8px;align-items:center;margin-bottom:10px'>
         <button class='cue-btn' data-action='toggle-cue' data-id='cue-${exIdx}' style='margin-bottom:0'>💡 Technique tip</button>
         <button class='cue-btn' data-action='toggle-swap' style='margin-bottom:0;margin-left:auto;color:var(--mut)'>↕ Swap</button>
@@ -3660,7 +3690,7 @@ function renderReviewWorkout(){
       <div class='ex-name'>${ex.name}</div>
       <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>${ex.sets} sets × ${ex.rMin}–${ex.rMax} reps</div>
       <button class='cue-btn' data-action='toggle-cue' data-id='review-cue-${idx}'>💡 Technique tip</button>
-      <div class='cue-txt' id='review-cue-${idx}'>${ex.cue || 'No technique notes available.'}${FEELS[ex.id]?`<div style='color:var(--acc);margin-top:8px'>🎯 <strong>Checkpoint:</strong> ${FEELS[ex.id]}</div>`:''}</div>
+      <div class='cue-txt' id='review-cue-${idx}'>${ex.cue || 'No technique notes available.'}${feelFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🎯 <strong>Feel it:</strong> ${feelFor(ex)}</div>`:''}</div>
     </div>`;
   }).join('');
 
@@ -5865,5 +5895,6 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
-< ! - -   F o r c e   G i t H u b   P a g e s   r e d e p l o y   0 6 / 0 9 / 2 0 2 6   1 7 : 0 2 : 4 4   - - >  
+< ! - -   F o r c e   G i t H u b   P a g e s   r e d e p l o y   0 6 / 0 9 / 2 0 2 6   1 7 : 0 2 : 4 4   - - > 
+ 
  
