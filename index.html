@@ -3459,6 +3459,28 @@ function renderWorkout(){
     ${rotNote}
   </div>`:'';
 
+  // Daily Mobility: general lower + upper body movement prep, shown EVERY
+  // session regardless of the hip/shoulder caution toggles above (those stay
+  // scoped to actual flagged issues). Rotates a fixed 2 lower + both upper
+  // items daily — lower and upper pools rotate independently so neither half
+  // is ever skipped, unlike a single shared pool that could land on an
+  // all-lower or all-upper day by chance.
+  const LOWER_MOBILITY_POOL=[
+    {n:'Deep Squat Reach',d:'8 reps · sink into a deep squat, plant one hand down, reach the other arm to the sky rotating through the upper back — hold 1s at full reach, alternate sides'},
+    {n:'Alt. Reverse Lunge + Reach',d:'8 reps/side · step back into a reverse lunge, reach both arms overhead and lean back slightly — hip flexor and lat stretch together'},
+    {n:'Shin Box Lunge',d:'6 reps/side · from a seated 90/90 position, drive up into a lunge over the front leg then sit back down — hip internal/external rotation under control'},
+    {n:'Low Cossack Squat',d:'8 reps/side · wide stance, sit deep into one hip while the other leg stays straight, heel down — adductor/hip mobility'},
+  ];
+  const UPPER_MOBILITY_POOL=[
+    {n:'Cobra to Down Dog Flow',d:'8 slow reps · from a prone press-up into Cobra (chest up, hips down), then push back into Down Dog (hips up, heels reaching) — full spine wave, opens shoulders and hamstrings'},
+    {n:'Standing Spine Rotations',d:'10 reps/side · feet planted, rotate the whole spine side to side letting the arms swing loosely — warms the entire spine, not just the upper back'},
+  ];
+  const dailyMobilityHTML=exIdx===0?`<div class='wu-box' style='border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.04);margin-bottom:14px'>
+    <div class='wu-title' style='color:var(--ok)'>🔄 Daily Mobility (lower + upper body)</div>
+    ${[...stretchRot(LOWER_MOBILITY_POOL,2),...stretchRot(UPPER_MOBILITY_POOL,2)].map(wuRow).join('')}
+    ${rotNote}
+  </div>`:'';
+
   // "Machine Mode" prehab: on a heavy, low-rep compound press (chest/shoulders/
   // back, rMax<=8) as the FIRST lift, add rotator-cuff/stabilizer priming —
   // Cuban or Czech press — so the joint is locked in before real load goes on.
@@ -3677,6 +3699,7 @@ function renderWorkout(){
     </div>`:''}
     ${hipPrehabHTML}
     ${achyShoulderHTML}
+    ${dailyMobilityHTML}
     ${machineModeHTML}
     ${efficiencyModeHTML}
     ${deskReversalHTML}
