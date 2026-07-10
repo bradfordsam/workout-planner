@@ -1049,7 +1049,9 @@ function flagFirstWorkingSet(exs){
   // Bodyweight-only moves (noWeight, or bodyweight as the only equipment) and
   // timed isometric holds can't be scaled down for a warm-up, so they must not
   // lead the session — the first/warm-up slot needs a loadable exercise.
-  const scalable=e=>!e.noWeight&&!e.isTimed&&(e.eq||[]).some(q=>q!=='bodyweight');
+  // Med balls are excluded too: they're loaded but come in fixed ~5 lb jumps,
+  // so "50% / 75% / 90%" acclimation percentages are meaningless for them.
+  const scalable=e=>!e.noWeight&&!e.isTimed&&(e.eq||[]).some(q=>q!=='bodyweight'&&q!=='medball'&&q!=='medball_wall');
   const compounds=exs.filter(e=>e.type==='compound');
   const rest=exs.filter(e=>e.type!=='compound');
   let ordered=[...compounds,...rest];
@@ -3437,7 +3439,11 @@ function renderWorkout(){
   // "Machine Mode" prehab: on a heavy, low-rep compound press (chest/shoulders/
   // back, rMax<=8) as the FIRST lift, add rotator-cuff/stabilizer priming —
   // Cuban or Czech press — so the joint is locked in before real load goes on.
-  const isHeavyPressFirst=ex.isFirst&&ex.type==='compound'&&ex.rMax<=8&&['chest','shoulders','back'].includes(ex.muscle);
+  // %-scalable = actually loadable in fine increments; med balls, bodyweight,
+  // and timed holds are excluded — "heavy compound ahead" and 50/75/90%
+  // acclimation percentages make no sense for a 10 lb ball or a plank.
+  const pctScalable=!ex.noWeight&&!ex.isTimed&&(ex.eq||[]).some(q=>q!=='bodyweight'&&q!=='medball'&&q!=='medball_wall');
+  const isHeavyPressFirst=ex.isFirst&&pctScalable&&ex.type==='compound'&&ex.rMax<=8&&['chest','shoulders','back'].includes(ex.muscle);
   const machineModeHTML=isHeavyPressFirst?`<div class='wu-box' style='border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:var(--warn)'>🔧 Machine Mode Prehab (heavy compound ahead — lock in the shoulder first)</div>
     <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>1</span><span class='wu-val'>Cuban Press</span><span style='color:var(--mut);font-size:12px'> · 10 reps · light DBs: upright row → external rotation → overhead press, one fluid rep</span></div>
@@ -3477,10 +3483,15 @@ function renderWorkout(){
   // (not generation) so swaps and preserved sessions are covered too. Lunch
   // sessions are excluded (hard 40-min time-box); core/hips excluded (light
   // rotational/stability work doesn't need a graded ramp).
-  const loadable=!ex.noWeight&&!ex.isTimed&&(ex.eq||[]).some(q=>q!=='bodyweight');
-  const isGroupFirst=!ex.isFirst&&!S.active.isLunch&&loadable&&!['core','hips'].includes(ex.muscle)
+  // Med balls excluded (fixed ~5 lb jumps — % ramps are meaningless), and
+  // explosive throws ARE their own ramp: the first reps at lower intent.
+  // pctScalable (defined above) carries the same rule; the full acclimation
+  // box below is ALSO gated on it, covering the fallback case where
+  // flagFirstWorkingSet found nothing %-scalable to lead yet still flagged a
+  // med ball / bodyweight / timed movement as the session opener.
+  const isGroupFirst=!ex.isFirst&&!S.active.isLunch&&pctScalable&&!['core','hips'].includes(ex.muscle)
     &&exercises.slice(0,exIdx).every(p=>p.muscle!==ex.muscle);
-  const warmupHTML=ex.isFirst?`<div class='wu-box'>
+  const warmupHTML=ex.isFirst&&pctScalable?`<div class='wu-box'>
     <div class='wu-title'>⚡ Warm-up Sets — Weight Acclimation (do these first)</div>
     <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>${wu1Lbl}</span><span style='color:var(--mut);font-size:13px'> × 8 reps — groove the pattern</span><button data-action='start-wu-rest' data-secs='60' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>60s rest</button></div>
     <div class='wu-row'><span class='wu-set'>WU2</span><span class='wu-val' id='wu2-${exIdx}'>${wu2Lbl}</span><span style='color:var(--mut);font-size:13px'> × 3 reps — sharpen bar path</span><button data-action='start-wu-rest' data-secs='90' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>90s rest</button></div>
@@ -3499,25 +3510,33 @@ function renderWorkout(){
   // Loaded timed movements (Suitcase Carry) show BOTH a weight box and seconds.
   const isLoadedTimed=timedLoaded(ex);
   const hideWeight=isNoWeight||(isTimed&&!isLoadedTimed);
+  // Power/ballistic/plyometric work is trained by SPEED, not proximity to
+  // failure — near-failure sets and back-off sets are wrong prescriptions for
+  // it, so those instruction strings switch to intent/velocity language.
+  const isPowerEx=(ex.tags||[]).some(t=>['power','ballistic','plyometric'].includes(t));
+  // Bilateral holds (Wall Sit, L-Sit, Spanish Squat) aren't done "per side" —
+  // only unilateral/side-specific timed work gets that suffix.
+  const perSideTimed=(ex.tags||[]).includes('unilateral')||/per side|per leg|each side/i.test(ex.cue||'')||(ex.tags||[]).includes('lateral');
+  const psLbl=perSideTimed?' per side':'';
   // Back-off set model: set 1 is the heavy "top set" (rMin–rMax to ~1–2 reps
   // shy of failure); the remaining sets are "back-off" sets at ~15% less weight
-  // for higher reps. Straight sets for bodyweight, timed, single-set, and
-  // circuit-style work.
-  const useBackoff=!isNoWeight&&!isTimed&&!ex.circuitStyle&&ex.sets>1;
+  // for higher reps. Straight sets for bodyweight, timed, single-set, circuit,
+  // and power work (every power set is the same quality — no fatigued sets).
+  const useBackoff=!isNoWeight&&!isTimed&&!ex.circuitStyle&&!isPowerEx&&ex.sets>1;
   const backoffW=(useBackoff&&sugW0)?r5(sugW0*0.85):null;
   const backoffRepLo=ex.rMax, backoffRepHi=ex.rMax+5;
   let progHTML;
   if(isTimed){
     if(prog){
       const secStr=prog.minR===prog.maxR?`${prog.minR}s`:`${prog.minR}–${prog.maxR}s`;
-      const lastLbl=(isLoadedTimed&&prog.weight>0)?`${prog.weight} ${wUnit} × ${secStr} per side`:`${secStr} per side`;
+      const lastLbl=(isLoadedTimed&&prog.weight>0)?`${prog.weight} ${wUnit} × ${secStr}${psLbl}`:`${secStr}${psLbl}`;
       const tip=prog.ready
-        ?`<div class='prog-hint'>🔼 Hit top time — next: ${isLoadedTimed&&prog.weight>0?`go up ~5 lb at ${ex.rMin}s, or try ${prog.maxR+5}s per side`:`try ${prog.maxR+5}s per side`}</div>`
+        ?`<div class='prog-hint'>🔼 Hit top time — next: ${isLoadedTimed&&prog.weight>0?`go up ~5 lb at ${ex.rMin}s, or try ${prog.maxR+5}s${psLbl}`:`try ${prog.maxR+5}s${psLbl}`}</div>`
         :`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Build to ${ex.rMax}s — same ${isLoadedTimed?'weight':'hold'}</div>`;
       progHTML=`<div class='last-info'>Last: <strong>${lastLbl}</strong></div>${tip}`;
       if(isLoadedTimed&&!progHasW&&est)progHTML+=`<div class='prog-hint'>🧮 Estimated load ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}) — adjust from there.</div>`;
     } else if(isLoadedTimed&&est){
-      progHTML=`<div class='prog-hint'>🧮 Estimated start ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}). Build to ${ex.rMax}s per side — adjust the load from there.</div>`;
+      progHTML=`<div class='prog-hint'>🧮 Estimated start ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}). Build to ${ex.rMax}s${psLbl} — adjust the load from there.</div>`;
     } else {
       progHTML=`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservatively, focus on form over duration.</div>`;
     }
@@ -3525,20 +3544,22 @@ function renderWorkout(){
     if(prog){
       const repStr=prog.minR===prog.maxR?`${prog.minR} reps`:`${prog.minR}–${prog.maxR} reps`;
       const tip=prog.ready
-        ?`<div class='prog-hint'>🔼 Hit top range — next: add a 1s pause at the top each rep, or slow your descent to 4 counts</div>`
-        :`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Build to ${ex.rMax} strict reps — same bodyweight</div>`;
+        ?`<div class='prog-hint'>🔼 Hit top range — next: ${isPowerEx?'add height or move to the harder variation — never slow these down, speed is the point':'add a 1s pause at the top each rep, or slow your descent to 4 counts'}</div>`
+        :`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Build to ${ex.rMax} ${isPowerEx?'crisp, full-power reps':'strict reps'} — same bodyweight</div>`;
       progHTML=`<div class='last-info'>Last: <strong>${repStr}</strong></div>${tip}`;
     } else {
-      progHTML=`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — strict form, full dead hang, 3-count descent on every rep.</div>`;
+      progHTML=`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">${isPowerEx?'First time — max intent on every rep, land soft, and end the set the moment output drops.':'First time — strict form, full range of motion, 3-count descent on every rep.'}</div>`;
     }
   } else {
-    const topTarget=`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} to 1–2 reps shy of failure`;
+    const topTarget=isPowerEx
+      ?`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} explosive reps — max intent, stop the set when speed visibly drops`
+      :`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} to 1–2 reps shy of failure`;
     const backoffTarget=useBackoff&&(backoffW||(est&&r5(est.weight*0.85)))?` · then back-off ${backoffW||r5(est.weight*0.85)} ${wUnit} × ${backoffRepLo}–${backoffRepHi}`:'';
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
       ${prog.layoffWeeks?`<div class='prog-hint' style='color:var(--warn)'>⏸ ~${prog.layoffWeeks} weeks since you last did this — suggesting ${prog.layoffWeeks>=8?'80%':'90%'} of your old weight to ramp back in safely.</div>`:''}
-      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! Top set: ${topTarget}${backoffTarget}</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Top set: ${topTarget}${backoffTarget}</div>`}`
-      :est?`<div class='prog-hint'>🧮 Estimated start ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}). Top set: ${topTarget}${backoffTarget} — adjust from there.</div>`
-      :`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservative. Top set ${ex.rMin}–${ex.rMax} to 1–2 reps shy${useBackoff?`, then a back-off set ~15% lighter for ${backoffRepLo}–${backoffRepHi}`:''}.</div>`;
+      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! ${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget}</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget}</div>`}`
+      :est?`<div class='prog-hint'>🧮 Estimated start ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}). ${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget} — adjust from there.</div>`
+      :`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">${isPowerEx?`First time — start light. ${ex.rMin}–${ex.rMax} explosive reps per set, judged by speed, not fatigue.`:`First time — start conservative. Top set ${ex.rMin}–${ex.rMax} to 1–2 reps shy${useBackoff?`, then a back-off set ~15% lighter for ${backoffRepLo}–${backoffRepHi}`:''}.`}</div>`;
   }
 
   const swapOpen=S.active.swapMode===exIdx;
@@ -3662,7 +3683,7 @@ function renderWorkout(){
       <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
         <span style='width:6px;height:6px;border-radius:50%;background:${MCOL[exercises[exIdx+1].muscle]||'var(--acc)'};flex-shrink:0;display:inline-block'></span>
         <strong style='font-size:14px'>${exercises[exIdx+1].name}</strong>
-        <span style='font-size:11px;color:var(--mut);margin-left:auto'>${exercises[exIdx+1].sets} × ${exercises[exIdx+1].rMin}–${exercises[exIdx+1].rMax}</span>
+        <span style='font-size:11px;color:var(--mut);margin-left:auto'>${exercises[exIdx+1].sets} × ${exercises[exIdx+1].rMin}–${exercises[exIdx+1].rMax}${exercises[exIdx+1].isTimed?'s':''}</span>
       </div>
       <button class='cue-btn' data-action='toggle-cue' data-id='next-cue-${exIdx+1}' style='margin-bottom:6px'>💡 Preview technique tip</button>
       <div class='cue-txt' id='next-cue-${exIdx+1}' style='font-size:12px;margin-bottom:0'>${exercises[exIdx+1].cue||'No technique notes available.'}</div>
@@ -3717,7 +3738,7 @@ function renderReviewWorkout(){
         <button class='btn btn-g btn-sm' data-action='swap-exercise' data-idx='${idx}' style='font-size:11px;padding:6px 10px'>⟲ Swap</button>
       </div>
       <div class='ex-name'>${ex.name}</div>
-      <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>${ex.sets} sets × ${ex.rMin}–${ex.rMax} reps</div>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>${ex.sets} sets × ${ex.rMin}–${ex.rMax} ${ex.isTimed?'seconds':'reps'}</div>
       <button class='cue-btn' data-action='toggle-cue' data-id='review-cue-${idx}'>💡 Technique tip</button>
       <div class='cue-txt' id='review-cue-${idx}'>${ex.cue || 'No technique notes available.'}${feelFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🎯 <strong>Feel it:</strong> ${feelFor(ex)}</div>`:''}</div>
     </div>`;
@@ -3835,7 +3856,7 @@ function renderProgram(){
     ?cardio.options.slice(0,3).map(o=>`${o.icon} ${o.name}: ${o.min} min${o.dist&&o.dist!=='—'?' · '+o.dist:''}`).join(' · ')
     :'';
 
-  const exRow=e=>`<div class='pg-ex'><div class='pg-dot' style='background:${MCOL[e.muscle]}'></div>${e.name} <span style='color:var(--mut);font-size:12px'>· ${e.sets}×${e.rMin}–${e.rMax}</span></div>`;
+  const exRow=e=>`<div class='pg-ex'><div class='pg-dot' style='background:${MCOL[e.muscle]}'></div>${e.name} <span style='color:var(--mut);font-size:12px'>· ${e.sets}×${e.rMin}–${e.rMax}${e.isTimed?'s':''}</span></div>`;
 
   const days=S.program.week.map(d=>{
     const isToday=d.dow===dow;
