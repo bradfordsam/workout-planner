@@ -3037,7 +3037,7 @@ function renderSetup(){
        <div class='plan-chk-box'>${cfg.shoulderCaution?'✓':''}</div>
        <div>
          <div style='font-size:13px;font-weight:700'>Achy shoulder / poor posture</div>
-         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Swaps your pre-workout warm-up for a decompression + posture sequence: Dead Hang, Face Pulls, Band Pull-aparts, Doorway Stretch, Kneeling Thoracic Rotation, Standing Thoracic Rotation.</div>
+         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Swaps your pre-workout warm-up for a decompression + posture routine that rotates 3 per session from: Dead Hang, Face Pulls, Band Pull-aparts, Doorway Stretch, Kneeling Thoracic Rotation, Standing Thoracic Rotation.</div>
        </div>
      </div>
      <div style='margin-top:20px'>
@@ -3413,30 +3413,50 @@ function renderWorkout(){
       ?`<span class='badge badge-lunch' style='margin-bottom:12px;display:inline-block'>YMCA Lunch · 35–40 min</span>`
       :`<span class='badge badge-eve' style='margin-bottom:12px;display:inline-block'>${locLabel} · ${S.active.sessionMins} min</span>`;
 
-  // Mobilize -> Stabilize sequence for the office-bound baseline: ankle/thoracic
+  // The caution stretch pools have grown past what fits before a session, so
+  // each workout shows a date-rotated subset instead of every item: the offset
+  // advances daily, the picks keep their pool order (mobilize → activate), and
+  // the full pool cycles across consecutive training days.
+  const stretchRot=(pool,n)=>{
+    const off=Math.floor(Date.now()/864e5)%pool.length;
+    return Array.from({length:Math.min(n,pool.length)},(_,i)=>(off+i)%pool.length).sort((a,b)=>a-b).map(i=>pool[i]);
+  };
+  const wuRow=(it,i)=>`<div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>${i+1}</span><span class='wu-val'>${it.n}</span><span style='color:var(--mut);font-size:12px'> · ${it.d}</span>${it.hold?`<button data-action='start-hold' data-secs='${it.hold}' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>${it.hold}s</button>`:''}</div>`;
+  const rotNote=`<div class='wu-note'>Rotates daily — a different subset each session so the warm-up stays short; the full list cycles across the week.</div>`;
+
+  // Mobilize -> Stabilize pool for the office-bound baseline: ankle/thoracic
   // mobility first (counters a desk block), then hip mobility, then hip
   // stability/activation work, all before the first working set.
+  const HIP_POOL=[
+    {n:'Ankle Rocks',d:'10 reps/side · Achilles/calf mobility'},
+    {n:'Cat-Cow',d:'8 slow reps · thoracic extension'},
+    {n:'90/90 Hip Stretch',d:'30 sec/side · breathe into it'},
+    {n:'Half-Kneeling Hip Flexor Stretch',d:'30 sec/side · tuck pelvis first'},
+    {n:'Figure 4 Stretch',d:'30 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch'},
+    {n:'Hip CARs',d:'5 circles/side · slow, full range'},
+    {n:'Clamshells',d:'15 reps/side · hips stacked'},
+  ];
   const hipPrehabHTML=S.cfg.hipCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:#c084fc'>🦋 Mobilize &amp; Activate (do these before lifting)</div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>1</span><span class='wu-val'>Ankle Rocks</span><span style='color:var(--mut);font-size:12px'> · 10 reps/side · Achilles/calf mobility</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>2</span><span class='wu-val'>Cat-Cow</span><span style='color:var(--mut);font-size:12px'> · 8 slow reps · thoracic extension</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>3</span><span class='wu-val'>90/90 Hip Stretch</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · breathe into it</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>4</span><span class='wu-val'>Half-Kneeling Hip Flexor Stretch</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · tuck pelvis first</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>5</span><span class='wu-val'>Hip CARs</span><span style='color:var(--mut);font-size:12px'> · 5 circles/side · slow, full range</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>6</span><span class='wu-val'>Clamshells</span><span style='color:var(--mut);font-size:12px'> · 15 reps/side · hips stacked</span></div>
+    ${stretchRot(HIP_POOL,4).map(wuRow).join('')}
+    ${rotNote}
   </div>`:'';
 
   // "Achy Shoulder" protocol: replaces the generic warm-up mindset with a
-  // decompression + posture-correction sequence when the user has flagged
+  // decompression + posture-correction pool when the user has flagged
   // shoulder discomfort or poor posture, shown before the first exercise.
+  const SHOULDER_POOL=[
+    {n:'Dead Hang',d:'30–60 sec · shoulder decompression'},
+    {n:'Face Pulls',d:'15 reps · rear-delt/rotator-cuff stability'},
+    {n:'Band Pull-aparts',d:'15 reps · upper-back posture'},
+    {n:'Doorway Stretch',d:'30 sec/side · pec/anterior shoulder mobility'},
+    {n:'Kneeling Thoracic Rotation',d:'10 reps/side · tall-kneeling, hand behind head, rotate the elbow down and across then up toward the ceiling — hips stay square, the upper back does the rotating'},
+    {n:'Standing Thoracic Rotation',d:'10 reps/side · feet planted hip-width, arms crossed at the chest, rotate the upper body side to side while the hips stay facing forward'},
+  ];
   const achyShoulderHTML=S.cfg.shoulderCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:var(--acc)'>🩹 Achy Shoulder Warm-up (do this instead of a generic warm-up)</div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>1</span><span class='wu-val'>Dead Hang</span><span style='color:var(--mut);font-size:12px'> · 30–60 sec · shoulder decompression</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>2</span><span class='wu-val'>Face Pulls</span><span style='color:var(--mut);font-size:12px'> · 15 reps · rear-delt/rotator-cuff stability</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>3</span><span class='wu-val'>Band Pull-aparts</span><span style='color:var(--mut);font-size:12px'> · 15 reps · upper-back posture</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>4</span><span class='wu-val'>Doorway Stretch</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · pec/anterior shoulder mobility</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>5</span><span class='wu-val'>Kneeling Thoracic Rotation</span><span style='color:var(--mut);font-size:12px'> · 10 reps/side · tall-kneeling, hand behind head, rotate the elbow down and across then up toward the ceiling — hips stay square, the upper back does the rotating</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>6</span><span class='wu-val'>Standing Thoracic Rotation</span><span style='color:var(--mut);font-size:12px'> · 10 reps/side · feet planted hip-width, arms crossed at the chest, rotate the upper body side to side while the hips stay facing forward</span></div>
+    ${stretchRot(SHOULDER_POOL,3).map(wuRow).join('')}
+    ${rotNote}
   </div>`:'';
 
   // "Machine Mode" prehab: on a heavy, low-rep compound press (chest/shoulders/
@@ -3614,14 +3634,20 @@ function renderWorkout(){
   // back) plus tibialis work for incline-walking shin stiffness. The tib
   // raises come FIRST and are strengthening, not stretching — a stronger
   // tibialis is what stops the shins tightening up on every incline walk.
+  // Tibialis Raises always lead (strengthening, not stretching); the static
+  // stretches rotate 3-per-session from the pool below, same daily-offset
+  // scheme as the pre-lift caution pools, so the cool-down stays ~5 min.
+  const COOLDOWN_POOL=[
+    {n:'Kneeling Shin Stretch',d:'45 sec · sit back on your heels, tops of the feet flat on the floor',hold:45},
+    {n:'Upper Trap Stretch',d:'30 sec/side · ear toward shoulder, opposite hand reaching at the floor',hold:30},
+    {n:"Child's Pose",d:'60 sec · arms long, sit toward the heels, slow nasal breathing — lumbar decompression',hold:60},
+    {n:'Supine Twist',d:'30 sec/side · on your back, knees dropped to one side, shoulders flat',hold:30},
+    {n:'Figure 4 Stretch',d:'30 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch',hold:30},
+  ];
   const cooldownHTML=isLast&&allDone&&!S.active.isLunch?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-top:14px'>
-    <div class='wu-title' style='color:var(--acc)'>🧊 Cool-down · ~5 min (neck · lower back · shins)</div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>1</span><span class='wu-val'>Tibialis Raises</span><span style='color:var(--mut);font-size:12px'> · 20 reps · back on a wall, lift toes to shins — strengthens away incline-walk shin stiffness</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>2</span><span class='wu-val'>Kneeling Shin Stretch</span><span style='color:var(--mut);font-size:12px'> · 45 sec · sit back on your heels, tops of the feet flat on the floor</span><button data-action='start-hold' data-secs='45' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>45s</button></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>3</span><span class='wu-val'>Upper Trap Stretch</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · ear toward shoulder, opposite hand reaching at the floor</span><button data-action='start-hold' data-secs='30' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>30s</button></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>4</span><span class='wu-val'>Child's Pose</span><span style='color:var(--mut);font-size:12px'> · 60 sec · arms long, sit toward the heels, slow nasal breathing — lumbar decompression</span><button data-action='start-hold' data-secs='60' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>60s</button></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>5</span><span class='wu-val'>Supine Twist</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · on your back, knees dropped to one side, shoulders flat</span><button data-action='start-hold' data-secs='30' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>30s</button></div>
-    <div class='wu-note'>Static holds live HERE, after training — pre-lift work stays dynamic on purpose. Do this before tapping Finish.</div>
+    <div class='wu-title' style='color:var(--acc)'>🧊 Cool-down · ~5 min</div>
+    ${[{n:'Tibialis Raises',d:'20 reps · back on a wall, lift toes to shins — strengthens away incline-walk shin stiffness'},...stretchRot(COOLDOWN_POOL,3)].map(wuRow).join('')}
+    <div class='wu-note'>Static holds live HERE, after training — pre-lift work stays dynamic on purpose. Stretches rotate daily; the full pool cycles across the week. Do this before tapping Finish.</div>
   </div>`:'';
   const nextBtn=allDone
     ?`<button class='btn ${isLast?'btn-ok':'btn-p'}' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`
