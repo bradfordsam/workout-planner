@@ -271,6 +271,7 @@ const EX = [
   {id:'db_row',name:'Dumbbell Row',muscle:'back',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Brace hand on bench. Drive elbow to hip — not to the ceiling. Full stretch at bottom, full row.',tags:['horizontal']},
   {id:'cable_row',name:'Seated Cable Row',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Sit tall, slight forward lean to stretch. Drive elbows back past your sides. No momentum.',tags:['horizontal']},
   {id:'straight_pull',name:'Straight-arm Pulldown',muscle:'back',type:'isolation',eq:['cables'],rMin:10,rMax:15,rest:120,cue:'Arms straight, slight forward lean. Sweep bar to thighs using lats only. Resist the cable on the way back up.'},
+  {id:'db_pullover',name:'Dumbbell Pullover',muscle:'back',type:'isolation',eq:['dumbbells'],rMin:10,rMax:15,rest:120,cue:'Lie perpendicular across a bench with only your shoulders supported, hips low. Hold one dumbbell with both hands above your chest, arms nearly straight with a slight fixed elbow bend. Lower it in an arc behind your head until you feel a deep stretch through the lats and rib cage, then pull it back over your chest using the lats — keep the elbow bend fixed throughout so it stays a lat pull, not a triceps extension.'},
   {id:'face_pulls',name:'Face Pulls',muscle:'back',type:'isolation',eq:['cables'],rMin:12,rMax:15,rest:120,cue:'Rope at nose height. Pull to forehead and externally rotate (thumbs behind ears). Slow return. Non-negotiable for shoulder health.',tags:['rear_delt']},
   {id:'rev_fly',name:'Reverse Flyes',muscle:'back',type:'isolation',eq:['dumbbells'],rMin:12,rMax:15,rest:120,cue:'Bent over 45°, soft elbow. Lift only to parallel — rear delts, not traps. 2-count descent. Light weight, feel the muscle.',tags:['rear_delt']},
   {id:'pec_deck_rev_fly',name:'Machine Reverse Flyes',muscle:'back',type:'isolation',eq:['machine'],rMin:12,rMax:15,rest:120,cue:'Sit facing the pad (reverse of pec-deck position). Grip the handles with a neutral or pronated grip. Drive elbows back and out in a wide arc — stop at shoulder-width or just past, where rear delts peak. 2-count squeeze, slow return. Avoid letting traps take over by keeping shoulders down and depressed throughout.',tags:['rear_delt']},
@@ -2976,7 +2977,7 @@ function renderSetup(){
        <div class='plan-chk-box'>${cfg.shoulderCaution?'✓':''}</div>
        <div>
          <div style='font-size:13px;font-weight:700'>Achy shoulder / poor posture</div>
-         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Swaps your pre-workout warm-up for a decompression + posture sequence: Dead Hang, Face Pulls, Band Pull-aparts, Doorway Stretch.</div>
+         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Swaps your pre-workout warm-up for a decompression + posture sequence: Dead Hang, Face Pulls, Band Pull-aparts, Doorway Stretch, Kneeling Thoracic Rotation, Standing Thoracic Rotation.</div>
        </div>
      </div>
      <div style='margin-top:20px'>
@@ -3374,6 +3375,8 @@ function renderWorkout(){
     <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>2</span><span class='wu-val'>Face Pulls</span><span style='color:var(--mut);font-size:12px'> · 15 reps · rear-delt/rotator-cuff stability</span></div>
     <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>3</span><span class='wu-val'>Band Pull-aparts</span><span style='color:var(--mut);font-size:12px'> · 15 reps · upper-back posture</span></div>
     <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>4</span><span class='wu-val'>Doorway Stretch</span><span style='color:var(--mut);font-size:12px'> · 30 sec/side · pec/anterior shoulder mobility</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>5</span><span class='wu-val'>Kneeling Thoracic Rotation</span><span style='color:var(--mut);font-size:12px'> · 10 reps/side · tall-kneeling, hand behind head, rotate the elbow down and across then up toward the ceiling — hips stay square, the upper back does the rotating</span></div>
+    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>6</span><span class='wu-val'>Standing Thoracic Rotation</span><span style='color:var(--mut);font-size:12px'> · 10 reps/side · feet planted hip-width, arms crossed at the chest, rotate the upper body side to side while the hips stay facing forward</span></div>
   </div>`:'';
 
   // "Machine Mode" prehab: on a heavy, low-rep compound press (chest/shoulders/
