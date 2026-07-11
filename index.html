@@ -910,6 +910,7 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 let S={
   view:'setup',step:1,
   cfg:{days:5,mins:60,goal:'lean',bodyLbs:199,hipCaution:true,conditioning:true,
+    avoidExercises:['push_press','db_push_press'], // aggravates the lower back
     // Seeded from the InBody-style body-composition scan (Starfit, 2026-05-24).
     // Muscle already sits above the normal range — the score gap is pure fat, so
     // the program is tuned to strip fat while preserving muscle (see bodyScoreCard).
@@ -949,6 +950,11 @@ function load(){
       }
       // Migrate: add conditioning default if missing
       if(S.cfg.conditioning===undefined)S.cfg.conditioning=false;
+      // Migrate: personal exercise exclusions (movements that hurt regardless
+      // of the broader hip/knee/shoulder caution flags — e.g. Push Press
+      // aggravating the lower back). Seeded once; the user's own edits (if
+      // they ever remove one) are never overwritten on reload.
+      if(S.cfg.avoidExercises===undefined)S.cfg.avoidExercises=['push_press','db_push_press'];
       // Migrate: seed the body-composition scan + lean focus for the score goal.
       // Muscle is already above range, so the only lever to 100 is fat loss while
       // holding muscle — switch the goal to lean recomp and turn conditioning on.
@@ -990,6 +996,11 @@ const KNEE_SAFE_IDS=new Set(['goblet','rdl','db_rdl','reverse_lunge','sumo_squat
 // pickEx's per-slot gate above) — Knee-Caution there is a flat allow-list
 // check: exclude any leg exercise outside the knee-safe set.
 const kneeCautionBlocks=(e)=>S.cfg.kneeCaution&&e.muscle==='legs'&&!KNEE_SAFE_IDS.has(e.id);
+// Personal exercise exclusions — movements that flare a specific issue
+// regardless of the broader hip/knee/shoulder caution flags (e.g. Push Press
+// on the lower back). A flat id blacklist, not a tag rule, since these are
+// one-off "this specific movement doesn't work for me" reports.
+const userAvoids=(e)=>(S.cfg.avoidExercises||[]).includes(e.id);
 
 // Dragon Flag progression track: Tier 1 (Lying Leg Lifts) is always offered;
 // Tier 2/3 unlock only after logging 10+ reps in a single set on the tier
@@ -1049,6 +1060,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     legGateOK(e) &&
     !(S.cfg.hipCaution && e.hipRisk) &&
     !(S.cfg.hipCaution && (e.tags||[]).includes('plyometric')) &&
+    !userAvoids(e) &&
     !(isLunch && e.highSweat);
 
   // Among the candidates, take the LEAST-used movement (lowest weekly frequency),
@@ -3414,6 +3426,7 @@ function renderSwapSearchResults(query,exIdx){
     !(S.cfg.hipCaution&&e.hipRisk) &&
     !(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')) &&
     !kneeCautionBlocks(e) &&
+    !userAvoids(e) &&
     (e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q)||e.type.toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
   ).slice(0,15);
   if(!matches.length)return`<div style='font-size:13px;color:var(--mut)'>No matches for "${query.replace(/</g,'&lt;')}"</div>`;
@@ -3729,7 +3742,7 @@ function renderWorkout(){
   const todayAv=av[today]||{};
   const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
   const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric'))&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric'))&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
   const swapSearchOpen=swapOpen&&S.active.swapSearch;
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
@@ -5724,7 +5737,7 @@ function localAnswer(q){
     if(/equipment|need|require|use/.test(ql))
       return`<strong>${ex.name}</strong> uses: ${ex.eq.join(', ')}`;
     if(/alternative|substitute|instead|replace|swap/.test(ql)){
-      const alts=EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id)).slice(0,5);
+      const alts=EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)).slice(0,5);
       return`Alternatives for <strong>${ex.name}</strong> (${ex.muscle}):<br><br>${alts.map(a=>`• ${a.name}`).join('<br>')}`;
     }
     return`<strong>${ex.name}</strong> — ${ex.muscle}, ${ex.type}<br>Equipment: ${ex.eq.join(', ')}<br><br>${ex.cue}`;
@@ -5732,7 +5745,7 @@ function localAnswer(q){
   // Muscle group
   const muscle=['chest','back','shoulders','biceps','triceps','legs','core','hips'].find(m=>ql.includes(m));
   if(muscle){
-    const list=EX.filter(e=>e.muscle===muscle&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id));
+    const list=EX.filter(e=>e.muscle===muscle&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id));
     return`<strong>${muscle.charAt(0).toUpperCase()+muscle.slice(1)} exercises:</strong><br><br>${list.map(e=>`• ${e.name} (${e.type})`).join('<br>')}`;
   }
   return null;
@@ -5789,6 +5802,7 @@ async function askAssistant(q){
   try{
     const hipNote=S.cfg.hipCaution?'User has hip impingement (FAI) — avoid deep squat patterns and compressive end-range hip flexion.':'';
     const goalNote='User\'s overarching goal: look jacked like a bodybuilder but train and MOVE like an athlete — hypertrophy base with explosive/ballistic power accents, rotational core work, and carries, mainly in evening sessions (lunch sessions are time-boxed and low-sweat).';
+    const avoidNote=(S.cfg.avoidExercises||[]).length?`Movements the user has personally flagged as bothering them — never suggest these: ${S.cfg.avoidExercises.map(id=>EX.find(e=>e.id===id)?.name||id).join(', ')}.`:'';
     const prog=S.program?`Current split: ${S.program.week.filter(d=>!d.rest).map(d=>DOW[d.dow]+': '+d.name).join(', ')}.`:'';
     const ctx=chatExerciseContext();
     const res=await fetch('https://api.anthropic.com/v1/messages',{
@@ -5796,7 +5810,7 @@ async function askAssistant(q){
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-client-side-allowlist-v1':'true'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',max_tokens:600,
-        system:`You are a concise personal trainer in a workout app. ${goalNote} ${hipNote} ${prog}
+        system:`You are a concise personal trainer in a workout app. ${goalNote} ${hipNote} ${avoidNote} ${prog}
 ${ctx?ctx.prompt+'\n':''}
 CORE TRAINING PRINCIPLES (synthesize these with current athletic research when the static technique notes leave a gap — e.g. unilateral set order, breathing, tempo, grip width):
 - Controlled eccentrics (2-3 count) and full ROM beat load; last rep should be hard, form never breaks.
