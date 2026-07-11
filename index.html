@@ -204,16 +204,6 @@ body{
 .plan-eve-opts{margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)}
 .wk-day{cursor:pointer}
 .wk-day.viewing{background:rgba(129,140,248,.2);border-radius:8px}
-/* chat */
-.chat-btn{position:fixed;bottom:76px;right:16px;width:50px;height:50px;border-radius:50%;background:var(--acc);color:#0a0a12;border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(0,0,0,.4);z-index:89;transition:transform .15s}
-.chat-btn:active{transform:scale(.92)}
-.chat-sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:72vh;background:var(--surf);border-top:1px solid var(--bdr);border-radius:16px 16px 0 0;z-index:98;display:flex;flex-direction:column;box-shadow:0 -4px 24px rgba(0,0,0,.4)}
-.chat-hdr{padding:14px 16px 12px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.chat-msgs{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
-.chat-bubble{max-width:88%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.55;word-break:break-word}
-.cb-user{background:var(--acc);color:#0a0a12;align-self:flex-end;border-bottom-right-radius:4px}
-.cb-ai{background:var(--surf2);color:var(--txt);align-self:flex-start;border-bottom-left-radius:4px}
-.chat-foot{padding:10px 12px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0}
 /* custom exercise autocomplete dropdown */
 .ex-suggest{position:absolute;top:100%;left:0;right:0;z-index:60;background:var(--surf3);border:1px solid var(--bdr-strong);border-radius:10px;margin-top:4px;max-height:230px;overflow-y:auto;display:none;box-shadow:var(--shadow-lg)}
 .ex-suggest.on{display:block}
@@ -868,16 +858,22 @@ function currentVO2Protocol(){
 // reduces DOMS at 24-48h (2025 Frontiers Physiology RCT; 99-study review);
 // static stretching is for ROM, not soreness (2025 meta-analyses find no
 // robust DOMS effect) — protocols below pair movement with tissue work.
+// Every protocol carries at least one upper-back (thoracic) item — the user's
+// chronically stiff area — so it gets touched on every mobility day, not just
+// when the rotation lands on the Thoracic & Shoulders day.
 const RECOVERY_PROTOCOLS=[
-  {name:'Hip Reset',icon:'🦋',mins:15,items:[
+  {name:'Hip Reset',icon:'🦋',mins:16,items:[
     'Hip CARs — 5 slow circles each side',
     '90/90 hip stretch — 60s per side',
     'Half-kneeling hip flexor stretch — 45s per side',
     'Glute bridge hold — 3 × 20s',
+    'Thread the needle — 6 per side (keeps the upper back moving on hip day)',
     'Foam roll quads & glutes — 2 min',
   ]},
-  {name:'Thoracic & Shoulders',icon:'🧘',mins:12,items:[
+  {name:'Thoracic & Shoulders',icon:'🧘',mins:15,items:[
     'Cat-cow — 10 slow reps',
+    'Foam roller thoracic extensions — 10 slow arches (roller across the mid-back, hands behind head, arch OVER it — the single best stiff-upper-back opener)',
+    'Open book — 8 per side (side-lying, knees stacked, top arm sweeps open — follow the hand with your eyes)',
     'Thread the needle — 8 per side',
     'Wall slides — 2 × 10',
     'Doorway pec stretch — 45s per side',
@@ -888,12 +884,14 @@ const RECOVERY_PROTOCOLS=[
     'Couch stretch — 60s per side',
     'Hamstring floss — 10 per side',
     'Standing calf stretch — 45s per side',
+    'Open book — 8 per side (upper-back rotation while the legs flush)',
     'Foam roll calves & hamstrings — 2 min',
   ]},
-  {name:'Full-Body Flow',icon:'🌊',mins:15,items:[
+  {name:'Full-Body Flow',icon:'🌊',mins:16,items:[
     "World's greatest stretch — 5 per side",
     'Deep squat hold — 3 × 30s',
     'Dead hang from bar — 3 × 15-30s',
+    'Prayer stretch — 45s (kneel, forearms on a bench, sink the chest toward the floor — lats and mid-back lengthen together)',
     'Ankle rocks — 10 per side',
     'Down-dog to cobra flow — 8 slow reps',
   ]},
@@ -3798,6 +3796,11 @@ function renderWorkout(){
     {n:'Plow Pose',d:'30 sec · from your back, sweep the legs up and over until the toes reach the floor behind your head (knees bent is fine) — full posterior-chain and spine stretch; skip if the neck complains',hold:30},
     {n:'Toe Stretch',d:'30 sec · kneel with the toes tucked under and sit back onto the heels — plantar fascia and toe flexors; brutal at first, eases fast with practice',hold:30},
     {n:'Straddle Stretch',d:'45 sec · seated, legs wide, walk the chest forward between them with a flat back — adductors and hamstrings together',hold:45},
+    // Upper-back (thoracic) additions — chronically stiff area, so the pool
+    // carries three so the rotation surfaces one most days.
+    {n:'Thread the Needle',d:'30 sec/side · from all fours, slide one arm under the body until the shoulder rests on the floor — upper-back rotation, breathe into the stretch',hold:30},
+    {n:'Open Book',d:'30 sec/side · side-lying, knees stacked at 90°, sweep the top arm open following the hand with your eyes — pure thoracic rotation, hips stay put',hold:30},
+    {n:'Prayer Stretch',d:'45 sec · kneel with forearms on a bench, sink the chest toward the floor — lats and mid-back lengthen together, the stiff-upper-back opener',hold:45},
   ];
   const cooldownHTML=isLast&&allDone&&!S.active.isLunch?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-top:14px'>
     <div class='wu-title' style='color:var(--acc)'>🧊 Cool-down · ~5 min</div>
@@ -5061,13 +5064,6 @@ document.addEventListener('click',e=>{
     }
     return;
   }
-  if(a==='save-anthropic-key'){
-    const k=document.getElementById('anthropic-key-input')?.value?.trim();
-    if(k)localStorage.setItem('anthropicKey',k);
-    else localStorage.removeItem('anthropicKey');
-    alert(k?'API key saved.':'API key removed.');
-    return;
-  }
   if(a==='clear-fb-config'){
     localStorage.removeItem('fbConfig');
     fbReady=false;fbUser=null;fbAuth=null;fbDb=null;
@@ -5723,200 +5719,6 @@ document.addEventListener('input',e=>{
 });
 
 // ─────────────────────────────────────────────
-// EXERCISE ASSISTANT CHAT
-// ─────────────────────────────────────────────
-let chatOpen=false,chatLoading=false,chatMsgs=[];
-
-function localAnswer(q){
-  const ql=q.toLowerCase();
-  // Find mentioned exercise
-  const ex=EX.find(e=>ql.includes(e.name.toLowerCase())||ql.includes(e.id.replace(/_/g,' ')));
-  if(ex){
-    if(/how|technique|form|cue|tip|perform|do i|do the/.test(ql))
-      return`<strong>${ex.name}</strong><br><br>${ex.cue}`;
-    if(/equipment|need|require|use/.test(ql))
-      return`<strong>${ex.name}</strong> uses: ${ex.eq.join(', ')}`;
-    if(/alternative|substitute|instead|replace|swap/.test(ql)){
-      const alts=EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)).slice(0,5);
-      return`Alternatives for <strong>${ex.name}</strong> (${ex.muscle}):<br><br>${alts.map(a=>`• ${a.name}`).join('<br>')}`;
-    }
-    return`<strong>${ex.name}</strong> — ${ex.muscle}, ${ex.type}<br>Equipment: ${ex.eq.join(', ')}<br><br>${ex.cue}`;
-  }
-  // Muscle group
-  const muscle=['chest','back','shoulders','biceps','triceps','legs','core','hips'].find(m=>ql.includes(m));
-  if(muscle){
-    const list=EX.filter(e=>e.muscle===muscle&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id));
-    return`<strong>${muscle.charAt(0).toUpperCase()+muscle.slice(1)} exercises:</strong><br><br>${list.map(e=>`• ${e.name} (${e.type})`).join('<br>')}`;
-  }
-  return null;
-}
-
-// ─── CHAT SCOPE GUARD ───
-// Hard boundary: the assistant covers biomechanics, execution, and exercise
-// output ONLY. Nutrition topics are refused deterministically here (before any
-// API call), and the same restriction is restated in the AI system prompt.
-const CHAT_OFF_TOPIC=/\b(calorie?s?|caloric|kcal|diets?|dieting|macros?|macronutrients?|nutrition\w*|meal\s?(plan\w*|prep\w*|s\b)?|protein (intake|target|goal)|carb(ohydrate)?s?\b|what (should|do) i eat|food|eating plan|fasting|deficit|surplus)\b/i;
-function chatScopeGuard(q){
-  if(CHAT_OFF_TOPIC.test(q))
-    return `That's outside my lane — I only cover <strong>biomechanics, execution, and exercise programming</strong>. I can't advise on calories, diet, or macros.<br><br>Ask me about form cues, exercise order, alternatives, rest, or progression instead.`;
-  return null;
-}
-
-// ─── CHAT EXERCISE CONTEXT ───
-// Gives the chat engine direct access to the exercise the user is currently
-// looking at: the active workout's current movement, or an expanded exercise
-// detail card. Returns null when no exercise is in focus.
-function chatExerciseContext(){
-  let ex=null,setting='';
-  if(S.view==='workout'&&S.active?.exercises?.length){
-    ex=S.active.exercises[S.active.exIdx]||null;
-    setting=`mid-workout (${S.active.dayName}${S.active.isLunch?' · lunch session, 90s rest cap':''})`;
-  }else if(S.viewExDetail){
-    const allEx=[...EX,...(S.customExercises||[])];
-    ex=allEx.find(e=>e.id===S.viewExDetail)||null;
-    setting='viewing exercise detail';
-  }
-  if(!ex)return null;
-  const p=progression(ex.id,ex.rMax);
-  return{
-    name:ex.name,
-    prompt:`CURRENT EXERCISE CONTEXT (user is ${setting}):\n`+
-      `- Exercise: ${ex.name} (${ex.type}, targets ${MNAME[ex.muscle]||ex.muscle})\n`+
-      `- Target reps: ${ex.rMin}-${ex.rMax}${ex.isTimed?' seconds':''} · rest: ${smartRest(ex)}s\n`+
-      `- Technique notes on file: ${ex.cue}\n`+
-      (p?`- Last performance: ${p.summary}${p.ready?' (progression trigger met — next suggestion '+p.suggest+' lb)':''}\n`:'')+
-      `Questions that say "this exercise" refer to ${ex.name}.`
-  };
-}
-
-async function askAssistant(q){
-  // Deterministic scope refusal — applies in both AI and local-DB modes
-  const offTopic=chatScopeGuard(q);
-  if(offTopic)return offTopic;
-
-  const key=localStorage.getItem('anthropicKey');
-  if(!key){
-    const local=localAnswer(q);
-    return local||`No AI key configured — but I can answer questions about specific exercises or muscle groups by name. Add your Anthropic API key in the Cloud Sync settings for full AI responses.`;
-  }
-  try{
-    const hipNote=S.cfg.hipCaution?'User has hip impingement (FAI) — avoid deep squat patterns and compressive end-range hip flexion.':'';
-    const goalNote='User\'s overarching goal: look jacked like a bodybuilder but train and MOVE like an athlete — hypertrophy base with explosive/ballistic power accents, rotational core work, and carries, mainly in evening sessions (lunch sessions are time-boxed and low-sweat).';
-    const avoidNote=(S.cfg.avoidExercises||[]).length?`Movements the user has personally flagged as bothering them — never suggest these: ${S.cfg.avoidExercises.map(id=>EX.find(e=>e.id===id)?.name||id).join(', ')}.`:'';
-    const prog=S.program?`Current split: ${S.program.week.filter(d=>!d.rest).map(d=>DOW[d.dow]+': '+d.name).join(', ')}.`:'';
-    const ctx=chatExerciseContext();
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-client-side-allowlist-v1':'true'},
-      body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',max_tokens:600,
-        system:`You are a concise personal trainer in a workout app. ${goalNote} ${hipNote} ${avoidNote} ${prog}
-${ctx?ctx.prompt+'\n':''}
-CORE TRAINING PRINCIPLES (synthesize these with current athletic research when the static technique notes leave a gap — e.g. unilateral set order, breathing, tempo, grip width):
-- Controlled eccentrics (2-3 count) and full ROM beat load; last rep should be hard, form never breaks.
-- Double progression: fill the target rep range on every set, then +4% load.
-- Unilateral work: complete reps per side; for stability-limited moves finish one side before switching unless the program says alternate.
-- Heavy compounds rest 2-3 min; isolation ≥90s.
-SCOPE: You answer ONLY biomechanics, exercise execution, and training output questions. If asked about caloric intake, diet, macros, or any nutrition topic, refuse briefly and redirect to training questions. No exceptions.
-Keep answers short, practical, and use line breaks. No markdown headers.`,
-        messages:[{role:'user',content:q}]
-      })
-    });
-    if(!res.ok)throw new Error('API '+res.status);
-    const data=await res.json();
-    return data.content[0].text.replace(/\n/g,'<br>');
-  }catch(e){
-    const local=localAnswer(q);
-    return local||`Couldn't reach AI (${e.message}). Check your API key in Cloud Sync settings.`;
-  }
-}
-
-function renderChatHTML(){
-  if(!chatOpen)return'';
-  const bubbles=chatMsgs.map(m=>`<div class='chat-bubble ${m.role==='user'?'cb-user':'cb-ai'}'>${m.text}</div>`).join('');
-  const hasKey=!!localStorage.getItem('anthropicKey');
-  return`<div class='chat-sheet'>
-    <div class='chat-hdr'>
-      <div><div style='font-size:14px;font-weight:700'>💬 Exercise Assistant</div>
-        <div style='font-size:11px;color:var(--mut)'>${hasKey?'AI powered · Claude Haiku':'Local DB answers · add API key for AI'}</div></div>
-      <button style='background:none;border:none;color:var(--mut);font-size:24px;cursor:pointer;padding:0 4px' onclick='toggleChat()'>×</button>
-    </div>
-    <div class='chat-msgs' id='chat-msgs'>
-      ${!chatMsgs.length?`<div style='text-align:center;color:var(--mut);padding:24px 16px;font-size:13px;line-height:1.7'>Ask me anything about exercises.<br><span style='font-size:12px'>Technique · Equipment · Alternatives · Programming</span></div>`:''}
-      ${bubbles}
-      ${chatLoading?`<div class='chat-bubble cb-ai' style='color:var(--mut)'>Thinking…</div>`:''}
-    </div>
-    <div class='chat-foot'>
-      <input type='text' id='chat-input' class='ni' placeholder='e.g. How do I do a proper RDL?' style='flex:1;text-align:left;padding:10px 12px' onkeydown='if(event.key==="Enter")sendChat()'>
-      <button class='btn btn-p btn-sm' onclick='sendChat()' style='width:auto'>Send</button>
-    </div>
-  </div>`;
-}
-
-function updateChatUI(){
-  const el=document.getElementById('chat-float');
-  if(el)el.innerHTML=renderChatHTML();
-  // Scroll to bottom
-  setTimeout(()=>{const m=document.getElementById('chat-msgs');if(m)m.scrollTop=m.scrollHeight;},50);
-}
-
-function toggleChat(){chatOpen=!chatOpen;updateChatUI();}
-
-// ─── INLINE MID-WORKOUT CHAT ───
-// Embedded directly in the workout screen layout (no overlay/sheet). The
-// active exercise context is injected automatically via chatExerciseContext().
-// DOM is updated in place (never a full render()) so uncommitted set inputs
-// are preserved while chatting mid-workout.
-function inlineChatBubbles(){
-  const empty=!chatMsgs.length&&!chatLoading
-    ?`<div style='text-align:center;color:var(--mut);padding:10px;font-size:12px'>Ask about this exercise — form, set order, tempo, alternatives.</div>`:'';
-  return empty
-    +chatMsgs.map(m=>`<div class='chat-bubble ${m.role==='user'?'cb-user':'cb-ai'}'>${m.text}</div>`).join('')
-    +(chatLoading?`<div class='chat-bubble cb-ai' style='color:var(--mut)'>Thinking…</div>`:'');
-}
-function renderInlineChat(ex){
-  const hasKey=!!localStorage.getItem('anthropicKey');
-  return`<div class='card' style='margin-top:12px;padding:14px'>
-    <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>
-      <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc)'>💬 Form Check · ${ex?ex.name:'this exercise'}</div>
-      <div style='font-size:10px;color:var(--mut)'>${hasKey?'AI':'local'}</div>
-    </div>
-    <div id='inline-chat-msgs' style='max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:8px'>${inlineChatBubbles()}</div>
-    <div style='display:flex;gap:8px'>
-      <input type='text' id='chat-input-inline' class='ni' placeholder='e.g. Alternate legs or one side at a time?' style='flex:1;text-align:left;padding:10px 12px' onkeydown='if(event.key==="Enter")sendChatInline()'>
-      <button class='btn btn-p btn-sm' onclick='sendChatInline()' style='width:auto'>Send</button>
-    </div>
-  </div>`;
-}
-function updateInlineChat(){
-  const el=document.getElementById('inline-chat-msgs');
-  if(el){el.innerHTML=inlineChatBubbles();el.scrollTop=el.scrollHeight;}
-}
-async function sendChatInline(){
-  const input=document.getElementById('chat-input-inline');
-  const text=input?.value?.trim();
-  if(!text||chatLoading)return;
-  input.value='';
-  chatMsgs.push({role:'user',text});
-  chatLoading=true;updateInlineChat();
-  const answer=await askAssistant(text);
-  chatMsgs.push({role:'assistant',text:answer});
-  chatLoading=false;updateInlineChat();
-}
-
-async function sendChat(){
-  const input=document.getElementById('chat-input');
-  const text=input?.value?.trim();
-  if(!text||chatLoading)return;
-  input.value='';
-  chatMsgs.push({role:'user',text});
-  chatLoading=true;updateChatUI();
-  const answer=await askAssistant(text);
-  chatMsgs.push({role:'assistant',text:answer});
-  chatLoading=false;updateChatUI();
-}
-
-// ─────────────────────────────────────────────
 // CLOUD SYNC (Firebase)
 // ─────────────────────────────────────────────
 let fbAuth=null,fbDb=null,fbUser=null,fbReady=false;
@@ -6103,13 +5905,6 @@ function renderCloudSetup(){
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>On the new device, open Cloud Sync, paste this config, tap Connect, then sign in with the same email to pull your data.</div>`:''}
     <button class='btn ${existing?'btn-g btn-sm':'btn-ok'}' data-action='save-fb-config' style='margin-top:${existing?'8':'12'}px'>${existing?'Re-connect with edited config':'Connect →'}</button>
     ${existing?`<button class='btn btn-g btn-sm' data-action='clear-fb-config' style='margin-top:8px'>Remove config &amp; disconnect</button>`:''}
-
-    <div class='sec-lbl' style='margin-top:24px;margin-bottom:6px'>AI Assistant (optional)</div>
-    <div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Add your Anthropic API key to enable AI-powered answers in the exercise chat. Get a free key at <strong>console.anthropic.com</strong>. Your key is stored only on this device.</div>
-    <div style='display:flex;gap:8px'>
-      <input type='password' id='anthropic-key-input' class='ni' placeholder='sk-ant-...' value='${localStorage.getItem('anthropicKey')||''}' style='flex:1;text-align:left;padding:10px 12px;font-size:13px'>
-      <button class='btn btn-s btn-sm' data-action='save-anthropic-key' style='width:auto'>Save</button>
-    </div>
   </div>`;
 }
 
