@@ -3287,28 +3287,39 @@ function renderDash(){
 
   // VO2 max protocol — offered on days whose evening is NOT a lifting session
   // (rest days, weekends, cardio evenings). Aerobic only: never touches MRV.
+  // Viewing a PAST day of this week retargets the card to THAT day, so a
+  // forgotten session (Friday's Norwegian 4×4 remembered on Saturday) is
+  // saved with Friday's date — recovery and history logic key off log dates.
   let vo2HTML='';
   {
-    const todayD=todayDay();
-    const eveningFree=!todayD||todayD.rest||!todayD.eveningSession;
-    if(eveningFree){
-      const proto=currentVO2Protocol();
-      const tomorrow=S.program?.week[(todayDow()+1)%7];
-      const legsTomorrow=!!(tomorrow&&!tomorrow.rest&&(tomorrow.exercises||[]).some(e=>e.muscle==='legs'&&e.type==='compound'));
-      const doneToday=vo2History().some(l=>logDay(l.date)===todayStr());
-      vo2HTML=`<div style='margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)'>
-        <div class='sec-lbl' style='margin-bottom:6px'>VO2 Max · Evening Protocol${proto.lvl?` · Session ${proto.lvl+1}`:''}</div>
+    const viewDow2=S.viewDay!=null?S.viewDay:dow;
+    const isBackdate=viewDow2!==dow;
+    const isPastDay=viewDow2<dow; // week grid covers the current Sun–Sat only
+    if(!isBackdate||isPastDay){
+      const todayD=todayDay();
+      const eveningFree=!todayD||todayD.rest||!todayD.eveningSession;
+      // Backdating skips the evening-free gate: it records what actually
+      // happened, even on a day that also had a lifting session.
+      if(isBackdate||eveningFree){
+        const proto=currentVO2Protocol();
+        const targetDateStr=isBackdate?addDays(todayStr(),viewDow2-dow):todayStr();
+        const tomorrow=S.program?.week[(dow+1)%7];
+        const legsTomorrow=!isBackdate&&!!(tomorrow&&!tomorrow.rest&&(tomorrow.exercises||[]).some(e=>e.muscle==='legs'&&e.type==='compound'));
+        const doneThatDay=vo2History().some(l=>logDay(l.date)===targetDateStr);
+        vo2HTML=`<div style='margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)'>
+        <div class='sec-lbl' style='margin-bottom:6px'>VO2 Max · ${isBackdate?`Log for ${DOW[viewDow2]}`:'Evening Protocol'}${proto.lvl?` · Session ${proto.lvl+1}`:''}</div>
         <div class='cardio-row'>
           <div class='cr-icon'>${proto.icon}</div>
           <div class='cr-body'><div class='cr-name'>${proto.name}</div><div class='cr-note'>${proto.desc}</div></div>
           <div class='cr-right'><div class='cr-dur'>${proto.mins} min</div><div class='cr-dist'>aerobic</div></div>
         </div>
         ${legsTomorrow?`<div style='font-size:11px;color:var(--warn);margin-top:6px'>⚠️ Legs are programmed tomorrow — keep the easy portions truly easy, or shift this to another evening.</div>`:''}
-        ${doneToday
-          ?`<div class='prog-hint' style='margin-top:8px'>✅ VO2 session logged today</div>`
-          :`<button class='btn btn-s btn-sm' data-action='log-vo2-session' style='margin-top:8px;width:100%'>🫀 Log VO2 Session Done</button>`}
-        <div style='font-size:11px;color:var(--mut);margin-top:6px'>+1 interval every 4 sessions, protocols alternate. Doesn't count against lifting MRV or the two-session daily cap.</div>
+        ${doneThatDay
+          ?`<div class='prog-hint' style='margin-top:8px'>✅ VO2 session logged ${isBackdate?DOW[viewDow2]:'today'}</div>`
+          :`<button class='btn btn-s btn-sm' data-action='log-vo2-session' data-date='${targetDateStr}' style='margin-top:8px;width:100%'>🫀 Log VO2 Session Done${isBackdate?` — for ${DOW[viewDow2]}`:''}</button>`}
+        <div style='font-size:11px;color:var(--mut);margin-top:6px'>${isBackdate?`Saves to ${DOW[viewDow2]} ${targetDateStr} — tap "Back to Today" when done. `:''}+1 interval every 4 sessions, protocols alternate. Doesn't count against lifting MRV or the two-session daily cap.</div>
       </div>`;
+      }
     }
   }
   const planCard=`<div class='card' style='margin-bottom:14px'>
@@ -5258,9 +5269,14 @@ document.addEventListener('click',e=>{
   }
   if(a==='log-vo2-session'){
     const p=currentVO2Protocol();
+    // Backdate support: the dashboard card carries data-date for the day being
+    // viewed. A past day saves at 18:00 local of THAT date (a plausible evening
+    // slot), so recovery/history logic attributes the session to the right day.
+    const targetDate=btn.dataset.date;
+    const iso=(targetDate&&targetDate!==todayStr())?new Date(targetDate+'T18:00:00').toISOString():new Date().toISOString();
     // isCardio + empty exercises → invisible to MRV set volumes, the lifting
     // two-per-day cap, completed-day detection, and progression
-    S.logs.push({id:Date.now().toString(),date:new Date().toISOString(),dayName:`VO2 Max · ${p.name}`,isCardio:true,vo2:true,duration:p.mins,exercises:[]});
+    S.logs.push({id:Date.now().toString(),date:iso,dayName:`VO2 Max · ${p.name}`,isCardio:true,vo2:true,duration:p.mins,exercises:[]});
     S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     save();render();return;
   }
