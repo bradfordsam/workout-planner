@@ -816,7 +816,17 @@ const TMPLS = {
   ]},
 };
 
-const EX_LIMIT={30:2,45:3,60:5,75:6,90:7};
+// Recalibrated 2026-07-11 (user report: a 60-min session couldn't finish its
+// last 2 exercises). The original counts only budgeted main working sets plus
+// a single lead warm-up. Since then, non-lunch sessions also carry a
+// desk-reversal primer (~45s), an abbreviated 2-set acclimation ramp on EVERY
+// new muscle group's first lift (not just the session lead — up to 2 more
+// ~2 min ramps in a typical 3-muscle-group day), and a ~5 min post-set
+// cool-down — none of which existed when these numbers were first set. Each
+// tier's exercise count is cut by 1 to make room for that real, fixed
+// overhead; 30 is unreachable via the UI (evening/weekend picker only offers
+// 45/60/75/90) and left alone.
+const EX_LIMIT={30:2,45:3,60:4,75:5,90:6};
 const CONDITIONING_FINISHERS=[
   {name:'Sprint Intervals',desc:'8 × 30s all-out / 60s walk rest',icon:'🏃',mins:12},
   {name:'Burpee EMOM',desc:'10 min · 10 burpees at the top of each minute',icon:'💥',mins:10},
