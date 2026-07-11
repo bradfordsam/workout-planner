@@ -278,7 +278,8 @@ const EX = [
   {id:'bb_shrug',name:'Barbell Shrugs',muscle:'back',type:'isolation',eq:['barbell'],rMin:10,rMax:15,rest:120,cue:'Hold a loaded barbell at arm\'s length, shoulders relaxed. Shrug straight UP toward your ears — no rolling, which adds nothing and stresses the joint. Pause and squeeze the traps hard at the top, then lower under control to a full stretch. Let the traps do the work; don\'t bounce with the knees.',tags:['trap']},
   {id:'ohp',name:'Overhead Press',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Standing, feet shoulder-width. Bar at clavicle, slightly in front of face. Press straight overhead, lock out. Brace core, no excessive lean.'},
   {id:'seated_db_press',name:'Seated DB Shoulder Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'Start at ear height, press up and slightly in. Full lockout. Control descent back to ear height.'},
-  {id:'push_press',name:'Push Press',muscle:'shoulders',type:'compound',eq:['barbell','dumbbells'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'Bar (or DBs) racked at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch the weight overhead in one motion to lockout. Lower under control back to the shoulders. The leg drive lets you overload the press beyond strict-press weights while training total-body explosiveness — the classic athlete\'s overhead lift.'},
+  {id:'push_press',name:'Push Press',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'Bar racked at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch the bar overhead in one motion to lockout. Lower under control back to the shoulders. The leg drive lets you overload the press beyond strict-press weights while training total-body explosiveness — the classic athlete\'s overhead lift.'},
+  {id:'db_push_press',name:'DB Push Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'A dumbbell in each hand at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch both DBs overhead in one motion to lockout. Each arm stabilizes its own dumbbell independently, so this runs noticeably lighter per hand than half your barbell push press — don\'t chase the same number. Lower under control back to the shoulders.'},
   {id:'arnold_press',name:'Arnold Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Seated on a bench with back support. Start palms facing you, rotate to facing out as you press. All three delt heads involved. Control the descent.'},
   {id:'db_lateral',name:'DB Lateral Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Standing, slight forward lean, lead with elbows. Imagine "scraping the wall" with your knuckles as you raise — keeps the path in the scapular plane. Pause at top. Slow 2-count negative. Lateral delts respond well to higher reps.'},
   {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Standing, cross-body cable. "Scrape the wall" with your hand on the way up to keep the arm path in the scapular plane. Constant tension throughout ROM. Resist the weight on the way down — don\'t let it snap back.'},
@@ -478,6 +479,7 @@ const FEELS={
   ohp:'Front and side delts driving the bar while the whole trunk braces like a pillar.',
   seated_db_press:'Delts working through the whole arc — side delts light up at the midpoint.',
   push_press:'Legs snap, then the delts catch and finish — power transferring up through the trunk.',
+  db_push_press:'Legs snap, then each delt independently catches and stabilizes its own DB — more balance demand than the barbell version.',
   arnold_press:'Delts loaded through the rotation — front delts at the start, side delts as the arms open.',
   db_lateral:'The side delt lifting the elbow — a burn on the outside cap of the shoulder, traps quiet.',
   cable_lateral:'Constant side-delt tension through the whole arc — especially the bottom third where dumbbells go slack.',
@@ -2385,6 +2387,8 @@ const MOVEMENT_CLASS = {
   seated_db_press:[{from:'ohp',coef:0.38},{from:'arnold_press',coef:1.0}], // per-DB
   arnold_press:  [{from:'seated_db_press',coef:1.0},{from:'ohp',coef:0.38}],
   ohp:           [{from:'seated_db_press',coef:2.4}],
+  db_push_press: [{from:'push_press',coef:0.38},{from:'seated_db_press',coef:1.1}], // per-DB
+  push_press:    [{from:'db_push_press',coef:2.4},{from:'ohp',coef:1.15}],
   cable_lateral: [{from:'db_lateral',coef:1.0}],
   lying_cable_lat:[{from:'db_lateral',coef:0.8},{from:'cable_lateral',coef:0.8}],
   incline_lateral:[{from:'db_lateral',coef:0.8}],
