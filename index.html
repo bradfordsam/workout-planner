@@ -402,6 +402,12 @@ const EX = [
   {id:'pistol_squat',name:'Pistol Squat',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:180,cue:'Single-leg squat to full depth, free leg extended forward. Builds unilateral strength, mobility, and balance. Use assistance if needed. Ultimate bodyweight squat progression. Count per leg.',tags:['unilateral','advanced','squat']},
   {id:'handstand_pushup',name:'Handstand Push-up',muscle:'shoulders',type:'compound',eq:['bodyweight'],rMin:3,rMax:8,rest:180,cue:'Inverted push-up against wall. Lower head to floor, press back up. Builds shoulder and core strength. Progress from pike push-ups. Advanced bodyweight movement. Count reps.',tags:['inverted','advanced']},
   {id:'l_sits',name:'L-Sit',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:30,rest:120,isTimed:true,cue:'Sit with legs extended, hands flat, lift entire body off ground. Hold position with straight legs parallel to floor. Incredible core and shoulder strength builder. Count seconds.',tags:['isometric','advanced']},
+  // Posture corrector: the anti-desk-hunch hold. Chest opens and shoulders
+  // extend BACKWARD — the opposite direction of the whole workday — while the
+  // posterior chain (glutes, hamstrings, rear delts, spinal erectors) works to
+  // keep the hips lifted. Pairs naturally with the Desk Reversal primer and
+  // the upper-back stretch pool as another angle on the same chronic stiffness.
+  {id:'reverse_plank',name:'Reverse Plank',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:20,rMax:45,rest:75,isTimed:true,cue:'Sit with legs extended, hands flat on the floor just behind your hips, fingers pointing toward your feet (or turned out slightly if the wrists complain). Press down through the hands to lift the hips until your body forms a straight line from heels to shoulders — chest open, head neutral, don\'t let the hips sag. Squeeze the glutes to hold. Regress with bent knees (tabletop reverse plank) if a straight-leg hold breaks form. Count seconds.',tags:['isometric','posture','glute']},
   {id:'broad_jump',name:'Broad Jump',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:150,cue:'Two-foot takeoff, jump forward for maximum distance, land softly on both feet. Focus on explosive hip extension and soft landing mechanics. Reset between reps. Count jumps.',tags:['plyometric','power','bilateral']},
   {id:'continuous_broad_jumps',name:'Continuous Broad Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:90,cue:'Two-foot takeoff into the next jump immediately on landing — minimal ground contact time. Reset only at the end of the set. Land soft and absorb before exploding into the next rep. Grass preferred. Count jumps.',tags:['plyometric','power','bilateral'],highSweat:true},
   {id:'skater_jumps',name:'Skater Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:90,cue:'Lateral bound from one foot to the other, like a speed skater. Land soft on the outside foot, hold briefly, then push off into the next bound. Count per side.',tags:['plyometric','unilateral','lateral'],highSweat:true},
@@ -563,6 +569,7 @@ const FEELS={
   bear_crawl:'The deep core keeping the hips dead level — crawl slow enough that nothing sways.',
   turkish_getup_bw:'Core and shoulder stabilizing every transition — each position locks in before you move on.',
   l_sits:'Abs and hip flexors fighting to hold the legs up while the shoulders press down hard.',
+  reverse_plank:'The chest and front of the shoulders stretching OPEN while the glutes and rear delts squeeze to hold the line — the direct opposite of a desk slouch.',
   battle_ropes:'Shoulders and core generating the waves while the legs anchor — output work.',
   // hips
   clamshell:'The side-butt (glute med) burning — the deep pocket on the side of the hip.',
