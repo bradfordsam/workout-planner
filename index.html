@@ -5825,11 +5825,44 @@ async function initFirebase(cfg){
   }catch(e){console.error('Firebase init failed',e);fbReady=false;}
 }
 
+// Logs whose id appears in the deletedSessions tombstones must not survive a
+// union merge — without this filter, device B's stale copy of a log deleted
+// on device A resurrects it on every sync.
+function filterTombstoned(logs){
+  const delIds=new Set((S.deletedSessions||[]).map(d=>d.log?.id).filter(Boolean));
+  return (logs||[]).filter(l=>!delIds.has(l.id));
+}
+
+let lastCloudMergeRead=0;
 async function saveToCloud(){
   if(!fbReady||!fbUser||!fbDb)return;
   try{
+    const ref=fbDb.collection('users').doc(fbUser.uid);
+    // Read-merge-write. A blind set() replaced the ENTIRE cloud doc with this
+    // device's state — so a phone that hadn't pulled since another device
+    // logged a workout would erase that workout from the cloud on its next
+    // save (e.g. an iPhone's lunch session vanishing when the evening phone
+    // edited the week). Union the additive collections with the live cloud
+    // copy before every write. The read is throttled: rapid-fire saves during
+    // a workout (every completed set) reuse the merge from <60s ago — within
+    // that window this device's state is already a superset of what it read,
+    // and the next pull/merge unions anything that landed in between.
+    if(Date.now()-lastCloudMergeRead>60000){
+      const doc=await ref.get();
+      if(doc.exists){
+        const cloud=doc.data();
+        const merged=unionById(S.logs,cloud.logs);
+        merged.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+        S.deletedSessions=unionById(S.deletedSessions,cloud.deletedSessions,d=>d.log?.id).slice(-20);
+        S.logs=filterTombstoned(merged).slice(-10);
+        S.customExercises=unionById(S.customExercises,cloud.customExercises);
+        S.lastWeights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
+        S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
+      }
+      lastCloudMergeRead=Date.now();
+    }
     const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString()};
-    await fbDb.collection('users').doc(fbUser.uid).set(data);
+    await ref.set(data);
   }catch(e){console.error('Cloud save failed',e);}
 }
 
@@ -5888,9 +5921,13 @@ async function loadFromCloud(){
       if(cloudNewer){
         Object.assign(S,{cfg:cloud.cfg||S.cfg,program:cloud.program||S.program,weekPlan:cloud.weekPlan||S.weekPlan,eveningMins:cloud.eveningMins??S.eveningMins,eveningLocation:cloud.eveningLocation??S.eveningLocation});
       }
-      Object.assign(S,{logs:merged.slice(-10),lastWeights:weights,sleepLog:sleep,customExercises:customEx,deletedSessions:deleted.slice(-20)});
+      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,customExercises:customEx});
+      // Tombstone filter AFTER deletedSessions merge: a log deleted on another
+      // device must not ride back in through this device's stale copy.
+      S.logs=filterTombstoned(merged).slice(-10);
       reconcileProgramWithLogs();
       recalcLastWeights();
+      lastCloudMergeRead=Date.now();// this WAS a full merge — saveToCloud can skip its read
       save();// persists merged state and uploads it back to the cloud
     }else{
       await saveToCloud();// first login — push local data up
@@ -5898,6 +5935,20 @@ async function loadFromCloud(){
     render();
   }catch(e){console.error('Cloud load failed',e);render();}
 }
+
+// Pull whenever the app comes back to the foreground. onAuthStateChanged only
+// fires on a cold start — a PWA resumed from the background never re-pulled,
+// so a workout logged on another device at lunch stayed invisible all evening
+// (and a blind save here could then clobber it in the cloud; see saveToCloud).
+let lastCloudPull=0;
+function pullFromCloudThrottled(){
+  if(!fbReady||!fbUser)return;
+  if(Date.now()-lastCloudPull<30000)return;
+  lastCloudPull=Date.now();
+  loadFromCloud();
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullFromCloudThrottled();});
+window.addEventListener('focus',pullFromCloudThrottled);
 
 function cloudSignOut(){
   if(!fbAuth)return;
