@@ -925,7 +925,9 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 let S={
   view:'setup',step:1,
   cfg:{days:5,mins:60,goal:'lean',bodyLbs:199,hipCaution:true,conditioning:true,
-    avoidExercises:['push_press','db_push_press'], // aggravates the lower back
+    // push_press/db_push_press: aggravate the lower back.
+    // woodchop: rotation under cable load pinches the left hip (FAI history).
+    avoidExercises:['push_press','db_push_press','woodchop'],
     // Seeded from the InBody-style body-composition scan (Starfit, 2026-05-24).
     // Muscle already sits above the normal range — the score gap is pure fat, so
     // the program is tuned to strip fat while preserving muscle (see bodyScoreCard).
@@ -970,6 +972,11 @@ function load(){
       // aggravating the lower back). Seeded once; the user's own edits (if
       // they ever remove one) are never overwritten on reload.
       if(S.cfg.avoidExercises===undefined)S.cfg.avoidExercises=['push_press','db_push_press'];
+      // Migrate: Cable Woodchop pinches the left hip (FAI history) — add it to
+      // existing saved states too, since the seed above only runs when the
+      // list doesn't exist yet. There's no UI for editing this list, so a
+      // plain add-if-missing can't clobber a user removal.
+      if(!S.cfg.avoidExercises.includes('woodchop'))S.cfg.avoidExercises.push('woodchop');
       // Migrate: seed the body-composition scan + lean focus for the score goal.
       // Muscle is already above range, so the only lever to 100 is fat loss while
       // holding muscle — switch the goal to lean recomp and turn conditioning on.
@@ -4224,6 +4231,21 @@ function renderLogEdit(){
   </div>`;
 }
 
+// Pull whatever is currently typed in the Edit Workout inputs back into the
+// draft. Must run before ANY re-render of the log-edit view (add/remove
+// exercise), not just on save — render() rebuilds the inputs from the draft,
+// so unsynced typing would silently reset to the draft's stored values.
+function syncLogEditInputs(){
+  const log=S.editLogDraft;if(!log)return;
+  log.exercises.forEach((ex,ei)=>{
+    const isNW=ex.noWeight||EX.find(e=>e.id===ex.id)?.noWeight;
+    (ex.sets||[]).forEach((s,si)=>{
+      if(!isNW){const wEl=document.getElementById(`el-w-${ei}-${si}`);if(wEl)s.weight=parseFloat(wEl.value)||0;}
+      const rEl=document.getElementById(`el-r-${ei}-${si}`);if(rEl)s.reps=parseInt(rEl.value)||0;
+    });
+  });
+}
+
 // ─── Add-exercise autocomplete for the Edit Workout view ───
 function onNewLogExInput(value){
   S.newLogExName=value;
@@ -5622,6 +5644,7 @@ document.addEventListener('click',e=>{
   }
   if(a==='add-log-exercise'){
     const log=S.editLogDraft;if(!log)return;
+    syncLogEditInputs();
     const nameEl=document.getElementById('new-log-ex-name');
     const setsEl=document.getElementById('new-log-ex-sets');
     const name=(nameEl?.value||'').trim();
@@ -5640,6 +5663,9 @@ document.addEventListener('click',e=>{
   }
   if(a==='remove-log-exercise'){
     const log=S.editLogDraft;if(!log)return;
+    // Sync BEFORE the splice — the input ids still match the pre-removal
+    // exercise indices at this point.
+    syncLogEditInputs();
     const idx=parseInt(btn.dataset.idx);
     log.exercises.splice(idx,1);
     render();
@@ -5648,13 +5674,7 @@ document.addEventListener('click',e=>{
   if(a==='save-log-edit'){
     const log=S.editLogDraft;
     if(log){
-      log.exercises.forEach((ex,ei)=>{
-        const isNW=EX.find(e=>e.id===ex.id)?.noWeight;
-        ex.sets.forEach((s,si)=>{
-          if(!isNW){const wEl=document.getElementById(`el-w-${ei}-${si}`);if(wEl)s.weight=parseFloat(wEl.value)||0;}
-          const rEl=document.getElementById(`el-r-${ei}-${si}`);if(rEl)s.reps=parseInt(rEl.value)||0;
-        });
-      });
+      syncLogEditInputs();
       const idx=S.logs.findIndex(l=>l.id===log.id);
       if(idx!==-1)S.logs[idx]=log;
       recalcLastWeights();
