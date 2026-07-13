@@ -204,16 +204,6 @@ body{
 .plan-eve-opts{margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)}
 .wk-day{cursor:pointer}
 .wk-day.viewing{background:rgba(129,140,248,.2);border-radius:8px}
-/* chat */
-.chat-btn{position:fixed;bottom:76px;right:16px;width:50px;height:50px;border-radius:50%;background:var(--acc);color:#0a0a12;border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(0,0,0,.4);z-index:89;transition:transform .15s}
-.chat-btn:active{transform:scale(.92)}
-.chat-sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:72vh;background:var(--surf);border-top:1px solid var(--bdr);border-radius:16px 16px 0 0;z-index:98;display:flex;flex-direction:column;box-shadow:0 -4px 24px rgba(0,0,0,.4)}
-.chat-hdr{padding:14px 16px 12px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.chat-msgs{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
-.chat-bubble{max-width:88%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.55;word-break:break-word}
-.cb-user{background:var(--acc);color:#0a0a12;align-self:flex-end;border-bottom-right-radius:4px}
-.cb-ai{background:var(--surf2);color:var(--txt);align-self:flex-start;border-bottom-left-radius:4px}
-.chat-foot{padding:10px 12px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0}
 /* custom exercise autocomplete dropdown */
 .ex-suggest{position:absolute;top:100%;left:0;right:0;z-index:60;background:var(--surf3);border:1px solid var(--bdr-strong);border-radius:10px;margin-top:4px;max-height:230px;overflow-y:auto;display:none;box-shadow:var(--shadow-lg)}
 .ex-suggest.on{display:block}
@@ -278,7 +268,8 @@ const EX = [
   {id:'bb_shrug',name:'Barbell Shrugs',muscle:'back',type:'isolation',eq:['barbell'],rMin:10,rMax:15,rest:120,cue:'Hold a loaded barbell at arm\'s length, shoulders relaxed. Shrug straight UP toward your ears — no rolling, which adds nothing and stresses the joint. Pause and squeeze the traps hard at the top, then lower under control to a full stretch. Let the traps do the work; don\'t bounce with the knees.',tags:['trap']},
   {id:'ohp',name:'Overhead Press',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Standing, feet shoulder-width. Bar at clavicle, slightly in front of face. Press straight overhead, lock out. Brace core, no excessive lean.'},
   {id:'seated_db_press',name:'Seated DB Shoulder Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'Start at ear height, press up and slightly in. Full lockout. Control descent back to ear height.'},
-  {id:'push_press',name:'Push Press',muscle:'shoulders',type:'compound',eq:['barbell','dumbbells'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'Bar (or DBs) racked at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch the weight overhead in one motion to lockout. Lower under control back to the shoulders. The leg drive lets you overload the press beyond strict-press weights while training total-body explosiveness — the classic athlete\'s overhead lift.'},
+  {id:'push_press',name:'Push Press',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'Bar racked at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch the bar overhead in one motion to lockout. Lower under control back to the shoulders. The leg drive lets you overload the press beyond strict-press weights while training total-body explosiveness — the classic athlete\'s overhead lift.'},
+  {id:'db_push_press',name:'DB Push Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'A dumbbell in each hand at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch both DBs overhead in one motion to lockout. Each arm stabilizes its own dumbbell independently, so this runs noticeably lighter per hand than half your barbell push press — don\'t chase the same number. Lower under control back to the shoulders.'},
   {id:'arnold_press',name:'Arnold Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Seated on a bench with back support. Start palms facing you, rotate to facing out as you press. All three delt heads involved. Control the descent.'},
   {id:'db_lateral',name:'DB Lateral Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Standing, slight forward lean, lead with elbows. Imagine "scraping the wall" with your knuckles as you raise — keeps the path in the scapular plane. Pause at top. Slow 2-count negative. Lateral delts respond well to higher reps.'},
   {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Standing, cross-body cable. "Scrape the wall" with your hand on the way up to keep the arm path in the scapular plane. Constant tension throughout ROM. Resist the weight on the way down — don\'t let it snap back.'},
@@ -411,6 +402,12 @@ const EX = [
   {id:'pistol_squat',name:'Pistol Squat',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:180,cue:'Single-leg squat to full depth, free leg extended forward. Builds unilateral strength, mobility, and balance. Use assistance if needed. Ultimate bodyweight squat progression. Count per leg.',tags:['unilateral','advanced','squat']},
   {id:'handstand_pushup',name:'Handstand Push-up',muscle:'shoulders',type:'compound',eq:['bodyweight'],rMin:3,rMax:8,rest:180,cue:'Inverted push-up against wall. Lower head to floor, press back up. Builds shoulder and core strength. Progress from pike push-ups. Advanced bodyweight movement. Count reps.',tags:['inverted','advanced']},
   {id:'l_sits',name:'L-Sit',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:30,rest:120,isTimed:true,cue:'Sit with legs extended, hands flat, lift entire body off ground. Hold position with straight legs parallel to floor. Incredible core and shoulder strength builder. Count seconds.',tags:['isometric','advanced']},
+  // Posture corrector: the anti-desk-hunch hold. Chest opens and shoulders
+  // extend BACKWARD — the opposite direction of the whole workday — while the
+  // posterior chain (glutes, hamstrings, rear delts, spinal erectors) works to
+  // keep the hips lifted. Pairs naturally with the Desk Reversal primer and
+  // the upper-back stretch pool as another angle on the same chronic stiffness.
+  {id:'reverse_plank',name:'Reverse Plank',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:20,rMax:45,rest:75,isTimed:true,cue:'Sit with legs extended, hands flat on the floor just behind your hips, fingers pointing toward your feet (or turned out slightly if the wrists complain). Press down through the hands to lift the hips until your body forms a straight line from heels to shoulders — chest open, head neutral, don\'t let the hips sag. Squeeze the glutes to hold. Regress with bent knees (tabletop reverse plank) if a straight-leg hold breaks form. Count seconds.',tags:['isometric','posture','glute']},
   {id:'broad_jump',name:'Broad Jump',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:150,cue:'Two-foot takeoff, jump forward for maximum distance, land softly on both feet. Focus on explosive hip extension and soft landing mechanics. Reset between reps. Count jumps.',tags:['plyometric','power','bilateral']},
   {id:'continuous_broad_jumps',name:'Continuous Broad Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:90,cue:'Two-foot takeoff into the next jump immediately on landing — minimal ground contact time. Reset only at the end of the set. Land soft and absorb before exploding into the next rep. Grass preferred. Count jumps.',tags:['plyometric','power','bilateral'],highSweat:true},
   {id:'skater_jumps',name:'Skater Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:90,cue:'Lateral bound from one foot to the other, like a speed skater. Land soft on the outside foot, hold briefly, then push off into the next bound. Count per side.',tags:['plyometric','unilateral','lateral'],highSweat:true},
@@ -478,6 +475,7 @@ const FEELS={
   ohp:'Front and side delts driving the bar while the whole trunk braces like a pillar.',
   seated_db_press:'Delts working through the whole arc — side delts light up at the midpoint.',
   push_press:'Legs snap, then the delts catch and finish — power transferring up through the trunk.',
+  db_push_press:'Legs snap, then each delt independently catches and stabilizes its own DB — more balance demand than the barbell version.',
   arnold_press:'Delts loaded through the rotation — front delts at the start, side delts as the arms open.',
   db_lateral:'The side delt lifting the elbow — a burn on the outside cap of the shoulder, traps quiet.',
   cable_lateral:'Constant side-delt tension through the whole arc — especially the bottom third where dumbbells go slack.',
@@ -571,6 +569,7 @@ const FEELS={
   bear_crawl:'The deep core keeping the hips dead level — crawl slow enough that nothing sways.',
   turkish_getup_bw:'Core and shoulder stabilizing every transition — each position locks in before you move on.',
   l_sits:'Abs and hip flexors fighting to hold the legs up while the shoulders press down hard.',
+  reverse_plank:'The chest and front of the shoulders stretching OPEN while the glutes and rear delts squeeze to hold the line — the direct opposite of a desk slouch.',
   battle_ropes:'Shoulders and core generating the waves while the legs anchor — output work.',
   // hips
   clamshell:'The side-butt (glute med) burning — the deep pocket on the side of the hip.',
@@ -583,6 +582,39 @@ const FEELS={
   straight_leg_raise:'The front of the hip and quad lifting — a burn near the hip crease is correct.',
   hip_flexor_rock_back:'The front of the hip lengthening under control as you rock back.',
   hip_flexor_90_90:'The hip flexor above the thigh firing hard to keep the foot up.',
+  // expansion batch: ATG/tendon leg work, core additions, bounce/plyo pool
+  db_pullover:'The lats and chest stretching together as the DB drops behind the head — the stretch is the point, ribs stay down.',
+  bottom_half_atg:'Quads under constant fire in the deepest range — no rest at either end of the half rep.',
+  atg_squat_thrust:'Quads through the full depth, then the glutes snapping the finish — two muscles, one rep.',
+  split_squat_pulses:'The front quad burning nonstop through the short pulses — it never gets a lockout to breathe.',
+  sl_wall_sit:'One quad holding double duty — heat builds fast; everything else stays still.',
+  reverse_nordic_iso:'The quads lengthening across the front of both thighs as you lean back — hips stay open, no folding.',
+  russian_twist:'The obliques rotating the shoulders side to side — the weight is a passenger, the trunk drives.',
+  bicycle_crunch:'Obliques crunching elbow toward the opposite knee — a rotation with a squeeze, not a fast pedal.',
+  plank_outside_climbers:'The deep core keeping the hips frozen level while a leg steps wide — the plank never wobbles.',
+  db_dead_bug:'Lower back pressed flat under the extra load — deep abs bracing while the limbs move slowly.',
+  pallof_hold:'Obliques and deep core humming against the cable\'s pull — stillness you have to earn.',
+  sl_hip_flexor_pallof:'The core fighting the twist while the raised-knee hip flexor burns to hold height — two battles at once.',
+  twisting_leg_raise:'Lower abs curling the pelvis up while the obliques steer it sideways.',
+  sa_incline_press:'The pec presses while the opposite-side core clamps down to keep you from tipping off the bench.',
+  split_stance_row:'One lat rowing while the trunk refuses to rotate — the core works as hard as the back.',
+  decline_situps:'The abs curling you up against real load — the chest leads, the plate just comes along.',
+  toe_touch_crunch:'Upper abs crunching straight up toward the toes — short range, hard squeeze.',
+  flutter_kicks:'Lower abs holding the legs up while the back stays glued down — the burn builds fast and stays.',
+  three_way_crunch:'Middle, then each side — the whole ab wall taking turns, obliques on the reaches.',
+  dip_bar_leg_lifts:'Lower abs curling the pelvis up while the shoulders press the bars away — no swinging.',
+  half_pullup_leg_lifts:'Lats and biceps burning to hold the half pull-up while the lower abs lift — grip to core, everything on.',
+  chair_jumps:'Zero stretch reflex — pure explosive drive from the quads and glutes out of a dead stop.',
+  depth_jumps:'The ground contact like a spring compressing and instantly releasing — minimal time on the floor.',
+  sl_depth_drop:'One leg absorbing quietly with a stiff ankle, then firing straight back up — landing quality IS the exercise.',
+  japap_jumps:'One maximal effort — everything from ankles to hips snapping upward together.',
+  pogo_hops:'Ankles like pogo sticks — the bounce comes from the Achilles, not the knees.',
+  plate_hops:'Quick, springy ankle bounces — ground contact so short it feels like the floor is hot.',
+  line_hops:'Feet like a speed bag — fast, light, rhythm over height.',
+  lunge_hops:'Explode, scissor, land soft — the legs switching under a quiet, upright torso.',
+  u_hops:'Springy ankles tracing the pattern — crisp direction changes without sinking.',
+  sl_lunge_bounds:'The front leg loading and launching you forward — hip and ankle springing as one.',
+  atg_jump_squats:'From the deepest hole straight into flight — the quads generating power through the entire range.',
 };
 // Per-muscle fallback for custom exercises with no dedicated entry.
 const MUSCLE_FEELS={
@@ -791,7 +823,17 @@ const TMPLS = {
   ]},
 };
 
-const EX_LIMIT={30:2,45:3,60:5,75:6,90:7};
+// Recalibrated 2026-07-11 (user report: a 60-min session couldn't finish its
+// last 2 exercises). The original counts only budgeted main working sets plus
+// a single lead warm-up. Since then, non-lunch sessions also carry a
+// desk-reversal primer (~45s), an abbreviated 2-set acclimation ramp on EVERY
+// new muscle group's first lift (not just the session lead — up to 2 more
+// ~2 min ramps in a typical 3-muscle-group day), and a ~5 min post-set
+// cool-down — none of which existed when these numbers were first set. Each
+// tier's exercise count is cut by 1 to make room for that real, fixed
+// overhead; 30 is unreachable via the UI (evening/weekend picker only offers
+// 45/60/75/90) and left alone.
+const EX_LIMIT={30:2,45:3,60:4,75:5,90:6};
 const CONDITIONING_FINISHERS=[
   {name:'Sprint Intervals',desc:'8 × 30s all-out / 60s walk rest',icon:'🏃',mins:12},
   {name:'Burpee EMOM',desc:'10 min · 10 burpees at the top of each minute',icon:'💥',mins:10},
@@ -833,16 +875,22 @@ function currentVO2Protocol(){
 // reduces DOMS at 24-48h (2025 Frontiers Physiology RCT; 99-study review);
 // static stretching is for ROM, not soreness (2025 meta-analyses find no
 // robust DOMS effect) — protocols below pair movement with tissue work.
+// Every protocol carries at least one upper-back (thoracic) item — the user's
+// chronically stiff area — so it gets touched on every mobility day, not just
+// when the rotation lands on the Thoracic & Shoulders day.
 const RECOVERY_PROTOCOLS=[
-  {name:'Hip Reset',icon:'🦋',mins:15,items:[
+  {name:'Hip Reset',icon:'🦋',mins:16,items:[
     'Hip CARs — 5 slow circles each side',
     '90/90 hip stretch — 60s per side',
     'Half-kneeling hip flexor stretch — 45s per side',
     'Glute bridge hold — 3 × 20s',
+    'Thread the needle — 6 per side (keeps the upper back moving on hip day)',
     'Foam roll quads & glutes — 2 min',
   ]},
-  {name:'Thoracic & Shoulders',icon:'🧘',mins:12,items:[
+  {name:'Thoracic & Shoulders',icon:'🧘',mins:15,items:[
     'Cat-cow — 10 slow reps',
+    'Foam roller thoracic extensions — 10 slow arches (roller across the mid-back, hands behind head, arch OVER it — the single best stiff-upper-back opener)',
+    'Open book — 8 per side (side-lying, knees stacked, top arm sweeps open — follow the hand with your eyes)',
     'Thread the needle — 8 per side',
     'Wall slides — 2 × 10',
     'Doorway pec stretch — 45s per side',
@@ -853,12 +901,14 @@ const RECOVERY_PROTOCOLS=[
     'Couch stretch — 60s per side',
     'Hamstring floss — 10 per side',
     'Standing calf stretch — 45s per side',
+    'Open book — 8 per side (upper-back rotation while the legs flush)',
     'Foam roll calves & hamstrings — 2 min',
   ]},
-  {name:'Full-Body Flow',icon:'🌊',mins:15,items:[
+  {name:'Full-Body Flow',icon:'🌊',mins:16,items:[
     "World's greatest stretch — 5 per side",
     'Deep squat hold — 3 × 30s',
     'Dead hang from bar — 3 × 15-30s',
+    'Prayer stretch — 45s (kneel, forearms on a bench, sink the chest toward the floor — lats and mid-back lengthen together)',
     'Ankle rocks — 10 per side',
     'Down-dog to cobra flow — 8 slow reps',
   ]},
@@ -875,6 +925,7 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 let S={
   view:'setup',step:1,
   cfg:{days:5,mins:60,goal:'lean',bodyLbs:199,hipCaution:true,conditioning:true,
+    avoidExercises:['push_press','db_push_press'], // aggravates the lower back
     // Seeded from the InBody-style body-composition scan (Starfit, 2026-05-24).
     // Muscle already sits above the normal range — the score gap is pure fat, so
     // the program is tuned to strip fat while preserving muscle (see bodyScoreCard).
@@ -914,6 +965,11 @@ function load(){
       }
       // Migrate: add conditioning default if missing
       if(S.cfg.conditioning===undefined)S.cfg.conditioning=false;
+      // Migrate: personal exercise exclusions (movements that hurt regardless
+      // of the broader hip/knee/shoulder caution flags — e.g. Push Press
+      // aggravating the lower back). Seeded once; the user's own edits (if
+      // they ever remove one) are never overwritten on reload.
+      if(S.cfg.avoidExercises===undefined)S.cfg.avoidExercises=['push_press','db_push_press'];
       // Migrate: seed the body-composition scan + lean focus for the score goal.
       // Muscle is already above range, so the only lever to 100 is fat loss while
       // holding muscle — switch the goal to lean recomp and turn conditioning on.
@@ -955,6 +1011,11 @@ const KNEE_SAFE_IDS=new Set(['goblet','rdl','db_rdl','reverse_lunge','sumo_squat
 // pickEx's per-slot gate above) — Knee-Caution there is a flat allow-list
 // check: exclude any leg exercise outside the knee-safe set.
 const kneeCautionBlocks=(e)=>S.cfg.kneeCaution&&e.muscle==='legs'&&!KNEE_SAFE_IDS.has(e.id);
+// Personal exercise exclusions — movements that flare a specific issue
+// regardless of the broader hip/knee/shoulder caution flags (e.g. Push Press
+// on the lower back). A flat id blacklist, not a tag rule, since these are
+// one-off "this specific movement doesn't work for me" reports.
+const userAvoids=(e)=>(S.cfg.avoidExercises||[]).includes(e.id);
 
 // Dragon Flag progression track: Tier 1 (Lying Leg Lifts) is always offered;
 // Tier 2/3 unlock only after logging 10+ reps in a single set on the tier
@@ -1014,6 +1075,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     legGateOK(e) &&
     !(S.cfg.hipCaution && e.hipRisk) &&
     !(S.cfg.hipCaution && (e.tags||[]).includes('plyometric')) &&
+    !userAvoids(e) &&
     !(isLunch && e.highSweat);
 
   // Among the candidates, take the LEAST-used movement (lowest weekly frequency),
@@ -2368,6 +2430,8 @@ const MOVEMENT_CLASS = {
   seated_db_press:[{from:'ohp',coef:0.38},{from:'arnold_press',coef:1.0}], // per-DB
   arnold_press:  [{from:'seated_db_press',coef:1.0},{from:'ohp',coef:0.38}],
   ohp:           [{from:'seated_db_press',coef:2.4}],
+  db_push_press: [{from:'push_press',coef:0.38},{from:'seated_db_press',coef:1.1}], // per-DB
+  push_press:    [{from:'db_push_press',coef:2.4},{from:'ohp',coef:1.15}],
   cable_lateral: [{from:'db_lateral',coef:1.0}],
   lying_cable_lat:[{from:'db_lateral',coef:0.8},{from:'cable_lateral',coef:0.8}],
   incline_lateral:[{from:'db_lateral',coef:0.8}],
@@ -3303,28 +3367,39 @@ function renderDash(){
 
   // VO2 max protocol — offered on days whose evening is NOT a lifting session
   // (rest days, weekends, cardio evenings). Aerobic only: never touches MRV.
+  // Viewing a PAST day of this week retargets the card to THAT day, so a
+  // forgotten session (Friday's Norwegian 4×4 remembered on Saturday) is
+  // saved with Friday's date — recovery and history logic key off log dates.
   let vo2HTML='';
   {
-    const todayD=todayDay();
-    const eveningFree=!todayD||todayD.rest||!todayD.eveningSession;
-    if(eveningFree){
-      const proto=currentVO2Protocol();
-      const tomorrow=S.program?.week[(todayDow()+1)%7];
-      const legsTomorrow=!!(tomorrow&&!tomorrow.rest&&(tomorrow.exercises||[]).some(e=>e.muscle==='legs'&&e.type==='compound'));
-      const doneToday=vo2History().some(l=>logDay(l.date)===todayStr());
-      vo2HTML=`<div style='margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)'>
-        <div class='sec-lbl' style='margin-bottom:6px'>VO2 Max · Evening Protocol${proto.lvl?` · Session ${proto.lvl+1}`:''}</div>
+    const viewDow2=S.viewDay!=null?S.viewDay:dow;
+    const isBackdate=viewDow2!==dow;
+    const isPastDay=viewDow2<dow; // week grid covers the current Sun–Sat only
+    if(!isBackdate||isPastDay){
+      const todayD=todayDay();
+      const eveningFree=!todayD||todayD.rest||!todayD.eveningSession;
+      // Backdating skips the evening-free gate: it records what actually
+      // happened, even on a day that also had a lifting session.
+      if(isBackdate||eveningFree){
+        const proto=currentVO2Protocol();
+        const targetDateStr=isBackdate?addDays(todayStr(),viewDow2-dow):todayStr();
+        const tomorrow=S.program?.week[(dow+1)%7];
+        const legsTomorrow=!isBackdate&&!!(tomorrow&&!tomorrow.rest&&(tomorrow.exercises||[]).some(e=>e.muscle==='legs'&&e.type==='compound'));
+        const doneThatDay=vo2History().some(l=>logDay(l.date)===targetDateStr);
+        vo2HTML=`<div style='margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)'>
+        <div class='sec-lbl' style='margin-bottom:6px'>VO2 Max · ${isBackdate?`Log for ${DOW[viewDow2]}`:'Evening Protocol'}${proto.lvl?` · Session ${proto.lvl+1}`:''}</div>
         <div class='cardio-row'>
           <div class='cr-icon'>${proto.icon}</div>
           <div class='cr-body'><div class='cr-name'>${proto.name}</div><div class='cr-note'>${proto.desc}</div></div>
           <div class='cr-right'><div class='cr-dur'>${proto.mins} min</div><div class='cr-dist'>aerobic</div></div>
         </div>
         ${legsTomorrow?`<div style='font-size:11px;color:var(--warn);margin-top:6px'>⚠️ Legs are programmed tomorrow — keep the easy portions truly easy, or shift this to another evening.</div>`:''}
-        ${doneToday
-          ?`<div class='prog-hint' style='margin-top:8px'>✅ VO2 session logged today</div>`
-          :`<button class='btn btn-s btn-sm' data-action='log-vo2-session' style='margin-top:8px;width:100%'>🫀 Log VO2 Session Done</button>`}
-        <div style='font-size:11px;color:var(--mut);margin-top:6px'>+1 interval every 4 sessions, protocols alternate. Doesn't count against lifting MRV or the two-session daily cap.</div>
+        ${doneThatDay
+          ?`<div class='prog-hint' style='margin-top:8px'>✅ VO2 session logged ${isBackdate?DOW[viewDow2]:'today'}</div>`
+          :`<button class='btn btn-s btn-sm' data-action='log-vo2-session' data-date='${targetDateStr}' style='margin-top:8px;width:100%'>🫀 Log VO2 Session Done${isBackdate?` — for ${DOW[viewDow2]}`:''}</button>`}
+        <div style='font-size:11px;color:var(--mut);margin-top:6px'>${isBackdate?`Saves to ${DOW[viewDow2]} ${targetDateStr} — tap "Back to Today" when done. `:''}+1 interval every 4 sessions, protocols alternate. Doesn't count against lifting MRV or the two-session daily cap.</div>
       </div>`;
+      }
     }
   }
   const planCard=`<div class='card' style='margin-bottom:14px'>
@@ -3382,6 +3457,7 @@ function renderSwapSearchResults(query,exIdx){
     !(S.cfg.hipCaution&&e.hipRisk) &&
     !(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')) &&
     !kneeCautionBlocks(e) &&
+    !userAvoids(e) &&
     (e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q)||e.type.toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
   ).slice(0,15);
   if(!matches.length)return`<div style='font-size:13px;color:var(--mut)'>No matches for "${query.replace(/</g,'&lt;')}"</div>`;
@@ -3702,7 +3778,7 @@ function renderWorkout(){
   const todayAv=av[today]||{};
   const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
   const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric'))&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric'))&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
   const swapSearchOpen=swapOpen&&S.active.swapSearch;
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
@@ -3763,6 +3839,11 @@ function renderWorkout(){
     {n:'Pretzel Stretch',d:'30 sec/side · seated, one leg crossed over the other knee, opposite elbow braced against the crossed knee, gently rotate the torso away — hip external rotation and glute',hold:30},
     {n:'Behind-the-Back Shoulder Stretch',d:"30 sec · clasp your hands behind your back (hold a towel if they don't meet), straighten the arms, and gently lift them away from your body — opens the front of the shoulder through end-range extension",hold:30},
     {n:'Overhead Reach Stretch',d:'30 sec · reach both arms straight overhead, interlace fingers, palms up, and reach tall — deepens overhead shoulder flexion range and stretches the lats',hold:30},
+    // Upper-back (thoracic) additions — chronically stiff area, so the pool
+    // carries three so the rotation surfaces one most days.
+    {n:'Thread the Needle',d:'30 sec/side · from all fours, slide one arm under the body until the shoulder rests on the floor — upper-back rotation, breathe into the stretch',hold:30},
+    {n:'Open Book',d:'30 sec/side · side-lying, knees stacked at 90°, sweep the top arm open following the hand with your eyes — pure thoracic rotation, hips stay put',hold:30},
+    {n:'Prayer Stretch',d:'45 sec · kneel with forearms on a bench, sink the chest toward the floor — lats and mid-back lengthen together, the stiff-upper-back opener',hold:45},
   ];
   const cooldownHTML=isLast&&allDone&&!S.active.isLunch?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-top:14px'>
     <div class='wu-title' style='color:var(--acc)'>🧊 Cool-down · ~5 min</div>
@@ -5026,13 +5107,6 @@ document.addEventListener('click',e=>{
     }
     return;
   }
-  if(a==='save-anthropic-key'){
-    const k=document.getElementById('anthropic-key-input')?.value?.trim();
-    if(k)localStorage.setItem('anthropicKey',k);
-    else localStorage.removeItem('anthropicKey');
-    alert(k?'API key saved.':'API key removed.');
-    return;
-  }
   if(a==='clear-fb-config'){
     localStorage.removeItem('fbConfig');
     fbReady=false;fbUser=null;fbAuth=null;fbDb=null;
@@ -5284,9 +5358,14 @@ document.addEventListener('click',e=>{
   }
   if(a==='log-vo2-session'){
     const p=currentVO2Protocol();
+    // Backdate support: the dashboard card carries data-date for the day being
+    // viewed. A past day saves at 18:00 local of THAT date (a plausible evening
+    // slot), so recovery/history logic attributes the session to the right day.
+    const targetDate=btn.dataset.date;
+    const iso=(targetDate&&targetDate!==todayStr())?new Date(targetDate+'T18:00:00').toISOString():new Date().toISOString();
     // isCardio + empty exercises → invisible to MRV set volumes, the lifting
     // two-per-day cap, completed-day detection, and progression
-    S.logs.push({id:Date.now().toString(),date:new Date().toISOString(),dayName:`VO2 Max · ${p.name}`,isCardio:true,vo2:true,duration:p.mins,exercises:[]});
+    S.logs.push({id:Date.now().toString(),date:iso,dayName:`VO2 Max · ${p.name}`,isCardio:true,vo2:true,duration:p.mins,exercises:[]});
     S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     save();render();return;
   }
@@ -5683,199 +5762,6 @@ document.addEventListener('input',e=>{
 });
 
 // ─────────────────────────────────────────────
-// EXERCISE ASSISTANT CHAT
-// ─────────────────────────────────────────────
-let chatOpen=false,chatLoading=false,chatMsgs=[];
-
-function localAnswer(q){
-  const ql=q.toLowerCase();
-  // Find mentioned exercise
-  const ex=EX.find(e=>ql.includes(e.name.toLowerCase())||ql.includes(e.id.replace(/_/g,' ')));
-  if(ex){
-    if(/how|technique|form|cue|tip|perform|do i|do the/.test(ql))
-      return`<strong>${ex.name}</strong><br><br>${ex.cue}`;
-    if(/equipment|need|require|use/.test(ql))
-      return`<strong>${ex.name}</strong> uses: ${ex.eq.join(', ')}`;
-    if(/alternative|substitute|instead|replace|swap/.test(ql)){
-      const alts=EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id)).slice(0,5);
-      return`Alternatives for <strong>${ex.name}</strong> (${ex.muscle}):<br><br>${alts.map(a=>`• ${a.name}`).join('<br>')}`;
-    }
-    return`<strong>${ex.name}</strong> — ${ex.muscle}, ${ex.type}<br>Equipment: ${ex.eq.join(', ')}<br><br>${ex.cue}`;
-  }
-  // Muscle group
-  const muscle=['chest','back','shoulders','biceps','triceps','legs','core','hips'].find(m=>ql.includes(m));
-  if(muscle){
-    const list=EX.filter(e=>e.muscle===muscle&&!(S.cfg.hipCaution&&e.hipRisk)&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id));
-    return`<strong>${muscle.charAt(0).toUpperCase()+muscle.slice(1)} exercises:</strong><br><br>${list.map(e=>`• ${e.name} (${e.type})`).join('<br>')}`;
-  }
-  return null;
-}
-
-// ─── CHAT SCOPE GUARD ───
-// Hard boundary: the assistant covers biomechanics, execution, and exercise
-// output ONLY. Nutrition topics are refused deterministically here (before any
-// API call), and the same restriction is restated in the AI system prompt.
-const CHAT_OFF_TOPIC=/\b(calorie?s?|caloric|kcal|diets?|dieting|macros?|macronutrients?|nutrition\w*|meal\s?(plan\w*|prep\w*|s\b)?|protein (intake|target|goal)|carb(ohydrate)?s?\b|what (should|do) i eat|food|eating plan|fasting|deficit|surplus)\b/i;
-function chatScopeGuard(q){
-  if(CHAT_OFF_TOPIC.test(q))
-    return `That's outside my lane — I only cover <strong>biomechanics, execution, and exercise programming</strong>. I can't advise on calories, diet, or macros.<br><br>Ask me about form cues, exercise order, alternatives, rest, or progression instead.`;
-  return null;
-}
-
-// ─── CHAT EXERCISE CONTEXT ───
-// Gives the chat engine direct access to the exercise the user is currently
-// looking at: the active workout's current movement, or an expanded exercise
-// detail card. Returns null when no exercise is in focus.
-function chatExerciseContext(){
-  let ex=null,setting='';
-  if(S.view==='workout'&&S.active?.exercises?.length){
-    ex=S.active.exercises[S.active.exIdx]||null;
-    setting=`mid-workout (${S.active.dayName}${S.active.isLunch?' · lunch session, 90s rest cap':''})`;
-  }else if(S.viewExDetail){
-    const allEx=[...EX,...(S.customExercises||[])];
-    ex=allEx.find(e=>e.id===S.viewExDetail)||null;
-    setting='viewing exercise detail';
-  }
-  if(!ex)return null;
-  const p=progression(ex.id,ex.rMax);
-  return{
-    name:ex.name,
-    prompt:`CURRENT EXERCISE CONTEXT (user is ${setting}):\n`+
-      `- Exercise: ${ex.name} (${ex.type}, targets ${MNAME[ex.muscle]||ex.muscle})\n`+
-      `- Target reps: ${ex.rMin}-${ex.rMax}${ex.isTimed?' seconds':''} · rest: ${smartRest(ex)}s\n`+
-      `- Technique notes on file: ${ex.cue}\n`+
-      (p?`- Last performance: ${p.summary}${p.ready?' (progression trigger met — next suggestion '+p.suggest+' lb)':''}\n`:'')+
-      `Questions that say "this exercise" refer to ${ex.name}.`
-  };
-}
-
-async function askAssistant(q){
-  // Deterministic scope refusal — applies in both AI and local-DB modes
-  const offTopic=chatScopeGuard(q);
-  if(offTopic)return offTopic;
-
-  const key=localStorage.getItem('anthropicKey');
-  if(!key){
-    const local=localAnswer(q);
-    return local||`No AI key configured — but I can answer questions about specific exercises or muscle groups by name. Add your Anthropic API key in the Cloud Sync settings for full AI responses.`;
-  }
-  try{
-    const hipNote=S.cfg.hipCaution?'User has hip impingement (FAI) — avoid deep squat patterns and compressive end-range hip flexion.':'';
-    const goalNote='User\'s overarching goal: look jacked like a bodybuilder but train and MOVE like an athlete — hypertrophy base with explosive/ballistic power accents, rotational core work, and carries, mainly in evening sessions (lunch sessions are time-boxed and low-sweat).';
-    const prog=S.program?`Current split: ${S.program.week.filter(d=>!d.rest).map(d=>DOW[d.dow]+': '+d.name).join(', ')}.`:'';
-    const ctx=chatExerciseContext();
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-client-side-allowlist-v1':'true'},
-      body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',max_tokens:600,
-        system:`You are a concise personal trainer in a workout app. ${goalNote} ${hipNote} ${prog}
-${ctx?ctx.prompt+'\n':''}
-CORE TRAINING PRINCIPLES (synthesize these with current athletic research when the static technique notes leave a gap — e.g. unilateral set order, breathing, tempo, grip width):
-- Controlled eccentrics (2-3 count) and full ROM beat load; last rep should be hard, form never breaks.
-- Double progression: fill the target rep range on every set, then +4% load.
-- Unilateral work: complete reps per side; for stability-limited moves finish one side before switching unless the program says alternate.
-- Heavy compounds rest 2-3 min; isolation ≥90s.
-SCOPE: You answer ONLY biomechanics, exercise execution, and training output questions. If asked about caloric intake, diet, macros, or any nutrition topic, refuse briefly and redirect to training questions. No exceptions.
-Keep answers short, practical, and use line breaks. No markdown headers.`,
-        messages:[{role:'user',content:q}]
-      })
-    });
-    if(!res.ok)throw new Error('API '+res.status);
-    const data=await res.json();
-    return data.content[0].text.replace(/\n/g,'<br>');
-  }catch(e){
-    const local=localAnswer(q);
-    return local||`Couldn't reach AI (${e.message}). Check your API key in Cloud Sync settings.`;
-  }
-}
-
-function renderChatHTML(){
-  if(!chatOpen)return'';
-  const bubbles=chatMsgs.map(m=>`<div class='chat-bubble ${m.role==='user'?'cb-user':'cb-ai'}'>${m.text}</div>`).join('');
-  const hasKey=!!localStorage.getItem('anthropicKey');
-  return`<div class='chat-sheet'>
-    <div class='chat-hdr'>
-      <div><div style='font-size:14px;font-weight:700'>💬 Exercise Assistant</div>
-        <div style='font-size:11px;color:var(--mut)'>${hasKey?'AI powered · Claude Haiku':'Local DB answers · add API key for AI'}</div></div>
-      <button style='background:none;border:none;color:var(--mut);font-size:24px;cursor:pointer;padding:0 4px' onclick='toggleChat()'>×</button>
-    </div>
-    <div class='chat-msgs' id='chat-msgs'>
-      ${!chatMsgs.length?`<div style='text-align:center;color:var(--mut);padding:24px 16px;font-size:13px;line-height:1.7'>Ask me anything about exercises.<br><span style='font-size:12px'>Technique · Equipment · Alternatives · Programming</span></div>`:''}
-      ${bubbles}
-      ${chatLoading?`<div class='chat-bubble cb-ai' style='color:var(--mut)'>Thinking…</div>`:''}
-    </div>
-    <div class='chat-foot'>
-      <input type='text' id='chat-input' class='ni' placeholder='e.g. How do I do a proper RDL?' style='flex:1;text-align:left;padding:10px 12px' onkeydown='if(event.key==="Enter")sendChat()'>
-      <button class='btn btn-p btn-sm' onclick='sendChat()' style='width:auto'>Send</button>
-    </div>
-  </div>`;
-}
-
-function updateChatUI(){
-  const el=document.getElementById('chat-float');
-  if(el)el.innerHTML=renderChatHTML();
-  // Scroll to bottom
-  setTimeout(()=>{const m=document.getElementById('chat-msgs');if(m)m.scrollTop=m.scrollHeight;},50);
-}
-
-function toggleChat(){chatOpen=!chatOpen;updateChatUI();}
-
-// ─── INLINE MID-WORKOUT CHAT ───
-// Embedded directly in the workout screen layout (no overlay/sheet). The
-// active exercise context is injected automatically via chatExerciseContext().
-// DOM is updated in place (never a full render()) so uncommitted set inputs
-// are preserved while chatting mid-workout.
-function inlineChatBubbles(){
-  const empty=!chatMsgs.length&&!chatLoading
-    ?`<div style='text-align:center;color:var(--mut);padding:10px;font-size:12px'>Ask about this exercise — form, set order, tempo, alternatives.</div>`:'';
-  return empty
-    +chatMsgs.map(m=>`<div class='chat-bubble ${m.role==='user'?'cb-user':'cb-ai'}'>${m.text}</div>`).join('')
-    +(chatLoading?`<div class='chat-bubble cb-ai' style='color:var(--mut)'>Thinking…</div>`:'');
-}
-function renderInlineChat(ex){
-  const hasKey=!!localStorage.getItem('anthropicKey');
-  return`<div class='card' style='margin-top:12px;padding:14px'>
-    <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>
-      <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc)'>💬 Form Check · ${ex?ex.name:'this exercise'}</div>
-      <div style='font-size:10px;color:var(--mut)'>${hasKey?'AI':'local'}</div>
-    </div>
-    <div id='inline-chat-msgs' style='max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:8px'>${inlineChatBubbles()}</div>
-    <div style='display:flex;gap:8px'>
-      <input type='text' id='chat-input-inline' class='ni' placeholder='e.g. Alternate legs or one side at a time?' style='flex:1;text-align:left;padding:10px 12px' onkeydown='if(event.key==="Enter")sendChatInline()'>
-      <button class='btn btn-p btn-sm' onclick='sendChatInline()' style='width:auto'>Send</button>
-    </div>
-  </div>`;
-}
-function updateInlineChat(){
-  const el=document.getElementById('inline-chat-msgs');
-  if(el){el.innerHTML=inlineChatBubbles();el.scrollTop=el.scrollHeight;}
-}
-async function sendChatInline(){
-  const input=document.getElementById('chat-input-inline');
-  const text=input?.value?.trim();
-  if(!text||chatLoading)return;
-  input.value='';
-  chatMsgs.push({role:'user',text});
-  chatLoading=true;updateInlineChat();
-  const answer=await askAssistant(text);
-  chatMsgs.push({role:'assistant',text:answer});
-  chatLoading=false;updateInlineChat();
-}
-
-async function sendChat(){
-  const input=document.getElementById('chat-input');
-  const text=input?.value?.trim();
-  if(!text||chatLoading)return;
-  input.value='';
-  chatMsgs.push({role:'user',text});
-  chatLoading=true;updateChatUI();
-  const answer=await askAssistant(text);
-  chatMsgs.push({role:'assistant',text:answer});
-  chatLoading=false;updateChatUI();
-}
-
-// ─────────────────────────────────────────────
 // CLOUD SYNC (Firebase)
 // ─────────────────────────────────────────────
 let fbAuth=null,fbDb=null,fbUser=null,fbReady=false;
@@ -6062,13 +5948,6 @@ function renderCloudSetup(){
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>On the new device, open Cloud Sync, paste this config, tap Connect, then sign in with the same email to pull your data.</div>`:''}
     <button class='btn ${existing?'btn-g btn-sm':'btn-ok'}' data-action='save-fb-config' style='margin-top:${existing?'8':'12'}px'>${existing?'Re-connect with edited config':'Connect →'}</button>
     ${existing?`<button class='btn btn-g btn-sm' data-action='clear-fb-config' style='margin-top:8px'>Remove config &amp; disconnect</button>`:''}
-
-    <div class='sec-lbl' style='margin-top:24px;margin-bottom:6px'>AI Assistant (optional)</div>
-    <div style='font-size:13px;color:var(--mut);margin-bottom:10px'>Add your Anthropic API key to enable AI-powered answers in the exercise chat. Get a free key at <strong>console.anthropic.com</strong>. Your key is stored only on this device.</div>
-    <div style='display:flex;gap:8px'>
-      <input type='password' id='anthropic-key-input' class='ni' placeholder='sk-ant-...' value='${localStorage.getItem('anthropicKey')||''}' style='flex:1;text-align:left;padding:10px 12px;font-size:13px'>
-      <button class='btn btn-s btn-sm' data-action='save-anthropic-key' style='width:auto'>Save</button>
-    </div>
   </div>`;
 }
 
