@@ -1238,6 +1238,22 @@ function genProgram(cfg,av,workoutHistoryLog){
       slots[legSlotIdx[0]].tag='hinge';
       if(legSlotIdx.length>1)slots[legSlotIdx[1]].tag='hamstring';
     }
+    // Upper-back mandate: vertical pulling (lat pulldown/pull-ups) trains the
+    // lats but leaves the rhomboids/mid-traps/rear delts to chance — the same
+    // gap the hamstring mandate closes for legs. Any day that trains back gets
+    // its first back slot tagged 'horizontal' (row family — direct upper-back
+    // work, still a compound slot) and, when the day has room for a second
+    // back slot, tags it 'rear_delt' (face pulls/reverse-fly family) so
+    // scapular/rear-delt health is covered directly rather than left to chance.
+    // Safe by construction: a muscle's first appearance in `slots` always
+    // falls in the first pass (i<top.length → 'compound'), and any repeat
+    // appearance always falls in a later pass (→ 'isolation') — matching the
+    // 'horizontal'/'rear_delt' tags' own compound/isolation split in EX.
+    const backSlotIdx=slots.map((s,i)=>s.muscle==='back'?i:-1).filter(i=>i>=0);
+    if(backSlotIdx.length){
+      slots[backSlotIdx[0]].tag='horizontal';
+      if(backSlotIdx.length>1)slots[backSlotIdx[1]].tag='rear_delt';
+    }
     // Hybrid-athlete accent (goal: look like a bodybuilder, MOVE like an
     // athlete): evening sessions convert ONE isolation fill slot of a
     // power-capable muscle into an explosive 'power' compound (push press,
@@ -3480,6 +3496,9 @@ function renderWorkout(){
     {n:'Figure 4 Stretch',d:'30 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch'},
     {n:'Hip CARs',d:'5 circles/side · slow, full range'},
     {n:'Clamshells',d:'15 reps/side · hips stacked'},
+    {n:'Butterfly Stretch',d:'30–45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch'},
+    {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back'},
+    {n:'Pretzel Stretch',d:'30 sec/side · seated, one leg crossed over the other knee, opposite elbow braced against the crossed knee, gently rotate the torso away — hip external rotation and glute'},
   ];
   const hipPrehabHTML=S.cfg.hipCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:#c084fc'>🦋 Mobilize &amp; Activate (do these before lifting)</div>
@@ -3497,6 +3516,8 @@ function renderWorkout(){
     {n:'Doorway Stretch',d:'30 sec/side · pec/anterior shoulder mobility'},
     {n:'Kneeling Thoracic Rotation',d:'10 reps/side · tall-kneeling, hand behind head, rotate the elbow down and across then up toward the ceiling — hips stay square, the upper back does the rotating'},
     {n:'Standing Thoracic Rotation',d:'10 reps/side · feet planted hip-width, arms crossed at the chest, rotate the upper body side to side while the hips stay facing forward'},
+    {n:'Behind-the-Back Shoulder Stretch',d:"30 sec · clasp your hands behind your back (hold a towel if they don't meet), straighten the arms, and gently lift them away from your body — opens the front of the shoulder through end-range extension"},
+    {n:'Overhead Reach Stretch',d:'30 sec · reach both arms straight overhead, interlace fingers, palms up, and reach tall — deepens overhead shoulder flexion range and stretches the lats'},
   ];
   const achyShoulderHTML=S.cfg.shoulderCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:var(--acc)'>🩹 Achy Shoulder Warm-up (do this instead of a generic warm-up)</div>
@@ -3737,6 +3758,11 @@ function renderWorkout(){
     {n:'Plow Pose',d:'30 sec · from your back, sweep the legs up and over until the toes reach the floor behind your head (knees bent is fine) — full posterior-chain and spine stretch; skip if the neck complains',hold:30},
     {n:'Toe Stretch',d:'30 sec · kneel with the toes tucked under and sit back onto the heels — plantar fascia and toe flexors; brutal at first, eases fast with practice',hold:30},
     {n:'Straddle Stretch',d:'45 sec · seated, legs wide, walk the chest forward between them with a flat back — adductors and hamstrings together',hold:45},
+    {n:'Butterfly Stretch',d:'45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch',hold:45},
+    {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back',hold:30},
+    {n:'Pretzel Stretch',d:'30 sec/side · seated, one leg crossed over the other knee, opposite elbow braced against the crossed knee, gently rotate the torso away — hip external rotation and glute',hold:30},
+    {n:'Behind-the-Back Shoulder Stretch',d:"30 sec · clasp your hands behind your back (hold a towel if they don't meet), straighten the arms, and gently lift them away from your body — opens the front of the shoulder through end-range extension",hold:30},
+    {n:'Overhead Reach Stretch',d:'30 sec · reach both arms straight overhead, interlace fingers, palms up, and reach tall — deepens overhead shoulder flexion range and stretches the lats',hold:30},
   ];
   const cooldownHTML=isLast&&allDone&&!S.active.isLunch?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-top:14px'>
     <div class='wu-title' style='color:var(--acc)'>🧊 Cool-down · ~5 min</div>
