@@ -938,16 +938,41 @@ let S={
 };
 let timerIv=null;
 
+// Per-field change stamps for the singleton state (cfg/program/weekPlan/...).
+// The cloud merge used to compare ONE global updatedAt — so any unrelated save
+// on phone B (a sleep log, a completed set) made B "newer" and blocked it from
+// adopting phone A's week edit, then pushed B's stale program back over it.
+// Content-hash detection here is centralized: no save() call site has to
+// declare what it changed; a field's stamp only moves when its JSON actually
+// differs from the previous save.
+let _singletonSnaps={};
+const SINGLETON_FIELDS=['cfg','program','weekPlan','eveningMins','eveningLocation'];
+function stampSingletons(){
+  S.fieldUpdated=S.fieldUpdated||{};
+  const now=new Date().toISOString();
+  SINGLETON_FIELDS.forEach(k=>{
+    const j=JSON.stringify(S[k]??null);
+    if(_singletonSnaps[k]===undefined){
+      // First save since page load: baseline the snapshot without bumping —
+      // the field carries whatever stamp it had (or inherits legacy updatedAt).
+      _singletonSnaps[k]=j;
+      if(!S.fieldUpdated[k])S.fieldUpdated[k]=S.updatedAt||now;
+    }else if(j!==_singletonSnaps[k]){
+      _singletonSnaps[k]=j;S.fieldUpdated[k]=now;
+    }
+  });
+}
 function save(){
   S.updatedAt=new Date().toISOString();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt}));}catch(e){}
+  stampSingletons();
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   saveToCloud();
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],updatedAt:d.updatedAt||new Date().toISOString()});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -5862,7 +5887,7 @@ async function saveToCloud(){
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString()};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
   }catch(e){console.error('Cloud save failed',e);}
 }
@@ -5915,12 +5940,30 @@ async function loadFromCloud(){
       const weights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
       // Merge sleepLog the same way: additive per-date map, local wins on conflict
       const sleep={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
-      // Singleton state (cfg/program/weekPlan) from whichever side saved most
-      // recently — the cloud copy can be stale if a local save happened
-      // before Firebase was ready
-      const cloudNewer=cloud.updatedAt&&(!S.updatedAt||cloud.updatedAt>S.updatedAt);
-      if(cloudNewer){
-        Object.assign(S,{cfg:cloud.cfg||S.cfg,program:cloud.program||S.program,weekPlan:cloud.weekPlan||S.weekPlan,eveningMins:cloud.eveningMins??S.eveningMins,eveningLocation:cloud.eveningLocation??S.eveningLocation});
+      // Singleton state (cfg/program/weekPlan/...) adopted PER FIELD, by each
+      // field's own change stamp. The old comparison used one global
+      // updatedAt, so any unrelated save on this device (a sleep log, a
+      // completed set) made it look "newer" and blocked adopting the other
+      // phone's week edit — then pushed the stale program back up over it.
+      // Legacy fallback: a cloud doc written by an old client has no
+      // fieldUpdated map, so fields fall back to the global updatedAt race.
+      {
+        const cloudGlobalNewer=cloud.updatedAt&&(!S.updatedAt||cloud.updatedAt>S.updatedAt);
+        const cf=cloud.fieldUpdated||{},lf=S.fieldUpdated||{};
+        const adopt=(k)=>{
+          const cloudFieldNewer=(cf[k]||lf[k])?(cf[k]&&(!lf[k]||cf[k]>lf[k])):cloudGlobalNewer;
+          if(cloudFieldNewer&&cloud[k]!=null){
+            S[k]=cloud[k];
+            // Re-baseline the snapshot so the next save() doesn't read the
+            // adopted content as a fresh local edit and re-bump its stamp.
+            if(cf[k])S.fieldUpdated={...(S.fieldUpdated||{}),[k]:cf[k]};
+            _singletonSnaps[k]=JSON.stringify(S[k]??null);
+          }
+        };
+        SINGLETON_FIELDS.forEach(adopt);
+        // Keep the per-key max of both maps so a later pull can't regress.
+        const fu={...lf};Object.keys(cf).forEach(k=>{if(!fu[k]||cf[k]>fu[k])fu[k]=cf[k];});
+        S.fieldUpdated=fu;
       }
       Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,customExercises:customEx});
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
@@ -5950,6 +5993,17 @@ function pullFromCloudThrottled(){
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullFromCloudThrottled();});
 window.addEventListener('focus',pullFromCloudThrottled);
+// Two phones OPEN at the same time never fire focus/visibility events, so a
+// week edit on one wouldn't appear on the other until a re-open. Poll gently
+// while visible — skipped mid-workout and while typing, because loadFromCloud
+// ends in render() and a rebuild would wipe input focus and unsaved values.
+setInterval(()=>{
+  if(document.visibilityState!=='visible')return;
+  if(S.active)return;
+  const ae=document.activeElement;
+  if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'))return;
+  pullFromCloudThrottled();
+},60000);
 
 function cloudSignOut(){
   if(!fbAuth)return;
