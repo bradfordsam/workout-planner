@@ -1005,6 +1005,15 @@ let timerIv=null;
 // Content-hash detection here is centralized: no save() call site has to
 // declare what it changed; a field's stamp only moves when its JSON actually
 // differs from the previous save.
+// Workout-history retention. This was 10 — which silently ATE workouts: at
+// 10+ loggable entries a week (lunch + evening lifts, VO2, cardio), a
+// Tuesday lunch session fell out of the last-10 window by Friday, first from
+// the device's own localStorage save and then from the cross-device union
+// merge (which kept only the 10 newest across BOTH devices combined). 60
+// entries ≈ 4–6 weeks at that volume, ~150KB — comfortably inside both the
+// localStorage and Firestore document budgets. MRV volume accounting and the
+// 72h fatigue window also need at least a full week of history to be correct.
+const LOG_KEEP=60;
 let _singletonSnaps={};
 const SINGLETON_FIELDS=['cfg','program','weekPlan','eveningMins','eveningLocation'];
 function stampSingletons(){
@@ -1025,7 +1034,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   saveToCloud();
 }
 function load(){
@@ -2532,7 +2541,7 @@ function recalcLastWeights(){
       if(sets?.length){const l=sets[sets.length-1];w[ex.id]={weight:l.weight,reps:l.reps,date:log.date};}
     });
   });
-  // MERGE, never replace: S.logs is capped at the last ~10 workouts on save,
+  // MERGE, never replace: S.logs is capped at LOG_KEEP entries on save,
   // so a full rebuild silently dropped the remembered weight for any exercise
   // not trained inside that window — and the suggestion engine then fell back
   // to anchor/muscle-group estimates for movements the user HAS done, which
@@ -2642,7 +2651,7 @@ function loggedBaseline(exId,logs){
 
 // Experience proxy for the step-4 default. Honors an explicit cfg.experience
 // if ever set; otherwise infers from how many sessions the user has logged.
-// (logs are capped at ~10 on save, so this saturates at 'intermediate' — a
+// (history is capped at LOG_KEEP entries on save; the n>=6 threshold saturates at 'intermediate' — a
 // deliberately conservative ceiling for a no-data cold-start guess.)
 function experienceLevel(){
   if(S.cfg?.experience)return S.cfg.experience;
@@ -6043,14 +6052,14 @@ async function saveToCloud(){
         const merged=unionById(S.logs,cloud.logs);
         merged.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
         S.deletedSessions=unionById(S.deletedSessions,cloud.deletedSessions,d=>d.log?.id).slice(-20);
-        S.logs=filterTombstoned(merged).slice(-10);
+        S.logs=filterTombstoned(merged).slice(-LOG_KEEP);
         S.customExercises=unionById(S.customExercises,cloud.customExercises);
         S.lastWeights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
         S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
   }catch(e){console.error('Cloud save failed',e);}
 }
@@ -6131,7 +6140,7 @@ async function loadFromCloud(){
       Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,customExercises:customEx});
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
       // device must not ride back in through this device's stale copy.
-      S.logs=filterTombstoned(merged).slice(-10);
+      S.logs=filterTombstoned(merged).slice(-LOG_KEEP);
       reconcileProgramWithLogs();
       recalcLastWeights();
       lastCloudMergeRead=Date.now();// this WAS a full merge — saveToCloud can skip its read
