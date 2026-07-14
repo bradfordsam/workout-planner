@@ -942,7 +942,7 @@ const RECOVERY_PROTOCOLS=[
   {name:'Hip Reset',icon:'🦋',mins:16,items:[
     'Hip CARs — 5 slow circles each side',
     '90/90 hip stretch — 60s per side',
-    'Half-kneeling hip flexor stretch — 45s per side',
+    'Half-kneeling hip flexor stretch — 60s per side (ROM dose: mild discomfort, deeper each exhale)',
     'Glute bridge hold — 3 × 20s',
     'Thread the needle — 6 per side (keeps the upper back moving on hip day)',
     'Foam roll quads & glutes — 2 min',
@@ -998,16 +998,41 @@ let S={
 };
 let timerIv=null;
 
+// Per-field change stamps for the singleton state (cfg/program/weekPlan/...).
+// The cloud merge used to compare ONE global updatedAt — so any unrelated save
+// on phone B (a sleep log, a completed set) made B "newer" and blocked it from
+// adopting phone A's week edit, then pushed B's stale program back over it.
+// Content-hash detection here is centralized: no save() call site has to
+// declare what it changed; a field's stamp only moves when its JSON actually
+// differs from the previous save.
+let _singletonSnaps={};
+const SINGLETON_FIELDS=['cfg','program','weekPlan','eveningMins','eveningLocation'];
+function stampSingletons(){
+  S.fieldUpdated=S.fieldUpdated||{};
+  const now=new Date().toISOString();
+  SINGLETON_FIELDS.forEach(k=>{
+    const j=JSON.stringify(S[k]??null);
+    if(_singletonSnaps[k]===undefined){
+      // First save since page load: baseline the snapshot without bumping —
+      // the field carries whatever stamp it had (or inherits legacy updatedAt).
+      _singletonSnaps[k]=j;
+      if(!S.fieldUpdated[k])S.fieldUpdated[k]=S.updatedAt||now;
+    }else if(j!==_singletonSnaps[k]){
+      _singletonSnaps[k]=j;S.fieldUpdated[k]=now;
+    }
+  });
+}
 function save(){
   S.updatedAt=new Date().toISOString();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt}));}catch(e){}
+  stampSingletons();
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   saveToCloud();
 }
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],updatedAt:d.updatedAt||new Date().toISOString()});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -3070,7 +3095,7 @@ function recoveryHTML(dow){
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:6px'>🔋 Active Recovery · ~${p.mins} min</div>
     <div style='font-size:14px;font-weight:700;margin-bottom:6px'>${p.icon} ${p.name}</div>
     ${p.items.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• ${it}</div>`).join('')}
-    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Gentle movement improves blood flow and movement quality — keep effort easy, this should feel good.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Movement stays easy — but treat the STRETCH holds as range-of-motion work: sink to a 6/10 "productive discomfort" (never pain), go a little deeper on each exhale, and stop just short of where form breaks. That dose, hit most days, is what actually grows range over the weeks.</div>
   </div>
   <div style='margin-top:10px;padding:14px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4ade80;margin-bottom:6px'>🚶 Daily NEAT Target</div>
@@ -3951,12 +3976,13 @@ function renderWorkout(){
     {n:'Upper Trap Stretch',d:'30 sec/side · ear toward shoulder, opposite hand reaching at the floor',hold:30},
     {n:"Child's Pose",d:'60 sec · arms long, sit toward the heels, slow nasal breathing — lumbar decompression',hold:60},
     {n:'Supine Twist',d:'30 sec/side · on your back, knees dropped to one side, shoulders flat',hold:30},
-    {n:'Figure 4 Stretch',d:'30 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch',hold:30},
+    {n:'Figure 4 Stretch',d:'45 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch',hold:45},
+    {n:'Knee-to-Wall Ankle Stretch',d:'45 sec/side · half-kneeling facing a wall, front toes ~4 in away, drive the knee past the toes toward the wall with the heel GLUED down — ankle dorsiflexion is what caps squat depth; inch the foot back as range grows',hold:45},
     {n:'Pigeon Pose',d:'45 sec/side · front shin across the body, back leg long behind, fold the chest over the front leg and breathe — deep glute/piriformis',hold:45},
     {n:'Bridge Pose',d:'30 sec · on your back, feet planted, press the hips up and interlace the hands underneath — opens the hip flexors and the front of the spine after a day of sitting',hold:30},
     {n:'Plow Pose',d:'30 sec · from your back, sweep the legs up and over until the toes reach the floor behind your head (knees bent is fine) — full posterior-chain and spine stretch; skip if the neck complains',hold:30},
     {n:'Toe Stretch',d:'30 sec · kneel with the toes tucked under and sit back onto the heels — plantar fascia and toe flexors; brutal at first, eases fast with practice',hold:30},
-    {n:'Straddle Stretch',d:'45 sec · seated, legs wide, walk the chest forward between them with a flat back — adductors and hamstrings together',hold:45},
+    {n:'Straddle Stretch',d:'60 sec · seated, legs wide, walk the chest forward between them with a flat back — adductors and hamstrings together; a real ROM builder at this dose',hold:60},
     {n:'Butterfly Stretch',d:'45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch',hold:45},
     {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back',hold:30},
     {n:'Pretzel Stretch',d:'30 sec/side · seated, one leg crossed over the other knee, opposite elbow braced against the crossed knee, gently rotate the torso away — hip external rotation and glute',hold:30},
@@ -3971,7 +3997,7 @@ function renderWorkout(){
   const cooldownHTML=isLast&&allDone&&!S.active.isLunch?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-top:14px'>
     <div class='wu-title' style='color:var(--acc)'>🧊 Cool-down · ~5 min</div>
     ${[{n:'Tibialis Raises',d:'20 reps · back on a wall, lift toes to shins — strengthens away incline-walk shin stiffness'},...stretchRot(COOLDOWN_POOL,3)].map(wuRow).join('')}
-    <div class='wu-note'>Static holds live HERE, after training — pre-lift work stays dynamic on purpose. Stretches rotate daily; the full pool cycles across the week. Do this before tapping Finish.</div>
+    <div class='wu-note'>Static holds live HERE, after training — pre-lift work stays dynamic on purpose. These are range-of-motion doses, not just relief: sink to a 6/10 "productive discomfort" (never pain) and go a little deeper on each exhale — done consistently, this is what lengthens range over weeks. Stretches rotate daily; the full pool cycles across the week. Do this before tapping Finish.</div>
   </div>`:'';
   const nextBtn=allDone
     ?`<button class='btn ${isLast?'btn-ok':'btn-p'}' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`
@@ -5941,11 +5967,44 @@ async function initFirebase(cfg){
   }catch(e){console.error('Firebase init failed',e);fbReady=false;}
 }
 
+// Logs whose id appears in the deletedSessions tombstones must not survive a
+// union merge — without this filter, device B's stale copy of a log deleted
+// on device A resurrects it on every sync.
+function filterTombstoned(logs){
+  const delIds=new Set((S.deletedSessions||[]).map(d=>d.log?.id).filter(Boolean));
+  return (logs||[]).filter(l=>!delIds.has(l.id));
+}
+
+let lastCloudMergeRead=0;
 async function saveToCloud(){
   if(!fbReady||!fbUser||!fbDb)return;
   try{
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString()};
-    await fbDb.collection('users').doc(fbUser.uid).set(data);
+    const ref=fbDb.collection('users').doc(fbUser.uid);
+    // Read-merge-write. A blind set() replaced the ENTIRE cloud doc with this
+    // device's state — so a phone that hadn't pulled since another device
+    // logged a workout would erase that workout from the cloud on its next
+    // save (e.g. an iPhone's lunch session vanishing when the evening phone
+    // edited the week). Union the additive collections with the live cloud
+    // copy before every write. The read is throttled: rapid-fire saves during
+    // a workout (every completed set) reuse the merge from <60s ago — within
+    // that window this device's state is already a superset of what it read,
+    // and the next pull/merge unions anything that landed in between.
+    if(Date.now()-lastCloudMergeRead>60000){
+      const doc=await ref.get();
+      if(doc.exists){
+        const cloud=doc.data();
+        const merged=unionById(S.logs,cloud.logs);
+        merged.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+        S.deletedSessions=unionById(S.deletedSessions,cloud.deletedSessions,d=>d.log?.id).slice(-20);
+        S.logs=filterTombstoned(merged).slice(-10);
+        S.customExercises=unionById(S.customExercises,cloud.customExercises);
+        S.lastWeights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
+        S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
+      }
+      lastCloudMergeRead=Date.now();
+    }
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-10),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    await ref.set(data);
   }catch(e){console.error('Cloud save failed',e);}
 }
 
@@ -5997,16 +6056,38 @@ async function loadFromCloud(){
       const weights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
       // Merge sleepLog the same way: additive per-date map, local wins on conflict
       const sleep={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
-      // Singleton state (cfg/program/weekPlan) from whichever side saved most
-      // recently — the cloud copy can be stale if a local save happened
-      // before Firebase was ready
-      const cloudNewer=cloud.updatedAt&&(!S.updatedAt||cloud.updatedAt>S.updatedAt);
-      if(cloudNewer){
-        Object.assign(S,{cfg:cloud.cfg||S.cfg,program:cloud.program||S.program,weekPlan:cloud.weekPlan||S.weekPlan,eveningMins:cloud.eveningMins??S.eveningMins,eveningLocation:cloud.eveningLocation??S.eveningLocation});
+      // Singleton state (cfg/program/weekPlan/...) adopted PER FIELD, by each
+      // field's own change stamp. The old comparison used one global
+      // updatedAt, so any unrelated save on this device (a sleep log, a
+      // completed set) made it look "newer" and blocked adopting the other
+      // phone's week edit — then pushed the stale program back up over it.
+      // Legacy fallback: a cloud doc written by an old client has no
+      // fieldUpdated map, so fields fall back to the global updatedAt race.
+      {
+        const cloudGlobalNewer=cloud.updatedAt&&(!S.updatedAt||cloud.updatedAt>S.updatedAt);
+        const cf=cloud.fieldUpdated||{},lf=S.fieldUpdated||{};
+        const adopt=(k)=>{
+          const cloudFieldNewer=(cf[k]||lf[k])?(cf[k]&&(!lf[k]||cf[k]>lf[k])):cloudGlobalNewer;
+          if(cloudFieldNewer&&cloud[k]!=null){
+            S[k]=cloud[k];
+            // Re-baseline the snapshot so the next save() doesn't read the
+            // adopted content as a fresh local edit and re-bump its stamp.
+            if(cf[k])S.fieldUpdated={...(S.fieldUpdated||{}),[k]:cf[k]};
+            _singletonSnaps[k]=JSON.stringify(S[k]??null);
+          }
+        };
+        SINGLETON_FIELDS.forEach(adopt);
+        // Keep the per-key max of both maps so a later pull can't regress.
+        const fu={...lf};Object.keys(cf).forEach(k=>{if(!fu[k]||cf[k]>fu[k])fu[k]=cf[k];});
+        S.fieldUpdated=fu;
       }
-      Object.assign(S,{logs:merged.slice(-10),lastWeights:weights,sleepLog:sleep,customExercises:customEx,deletedSessions:deleted.slice(-20)});
+      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,customExercises:customEx});
+      // Tombstone filter AFTER deletedSessions merge: a log deleted on another
+      // device must not ride back in through this device's stale copy.
+      S.logs=filterTombstoned(merged).slice(-10);
       reconcileProgramWithLogs();
       recalcLastWeights();
+      lastCloudMergeRead=Date.now();// this WAS a full merge — saveToCloud can skip its read
       save();// persists merged state and uploads it back to the cloud
     }else{
       await saveToCloud();// first login — push local data up
@@ -6014,6 +6095,31 @@ async function loadFromCloud(){
     render();
   }catch(e){console.error('Cloud load failed',e);render();}
 }
+
+// Pull whenever the app comes back to the foreground. onAuthStateChanged only
+// fires on a cold start — a PWA resumed from the background never re-pulled,
+// so a workout logged on another device at lunch stayed invisible all evening
+// (and a blind save here could then clobber it in the cloud; see saveToCloud).
+let lastCloudPull=0;
+function pullFromCloudThrottled(){
+  if(!fbReady||!fbUser)return;
+  if(Date.now()-lastCloudPull<30000)return;
+  lastCloudPull=Date.now();
+  loadFromCloud();
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullFromCloudThrottled();});
+window.addEventListener('focus',pullFromCloudThrottled);
+// Two phones OPEN at the same time never fire focus/visibility events, so a
+// week edit on one wouldn't appear on the other until a re-open. Poll gently
+// while visible — skipped mid-workout and while typing, because loadFromCloud
+// ends in render() and a rebuild would wipe input focus and unsaved values.
+setInterval(()=>{
+  if(document.visibilityState!=='visible')return;
+  if(S.active)return;
+  const ae=document.activeElement;
+  if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'))return;
+  pullFromCloudThrottled();
+},60000);
 
 function cloudSignOut(){
   if(!fbAuth)return;
