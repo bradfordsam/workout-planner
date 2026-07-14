@@ -1589,6 +1589,17 @@ function genProgram(cfg,av,workoutHistoryLog){
 
     flagFirstWorkingSet(exs); // compounds first; warm-up flag on first loaded lift
 
+    // Lunch time-box calibration (2026-07-14, user report: lunch plans ran
+    // ~7 min long). The lead lift keeps 3 working sets; every exercise after
+    // it drops to 2 (~4.5 min back), and the lunch warm-up ramp is cut to
+    // 2 sets in warmupHTML (~2.5 min back). The shaved sets are returned to
+    // the muscle's weekly MRV budget so other sessions can use the headroom.
+    if(slot.isLunch){
+      exs.forEach((e,i)=>{
+        if(i>0&&e.sets>2){budget.vol[e.muscle]=(budget.vol[e.muscle]||0)-(e.sets-2);e.sets=2;}
+      });
+    }
+
     // Adjust session name for circuit training
     let sessionName = isCircuitStyle && !slot.isLunch ? tmpl.name.replace('Day', 'Circuit') : tmpl.name;
     let sessionDesc = tmpl.desc;
@@ -2989,6 +3000,10 @@ function startWorkout(day,sessionType){
       });
     }
   }
+  // Lunch time-box clamp: mirrors the generation-time rule (lead lift 3 sets,
+  // 2 for the rest) so sessions generated or preserved BEFORE the 2026-07-14
+  // calibration also fit the 35–40 min box the moment they're started.
+  if(src.isLunch)rawExs=rawExs.map((e,i)=>i>0&&e.sets>2?{...e,sets:2}:e);
   // Second session of the day → apply the 60% execution-time rule against
   // what was actually logged earlier today (not what was planned)
   let autoRegNotes=[];
@@ -3870,13 +3885,23 @@ function renderWorkout(){
   // med ball / bodyweight / timed movement as the session opener.
   const isGroupFirst=!ex.isFirst&&!S.active.isLunch&&pctScalable&&!['core','hips'].includes(ex.muscle)
     &&exercises.slice(0,exIdx).every(p=>p.muscle!==ex.muscle);
-  const warmupHTML=ex.isFirst&&pctScalable?`<div class='wu-box'>
+  const warmupHTML=ex.isFirst&&pctScalable?(S.active.isLunch
+  // Lunch: abbreviated 2-set ramp (part of the 2026-07-14 time-box
+  // calibration — the full 3-set ramp with a 90% CNS primer belongs to
+  // evening near-max work; lunch loads are moderate and the clock is hard).
+  ?`<div class='wu-box'>
+    <div class='wu-title'>⚡ Warm-up Sets — Quick Ramp (lunch time-box)</div>
+    <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>${wu1Lbl}</span><span style='color:var(--mut);font-size:13px'> × 6 reps — groove the pattern</span><button data-action='start-wu-rest' data-secs='45' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>45s rest</button></div>
+    <div class='wu-row'><span class='wu-set'>WU2</span><span class='wu-val' id='wu2-${exIdx}'>${wu2Lbl}</span><span style='color:var(--mut);font-size:13px'> × 2 reps — sharpen bar path, then work</span><button data-action='start-wu-rest' data-secs='60' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>60s rest</button></div>
+    <div class='wu-note'>No cardio or static stretching before this.${sugW0?' Warm-up weights calculated from your target — update if you adjust the working weight below.':' Enter working weight below → warm-up loads update automatically.'}</div>
+  </div>`
+  :`<div class='wu-box'>
     <div class='wu-title'>⚡ Warm-up Sets — Weight Acclimation (do these first)</div>
     <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>${wu1Lbl}</span><span style='color:var(--mut);font-size:13px'> × 8 reps — groove the pattern</span><button data-action='start-wu-rest' data-secs='60' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>60s rest</button></div>
     <div class='wu-row'><span class='wu-set'>WU2</span><span class='wu-val' id='wu2-${exIdx}'>${wu2Lbl}</span><span style='color:var(--mut);font-size:13px'> × 3 reps — sharpen bar path</span><button data-action='start-wu-rest' data-secs='90' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>90s rest</button></div>
     <div class='wu-row'><span class='wu-set'>WU3</span><span class='wu-val' id='wu3-${exIdx}'>${wu3Lbl}</span><span style='color:var(--mut);font-size:13px'> × 1 rep — prime the CNS</span><button data-action='start-wu-rest' data-secs='120' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>2 min rest</button></div>
     <div class='wu-note'>No cardio, static stretching, or ab work before this.${sugW0?' Warm-up weights calculated from your target — update if you adjust the working weight below.':' Enter working weight below → warm-up loads update automatically.'}</div>
-  </div>`
+  </div>`)
   :isGroupFirst?`<div class='wu-box'>
     <div class='wu-title'>⚡ New Muscle Group — Quick Acclimation (2 sets)</div>
     <div class='wu-row'><span class='wu-set'>WU1</span><span class='wu-val' id='wu1-${exIdx}'>${wu1Lbl}</span><span style='color:var(--mut);font-size:13px'> × 5 reps — wake up the ${MNAME[ex.muscle]||ex.muscle}</span><button data-action='start-wu-rest' data-secs='45' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>45s rest</button></div>

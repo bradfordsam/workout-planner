@@ -65,3 +65,6 @@ strip it before other debugging.
   conditioning beyond sprints goes off-feet (bike/row/ski) to cap impact.
 - Lunch sessions stay low-sweat: `highSweat` exercise filter, `lunchOK`
   finisher filter, 90s rest cap — don't route sprint or interval work there.
+- Lunch time-box calibration (2026-07-14, ran ~7 min long): lead lift 3
+  working sets, every later exercise 2 sets (enforced at generation AND at
+  startWorkout for preserved sessions), warm-up ramp cut to 2 sets at lunch.
