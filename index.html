@@ -319,6 +319,27 @@ const EX = [
   {id:'seated_leg_curl',name:'Seated Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Pad just above the heels, thighs locked under the support. Curl down hard and squeeze the hamstrings at end range, hold 1s. Resist the weight back up with a 2-count negative — don\'t let it slam. Keep hips planted. Best isolated-hamstring builder.',tags:['hamstring']},
   {id:'leg_curl',name:'Lying Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Flex hard at end range. 2-count descent — resist the weight back to start. Hips stay down.',tags:['hamstring']},
   {id:'nordic_curl',name:'Nordic Hamstring Curl',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:120,noWeight:true,cue:'Kneel with ankles anchored (partner, bar, or under a couch). Brace and lower your torso toward the floor as SLOWLY as possible, resisting the whole way — catch yourself with your hands at the bottom and push back to kneeling. The eccentric lowering is the entire point: builds hamstring/tendon resilience and is one of the best-evidenced exercises for reducing strain injuries. Start with 3-5s descents.',tags:['hamstring','eccentric']},
+  // ─── Heavy strength tier (1–5 reps @ 85–95% 1RM) ───
+  // Maximal-strength work through the squat / hinge / single-leg patterns, all
+  // hip-friendly variants (capped depth, shallow hip flexion, or staggered
+  // stance) so they stay outside the hipRisk ban. 'strength' is in
+  // LEG_EMPHASIS_TAGS, and the leg mandate's evening 'strength' slot rotates
+  // through this pool via leastUsed. Long rests are deliberate — these don't
+  // fit the lunch 90s rest cap, so lunch leg slots keep the 'hinge' mandate.
+  {id:'heavy_box_squat',name:'Heavy Box Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:2,rMax:5,rest:240,cue:'Box set just above parallel to cap depth — hip-friendly. Bar on upper traps, sit BACK to the box under full control, touch without rocking or relaxing, then drive up hard. 85–95% of 1RM, 2–5 reps, full rest between sets. Every rep starts and finishes braced; leave one in the tank — grinding a max with no spotter is not the goal.',tags:['squat','quad','strength']},
+  {id:'heavy_trap_bar',name:'Heavy Trap Bar Deadlift',muscle:'legs',type:'compound',eq:['barbell'],rMin:2,rMax:5,rest:240,cue:'Elevate the bar a few inches on mats/blocks if needed to keep hip flexion shallow. Brace hard, pull the slack out, then drive the floor away — hips and shoulders rise together. 85–95% loads, 2–5 crisp reps, full rest. The heavy hinge with the most direct carryover to sprinting and jumping.',tags:['hinge','quad','strength']},
+  {id:'heavy_rdl',name:'Heavy Romanian Deadlift',muscle:'legs',type:'compound',eq:['barbell'],rMin:3,rMax:5,rest:240,cue:'Same pattern as the normal RDL — hips back, bar close, neutral spine — loaded to 85–90% for 3–5 reps. The heavy eccentric is the point: lower in a controlled 3 seconds, feel the hamstrings load, then drive the hips through. End the set the moment the back angle starts to drift.',tags:['hinge','hamstring','strength','eccentric']},
+  {id:'heavy_split_squat',name:'Heavy Bulgarian Split Squat',muscle:'legs',type:'compound',eq:['dumbbells','barbell'],rMin:3,rMax:5,rest:210,cue:'Same hip-friendly setup as the regular RFESS — front shin near vertical, torso tall, working hip neutral — but loaded heavy for 3–5 reps per leg. Single-leg maximal strength transfers directly to sprinting and cutting, and the stagger keeps the hip out of deep flexion. Control down, drive up with intent. Count per leg.',tags:['squat','unilateral','strength']},
+  // ─── Deceleration / multi-directional / heavy-eccentric work ───
+  // Handling force is trained by absorbing it: slow heavy eccentrics, stick
+  // positions with no flight phase (deliberately NOT tagged 'plyometric', so
+  // they stay available under hip caution), and frontal-plane loading at
+  // controlled, non-end-range depths. Reached via the leg accent rotation
+  // ('eccentric'/'decel') and swaps.
+  {id:'ecc_box_squat',name:'Slow-Eccentric Box Squat (5s down)',muscle:'legs',type:'compound',eq:['barbell','dumbbells'],rMin:4,rMax:6,rest:180,cue:'Moderate load (~60–70%). Take a full FIVE seconds to sit back to the box — actively absorbing the whole way, never free-falling — touch soft, then stand up fast. The slow lowering is the work: eccentric strength is what deceleration and cutting run on.',tags:['squat','quad','eccentric','tendon']},
+  {id:'ecc_step_down',name:'Slow Eccentric Step-Down',muscle:'legs',type:'compound',eq:['bodyweight','dumbbells'],rMin:5,rMax:8,rest:120,cue:'Stand tall on a knee-height box on one leg. Lower the free foot toward the floor in a 4–5 second single-leg squat — hips level, knee tracking over the toes — barely kiss the heel down, then step back up. All the single-leg braking strength of landing work with zero impact. Hold a DB at the chest to load. Count per side.',tags:['quad','unilateral','eccentric','decel','tendon']},
+  {id:'lateral_lunge',name:'Lateral Lunge (Goblet)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step wide to one side and sit back into that hip — shin vertical, opposite leg straight — then push hard off the outside foot to return. Keep depth moderate and hips square: you\'re loading the frontal plane, not chasing end-range hip rotation. This is the strength half of every cut and shuffle. Count per side.',tags:['quad','adductor','lateral','eccentric','unilateral','decel']},
+  {id:'snap_down',name:'Snap-Down to Stick',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:120,noWeight:true,cue:'Reach tall on the toes, then SNAP down into an athletic quarter-squat landing position — feet barely leave the floor, arms rip back — and freeze rock-solid for 2 seconds. Teaches the body to go from moving to stopped instantly: the exact skill of deceleration. Crisp, quiet, stuck positions; progress to snapping down from a small hop once landings are silent.',tags:['decel','eccentric','power']},
   // ─── Explosive (low-impact) + tendon-stiffness leg work ───
   // Power = explosive concentric intent with NO flight/landing (hip-caution safe,
   // never tagged 'plyometric'). Isometric/eccentric + 'tendon' = stiffness & RFD
@@ -344,7 +365,7 @@ const EX = [
   {id:'pallof',name:'Pallof Press',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Press out fully, hold 2s, return. Resist rotation — your core fights the cable the whole time. Count per side.',tags:['anti-rotation']},
   {id:'med_ball_slam',name:'Med Ball Slam',muscle:'core',type:'rotational',eq:['medball'],rMin:6,rMax:10,rest:90,startW:15,highSweat:true,tags:['power','anti-extension','conditioning'],cue:'Ball overhead at full stretch, up on the toes — then slam it into the floor as violently as you can, folding through the core (not just the arms). Log the ball\'s weight so moving up in balls is tracked. Catch the rebound or pick it up, reset tall, repeat with full intent. Power work: if a heavier ball visibly slows the slam, drop back down. Total-body power expressed through the trunk.'},
   {id:'med_ball_rot_throw',name:'Med Ball Rotational Throw',muscle:'core',type:'rotational',eq:['medball_wall'],rMin:5,rMax:8,rest:90,startW:10,highSweat:true,tags:['power','rotation'],cue:'Stand side-on to a solid wall, ball at the back hip. Log the ball\'s weight so moving up in balls is tracked. Load into the rear hip, then snap the hips through and fire the ball into the wall — the power comes from the ground up through the hips; the arms just deliver it. Catch or collect, reset, repeat. Count per side. Power work: rotational throws reward speed over load — stay with a ball you can throw violently. The purest expression of rotational athletic power.'},
-  {id:'suitcase_carry',name:'Suitcase Carry',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:30,rMax:45,rest:90,isTimed:true,tags:['carry','anti-rotation','unilateral'],cue:'One heavy dumbbell at your side like a suitcase. Walk tall — shoulders and hips level, ribs stacked, zero lean toward or away from the load. The offset weight forces the lateral core and grip to fight the whole time. Count seconds per side. The most athletic "abs" exercise there is.'},
+  {id:'suitcase_carry',name:'Suitcase Carry',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:30,rMax:45,rest:90,isTimed:true,tags:['carry','anti-rotation','lateral','unilateral'],cue:'One heavy dumbbell at your side like a suitcase. Walk tall — shoulders and hips level, ribs stacked, zero lean toward or away from the load. The offset weight forces the lateral core and grip to fight the whole time. Count seconds per side. The most athletic "abs" exercise there is.'},
   {id:'woodchop',name:'Cable Woodchop',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Rotate from thoracic spine, diagonal plane. Arms stay relatively straight. Count per side.',tags:['rotation']},
   {id:'half_kneel_press',name:'Half-kneeling Press',muscle:'core',type:'rotational',eq:['dumbbells','cables'],rMin:10,rMax:15,rest:90,cue:'Down knee is the loaded side. Tall posture. Press without leaning — core fights lateral forces. Per side.',tags:['asymmetrical']},
   {id:'sa_cable_row',name:'Single-arm Cable Row',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:12,rest:90,cue:'Core resists rotation as you row. Back AND anti-rotation in one. Count per side.',tags:['unilateral']},
@@ -360,6 +381,7 @@ const EX = [
   {id:'twisting_leg_raise',name:'Twisting Hanging Knee/Leg Raise',muscle:'core',type:'rotational',eq:['pullup_bar'],rMin:6,rMax:12,rest:90,noWeight:true,cue:'Hang with active shoulders. Raise the knees (or straight legs to progress) up and toward ONE side, curling the pelvis and rotating so the obliques finish the lift. Lower under control, no swing, alternate sides. The rotational sibling of the hanging leg raise. Count per side.',tags:['rotation','flexion']},
   {id:'sa_incline_press',name:'Single-Arm Incline DB Press',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:8,rMax:12,rest:90,cue:'Incline bench, one dumbbell only. Press it while the free side of your body has NOTHING holding it down — the core must brace hard against the roll toward the loaded side the entire set. Keep both shoulder blades and hips square on the bench. A press that\'s secretly an anti-rotation drill. Count per side.',tags:['asymmetrical','anti-rotation']},
   {id:'split_stance_row',name:'Split-Stance Cable Row',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:12,rest:90,cue:'Staggered stance (opposite foot forward from the rowing arm), torso tall. Row the cable to your ribs without letting the shoulders or hips rotate open — the narrow stance gives the core nowhere to hide. Slow return, resist the twist the whole way back. Count per side.',tags:['asymmetrical','anti-rotation']},
+  {id:'ab_rollout',name:'Ab Rollout (Barbell/Wheel)',muscle:'core',type:'rotational',eq:['barbell','bodyweight'],rMin:6,rMax:12,rest:90,noWeight:true,cue:'Kneel with hands on a loaded barbell (or ab wheel). Brace, tuck the pelvis, and roll out only as far as you can keep the lower back from arching — the abs resist extension the entire way out — then drag yourself back with lats and abs together. A shorter range done rigid beats a long saggy rep. The king of anti-extension work.',tags:['anti-extension']},
   {id:'crunches',name:'Crunches',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on back, knees bent. Curl shoulder blades off the floor, exhale at the top. Keep lower back pressed down — small controlled range, no momentum.',tags:['flexion']},
   {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on your back, knees bent, feet flat (anchor them if needed). Curl up through a full range until your torso is upright, leading with the chest — don\'t yank on your neck. Exhale at the top, then lower under control all the way down. Cross arms on the chest to regress, or hold a plate at the chest to add load.',tags:['flexion']},
   {id:'hanging_leg_raise',name:'Hanging Leg Raise',muscle:'core',type:'isolation',eq:['pullup_bar','bodyweight'],rMin:8,rMax:15,rest:90,noWeight:true,cue:'Hang from a bar with shoulders active (slight pull-down, not a loose dead hang). Curl your PELVIS up toward your ribs — don\'t just lift the legs from the hips. No swinging or momentum: pause briefly at the top, lower under control (2–3 counts). Bend the knees to regress, keep legs straighter to progress. Considered the elite movement for full core training.',tags:['flexion','anti-extension']},
@@ -526,6 +548,15 @@ const FEELS={
   seated_leg_curl:'Hamstrings curling hard from a full stretch — deepest tension at end range.',
   leg_curl:'Hamstrings bunching behind the knee — resist the return, hips glued down.',
   nordic_curl:'Hamstrings screaming as brakes on the way down — the slow lowering is everything.',
+  heavy_box_squat:'Whole body wound tight as a spring — the bar feels heavy everywhere, the legs answer anyway.',
+  heavy_trap_bar:'Legs pressing the earth away — one violent, braced push through the whole foot.',
+  heavy_rdl:'Hamstrings loading like cables under tension through the whole slow descent.',
+  heavy_split_squat:'One leg owning a heavy load — glute and quad grinding together, hips dead level.',
+  ecc_box_squat:'Quads resisting gravity for five full seconds — braking strength, not falling.',
+  ecc_step_down:'The standing leg absorbing your whole body slowly — quad and glute as shock absorbers.',
+  lateral_lunge:'The outside hip and inner thigh loading up as you sit into the side — then driving you back out.',
+  snap_down:'From tall to frozen in an instant — every muscle from foot to trunk slamming the brakes at once.',
+  ab_rollout:'Abs as a rigid wall refusing to let the lower back arch as the arms travel away.',
   speed_trap_bar:'Hips exploding into full extension — it should feel fast, not heavy.',
   speed_hip_thrust:'Glutes snapping the hips up as fast as physically possible.',
   db_swing:'Hips snapping like a whip with the glutes finishing hard — the arms are just ropes.',
@@ -834,32 +865,61 @@ const TMPLS = {
 // overhead; 30 is unreachable via the UI (evening/weekend picker only offers
 // 45/60/75/90) and left alone.
 const EX_LIMIT={30:2,45:3,60:4,75:5,90:6};
+// Sprint priming: rendered with every sprint-flagged finisher. Sprinting cold
+// is how hamstrings and hip flexors get hurt — the primer is non-negotiable
+// and doubles as the day's hip/ankle prep.
+const SPRINT_PRIMER={
+  title:'Prime First — Never Sprint Cold (~6 min)',
+  items:[
+    'Leg swings — 10 front/back + 10 side/side per leg',
+    '90/90 hip transitions — 5 slow reps per side',
+    'Walking knee hugs + lunge with reach — 10 m each',
+    'A-march → A-skip — 2 × 20 m (tall, crisp, quiet feet)',
+    'Ankle pogos in place — 2 × 10s, light and springy',
+    'Build-ups — 3 × 40 m at 60% / 75% / 90%, walk back between',
+  ]};
+// Sprint work splits into short/loaded (acceleration horsepower) and
+// long/unloaded (upright speed), plus dedicated decel/change-of-direction —
+// all sprint:true so the primer renders with them. Off-feet interval work
+// (row/bike) covers anaerobic conditioning with zero impact. lunchOK marks
+// the low-sweat subset: lunch sessions only ever draw from that pool, so
+// sprints and hard intervals land on evenings/weekends by construction.
 const CONDITIONING_FINISHERS=[
-  {name:'Sprint Intervals',desc:'8 × 30s all-out / 60s walk rest',icon:'🏃',mins:12},
-  {name:'Burpee EMOM',desc:'10 min · 10 burpees at the top of each minute',icon:'💥',mins:10},
-  {name:'Jump Circuit',desc:'3 rounds: 10 box jumps · 15 jump squats · 20 jump rope',icon:'⚡',mins:12},
-  {name:'Agility Intervals',desc:'6 × 30s lateral shuffle / sprint / 30s walk',icon:'🏈',mins:8},
-  {name:'Row Intervals',desc:'6 × 250m hard row / 60s rest',icon:'🚣',mins:14},
-  {name:'DB Circuit',desc:'4 rounds: 10 goblet squats · 10 rows · 10 push press · 30s rest',icon:'💪',mins:15},
+  {name:'Acceleration Sprints (Short)',desc:'6–8 × 15–20 m from a 2-point stance — maximal intent, tall by the last steps, FULL walk-back recovery (~90s). Quality dies with fatigue: stop the session when you visibly slow down.',icon:'🏃',mins:12,sprint:true},
+  {name:'Loaded Sprints',desc:'6–8 × 10–15 m heavy sled push/pull, or steep-hill sprints — the load caps top speed (easier on the hamstrings) while building raw acceleration horsepower. Full recovery between reps.',icon:'🛷',mins:12,sprint:true},
+  {name:'Tempo Strides (Long)',desc:'4–6 × 60–80 m at 85–90% — smooth, tall, relaxed speed, never straining. Walk back fully between reps. This is where the longer unloaded speed work lives.',icon:'💨',mins:14,sprint:true},
+  {name:'Decel + Change of Direction',desc:'4 × sprint-to-stick (15 m sprint → dead stop within 3 steps) · 5-10-5 shuttle: 4 at 80% + 2 at full · 4 × 10 m lateral shuffle into forward sprint. Stay tall through the cuts — brake with the legs, not the hip at end range.',icon:'🔀',mins:12,sprint:true},
+  {name:'Row Intervals',desc:'6 × 250m hard row / 60s rest — anaerobic power, zero impact',icon:'🚣',mins:14},
+  {name:'Bike Sprint Intervals',desc:'8 × 20s hard / 100s easy spin — off-feet anaerobic repeats, zero impact',icon:'🚴',mins:16},
+  {name:'Brace Circuit',desc:'2 quiet rounds: Suitcase Carry 40s/side · Pallof Press Hold 30s/side · Ab Rollout × 8 · Copenhagen Plank 25s/side. Resist rotation, extension, and lateral flexion — no sweat required.',icon:'🛡️',mins:8,lunchOK:true},
   // Bounce work in two tiers: the iso foundation is impact-free (always in
   // rotation); the reactive jump protocol carries plyo:true so getFinisher
   // drops it while hip caution is on.
-  {name:'Bounce Foundation',desc:'Tendon-stiffness isometrics — pick 3: Split Squat Hold 3×45s/leg · Single-Leg Wall Sit 3×45s/leg · Wall Sit 3×45s · Reverse Nordic Iso 3×30s · Calf Raise Iso Hold 3×45s',icon:'🦶',mins:10},
+  {name:'Bounce Foundation',desc:'Tendon-stiffness isometrics — pick 3: Split Squat Hold 3×45s/leg · Single-Leg Wall Sit 3×45s/leg · Wall Sit 3×45s · Reverse Nordic Iso 3×30s · Calf Raise Iso Hold 3×45s',icon:'🦶',mins:10,lunchOK:true},
   {name:'Bounce Protocol',desc:'Reactive jump work, full recovery between sets, quality over quantity — pick 3: Pogo Hops 3×15 · Line Hops 3×20 · Plate Hops 3×10 · Chair Jumps 3×5 · Lunge Hops 3×6/side · U Hops 3×8 · Depth Jumps 3×5 · ATG Jump Squats 3×6 · JAPAP Jumps 3×5. Stop any drill the moment height or crispness drops.',icon:'🦘',mins:12,plyo:true},
 ];
-// ─── VO2 MAX PROTOCOL (non-lunch sessions) ───
-// Progressive aerobic overload, fully isolated from lifting: VO2 logs carry
-// isCardio:true and no muscle sets, so they never consume MRV set budgets or
-// a lifting slot in the two-per-day cap. Progression: +1 work interval every
-// 4 completed sessions (capped), alternating protocols every 2 sessions for
-// long-interval and short-interval adaptations.
+// ─── AEROBIC ENGINE PROTOCOLS (non-lunch sessions) ───
+// Progressive conditioning overload, fully isolated from lifting: these logs
+// carry isCardio:true and no muscle sets, so they never consume MRV set
+// budgets or a lifting slot in the two-per-day cap. Four-protocol rotation
+// covers the whole engine: VO2max intervals (Norwegian/Billat), Zone 2
+// aerobic base, and off-feet anaerobic repeats — the latter two deliberately
+// bike/row/ski so hard conditioning volume doesn't add ground impact.
+// Progression: +1 work unit every 4 completed sessions (capped), protocols
+// alternate every 2 sessions.
 const VO2_PROTOCOLS=[
   {key:'norwegian',name:'Norwegian 4×4',icon:'🫀',base:4,maxW:6,
-   desc:w=>`${w} × 4 min hard (90–95% max HR) · 3 min easy jog between`,
+   desc:w=>`${w} × 4 min hard (90–95% max HR) on run, bike, or rower · 3 min easy between`,
    mins:w=>w*7+10},
+  {key:'zone2',name:'Zone 2 Base (Off-Feet)',icon:'🚴',base:35,maxW:50,
+   desc:w=>`${w} min steady bike, row, or ski erg — conversational pace, could nose-breathe throughout. The aerobic base everything else recovers on`,
+   mins:w=>w+5},
   {key:'billat',name:'Billat 30/30s',icon:'⚡',base:12,maxW:20,
    desc:w=>`${w} × (30s @ ~vVO2max / 30s easy) · split into 2 blocks, 3 min between`,
    mins:()=>25},
+  {key:'anaerobic',name:'Anaerobic Repeats (Off-Feet)',icon:'🔥',base:8,maxW:14,
+   desc:w=>`${w} × 30s hard / 90s easy on bike or rower — repeatable hard efforts, zero impact, not a death march`,
+   mins:w=>Math.round(w*2+6)},
 ];
 function vo2History(){return (S.logs||[]).filter(l=>l.vo2);}
 function currentVO2Protocol(){
@@ -1006,7 +1066,7 @@ function load(){
 // excluded by default unless explicitly tagged for the emphasis.
 // 'plyometric' is allowed here (it's explosive) but still filtered separately
 // by hip-caution, so it only surfaces for users without the hip flag.
-const LEG_EMPHASIS_TAGS=['power','isometric','tendon','eccentric','plyometric'];
+const LEG_EMPHASIS_TAGS=['power','isometric','tendon','eccentric','plyometric','strength','decel','lateral'];
 const legAutoOK=(e)=>e.muscle!=='legs'||LEG_EMPHASIS_TAGS.some(t=>(e.tags||[]).includes(t));
 
 // Knee-Caution mode (mirrors hipCaution): when active, ALL leg work is
@@ -1083,6 +1143,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     !(S.cfg.hipCaution && e.hipRisk) &&
     !(S.cfg.hipCaution && (e.tags||[]).includes('plyometric')) &&
     !userAvoids(e) &&
+    dragonFlagUnlocked(e.id) &&
     !(isLunch && e.highSweat);
 
   // Among the candidates, take the LEAST-used movement (lowest weekly frequency),
@@ -1121,7 +1182,28 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
   // reaching this one — dropping it here would silently defeat the mandate via
   // the untagged backfill pass. A small, deliberate MRV overage on this single
   // corrective-pattern slot beats skipping hamstring/hinge work outright.
-  if(!exercise && (slot.tag==='hinge'||slot.tag==='hamstring')) exercise = leastUsed(allExercises.filter(e => base(e)));
+  if(!exercise && (slot.tag==='hinge'||slot.tag==='hamstring'||slot.tag==='strength')) exercise = leastUsed(allExercises.filter(e => base(e)));
+  // Strength-tier fallback: the heavy 1–5 pool is barbell/DB — a bodyweight-only
+  // session has zero candidates, and dropping the day's main leg slot would be
+  // worse than downgrading it. Fall back to the old 'hinge' mandate pool.
+  if(!exercise && slot.tag==='strength'){
+    const hingeSlot={...slot,tag:'hinge'};
+    const hingeBase=(e)=>e.muscle===hingeSlot.muscle && e.type===hingeSlot.type && (e.tags||[]).includes('hinge') &&
+      !used.includes(e.id) && e.eq.some(q=>eq.has(q)) && !(S.cfg.hipCaution&&e.hipRisk) &&
+      !(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')) && !userAvoids(e) && !(isLunch&&e.highSweat) &&
+      !(S.cfg.kneeCaution&&!KNEE_SAFE_IDS.has(e.id));
+    exercise = leastUsed(allExercises.filter(e=>hingeBase(e)&&fitsMRV(e)&&freqOf(e)<FREQ_CAP)) || leastUsed(allExercises.filter(hingeBase));
+  }
+  // 5) Core-emphasis fallback: the rotating produce/resist tag on the forced
+  // core slot is a preference, never worth dropping the slot over — retry with
+  // the tag AND type relaxed (flexion work is type 'isolation', the rest
+  // 'rotational') so some core work always lands.
+  if(!exercise && slot.muscle==='core' && slot.tag){
+    const anyCore=(e)=>e.muscle==='core' && !used.includes(e.id) && e.eq.some(q=>eq.has(q)) &&
+      !(S.cfg.hipCaution&&e.hipRisk) && !(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')) &&
+      !userAvoids(e) && dragonFlagUnlocked(e.id) && !(isLunch&&e.highSweat);
+    exercise = leastUsed(allExercises.filter(e=>anyCore(e)&&fitsMRV(e)&&freqOf(e)<FREQ_CAP)) || leastUsed(allExercises.filter(anyCore));
+  }
   // If the muscle has hit its weekly MRV max, intentionally return null so this
   // slot is dropped (fewer sets) rather than exceeding the recoverable volume.
   return exercise||null;
@@ -1297,14 +1379,17 @@ function genProgram(cfg,av,workoutHistoryLog){
     const top=[anchor,...rest2].slice(0,Math.min(3,elig.length));
     const slots=[];
     for(let i=0;i<muscleSlots;i++)slots.push({muscle:top[i%top.length].m,type:i<top.length?'compound':'isolation'});
-    // Hamstring mandate: squat/quad patterns don't train the hamstrings on their
-    // own. Any day that trains legs gets its first leg slot tagged 'hinge'
-    // (RDL/trap-bar/hip-thrust family — still a compound slot) and, when the
-    // day has room for a second leg slot, tags it 'hamstring' (leg curl family)
-    // so knee flexion is covered directly rather than left to chance.
+    // Leg mandates. Evenings: the first leg slot is tagged 'strength' — the
+    // heavy 1–5 rep @ 85–95% tier (box squat / trap bar / heavy RDL / heavy
+    // split squat), which leastUsed rotates so squat, hinge, and single-leg
+    // patterns all cycle through. Hinge coverage is preserved by construction:
+    // half that pool IS a hinge, and the second leg slot keeps the 'hamstring'
+    // mandate (leg-curl family) so knee flexion never gets skipped.
+    // Lunch keeps the old 'hinge' mandate — heavy near-max work needs 3–4 min
+    // rests, which the lunch 90s rest cap and 40-min time-box can't hold.
     const legSlotIdx=slots.map((s,i)=>s.muscle==='legs'?i:-1).filter(i=>i>=0);
     if(legSlotIdx.length){
-      slots[legSlotIdx[0]].tag='hinge';
+      slots[legSlotIdx[0]].tag=isLunch?'hinge':'strength';
       if(legSlotIdx.length>1)slots[legSlotIdx[1]].tag='hamstring';
     }
     // Upper-back mandate: vertical pulling (lat pulldown/pull-ups) trains the
@@ -1334,11 +1419,20 @@ function genProgram(cfg,av,workoutHistoryLog){
     // highSweat anyway. 45-min evenings (2 muscle slots, no isolation fill)
     // also skip naturally — short sessions keep every heavy compound.
     let accented=false;
+    const domDay=parseInt(dateStr.slice(8,10),10)||0; // day-of-month, drives emphasis rotations
     if(!isLunch){
       const POWER_CAPABLE=new Set(['legs','chest','shoulders']);
+      // Leg accents rotate produce → absorb: 'power' (explosive concentric),
+      // 'eccentric' (slow heavy lowering), 'decel' (stick/braking work) — so
+      // multi-directional force ABSORPTION gets programmed, not just output.
+      const LEG_ACCENTS=['power','eccentric','decel'];
       for(let i=slots.length-1;i>=0;i--){
         const s=slots[i];
-        if(s.type==='isolation'&&!s.tag&&POWER_CAPABLE.has(s.muscle)){s.type='compound';s.tag='power';accented=true;break;}
+        if(s.type==='isolation'&&!s.tag&&POWER_CAPABLE.has(s.muscle)){
+          s.type='compound';
+          s.tag=s.muscle==='legs'?LEG_ACCENTS[domDay%LEG_ACCENTS.length]:'power';
+          accented=true;break;
+        }
       }
     }
     // No convertible slot (isolation fill was mandate-tagged or a non-power
@@ -1346,7 +1440,21 @@ function genProgram(cfg,av,workoutHistoryLog){
     // powerPreferred is a SOFT preference in pickEx (med ball slam/rotational
     // throw first, normal core picks when unavailable), so gyms without med
     // balls degrade gracefully instead of dropping the core slot.
-    slots.push({muscle:'core',type:'rotational',powerPreferred:!isLunch&&!accented});
+    // Core slot cycles through produce/resist emphases by date so the week
+    // covers rotating, resisting rotation, flexing, and resisting extension /
+    // lateral flexion — rather than leaving the mix to leastUsed chance.
+    // Flexion work lives in the type:'isolation' core pool; the rest are
+    // type:'rotational'. pickEx has a strip-the-tag fallback so a thin
+    // equipment pool degrades to "any core work" instead of dropping the slot.
+    const CORE_CYCLE=[
+      {type:'rotational',tag:'anti-rotation'},
+      {type:'rotational',tag:'rotation'},
+      {type:'isolation',tag:'flexion'},
+      {type:'rotational',tag:'anti-extension'},
+      {type:'rotational',tag:'lateral'},
+    ];
+    const coreEmph=CORE_CYCLE[domDay%CORE_CYCLE.length];
+    slots.push({muscle:'core',type:coreEmph.type,tag:coreEmph.tag,powerPreferred:!isLunch&&!accented});
     const names=top.map(t=>MNAME[t.m]||t.m);
     return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')};
   }
@@ -2920,24 +3028,32 @@ function abandonWorkout(){
 // ─────────────────────────────────────────────
 // CONDITIONING FINISHER
 // ─────────────────────────────────────────────
-function getFinisher(dow){
+function getFinisher(dow,isLunch){
   // Hip caution drops jump-based finishers, mirroring the pickEx plyometric ban.
-  const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution));
+  // Lunch sessions only draw from the lunchOK (low-sweat) subset — sprints and
+  // hard intervals live on evenings/weekends so the lunch time-box stays dry.
+  const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution)&&(!isLunch||f.lunchOK));
   return pool[dow%pool.length];
 }
-function finisherHTML(dow,compact){
-  const f=getFinisher(dow);
+function finisherHTML(dow,compact,isLunch){
+  const f=getFinisher(dow,isLunch);
+  const primer=f.sprint?`<div style='margin-top:10px;padding:10px 12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:10px'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>🔑 ${SPRINT_PRIMER.title}</div>
+      ${SPRINT_PRIMER.items.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• ${it}</div>`).join('')}
+    </div>`:'';
   if(compact){
     return`<div style='margin-top:12px;padding:12px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:12px'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--warn);margin-bottom:4px'>🔥 Conditioning Finisher</div>
       <div style='font-size:14px;font-weight:700'>${f.icon} ${f.name}</div>
       <div style='font-size:12px;color:var(--mut);margin-top:2px'>${f.desc} · ~${f.mins} min</div>
+      ${f.sprint?`<div style='font-size:11px;color:var(--acc);margin-top:4px'>🔑 Prime first — leg swings, A-skips, and 3 build-ups before rep one.</div>`:''}
     </div>`;
   }
   return`<div style='margin-top:14px;padding:16px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:14px'>
     <div style='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--warn);margin-bottom:8px'>🔥 Conditioning Finisher · Do this after your last set</div>
     <div style='font-size:18px;font-weight:800;margin-bottom:4px'>${f.icon} ${f.name}</div>
     <div style='font-size:13px;color:var(--mut);line-height:1.55'>${f.desc}</div>
+    ${primer}
     <div style='font-size:12px;color:var(--mut);margin-top:6px'>~${f.mins} min · then tap Finish Workout</div>
   </div>`;
 }
@@ -3340,7 +3456,7 @@ function renderDash(){
         `<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 ${isActualToday?'Log Custom Workout Instead':'Log Custom Workout'}</button>`
       }
       ${eveBlock}
-      ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true):''}
+      ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession):''}
     </div>`;
   }
 
@@ -3394,7 +3510,7 @@ function renderDash(){
         const legsTomorrow=!isBackdate&&!!(tomorrow&&!tomorrow.rest&&(tomorrow.exercises||[]).some(e=>e.muscle==='legs'&&e.type==='compound'));
         const doneThatDay=vo2History().some(l=>logDay(l.date)===targetDateStr);
         vo2HTML=`<div style='margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)'>
-        <div class='sec-lbl' style='margin-bottom:6px'>VO2 Max · ${isBackdate?`Log for ${DOW[viewDow2]}`:'Evening Protocol'}${proto.lvl?` · Session ${proto.lvl+1}`:''}</div>
+        <div class='sec-lbl' style='margin-bottom:6px'>Aerobic Engine · ${isBackdate?`Log for ${DOW[viewDow2]}`:'Evening Protocol'}${proto.lvl?` · Session ${proto.lvl+1}`:''}</div>
         <div class='cardio-row'>
           <div class='cr-icon'>${proto.icon}</div>
           <div class='cr-body'><div class='cr-name'>${proto.name}</div><div class='cr-note'>${proto.desc}</div></div>
@@ -3403,7 +3519,7 @@ function renderDash(){
         ${legsTomorrow?`<div style='font-size:11px;color:var(--warn);margin-top:6px'>⚠️ Legs are programmed tomorrow — keep the easy portions truly easy, or shift this to another evening.</div>`:''}
         ${doneThatDay
           ?`<div class='prog-hint' style='margin-top:8px'>✅ VO2 session logged ${isBackdate?DOW[viewDow2]:'today'}</div>`
-          :`<button class='btn btn-s btn-sm' data-action='log-vo2-session' data-date='${targetDateStr}' style='margin-top:8px;width:100%'>🫀 Log VO2 Session Done${isBackdate?` — for ${DOW[viewDow2]}`:''}</button>`}
+          :`<button class='btn btn-s btn-sm' data-action='log-vo2-session' data-date='${targetDateStr}' style='margin-top:8px;width:100%'>🫀 Log Engine Session Done${isBackdate?` — for ${DOW[viewDow2]}`:''}</button>`}
         <div style='font-size:11px;color:var(--mut);margin-top:6px'>${isBackdate?`Saves to ${DOW[viewDow2]} ${targetDateStr} — tap "Back to Today" when done. `:''}+1 interval every 4 sessions, protocols alternate. Doesn't count against lifting MRV or the two-session daily cap.</div>
       </div>`;
       }
@@ -3821,7 +3937,7 @@ function renderWorkout(){
 
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
   const isLast=exIdx===total-1;
-  const condBlock=isLast&&S.cfg.conditioning&&allDone?finisherHTML(S.active.dow,false):'';
+  const condBlock=isLast&&S.cfg.conditioning&&allDone?finisherHTML(S.active.dow,false,!!S.active.isLunch):'';
   // Post-session cool-down (~5 min, evening/weekend sessions only — lunch is
   // hard time-boxed): static relief for the desk-stiff areas (neck, lower
   // back) plus tibialis work for incline-walking shin stiffness. The tib
@@ -5387,7 +5503,7 @@ document.addEventListener('click',e=>{
     const iso=(targetDate&&targetDate!==todayStr())?new Date(targetDate+'T18:00:00').toISOString():new Date().toISOString();
     // isCardio + empty exercises → invisible to MRV set volumes, the lifting
     // two-per-day cap, completed-day detection, and progression
-    S.logs.push({id:Date.now().toString(),date:iso,dayName:`VO2 Max · ${p.name}`,isCardio:true,vo2:true,duration:p.mins,exercises:[]});
+    S.logs.push({id:Date.now().toString(),date:iso,dayName:`Engine · ${p.name}`,isCardio:true,vo2:true,duration:p.mins,exercises:[]});
     S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     save();render();return;
   }

@@ -35,8 +35,15 @@ strip it before other debugging.
 - Exercise pool: `EX` array (~line 250+), objects with
   `id/name/muscle/type/eq/rMin/rMax/rest/cue/tags`.
 - Scheduling: per-day recovery-debt engine (`dayTemplate`), 6 muscle groups +
-  a forced core slot; mandates guarantee hinge/hamstring (legs) and
-  horizontal/rear-delt (back) coverage.
+  a forced core slot. Mandates: first evening leg slot = 'strength' (heavy
+  1–5 pool, falls back to 'hinge' when no barbell/DB), lunch leg slot =
+  'hinge', second leg slot = 'hamstring'; back gets horizontal/rear-delt.
+  Leg accent slot rotates power/eccentric/decel by day-of-month; the core
+  slot cycles anti-rotation/rotation/flexion/anti-extension/lateral.
+- Conditioning: `CONDITIONING_FINISHERS` (sprint-centric; `sprint:true`
+  renders `SPRINT_PRIMER`, `lunchOK` marks the low-sweat subset lunch draws
+  from) and `VO2_PROTOCOLS` (4-protocol engine rotation incl. Zone 2 and
+  off-feet anaerobic repeats).
 - Personal exclusions: `S.cfg.avoidExercises` id blacklist (movements that
   flare a specific issue). Seed new ones in BOTH the default cfg and a `load()`
   migration.
@@ -47,4 +54,14 @@ strip it before other debugging.
 
 - Left hip has FAI history (`hipCaution`): no hard-landing plyos, no loaded
   end-range rotation through the hips; `hipRisk` flag + avoid list enforce it.
-- Leg work targets low-impact explosiveness/tendon stiffness, not hypertrophy.
+  Heavy strength variants are deliberately hip-friendly (box squat depth cap,
+  elevated trap bar, staggered stance) so they stay outside the ban.
+- Leg training goal (updated 2026-07-14): multi-directional force handling,
+  high eccentric loading, and movement resilience — heavy 1–5 @ 85–95% squat/
+  hinge/single-leg strength plus eccentric/decel/lateral work; still no
+  hypertrophy focus. Sprinting is IN (short/loaded + long/unloaded + decel/COD
+  finishers) but always primed first and never at lunch.
+- Aerobic engine: VO2 intervals + Zone 2 base + anaerobic repeats; hard
+  conditioning beyond sprints goes off-feet (bike/row/ski) to cap impact.
+- Lunch sessions stay low-sweat: `highSweat` exercise filter, `lunchOK`
+  finisher filter, 90s rest cap — don't route sprint or interval work there.
