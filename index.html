@@ -2589,6 +2589,19 @@ const MOVEMENT_CLASS = {
   squat:         [{from:'leg_press',coef:0.55},{from:'goblet',coef:2.8}],
   rdl:           [{from:'squat',coef:0.8},{from:'trap_bar_dl',coef:0.85}],
   trap_bar_dl:   [{from:'rdl',coef:1.15},{from:'squat',coef:0.95}],
+  // ─ Heavy 1–5 strength tier: pct routes through the anchor's e1RM (see the
+  // anchor loop), deliberately opening a touch under true 85–95% — the cue
+  // says leave a rep in the tank, and set one calibrates the rest. ─
+  heavy_box_squat:  [{from:'squat',pct:0.85},{from:'heavy_trap_bar',pct:0.85,coef:0.95},{from:'trap_bar_dl',pct:0.85,coef:0.95},{from:'leg_press',pct:0.85,coef:0.55},{from:'goblet',pct:0.85,coef:2.8}],
+  heavy_trap_bar:   [{from:'trap_bar_dl',pct:0.87},{from:'heavy_box_squat',pct:0.87,coef:1.05},{from:'rdl',pct:0.87,coef:1.15},{from:'squat',pct:0.87,coef:0.95}],
+  heavy_rdl:        [{from:'rdl',pct:0.87},{from:'heavy_trap_bar',pct:0.87,coef:0.85},{from:'trap_bar_dl',pct:0.87,coef:0.85},{from:'squat',pct:0.87,coef:0.8}],
+  // RFESS total load reads ~55% of a back squat; Bulgarian history is per-DB
+  // (×2 for total), goblet is a single DB (~×2.2 bridges to two hands/bar).
+  heavy_split_squat:[{from:'bulgarian',pct:0.9,coef:2.0},{from:'squat',pct:0.9,coef:0.55},{from:'goblet',pct:0.9,coef:2.2}],
+  // ─ Eccentric/decel tier: moderate intensities of the same anchors ─
+  ecc_box_squat:    [{from:'heavy_box_squat',pct:0.65},{from:'squat',pct:0.65},{from:'leg_press',pct:0.65,coef:0.55},{from:'goblet',pct:0.65,coef:2.8}],
+  lateral_lunge:    [{from:'goblet',coef:0.7},{from:'sumo_squat',coef:0.7},{from:'bulgarian',coef:0.7}],
+  ecc_step_down:    [{from:'goblet',coef:0.5},{from:'bulgarian',coef:0.5}],
   seated_leg_curl:[{from:'leg_curl',coef:1.0}],
   leg_curl:      [{from:'seated_leg_curl',coef:1.0}],
 };
@@ -2685,10 +2698,19 @@ function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMa
   if(own&&own.weight>0)return{weight:own.weight,source:'history',from:exId,confidence:'high'};
 
   // Steps 2/3 — related movements via the anchor matrix, scaled by ratio.
+  // Two independent bridges compose per anchor: `coef` bridges the LOADING
+  // CONVENTION (barbell total vs per-hand DB vs machine stack) off the
+  // anchor's working weight, while `pct` bridges INTENSITY — it runs the
+  // anchor's baseline through Epley to an estimated 1RM first, then takes
+  // pct of it. pct is what lets the heavy 1–5 @ 85–95% tier be estimated
+  // from moderate-rep history: a 185×8 RDL and a 205×5 RDL imply the same
+  // ~235 e1RM, so both produce the same ~85% opener, where a flat working-
+  // weight coefficient would not.
   for(const a of (matrix[exId]||[])){
     const base=loggedBaseline(a.from,logs);
     if(base&&base.weight>0){
-      const w=r5(base.weight*a.coef);
+      const raw=a.pct?epley1RM(base.weight,base.reps)*a.pct:base.weight;
+      const w=r5(raw*(a.coef!=null?a.coef:1));
       if(w>0)return{weight:w,source:'anchor',from:a.from,confidence:'medium'};
     }
   }
