@@ -1035,6 +1035,7 @@ function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
   try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
 function load(){
@@ -6032,6 +6033,12 @@ function filterTombstoned(logs){
 }
 
 let lastCloudMergeRead=0;
+// True whenever local state has changed since the last CONFIRMED cloud write.
+// Powers the flush-on-hide path below: a push that's still in flight when the
+// phone locks (e.g. tapping Finish at lunch and immediately pocketing the
+// phone) dies silently with the suspended page — the workout never reaches
+// the cloud, and the other phone correctly pulls... nothing.
+let cloudDirty=false;
 async function saveToCloud(){
   if(!fbReady||!fbUser||!fbDb)return;
   try{
@@ -6045,7 +6052,12 @@ async function saveToCloud(){
     // a workout (every completed set) reuse the merge from <60s ago — within
     // that window this device's state is already a superset of what it read,
     // and the next pull/merge unions anything that landed in between.
-    if(Date.now()-lastCloudMergeRead>60000){
+    // When the page is being HIDDEN (flush-on-lock), skip the read entirely:
+    // the suspended page kills in-flight requests, so the write must go out
+    // in one hop. Worst case it briefly hides another device's very recent
+    // rows from the cloud copy — self-healing, since unions re-add them from
+    // that device's local state on its next pull/push.
+    if(document.visibilityState!=='hidden'&&Date.now()-lastCloudMergeRead>60000){
       const doc=await ref.get();
       if(doc.exists){
         const cloud=doc.data();
@@ -6061,8 +6073,16 @@ async function saveToCloud(){
     }
     const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
+    cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
 }
+// Flush unpushed data the instant the app is backgrounded — pagehide is the
+// most reliable signal on iOS, visibilitychange covers the rest. The write
+// races the OS suspension; skipping the read (above) gives it one network
+// hop, and if it still dies, the resume-time pull's save() re-pushes on the
+// next open, so nothing is lost — only delayed.
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&cloudDirty)saveToCloud();});
+window.addEventListener('pagehide',()=>{if(cloudDirty)saveToCloud();});
 
 // Generic union-by-id: every row created on any device survives the merge.
 // Additive collections (logs, custom exercises, deleted sessions) must NEVER
