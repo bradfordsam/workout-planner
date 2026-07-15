@@ -3143,6 +3143,33 @@ function finisherHTML(dow,compact,isLunch){
 }
 
 // ─────────────────────────────────────────────
+// DAILY SPINE MINIMUMS
+// ─────────────────────────────────────────────
+// Four FIXED daily poses (~5 min total) surfaced every single day, rest or
+// training — unlike the rotating pools, these never rotate out. Doses are
+// deliberate daily minimums: 60s child's pose (lumbar decompression + stress
+// downshift), 2 min cobra (counters desk flexion, lower-back tension,
+// posture), 60s plank (core stiffness protects the spine), 60s down dog
+// (whole back line + circulation). Child's pose is cued KNEES WIDE — the
+// knees-together version is deep hip flexion, the classic FAI impingement
+// position (hipCaution).
+const DAILY_SPINE_MINIMUMS=[
+  {n:"Child's Pose",d:'60 sec · knees WIDE so the hips never pinch, sit toward the heels, arms long, slow nasal breathing — decompresses the spine and downshifts stress',hold:60},
+  {n:'Cobra Pose',d:'2 min total, split into 3–4 holds · hips stay down, press the chest up only to a comfortable height — reverses desk flexion and eases lower-back tension',hold:120},
+  {n:'Plank',d:'60 sec, split as needed · elbows under shoulders, glutes squeezed, ribs down — core stiffness is what protects the spine and holds posture',hold:60},
+  {n:'Downward Dog',d:'60 sec · hips high, heels reaching, soft knees are fine — stretches the whole back line and gets blood moving',hold:60},
+];
+// Dashboard/rest-day card version — plain text, NO hold-timer buttons: the
+// rest overlay writes to S.active, which is null outside a workout.
+function dailySpineHTML(){
+  return`<div style='margin-top:10px;padding:14px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.2);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:6px'>🧘 Daily Spine Minimums · ~5 min</div>
+    ${DAILY_SPINE_MINIMUMS.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Fixed daily doses — these never rotate. A few minutes every day keeps the spine decompressed, the core protective, and posture honest. Evening training days fold them into the cool-down; otherwise do them any time.</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
 // OFF-DAY ACTIVE RECOVERY
 // ─────────────────────────────────────────────
 function getRecoveryProtocol(dow){
@@ -3159,7 +3186,8 @@ function recoveryHTML(dow){
   <div style='margin-top:10px;padding:14px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4ade80;margin-bottom:6px'>🚶 Daily NEAT Target</div>
     <div style='font-size:13px;color:var(--mut);line-height:1.55'>Aim for <strong style='color:var(--txt)'>1 hour of walking</strong> today, broken up however fits — it's the single biggest lever against a sedentary desk day, and it's easy on the joints on top of today's recovery work.</div>
-  </div>`;
+  </div>
+  ${dailySpineHTML()}`;
 }
 
 // ─────────────────────────────────────────────
@@ -3541,6 +3569,7 @@ function renderDash(){
       }
       ${eveBlock}
       ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession):''}
+      ${isActualToday?dailySpineHTML():''}
     </div>`;
   }
 
@@ -4043,7 +4072,8 @@ function renderWorkout(){
   const COOLDOWN_POOL=[
     {n:'Kneeling Shin Stretch',d:'45 sec · sit back on your heels, tops of the feet flat on the floor',hold:45},
     {n:'Upper Trap Stretch',d:'30 sec/side · ear toward shoulder, opposite hand reaching at the floor',hold:30},
-    {n:"Child's Pose",d:'60 sec · arms long, sit toward the heels, slow nasal breathing — lumbar decompression',hold:60},
+    // Child's Pose moved OUT of the rotation — it's now a fixed item in
+    // DAILY_SPINE_MINIMUMS below, so keeping it here would double it up.
     {n:'Supine Twist',d:'30 sec/side · on your back, knees dropped to one side, shoulders flat',hold:30},
     {n:'Figure 4 Stretch',d:'45 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch',hold:45},
     {n:'Knee-to-Wall Ankle Stretch',d:'45 sec/side · half-kneeling facing a wall, front toes ~4 in away, drive the knee past the toes toward the wall with the heel GLUED down — ankle dorsiflexion is what caps squat depth; inch the foot back as range grows',hold:45},
@@ -4067,6 +4097,9 @@ function renderWorkout(){
     <div class='wu-title' style='color:var(--acc)'>🧊 Cool-down · ~5 min</div>
     ${[{n:'Tibialis Raises',d:'20 reps · back on a wall, lift toes to shins — strengthens away incline-walk shin stiffness'},...stretchRot(COOLDOWN_POOL,3)].map(wuRow).join('')}
     <div class='wu-note'>Static holds live HERE, after training — pre-lift work stays dynamic on purpose. These are range-of-motion doses, not just relief: sink to a 6/10 "productive discomfort" (never pain) and go a little deeper on each exhale — done consistently, this is what lengthens range over weeks. Stretches rotate daily; the full pool cycles across the week. Do this before tapping Finish.</div>
+    <div class='wu-title' style='color:#c084fc;margin-top:14px'>🧘 Daily Spine Minimums · ~5 min · these never rotate</div>
+    ${DAILY_SPINE_MINIMUMS.map(wuRow).join('')}
+    <div class='wu-note'>Fixed daily doses, every day: 60s child's pose (knees wide — hip-friendly), 2 min of cobra split into a few holds, 60s plank, 60s down dog. Knocking them out here checks off today's minimums, so there's nothing left to do at home.</div>
   </div>`:'';
   const nextBtn=allDone
     ?`<button class='btn ${isLast?'btn-ok':'btn-p'}' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`

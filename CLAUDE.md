@@ -49,6 +49,10 @@ strip it before other debugging.
   migration.
 - Stretch pools (`HIP_POOL`, `SHOULDER_POOL`, `LOWER/UPPER_MOBILITY_POOL`,
   `COOLDOWN_POOL`) live inline in the workout render fn and rotate by date.
+- `DAILY_SPINE_MINIMUMS` (global, near `recoveryHTML`): four FIXED daily poses
+  (child's pose knees-wide 60s / cobra 2min / plank 60s / down dog 60s) shown
+  every day — rest card, today card, and evening cool-down (with hold timers).
+  Dashboard version omits hold buttons (`startRest` needs `S.active`).
 
 ## Training constraints (why the code is shaped this way)
 
