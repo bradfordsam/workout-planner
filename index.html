@@ -921,9 +921,21 @@ const VO2_PROTOCOLS=[
    desc:w=>`${w} × 30s hard / 90s easy on bike or rower — repeatable hard efforts, zero impact, not a death march`,
    mins:w=>Math.round(w*2+6)},
 ];
+// 20-minute maximal row benchmark: every 8th engine session (~every 2–3
+// weeks) overrides the rotation. A sustained ~20 min all-out effort is a big
+// acute endocrine event (testosterone + cortisol both spike), but the honest
+// programming rationale is the maximal sustained-effort stimulus itself and a
+// repeatable engine benchmark — acute hormone spikes aren't an established
+// driver of adaptation. Either way the prescription is the same: treat it
+// like a heavy session (rare, recovered-into, never the night before heavy
+// legs) and progress by beating the last test, not by adding work units.
+const ROW_TEST={key:'rowtest',name:'20-Minute Max Row Test',icon:'🚣',
+  desc:'20:00 continuous all-out on the rower — settle into the hardest pace you can hold, empty the tank over the last 3 min. Record distance + avg split; beating your last test IS the progression. Zero impact, maximal systemic stimulus.',
+  mins:32}; // ~8 min warm-up build + 20 min test + easy spin-down
 function vo2History(){return (S.logs||[]).filter(l=>l.vo2);}
 function currentVO2Protocol(){
   const lvl=vo2History().length;
+  if(lvl%8===7)return{...ROW_TEST,work:20,lvl,benchmark:true};
   const proto=VO2_PROTOCOLS[Math.floor(lvl/2)%VO2_PROTOCOLS.length];
   const work=Math.min(proto.base+Math.floor(lvl/4),proto.maxW);
   return{...proto,work,desc:proto.desc(work),mins:proto.mins(work),lvl};
@@ -3578,11 +3590,11 @@ function renderDash(){
           <div class='cr-body'><div class='cr-name'>${proto.name}</div><div class='cr-note'>${proto.desc}</div></div>
           <div class='cr-right'><div class='cr-dur'>${proto.mins} min</div><div class='cr-dist'>aerobic</div></div>
         </div>
-        ${legsTomorrow?`<div style='font-size:11px;color:var(--warn);margin-top:6px'>⚠️ Legs are programmed tomorrow — keep the easy portions truly easy, or shift this to another evening.</div>`:''}
+        ${legsTomorrow?`<div style='font-size:11px;color:var(--warn);margin-top:6px'>${proto.benchmark?`⚠️ Legs are programmed tomorrow — the max row test hits like a heavy session. Shift the test to another evening.`:`⚠️ Legs are programmed tomorrow — keep the easy portions truly easy, or shift this to another evening.`}</div>`:''}
         ${doneThatDay
           ?`<div class='prog-hint' style='margin-top:8px'>✅ VO2 session logged ${isBackdate?DOW[viewDow2]:'today'}</div>`
           :`<button class='btn btn-s btn-sm' data-action='log-vo2-session' data-date='${targetDateStr}' style='margin-top:8px;width:100%'>🫀 Log Engine Session Done${isBackdate?` — for ${DOW[viewDow2]}`:''}</button>`}
-        <div style='font-size:11px;color:var(--mut);margin-top:6px'>${isBackdate?`Saves to ${DOW[viewDow2]} ${targetDateStr} — tap "Back to Today" when done. `:''}+1 interval every 4 sessions, protocols alternate. Doesn't count against lifting MRV or the two-session daily cap.</div>
+        <div style='font-size:11px;color:var(--mut);margin-top:6px'>${isBackdate?`Saves to ${DOW[viewDow2]} ${targetDateStr} — tap "Back to Today" when done. `:''}${proto.benchmark?`Benchmark session — every 8th engine session is the 20-min max row; progression is beating your last distance.`:`+1 interval every 4 sessions, protocols alternate. Doesn't count against lifting MRV or the two-session daily cap.`}</div>
       </div>`;
       }
     }
