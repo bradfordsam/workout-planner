@@ -3810,9 +3810,13 @@ function renderWorkout(){
     {n:'Clamshells',d:'15 reps/side · hips stacked'},
     {n:'Butterfly Stretch',d:'30–45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch'},
     {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back'},
-    {n:'Pretzel Stretch',d:'30 sec/side · seated, one leg crossed over the other knee, opposite elbow braced against the crossed knee, gently rotate the torso away — hip external rotation and glute'},
     {n:'Knee-to-Chest Lie',d:'45 sec · on your back, hug BOTH knees to your chest, gently rocking side to side if it feels good — decompresses the lower back and opens the hips'},
     {n:'Kneeling Diamond Sit',d:'45 sec · kneel with the knees wide and big toes touching behind you, sit back onto the heels with a tall spine — hips, inner thighs, and ankles together (hip-friendly, like wide-knee child\'s pose)'},
+    // Pretzel Stretch removed 2026-07-15: cramps the user's left groin when
+    // that leg is bent — the seated cross-leg position drives deep hip flexion
+    // + rotation under pressure, exactly the pattern the FAI constraints ban.
+    // Figure 4 and 90/90 (both in this pool) cover the same glute/external-
+    // rotation territory from safer supine/seated positions.
   ];
   const hipPrehabHTML=S.cfg.hipCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:#c084fc'>🦋 Mobilize &amp; Activate (do these before lifting)</div>
@@ -4086,7 +4090,7 @@ function renderWorkout(){
     {n:'Straddle Stretch',d:'60 sec · seated, legs wide, walk the chest forward between them with a flat back — adductors and hamstrings together; a real ROM builder at this dose',hold:60},
     {n:'Butterfly Stretch',d:'45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch',hold:45},
     {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back',hold:30},
-    {n:'Pretzel Stretch',d:'30 sec/side · seated, one leg crossed over the other knee, opposite elbow braced against the crossed knee, gently rotate the torso away — hip external rotation and glute',hold:30},
+    // Pretzel Stretch removed 2026-07-15 — cramps the left groin (see HIP_POOL note).
     {n:'Behind-the-Back Shoulder Stretch',d:"30 sec · clasp your hands behind your back (hold a towel if they don't meet), straighten the arms, and gently lift them away from your body — opens the front of the shoulder through end-range extension",hold:30},
     {n:'Overhead Reach Stretch',d:'30 sec · reach both arms straight overhead, interlace fingers, palms up, and reach tall — deepens overhead shoulder flexion range and stretches the lats',hold:30},
     // Upper-back (thoracic) additions — chronically stiff area, so the pool
