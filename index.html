@@ -1181,9 +1181,11 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     if(S.cfg.kneeCaution) return KNEE_SAFE_IDS.has(e.id);
     return slot.tag==='hinge'||slot.tag==='hamstring'||legAutoOK(e);
   };
-  const base = (e) =>
-    e.muscle===slot.muscle && e.type===slot.type &&
-    (!slot.tag || ((e.tags||[]).includes(slot.tag))) &&
+  // baseFor lets the type-relax tier below re-run the same constraint set with
+  // only the slot's type swapped — one source of truth for the safety filters.
+  const baseFor = (sl) => (e) =>
+    e.muscle===sl.muscle && e.type===sl.type &&
+    (!sl.tag || ((e.tags||[]).includes(sl.tag))) &&
     !used.includes(e.id) &&
     e.eq.some(q=>eq.has(q)) &&
     legGateOK(e) &&
@@ -1192,6 +1194,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     !userAvoids(e) &&
     dragonFlagUnlocked(e.id) &&
     !(isLunch && e.highSweat);
+  const base = baseFor(slot);
 
   // Among the candidates, take the LEAST-used movement (lowest weekly frequency),
   // breaking ties by EX array order — so a slot that recurs across days rotates
@@ -1219,9 +1222,30 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
   let exercise = leastUsed(allExercises.filter(e => base(e) && !overworkedMuscles.has(e.muscle) && fitsMRV(e) && freqOf(e)<FREQ_CAP));
   // 2) Next: within MRV max + under cap (allow a recently-worked muscle if needed)
   if(!exercise) exercise = leastUsed(allExercises.filter(e => base(e) && fitsMRV(e) && freqOf(e)<FREQ_CAP));
+  // 2.5) Type relaxed, still under the cap: some pools have no compound at all
+  // (biceps: 0) or exactly one (triceps: tricep_dips) — a muscle's first
+  // appearance in a template is typed 'compound' by construction, so without
+  // this tier a biceps slot silently drops every time and a triceps slot pins
+  // its lone compound past the weekly frequency cap. A FRESH isolation
+  // movement beats both outcomes. Untagged slots only — mandate-tagged slots
+  // (strength/hinge/hamstring/core) keep their own dedicated fallbacks below.
+  const isoRelax = slot.type==='compound' && !slot.tag ? baseFor({...slot,type:'isolation'}) : null;
+  if(!exercise && isoRelax) exercise = leastUsed(allExercises.filter(e => isoRelax(e) && fitsMRV(e) && freqOf(e)<FREQ_CAP));
   // 3) Cap relaxed: a constrained equipment pool may have no alternative left
   // under the cap — better to repeat a movement than to drop the slot entirely.
   if(!exercise) exercise = leastUsed(allExercises.filter(e => base(e) && fitsMRV(e)));
+  // 3.5) Cap relaxed on the relaxed type — last stop before the slot drops for
+  // a muscle whose pool has no compound and no fresh isolation left either.
+  if(!exercise && isoRelax) exercise = leastUsed(allExercises.filter(e => isoRelax(e) && fitsMRV(e)));
+  // 3.7) Accent softening: the power/eccentric/decel accent conversion is a
+  // bias, never a mandate — an avoid-list/equipment-emptied accent pool (e.g.
+  // shoulders 'power' with the push press family excluded for the lower back)
+  // degrades back to the plain compound slot instead of dropping the muscle's
+  // work and leaving the slot to untargeted backfill.
+  if(!exercise && slot.muscle!=='core' && (slot.tag==='power'||slot.tag==='eccentric'||slot.tag==='decel')){
+    const noTag=baseFor({...slot,tag:null});
+    exercise = leastUsed(allExercises.filter(e=>noTag(e)&&fitsMRV(e)&&freqOf(e)<FREQ_CAP)) || leastUsed(allExercises.filter(e=>noTag(e)&&fitsMRV(e)));
+  }
   // 4) Mandate override: 'hinge' and 'hamstring' slots exist specifically so a
   // leg session never trains quads/squats without also hitting the hamstrings
   // (squat patterns alone don't train them). Stacking two dedicated leg slots
@@ -1363,6 +1387,21 @@ function genProgram(cfg,av,workoutHistoryLog){
   // fills toward optimal without exceeding each muscle's recoverable max.
   const budget = { vol: getCommittedVolumes(), limits: getMRVLimits(), perExercise: 3 };
 
+  // Weekly heavy-strength tracking (primary goal: 1–5 reps @ 85–95% at least
+  // once/week). Seeded from this week's logs, then extended by buildSession as
+  // sessions are assigned. DATE-AWARE, not a boolean: sessions are generated
+  // in pass order (lunches → weekend evenings → weekday double evenings), not
+  // calendar order, so a Saturday can "bank" the strength slot before Tuesday
+  // is even planned — Tuesday then runs a weighted accent that re-locks legs
+  // and kills the Saturday heavy day it deferred to. A date D only treats
+  // strength as banked when a strength session exists strictly BEFORE it, so
+  // the earliest rested evening claims the heavy slot and everything after it
+  // rotates accents (converges across the regen after each logged session).
+  // Derived per-generation from logs; no persisted state.
+  const STRENGTH_IDS=new Set([...EX,...(S.customExercises||[])].filter(e=>(e.tags||[]).includes('strength')).map(e=>e.id));
+  const strengthDates=(history||[]).filter(l=>!l.isCardio&&logDay(l.date)>=mon&&logDay(l.date)<weekEnd&&(l.exercises||[]).some(e=>e&&STRENGTH_IDS.has(e.id))).map(l=>logDay(l.date));
+  const strengthBefore=(d)=>strengthDates.some(x=>x<d);
+
   // Calendar date (YYYY-MM-DD) for a program-week dow, for the fatigue matrix's
   // day-by-day lockout lookback. dow 1-5 = Mon-Fri, 6 = Sat, 0 = next Sun.
   const dateForDow=(dow)=>dow===0?addDays(mon,6):dow===6?addDays(mon,5):addDays(mon,dow-1);
@@ -1385,7 +1424,9 @@ function genProgram(cfg,av,workoutHistoryLog){
     // earlier this run), on or before dateStr.
     const lastDate={};
     const consider=(d,muscles)=>{if(!d||d>dateStr)return;muscles.forEach(m=>{if(m&&(!lastDate[m]||d>lastDate[m]))lastDate[m]=d;});};
-    (history||[]).forEach(l=>{if(l.isCardio)return;consider(logDay(l.date),(l.exercises||[]).map(e=>e&&e.muscle));});
+    // Weighted-only legs rule: bodyweight/tendon leg work doesn't reset the
+    // legs recovery clock (see countsForRecoveryLog by MUSCLE_LOCKOUT_HOURS).
+    (history||[]).forEach(l=>{if(l.isCardio)return;consider(logDay(l.date),(l.exercises||[]).map(e=>e&&countsForRecoveryLog(e)?e.muscle:null));});
     Object.entries(assignedMuscles).forEach(([d,set])=>consider(d,[...set]));
     const rows=MUSCLES.map(m=>{
       const ld=lastDate[m];
@@ -1410,6 +1451,32 @@ function genProgram(cfg,av,workoutHistoryLog){
     let elig=rows.filter(r=>r.rested&&r.headroom>=2).sort(byDebt);
     if(!elig.length)elig=rows.filter(r=>r.rested).sort(byDebt);
     if(!elig.length)return null; // nothing adequately rested → rest/recovery day
+    // Weekly heavy-strength guarantee, two halves (verified by simulation:
+    // without them, 0 strength sessions fired in 490 with lunches present).
+    // 1) LUNCH: while no heavy 1–5 work is banked this week, hold legs out of
+    //    lunch templates whenever an evening session follows within the 72h
+    //    leg lockout — a weighted lunch hinge re-locks legs and makes every
+    //    evening structurally unable to host the strength slot. Legs stay in
+    //    when they're the only rested muscle (a leg lunch beats a rest day).
+    if(isLunch&&!strengthBefore(dateStr)){
+      const eveSoon=eveSlots.some(s=>{
+        const d=dateForDow(s.dow);
+        return d>=dateStr&&hoursBetweenDates(dateStr,d)<(MUSCLE_LOCKOUT_HOURS.legs||72);
+      });
+      if(eveSoon){
+        const withoutLegs=elig.filter(r=>r.m!=='legs');
+        if(withoutLegs.length)elig=withoutLegs;
+      }
+    }
+    // 2) EVENING: first evening of the week where legs are rested with MRV
+    //    headroom and no heavy work is banked yet: promote legs to the day's
+    //    anchor so the evening leg mandate below tags slots[0] 'strength'.
+    //    On double days legs were just trained at lunch and fail the rested
+    //    check, so the guarantee simply retries the next evening.
+    if(!isLunch&&!strengthBefore(dateStr)){
+      const li=elig.findIndex(r=>r.m==='legs');
+      if(li>0&&elig[li].headroom>=2)elig.unshift(elig.splice(li,1)[0]);
+    }
     const muscleSlots=Math.max(1,limit-1); // reserve a slot for core
     // Light natural-pairing nudge: the anchor is the most-overdue rested muscle;
     // fill the rest of the day preferring muscles from the same natural group
@@ -1426,34 +1493,54 @@ function genProgram(cfg,av,workoutHistoryLog){
     const top=[anchor,...rest2].slice(0,Math.min(3,elig.length));
     const slots=[];
     for(let i=0;i<muscleSlots;i++)slots.push({muscle:top[i%top.length].m,type:i<top.length?'compound':'isolation'});
+    const domDay=parseInt(dateStr.slice(8,10),10)||0; // day-of-month, drives all emphasis rotations
+    // Leg accents rotate produce → absorb: 'power' (explosive concentric),
+    // 'eccentric' (slow heavy lowering), 'decel' (stick/braking work) — so
+    // multi-directional force ABSORPTION gets programmed, not just output.
+    const LEG_ACCENTS=['power','eccentric','decel'];
+    let accented=false;
     // Leg mandates. Evenings: the first leg slot is tagged 'strength' — the
     // heavy 1–5 rep @ 85–95% tier (box squat / trap bar / heavy RDL / heavy
     // split squat), which leastUsed rotates so squat, hinge, and single-leg
-    // patterns all cycle through. Hinge coverage is preserved by construction:
-    // half that pool IS a hinge, and the second leg slot keeps the 'hamstring'
-    // mandate (leg-curl family) so knee flexion never gets skipped.
-    // Lunch keeps the old 'hinge' mandate — heavy near-max work needs 3–4 min
-    // rests, which the lunch 90s rest cap and 40-min time-box can't hold.
+    // patterns all cycle through.
+    // Lunch alternates 'hinge' and 'hamstring' by day-of-month parity: the
+    // hamstring pool's compounds ARE hinges (RDL family), so hamstring days
+    // flip the slot to 'isolation' to reach the leg-curl/back-extension
+    // family — the knee-flexion work this mandate exists for. The old design
+    // waited for a SECOND leg slot in the same session, which 2–3-slot
+    // sessions essentially never produce (3 firings in 490 simulated
+    // sessions) — knee flexion was left to chance. Heavy near-max work stays
+    // out of lunch either way: the 90s rest cap and 40-min time-box can't
+    // hold 3–4 min rests.
     const legSlotIdx=slots.map((s,i)=>s.muscle==='legs'?i:-1).filter(i=>i>=0);
     if(legSlotIdx.length){
-      slots[legSlotIdx[0]].tag=isLunch?'hinge':'strength';
-      if(legSlotIdx.length>1)slots[legSlotIdx[1]].tag='hamstring';
+      if(isLunch){
+        if(domDay%2){slots[legSlotIdx[0]].type='isolation';slots[legSlotIdx[0]].tag='hamstring';}
+        else slots[legSlotIdx[0]].tag='hinge';
+      }else if(!strengthBefore(dateStr)){
+        slots[legSlotIdx[0]].tag='strength';
+      }else{
+        // One heavy session is already banked this week — later evening leg
+        // slots rotate the athletic accents (produce → absorb) instead of
+        // stacking redundant near-max work.
+        slots[legSlotIdx[0]].tag=LEG_ACCENTS[domDay%LEG_ACCENTS.length];
+        accented=true;
+      }
+      if(legSlotIdx.length>1&&!slots[legSlotIdx[1]].tag)slots[legSlotIdx[1]].tag='hamstring';
     }
-    // Upper-back mandate: vertical pulling (lat pulldown/pull-ups) trains the
-    // lats but leaves the rhomboids/mid-traps/rear delts to chance — the same
-    // gap the hamstring mandate closes for legs. Any day that trains back gets
-    // its first back slot tagged 'horizontal' (row family — direct upper-back
-    // work, still a compound slot) and, when the day has room for a second
-    // back slot, tags it 'rear_delt' (face pulls/reverse-fly family) so
-    // scapular/rear-delt health is covered directly rather than left to chance.
-    // Safe by construction: a muscle's first appearance in `slots` always
-    // falls in the first pass (i<top.length → 'compound'), and any repeat
-    // appearance always falls in a later pass (→ 'isolation') — matching the
-    // 'horizontal'/'rear_delt' tags' own compound/isolation split in EX.
+    // Upper-back mandate, same rotation shape: vertical pulling trains the
+    // lats but leaves rhomboids/mid-traps/rear delts to chance. The first
+    // back slot alternates the 'horizontal' row family with direct
+    // rear-delt/scapular work (face pulls / reverse flys — all isolation
+    // movements, so that parity flips the slot type too). Opposite parity
+    // from the hamstring rotation so a legs+back day never converts both of
+    // its main slots to isolation work at once. The second-slot tag stays as
+    // a bonus when a back-heavy day does repeat the muscle.
     const backSlotIdx=slots.map((s,i)=>s.muscle==='back'?i:-1).filter(i=>i>=0);
     if(backSlotIdx.length){
-      slots[backSlotIdx[0]].tag='horizontal';
-      if(backSlotIdx.length>1)slots[backSlotIdx[1]].tag='rear_delt';
+      if(domDay%2===0){slots[backSlotIdx[0]].type='isolation';slots[backSlotIdx[0]].tag='rear_delt';}
+      else slots[backSlotIdx[0]].tag='horizontal';
+      if(backSlotIdx.length>1&&slots[backSlotIdx[0]].tag!=='rear_delt')slots[backSlotIdx[1]].tag='rear_delt';
     }
     // Hybrid-athlete accent (goal: look like a bodybuilder, MOVE like an
     // athlete): evening sessions convert ONE isolation fill slot of a
@@ -1465,20 +1552,29 @@ function genProgram(cfg,av,workoutHistoryLog){
     // Lunch sessions skip this: too short, and the throw/plyo pool is
     // highSweat anyway. 45-min evenings (2 muscle slots, no isolation fill)
     // also skip naturally — short sessions keep every heavy compound.
-    let accented=false;
-    const domDay=parseInt(dateStr.slice(8,10),10)||0; // day-of-month, drives emphasis rotations
-    if(!isLunch){
+    if(!isLunch&&!accented){
       const POWER_CAPABLE=new Set(['legs','chest','shoulders']);
-      // Leg accents rotate produce → absorb: 'power' (explosive concentric),
-      // 'eccentric' (slow heavy lowering), 'decel' (stick/braking work) — so
-      // multi-directional force ABSORPTION gets programmed, not just output.
-      const LEG_ACCENTS=['power','eccentric','decel'];
       for(let i=slots.length-1;i>=0;i--){
         const s=slots[i];
         if(s.type==='isolation'&&!s.tag&&POWER_CAPABLE.has(s.muscle)){
           s.type='compound';
           s.tag=s.muscle==='legs'?LEG_ACCENTS[domDay%LEG_ACCENTS.length]:'power';
           accented=true;break;
+        }
+      }
+      // ≤60-min sessions have no isolation fill (2–3 slots, all first-appearance
+      // compounds), which left this conversion dead in practice (0 firings in a
+      // 490-session simulation). Fallback: convert the LAST untagged compound of
+      // a power-capable muscle — never slots[0] (the day's main hypertrophy lift
+      // stays heavy and untouched) and never a mandate-tagged slot. One
+      // accessory compound trades for explosive expression — the "move like an
+      // athlete" half of the goal.
+      if(!accented){
+        for(let i=slots.length-1;i>0;i--){
+          const s=slots[i];
+          if(s.type==='compound'&&!s.tag&&POWER_CAPABLE.has(s.muscle)){
+            s.tag='power';accented=true;break;
+          }
         }
       }
     }
@@ -1501,7 +1597,15 @@ function genProgram(cfg,av,workoutHistoryLog){
       {type:'rotational',tag:'lateral'},
     ];
     const coreEmph=CORE_CYCLE[domDay%CORE_CYCLE.length];
-    slots.push({muscle:'core',type:coreEmph.type,tag:coreEmph.tag,powerPreferred:!isLunch&&!accented});
+    // Core is the only muscle with a forced per-session slot, which made it the
+    // only muscle able to exceed its weekly max by construction (19+ sets vs a
+    // max of 18 on full lunch+evening schedules). Once the week's core headroom
+    // is spent, skip the slot — buildSession's backfill hands the freed exercise
+    // to whichever muscle is furthest under its range, where the sets are
+    // actually needed.
+    if((budget.vol.core||0)+(budget.perExercise||3)<=(budget.limits.core?.max??18)){
+      slots.push({muscle:'core',type:coreEmph.type,tag:coreEmph.tag,powerPreferred:!isLunch&&!accented});
+    }
     const names=top.map(t=>MNAME[t.m]||t.m);
     return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')};
   }
@@ -1519,7 +1623,7 @@ function genProgram(cfg,av,workoutHistoryLog){
     const completedLog=loggedFor(slot);
     if(completedLog){
       (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
-      (completedLog.exercises||[]).forEach(e=>{if(e&&e.muscle)assignedMuscles[dateStr].add(e.muscle);});
+      (completedLog.exercises||[]).forEach(e=>{if(e&&e.muscle&&countsForRecoveryLog(e))assignedMuscles[dateStr].add(e.muscle);});
       const allEx=[...EX,...(S.customExercises||[])];
       const exs=(completedLog.exercises||[]).map(e=>{
         const full=allEx.find(x=>x.id===e.id);
@@ -1549,7 +1653,8 @@ function genProgram(cfg,av,workoutHistoryLog){
       // Record which muscles land on this date so the fatigue matrix can see
       // this preserved session as "preceding" when evaluating later days.
       (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
-      (od.exercises||[]).forEach(e=>{if(e&&e.muscle)assignedMuscles[dateStr].add(e.muscle);});
+      (od.exercises||[]).forEach(e=>{if(e&&e.muscle&&countsForRecoveryEx(e))assignedMuscles[dateStr].add(e.muscle);});
+      if((od.exercises||[]).some(e=>e&&STRENGTH_IDS.has(e.id)))strengthDates.push(dateStr);
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,equipmentKey,preserved:true};
     }
     const used=[];
@@ -1640,7 +1745,8 @@ function genProgram(cfg,av,workoutHistoryLog){
     }
 
     (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
-    exs.forEach(e=>{if(e.muscle)assignedMuscles[dateStr].add(e.muscle);});
+    exs.forEach(e=>{if(e.muscle&&countsForRecoveryEx(e))assignedMuscles[dateStr].add(e.muscle);});
+    if(exs.some(e=>e&&STRENGTH_IDS.has(e.id)))strengthDates.push(dateStr);
 
     return{tk,name:sessionName,desc:sessionDesc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc,equipmentKey};
   }
@@ -1870,6 +1976,27 @@ function trainingDayCount(av){
   });
   return dows.size;
 }
+
+// Projected weekly working-set capacity from availability: a lunch session
+// physically holds 7 sets (3-exercise cap, lead keeps 3 + 2×2 after the
+// time-box calibration in buildSession) and an evening holds EX_LIMIT[mins]×3.
+// The default 5-lunch week holds ~35 sets against ~64 sets of summed muscle
+// minimums — that gap is surfaced as a plan-screen warning (the bands
+// themselves stay untouched: they're the physiological targets, and the
+// dashboard staying yellow on a light week is honest).
+function weeklySetCapacity(av){
+  av=av||(S.weekPlan?.availability)||defaultAvailability();
+  let sets=0;
+  [1,2,3,4,5].forEach(dow=>{const d=av[dow]||{};
+    if(d.lunch!==false)sets+=7;
+    if(d.eve?.on)sets+=3*(EX_LIMIT[d.eve.mins||60]||5);
+  });
+  [6,0].forEach(dow=>{const d=av[dow]||{};
+    if(d.on)sets+=3*(EX_LIMIT[d.mins||60]||5);
+  });
+  return sets;
+}
+
 // Efficiency Mode: training 3 days/week triggers a much lower, higher-
 // intensity volume floor — near-failure sets (0-2 RIR) can still trigger
 // growth on far less weekly volume than a moderate-intensity approach needs.
@@ -1930,6 +2057,30 @@ function getFatiguedMuscles(){
 // its weekly MRV max.
 const MUSCLE_LOCKOUT_HOURS={chest:48,shoulders:48,back:48,legs:72,biceps:24,triceps:24,core:24};
 
+// ─── WEIGHTED-ONLY LEGS RULE (2026-07-15) ───
+// Bodyweight/tendon leg work (ATG splits, bottom-half squats, warm-up
+// movements) doesn't demand the 72h recovery window heavy leg training does —
+// yet counting it as "legs trained" kept resetting the recovery clock, so legs
+// never accumulated enough debt to win an evening slot and the weekly heavy
+// 1–5 'strength' mandate starved (0 firings in a 490-session simulation).
+// Only WEIGHTED leg work counts for the debt race and the lockout window.
+// Weekly MRV set volume still counts either way — sets are sets.
+// Planned/EX-shaped exercise: loadable = not noWeight and has non-bodyweight
+// equipment (same idea as flagFirstWorkingSet's `scalable`).
+function weightedLegEx(e){return !e.noWeight&&(e.eq||[]).some(q=>q!=='bodyweight');}
+// Logged exercise: trust the actual logged sets first (any working set with
+// weight on the bar), fall back to the movement's DB entry, and assume loaded
+// for unknown custom movements (conservative: keeps the 72h window).
+function weightedLegLog(exLog){
+  const sets=(exLog.sets||[]).filter(s=>s&&s.reps>0);
+  if(sets.length)return sets.some(s=>(s.weight||0)>0);
+  const full=[...EX,...(S.customExercises||[])].find(x=>x.id===exLog.id);
+  return full?weightedLegEx(full):true;
+}
+// "This exercise counts as training its muscle" for recovery purposes.
+const countsForRecoveryLog=(e)=>e.muscle!=='legs'||weightedLegLog(e);
+const countsForRecoveryEx=(e)=>e.muscle!=='legs'||weightedLegEx(e);
+
 // Hours between the noon-anchored timestamps of two local calendar dates (YYYY-MM-DD).
 function hoursBetweenDates(fromDateStr,toDateStr){
   return (new Date(toDateStr+'T12:00:00')-new Date(fromDateStr+'T12:00:00'))/3600000;
@@ -1945,7 +2096,7 @@ function getLockedMuscles(dateStr,history,assigned){
       if(l.isCardio)return false;
       const d=logDay(l.date);
       if(!(d<dateStr))return false;
-      if(!(l.exercises||[]).some(e=>e.muscle===muscle))return false;
+      if(!(l.exercises||[]).some(e=>e.muscle===muscle&&countsForRecoveryLog(e)))return false;
       return hoursBetweenDates(d,dateStr)<hrs;
     });
     const fromRun=fromHistory?false:Object.entries(assigned||{}).some(([d,muscles])=>
@@ -3293,6 +3444,24 @@ function renderPlan(){
   const calGoal=S.weekPlan.calGoal||{};
   const todayDate=todayStr();
 
+  // Capacity vs minimums warning (F-03): the MRV bands are physiological
+  // targets and stay untouched, but a light schedule (e.g. lunch-only ≈ 35
+  // sets/wk vs ~64 of summed minimums) can never reach them — say so here,
+  // where the schedule is being decided, instead of leaving the dashboard
+  // permanently yellow with no explanation. Efficiency mode (exactly 3 days)
+  // has its own banner and lowered bands, so it's exempt.
+  let capacityWarnHTML='';
+  if(!isEfficiencyMode(av)){
+    const capacity=weeklySetCapacity(av);
+    const needed=Object.values(getMRVLimits()).reduce((s,l)=>s+l.min,0);
+    if(capacity<needed){
+      capacityWarnHTML=`<div class='wu-box' style='border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.05);margin-bottom:16px'>
+        <div style='font-size:12px;font-weight:700;color:var(--warn);margin-bottom:4px'>⚖️ Schedule below weekly volume minimums</div>
+        <div style='font-size:12px;color:var(--mut);line-height:1.6'>This schedule fits ~<strong style='color:var(--txt)'>${capacity} sets/week</strong>, but reaching every muscle's minimum takes ~<strong style='color:var(--txt)'>${needed}</strong>. Volume bars will stay yellow for most muscles — that's the schedule, not the plan. Add evening or weekend sessions to close the gap, or train 3 days/week to switch into Efficiency Mode's lower-volume targets.</div>
+      </div>`;
+    }
+  }
+
   const startVal=calGoal.startDate||todayDate;
   const endVal=calGoal.endDate||nextSunday();
   const calVal=calGoal.cals||'';
@@ -3304,6 +3473,7 @@ function renderPlan(){
     <div class='hdg'>Plan This Week</div>
     <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>Schedule applies from <strong style='color:var(--txt)'>${todayDate}</strong> forward. Changes take effect when you tap Save.</div>
 
+    ${capacityWarnHTML}
     ${renderAvailGrid(av,false)}
 
     ${renderCustomExercises()}
