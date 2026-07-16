@@ -660,6 +660,34 @@ const MUSCLE_FEELS={
 };
 const feelFor=(ex)=>FEELS[ex.id]||MUSCLE_FEELS[ex.muscle]||'';
 
+// ─── CABLE ATTACHMENT VERIFICATION ───
+// Which handle to clip on (and where to set the pulley) for every cable
+// movement — shown as its own line on the workout card so the setup can be
+// verified BEFORE the first rep, instead of being buried mid-cue. Keyed by
+// exercise id, same pattern as FEELS.
+const HANDLES={
+  cable_fly:'Two D-handles (stirrups) · pulleys at shoulder height for mid-chest — higher/lower per the technique tip',
+  lat_pulldown:'Wide lat bar · overhand grip just outside shoulder width',
+  bumstead_pulldown:'Wide lat bar · overhand grip',
+  cable_row:'V-grip (close triangle) · neutral palms facing each other',
+  straight_pull:'Straight bar (rope also works) · high pulley',
+  face_pulls:'Rope · high pulley — grip with thumbs pointing back toward you',
+  cable_lateral:'Single D-handle · lowest pulley, stand side-on to the stack',
+  lying_cable_lat:'Single D-handle · low pulley',
+  cable_curl:'Straight or EZ bar · lowest pulley',
+  pushdown:'Rope (preferred — lets you split at the bottom) or straight bar · high pulley',
+  overhead_ext:'Rope · low pulley, facing away from the stack',
+  spanish_squat:'No handle — loop the strap (or a heavy band) behind BOTH knees · low anchor',
+  pallof:'Single D-handle · pulley at chest height',
+  pallof_hold:'Single D-handle · pulley at chest height',
+  sl_hip_flexor_pallof:'Single D-handle · pulley at chest height',
+  woodchop:'Single D-handle, both hands stacked on it · pulley high or low per the chop direction',
+  half_kneel_press:'Cable version: single D-handle · low pulley behind you (or just use a dumbbell)',
+  sa_cable_row:'Single D-handle · pulley at mid/chest height',
+  split_stance_row:'Single D-handle · pulley at mid/chest height',
+};
+const handleFor=(ex)=>HANDLES[ex.id]||'';
+
 // ─────────────────────────────────────────────
 // YMCA / LUNCH SESSION CONSTANTS
 // ─────────────────────────────────────────────
@@ -3980,9 +4008,13 @@ function renderWorkout(){
     {n:'Clamshells',d:'15 reps/side · hips stacked'},
     {n:'Butterfly Stretch',d:'30–45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch'},
     {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back'},
-    {n:'Pretzel Stretch',d:'30 sec/side · seated, one leg crossed over the other knee, opposite elbow braced against the crossed knee, gently rotate the torso away — hip external rotation and glute'},
     {n:'Knee-to-Chest Lie',d:'45 sec · on your back, hug BOTH knees to your chest, gently rocking side to side if it feels good — decompresses the lower back and opens the hips'},
     {n:'Kneeling Diamond Sit',d:'45 sec · kneel with the knees wide and big toes touching behind you, sit back onto the heels with a tall spine — hips, inner thighs, and ankles together (hip-friendly, like wide-knee child\'s pose)'},
+    // Pretzel Stretch removed 2026-07-15: cramps the user's left groin when
+    // that leg is bent — the seated cross-leg position drives deep hip flexion
+    // + rotation under pressure, exactly the pattern the FAI constraints ban.
+    // Figure 4 and 90/90 (both in this pool) cover the same glute/external-
+    // rotation territory from safer supine/seated positions.
   ];
   const hipPrehabHTML=S.cfg.hipCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:#c084fc'>🦋 Mobilize &amp; Activate (do these before lifting)</div>
@@ -4256,7 +4288,7 @@ function renderWorkout(){
     {n:'Straddle Stretch',d:'60 sec · seated, legs wide, walk the chest forward between them with a flat back — adductors and hamstrings together; a real ROM builder at this dose',hold:60},
     {n:'Butterfly Stretch',d:'45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch',hold:45},
     {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back',hold:30},
-    {n:'Pretzel Stretch',d:'30 sec/side · seated, one leg crossed over the other knee, opposite elbow braced against the crossed knee, gently rotate the torso away — hip external rotation and glute',hold:30},
+    // Pretzel Stretch removed 2026-07-15 — cramps the left groin (see HIP_POOL note).
     {n:'Behind-the-Back Shoulder Stretch',d:"30 sec · clasp your hands behind your back (hold a towel if they don't meet), straighten the arms, and gently lift them away from your body — opens the front of the shoulder through end-range extension",hold:30},
     {n:'Overhead Reach Stretch',d:'30 sec · reach both arms straight overhead, interlace fingers, palms up, and reach tall — deepens overhead shoulder flexion range and stretches the lats',hold:30},
     // Upper-back (thoracic) additions — chronically stiff area, so the pool
@@ -4312,6 +4344,7 @@ function renderWorkout(){
       <div class='ex-name'>${ex.name}</div>
       <span class='m-tag' style='background:${mcolor}22;color:${mcolor}'>${MNAME[ex.muscle]||ex.muscle} · ${ex.type}</span>
       ${feelFor(ex)?`<div style='font-size:12.5px;color:var(--txt-dim);line-height:1.5;margin:8px 0 10px;padding:8px 10px;background:${mcolor}0d;border-left:3px solid ${mcolor}66;border-radius:0 8px 8px 0'>🎯 <strong style='color:${mcolor}'>Feel it:</strong> ${feelFor(ex)}</div>`:''}
+      ${handleFor(ex)&&(EQUIPMENT_PRESETS[S.active.equipmentKey||'ymca']?.equipment||[]).includes('cables')?`<div style='font-size:12px;color:var(--txt-dim);line-height:1.5;margin:0 0 10px;padding:6px 10px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:8px'>🔗 <strong style='color:var(--acc)'>Attachment:</strong> ${handleFor(ex)}</div>`:''}
       <div style='display:flex;gap:8px;align-items:center;margin-bottom:10px'>
         <button class='cue-btn' data-action='toggle-cue' data-id='cue-${exIdx}' style='margin-bottom:0'>💡 Technique tip</button>
         <button class='cue-btn' data-action='toggle-swap' style='margin-bottom:0;margin-left:auto;color:var(--mut)'>↕ Swap</button>
@@ -4396,7 +4429,7 @@ function renderReviewWorkout(){
       <div class='ex-name'>${ex.name}</div>
       <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>${ex.sets} sets × ${ex.rMin}–${ex.rMax} ${ex.isTimed?'seconds':'reps'}</div>
       <button class='cue-btn' data-action='toggle-cue' data-id='review-cue-${idx}'>💡 Technique tip</button>
-      <div class='cue-txt' id='review-cue-${idx}'>${ex.cue || 'No technique notes available.'}${feelFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🎯 <strong>Feel it:</strong> ${feelFor(ex)}</div>`:''}</div>
+      <div class='cue-txt' id='review-cue-${idx}'>${ex.cue || 'No technique notes available.'}${handleFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🔗 <strong>Attachment:</strong> ${handleFor(ex)}</div>`:''}${feelFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🎯 <strong>Feel it:</strong> ${feelFor(ex)}</div>`:''}</div>
     </div>`;
   }).join('');
 
