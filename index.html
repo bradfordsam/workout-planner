@@ -4010,6 +4010,7 @@ function renderWorkout(){
     {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back'},
     {n:'Knee-to-Chest Lie',d:'45 sec · on your back, hug BOTH knees to your chest, gently rocking side to side if it feels good — decompresses the lower back and opens the hips'},
     {n:'Kneeling Diamond Sit',d:'45 sec · kneel with the knees wide and big toes touching behind you, sit back onto the heels with a tall spine — hips, inner thighs, and ankles together (hip-friendly, like wide-knee child\'s pose)'},
+    {n:'Z-Sit',d:'30 sec/side · sit with the front shin folded across in front and the other shin folded to the side behind you (a settled 90/90), tall spine, weight even on both sit bones — releases the hips; switch sides, and ease out if the left groin complains'},
     // Pretzel Stretch removed 2026-07-15: cramps the user's left groin when
     // that leg is bent — the seated cross-leg position drives deep hip flexion
     // + rotation under pressure, exactly the pattern the FAI constraints ban.
@@ -4034,6 +4035,7 @@ function renderWorkout(){
     {n:'Standing Thoracic Rotation',d:'10 reps/side · feet planted hip-width, arms crossed at the chest, rotate the upper body side to side while the hips stay facing forward'},
     {n:'Behind-the-Back Shoulder Stretch',d:"30 sec · clasp your hands behind your back (hold a towel if they don't meet), straighten the arms, and gently lift them away from your body — opens the front of the shoulder through end-range extension"},
     {n:'Overhead Reach Stretch',d:'30 sec · reach both arms straight overhead, interlace fingers, palms up, and reach tall — deepens overhead shoulder flexion range and stretches the lats'},
+    {n:'Crab Reach',d:'8 reps/side · seated crab position (hands planted behind you, feet flat), press the hips up and reach one arm up and over across the body — opens the front of the shoulders and extends the upper back'},
   ];
   const achyShoulderHTML=S.cfg.shoulderCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:var(--acc)'>🩹 Achy Shoulder Warm-up (do this instead of a generic warm-up)</div>
@@ -4288,6 +4290,7 @@ function renderWorkout(){
     {n:'Straddle Stretch',d:'60 sec · seated, legs wide, walk the chest forward between them with a flat back — adductors and hamstrings together; a real ROM builder at this dose',hold:60},
     {n:'Butterfly Stretch',d:'45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch',hold:45},
     {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back',hold:30},
+    {n:'Z-Sit',d:'30 sec/side · sit with the front shin folded across in front and the other shin folded to the side behind you (a settled 90/90), tall spine, weight even on both sit bones — releases the hips; switch sides, and ease out if the left groin complains',hold:30},
     // Pretzel Stretch removed 2026-07-15 — cramps the left groin (see HIP_POOL note).
     {n:'Behind-the-Back Shoulder Stretch',d:"30 sec · clasp your hands behind your back (hold a towel if they don't meet), straighten the arms, and gently lift them away from your body — opens the front of the shoulder through end-range extension",hold:30},
     {n:'Overhead Reach Stretch',d:'30 sec · reach both arms straight overhead, interlace fingers, palms up, and reach tall — deepens overhead shoulder flexion range and stretches the lats',hold:30},
