@@ -3603,7 +3603,7 @@ function renderSetup(){
        <div class='plan-chk-box'>${cfg.shoulderCaution?'✓':''}</div>
        <div>
          <div style='font-size:13px;font-weight:700'>Achy shoulder / poor posture</div>
-         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Swaps your pre-workout warm-up for a decompression + posture routine that rotates 3 per session from: Dead Hang, Face Pulls, Band Pull-aparts, Doorway Stretch, Kneeling Thoracic Rotation, Standing Thoracic Rotation.</div>
+         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Swaps your pre-workout warm-up for a decompression + posture routine that rotates 3 per session from: Dead Hang, Face Pulls, Doorway Stretch, Kneeling Thoracic Rotation, Standing Thoracic Rotation.</div>
        </div>
      </div>
      <div style='margin-top:20px'>
@@ -4058,7 +4058,9 @@ function renderWorkout(){
   const SHOULDER_POOL=[
     {n:'Dead Hang',d:'30–60 sec · shoulder decompression'},
     {n:'Face Pulls',d:'15 reps · rear-delt/rotator-cuff stability'},
-    {n:'Band Pull-aparts',d:'15 reps · upper-back posture'},
+    // Band Pull-aparts removed 2026-07-15: user has no band. Face Pulls above
+    // and the thoracic rotations below cover the same rear-delt/upper-back
+    // posture territory bandless. Re-add if a band comes back.
     {n:'Doorway Stretch',d:'30 sec/side · pec/anterior shoulder mobility'},
     {n:'Kneeling Thoracic Rotation',d:'10 reps/side · tall-kneeling, hand behind head, rotate the elbow down and across then up toward the ceiling — hips stay square, the upper back does the rotating'},
     {n:'Standing Thoracic Rotation',d:'10 reps/side · feet planted hip-width, arms crossed at the chest, rotate the upper body side to side while the hips stay facing forward'},
@@ -4097,7 +4099,7 @@ function renderWorkout(){
     {n:'Standing Hip Rotations',d:'8 circles/side · lift the knee only to MID-THIGH height (below 90°) and draw a smooth circle — out, around, and back — standing tall near a wall for balance. Left side: keep the circle smaller and stop short of any front-of-hip pinch — the pinch is the joint\'s limit, not a stretch'},
     {n:'Glute Bridge Pulses',d:'15 reps · glute bridge at the TOP of the range, small quick pulses squeezing the glutes — activation before loading'},
     {n:'Glute Bridge Hold',d:'30 sec · drive to full hip extension and hold, glutes squeezed hard, ribs down — count a slow 30'},
-    {n:'Single-Leg Raises',d:'8 reps/side · flat on your back, one leg straight up as high as it goes then lower slow — dynamic hamstring, lower back stays down'},
+    {n:'Single-Leg Raises',d:'8 reps/side · flat on your back, one leg straight up then lower slow — press the lower back FLAT into the floor and only lower as far as you can hold it flat (bend the down-leg knee & plant that foot if needed). A faint pop just above the waistline on the way down means the back is arching and the hip flexor is snapping — shorten the range and brace harder, don\'t push through it'},
     {n:'Knee Hugs',d:'8 reps/side · standing, pull one knee to the chest with both hands, squeeze 1s, tall posture — alternate'},
     {n:'Lymphatic Jumps',d:'30 sec · light relaxed bouncing on the toes, heels barely tapping, arms loose — wakes the ankles and gets blood moving'},
     {n:'Lunge Flow',d:'5 reps/side · flow lunge sequence: deep lunge → back-knee tap → straighten front leg for hamstrings → hands overhead — one smooth cycle per rep'},
