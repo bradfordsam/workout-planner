@@ -56,8 +56,14 @@ strip it before other debugging.
 
 ## Training constraints (why the code is shaped this way)
 
-- Left hip has FAI history (`hipCaution`): no hard-landing plyos, no loaded
-  end-range rotation through the hips; `hipRisk` flag + avoid list enforce it.
+- Left hip has FAI history (`hipCaution`): no HARD-landing/impact plyos, no
+  loaded end-range rotation through the hips; `hipRisk` flag + avoid list
+  enforce it. Exception (2026-07-22): the low-impact reactive subset is allowed
+  under hip caution — exercises flagged `lowImpact:true` (chair & JAPAP jumps,
+  pogo/plate/line hops: quiet ankle work or single max efforts, no repeated hard
+  landings) pass the plyo ban via the `plyoHidden()` helper. True impact plyos
+  (depth jumps, single-leg drops, bounds) stay banned. Any new `plyometric`
+  exercise is banned by default unless explicitly given `lowImpact:true`.
   Heavy strength variants are deliberately hip-friendly (box squat depth cap,
   elevated trap bar, staggered stance) so they stay outside the ban.
 - Leg training goal (updated 2026-07-14): multi-directional force handling,

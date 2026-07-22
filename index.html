@@ -435,15 +435,17 @@ const EX = [
   {id:'skater_jumps',name:'Skater Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],noWeight:true,rMin:6,rMax:10,rest:90,cue:'Lateral bound from one foot to the other, like a speed skater. Land soft on the outside foot, hold briefly, then push off into the next bound. Count per side.',tags:['plyometric','unilateral','lateral'],highSweat:true},
   {id:'lateral_bound_broad_jump',name:'Lateral Bound into Broad Jump',muscle:'legs',type:'compound',eq:['bodyweight'],noWeight:true,rMin:4,rMax:6,rest:120,cue:'Lateral bound to one side, stick the landing on one foot, then immediately broad jump forward off that foot for distance. Reset between combos. Count combos per side.',tags:['plyometric','unilateral','power'],highSweat:true},
   // ─── Bounce/reactive jump pool (vertical-jump work) ───
-  // All tagged 'plyometric' — hidden while hip caution is on; the low-impact
-  // bounce foundation (iso holds above) carries that work in the meantime.
-  {id:'chair_jumps',name:'Chair Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:150,noWeight:true,cue:'Sit fully on a chair or bench, feet planted. From the dead-stop seated position — no rocking — explode straight up into a maximal jump. Sitting kills the stretch reflex, forcing pure starting strength from the hips and quads. Land soft, sit back down, fully reset each rep.',tags:['plyometric','power','quad'],highSweat:true},
+  // All tagged 'plyometric'. Under hip caution, only the lowImpact:true subset
+  // (chair & JAPAP jumps, pogo/plate/line hops — quiet ankle work or single max
+  // efforts, no repeated hard landings) surfaces; the true impact plyos below
+  // (depth jumps, single-leg drops, bounds) stay hidden. See plyoHidden().
+  {id:'chair_jumps',name:'Chair Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:150,noWeight:true,cue:'Sit fully on a chair or bench, feet planted. From the dead-stop seated position — no rocking — explode straight up into a maximal jump. Sitting kills the stretch reflex, forcing pure starting strength from the hips and quads. Land soft, sit back down, fully reset each rep.',lowImpact:true,tags:['plyometric','power','quad'],highSweat:true},
   {id:'depth_jumps',name:'Depth Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:180,noWeight:true,cue:'Step (don\'t jump) off a knee-height box. The instant you touch down, explode straight up as high as possible — minimal ground time, like the floor is hot. THE classic reactive-strength builder, and among the most demanding: quality over volume, full rest between reps, stop the moment jump height drops.',tags:['plyometric','power'],highSweat:true},
   {id:'sl_depth_drop',name:'Single-Leg Depth Drop Jump',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:3,rMax:5,rest:180,noWeight:true,cue:'Step off a LOW box (start ~6 in) and land on one leg, absorbing quietly with a stiff ankle — then immediately jump back up off that same leg. Single-leg reactive strength is what one-foot jumpers actually run on. Keep the box low until landings are silent. Count per side.',tags:['plyometric','unilateral','power'],highSweat:true},
-  {id:'japap_jumps',name:'JAPAP Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:6,rest:180,noWeight:true,cue:'Jump As high As Possible: full approach or standstill, gather, and put 100% intent into one maximal vertical jump. Walk it off, fully reset, and repeat. Nothing builds jump height like actually jumping at max intent while fresh — every rep is a genuine attempt at a personal best, never a rhythm rep.',tags:['plyometric','power'],highSweat:true},
-  {id:'pogo_hops',name:'Pogo Hops',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:10,rMax:20,rest:120,noWeight:true,cue:'Legs nearly straight, hands on hips or reaching tall. Bounce off the floor using ONLY the ankles — knees barely bend — with the shortest ground contact you can manage, like a pogo stick. Height comes from ankle stiffness, not knee bend. The direct upgrade from Springy Calf Bounces once your feet leave the floor.',tags:['plyometric','calf','tendon'],highSweat:true},
-  {id:'plate_hops',name:'Plate Hops',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:8,rMax:12,rest:120,noWeight:true,cue:'Stand in front of a bumper plate (or low step). Quick two-foot hops up onto the plate and back down, minimal ground contact both directions, stiff ankles. The tiny height keeps it about foot speed and reactivity, not power — crisp rhythm, quiet landings.',tags:['plyometric','calf','tendon'],highSweat:true},
-  {id:'line_hops',name:'Line Hops',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:20,rMax:40,rest:90,noWeight:true,cue:'Feet together, hop side-to-side over a line (or front-to-back) as FAST as possible with the shortest ground contacts you can hit — count total touches. Ankles stay stiff, heels never settle. Foot quickness and ankle reactivity; also a great low-box drill for ground-contact rhythm.',tags:['plyometric','calf','tendon'],highSweat:true},
+  {id:'japap_jumps',name:'JAPAP Jumps',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:6,rest:180,noWeight:true,cue:'Jump As high As Possible: full approach or standstill, gather, and put 100% intent into one maximal vertical jump. Land soft — absorb straight down through the hips and knees, never a stiff or twisting landing — then walk it off, fully reset, and repeat. Nothing builds jump height like actually jumping at max intent while fresh — every rep is a genuine attempt at a personal best, never a rhythm rep.',lowImpact:true,tags:['plyometric','power'],highSweat:true},
+  {id:'pogo_hops',name:'Pogo Hops',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:10,rMax:20,rest:120,noWeight:true,cue:'Legs nearly straight, hands on hips or reaching tall. Bounce off the floor using ONLY the ankles — knees barely bend — with the shortest ground contact you can manage, like a pogo stick. Height comes from ankle stiffness, not knee bend. The direct upgrade from Springy Calf Bounces once your feet leave the floor.',lowImpact:true,tags:['plyometric','calf','tendon'],highSweat:true},
+  {id:'plate_hops',name:'Plate Hops',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:8,rMax:12,rest:120,noWeight:true,cue:'Stand in front of a bumper plate (or low step). Quick two-foot hops up onto the plate and back down, minimal ground contact both directions, stiff ankles. The tiny height keeps it about foot speed and reactivity, not power — crisp rhythm, quiet landings.',lowImpact:true,tags:['plyometric','calf','tendon'],highSweat:true},
+  {id:'line_hops',name:'Line Hops',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:20,rMax:40,rest:90,noWeight:true,cue:'Feet together, hop side-to-side over a line (or front-to-back) as FAST as possible with the shortest ground contacts you can hit — count total touches. Ankles stay stiff, heels never settle. Foot quickness and ankle reactivity; also a great low-box drill for ground-contact rhythm.',lowImpact:true,tags:['plyometric','calf','tendon'],highSweat:true},
   {id:'lunge_hops',name:'Lunge Hops',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:5,rMax:8,rest:150,noWeight:true,cue:'From the bottom of a lunge, explode straight up and switch legs mid-air, landing soft in a lunge on the other side — immediately into the next rep. Unilateral reactive power with a big hip-flexor stretch-shorten each switch. Count per side; stop when the switch gets sloppy.',tags:['plyometric','unilateral','power'],highSweat:true},
   {id:'u_hops',name:'U Hops',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:120,noWeight:true,cue:'Two-foot hops tracing a "U" shape — down one side, across the bottom, up the other side — then reverse. The constant direction change trains lateral ankle/knee stiffness and landing control in every plane. Quick contacts, quiet feet. One full U = one rep.',tags:['plyometric','lateral','tendon'],highSweat:true},
   {id:'sl_lunge_bounds',name:'Single-Leg Lunge Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:6,rest:150,noWeight:true,cue:'From a lunge position, bound forward off the FRONT leg for distance, landing in a lunge with the same leg forward — walk back or reset between reps. Drives horizontal single-leg power out of a deep hip position, the pattern behind acceleration and one-foot takeoffs. Count per side.',tags:['plyometric','unilateral','power'],highSweat:true},
@@ -1148,7 +1150,8 @@ function load(){
 // rather than naming each retired lift means any leg exercise added later is
 // excluded by default unless explicitly tagged for the emphasis.
 // 'plyometric' is allowed here (it's explosive) but still filtered separately
-// by hip-caution, so it only surfaces for users without the hip flag.
+// by hip-caution (see plyoHidden) — for hip-flagged users only the lowImpact
+// reactive subset surfaces; everyone else gets the full jump pool.
 const LEG_EMPHASIS_TAGS=['power','isometric','tendon','eccentric','plyometric','strength','decel','lateral'];
 const legAutoOK=(e)=>e.muscle!=='legs'||LEG_EMPHASIS_TAGS.some(t=>(e.tags||[]).includes(t));
 
@@ -1161,6 +1164,14 @@ const KNEE_SAFE_IDS=new Set(['goblet','rdl','db_rdl','reverse_lunge','sumo_squat
 // pickEx's per-slot gate above) — Knee-Caution there is a flat allow-list
 // check: exclude any leg exercise outside the knee-safe set.
 const kneeCautionBlocks=(e)=>S.cfg.kneeCaution&&e.muscle==='legs'&&!KNEE_SAFE_IDS.has(e.id);
+// Hip-caution plyo ban, WITH a low-impact exception. All flight/landing work is
+// tagged 'plyometric' and hidden while hip caution is on — except the quiet,
+// ankle-driven or single-max-effort subset flagged lowImpact:true (pogo/plate/
+// line hops, chair & JAPAP jumps — no repeated hard landings), which stays
+// available so vertical-jump work isn't fully lost to the FAI hip. True impact
+// plyos (depth jumps, single-leg drops, bounds) carry no lowImpact flag and
+// remain banned. Used everywhere the old inline plyometric check lived.
+const plyoHidden=(e)=>S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')&&!e.lowImpact;
 // Personal exercise exclusions — movements that flare a specific issue
 // regardless of the broader hip/knee/shoulder caution flags (e.g. Push Press
 // on the lower back). A flat id blacklist, not a tag rule, since these are
@@ -1226,7 +1237,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     e.eq.some(q=>eq.has(q)) &&
     legGateOK(e) &&
     !(S.cfg.hipCaution && e.hipRisk) &&
-    !(S.cfg.hipCaution && (e.tags||[]).includes('plyometric')) &&
+    !plyoHidden(e) &&
     !userAvoids(e) &&
     dragonFlagUnlocked(e.id) &&
     !(isLunch && e.highSweat);
@@ -1297,7 +1308,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     const hingeSlot={...slot,tag:'hinge'};
     const hingeBase=(e)=>e.muscle===hingeSlot.muscle && e.type===hingeSlot.type && (e.tags||[]).includes('hinge') &&
       !used.includes(e.id) && e.eq.some(q=>eq.has(q)) && !(S.cfg.hipCaution&&e.hipRisk) &&
-      !(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')) && !userAvoids(e) && !(isLunch&&e.highSweat) &&
+      !plyoHidden(e) && !userAvoids(e) && !(isLunch&&e.highSweat) &&
       !(S.cfg.kneeCaution&&!KNEE_SAFE_IDS.has(e.id));
     exercise = leastUsed(allExercises.filter(e=>hingeBase(e)&&fitsMRV(e)&&freqOf(e)<FREQ_CAP)) || leastUsed(allExercises.filter(hingeBase));
   }
@@ -1307,7 +1318,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
   // 'rotational') so some core work always lands.
   if(!exercise && slot.muscle==='core' && slot.tag){
     const anyCore=(e)=>e.muscle==='core' && !used.includes(e.id) && e.eq.some(q=>eq.has(q)) &&
-      !(S.cfg.hipCaution&&e.hipRisk) && !(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')) &&
+      !(S.cfg.hipCaution&&e.hipRisk) && !plyoHidden(e) &&
       !userAvoids(e) && dragonFlagUnlocked(e.id) && !(isLunch&&e.highSweat);
     exercise = leastUsed(allExercises.filter(e=>anyCore(e)&&fitsMRV(e)&&freqOf(e)<FREQ_CAP)) || leastUsed(allExercises.filter(anyCore));
   }
@@ -3897,7 +3908,7 @@ function renderSwapSearchResults(query,exIdx){
     e.id!==(ex?.id) &&
     !S.active.exercises.some(ae=>ae.id===e.id) &&
     !(S.cfg.hipCaution&&e.hipRisk) &&
-    !(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')) &&
+    !plyoHidden(e) &&
     !kneeCautionBlocks(e) &&
     !userAvoids(e) &&
     (e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q)||e.type.toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
@@ -4263,7 +4274,7 @@ function renderWorkout(){
   const todayAv=av[today]||{};
   const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
   const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric'))&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!plyoHidden(e)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
   const swapSearchOpen=swapOpen&&S.active.swapSearch;
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
