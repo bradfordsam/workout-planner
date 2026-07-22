@@ -899,7 +899,7 @@ const EX_LIMIT={30:2,45:3,60:4,75:5,90:6};
 const SPRINT_PRIMER={
   title:'Prime First — Never Sprint Cold (~6 min)',
   items:[
-    'Leg swings — 10 front/back + 10 side/side per leg',
+    'Leg swings — 10 front/back per leg (skip the side-to-side swing — it jams & pops the left hip)',
     '90/90 hip transitions — 5 slow reps per side',
     'Walking knee hugs + lunge with reach — 10 m each',
     'A-march → A-skip — 2 × 20 m (tall, crisp, quiet feet)',
@@ -4029,21 +4029,20 @@ function renderWorkout(){
   // femoral head into the front of the socket (Standing Hip Rotations, Open
   // Gate — both capped below the pinch). Stretching the CAPSULE doesn't fix
   // that; the joint needs DECOMPRESSING first — gently pulling the femoral
-  // head away from the rim before working range. Upgraded 2026-07-17 to a
-  // heavy loop band (now on hand) pulling LATERAL to the joint line, the real
-  // version of this technique — bodyweight/gravity traction (kept as the
-  // fallback line in each cue) only pulls straight down the bone, which
-  // doesn't clear the rim nearly as well as a true perpendicular distraction.
-  // Fixed daily lead-in (never rotates, like DAILY_SPINE_MINIMUMS) —
-  // decompress first, then mobilize into the rotating pool below.
+  // head away from the rim before working range.
+  // Condensed 2026-07-18 (user: no band right now + the 3-drill banded block
+  // ate too much UI) from three banded distraction drills to one compact
+  // BANDLESS self-traction rockback. Self-traction pulls straight down the
+  // bone rather than truly lateral, so it clears the rim less completely than
+  // a banded lateral distraction did — but it's the best bandless option and
+  // still meaningfully unloads the joint before range work. Restore the
+  // banded versions (git history) if a loop band comes back.
   const HIP_DECOMPRESSION=[
-    {n:'Banded Hip Distraction Rockback',d:'30–45 sec/side, left first · loop the band high on the thigh, just below the hip crease. Anchor it to a rig/post at KNEE height off to the side, so the pull is lateral — perpendicular to the leg, not straight down — then step away to load real tension. Kneel and rock the hip into flexion (a couch-stretch-style rockback): the band holds the femoral head off the rim while you move through the range that normally pinches. No anchor handy? Fall back to hands looped around the thigh, pulling straight down the bone.',hold:45},
-    {n:'Banded Standing Distraction March',d:'8 reps/side, left smaller · same lateral band setup at hip height — stand side-on to the anchor so the band pulls the thigh out to the side — then march the knee up and circle it exactly like Standing Hip Rotations. The band keeps the joint decompressed through the whole circle, so you rebuild the range without the pinch. This is the direct fix for the exact movement that pinches; no band, use the bodyweight version (mid-thigh height, smaller left arc) instead.',hold:0},
-    {n:'Banded Couch Stretch Distraction',d:'30–45 sec/side · rear foot up on a bench, band anchored low behind you and looped high on the BACK thigh, pulling it down and back; front knee forward into a lunge. Decompresses the hip and lengthens the hip flexor at the same time. No band: a plain half-kneeling hip flexor stretch, tuck the pelvis first.',hold:45},
+    {n:'Hip Flexor Rockback (self-traction)',d:'30–45 sec/side, left first · half-kneeling, both hands wrapped high around the FRONT thigh just under the hip crease. Gently pull the thigh bone down and away from the hip to unload the joint, and — holding that traction — rock the hips back into flexion through the range that normally pinches. No band needed; your hands do the distracting. Ease off the instant you feel the left-hip pinch — that\'s the joint\'s bony limit, not a stretch to push through.',hold:45},
   ];
   const hipDecompHTML=S.cfg.hipCaution?`<div style='margin-bottom:10px'>
     ${HIP_DECOMPRESSION.map(wuRow).join('')}
-    <div class='wu-note'>Decompress first, then mobilize — these three never rotate out. Moderate band tension, never painful pulling. Left hip: back off the moment you feel the pinch; it's the joint's bony limit, not a stretch to push through.</div>
+    <div class='wu-note'>Decompress first, then mobilize into the pool below. Left hip: back off at the pinch.</div>
   </div>`:'';
   const hipPrehabHTML=S.cfg.hipCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:#c084fc'>🦋 Decompress &amp; Mobilize (do these before lifting)</div>
