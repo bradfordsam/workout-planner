@@ -285,9 +285,9 @@ const EX = [
   {id:'overhead_ext',name:'Cable Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing (or seated on a bench for extra back support), facing away from a low pulley with a rope attachment — hands together behind the head at the bottom. Long head fully stretched overhead — highest growth potential. Keep elbows forward and pointed at the ceiling, don\'t let them flare. 2-count descent, no swinging the cable. Full ROM.'},
   {id:'db_overhead_ext',name:'DB Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Standing (or seated on a bench for extra back support). Hold a single dumbbell with both hands, cupped under the top plate, arms straight overhead. Lower behind the head under control until you feel a full stretch in the long head of the tricep — keep elbows pointed at the ceiling and close to your ears, don\'t let them flare. Press back to full lockout. 2-count descent, full ROM.'},
   {id:'skull_crushers',name:'DB Skull Crushers',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower DBs toward forehead with control — 2 counts down. Elbows slightly flared. Press back up. This is not a speed exercise.'},
-  {id:'diamond_pu',name:'Diamond Push-ups',muscle:'triceps',type:'isolation',eq:['bodyweight'],rMin:10,rMax:15,rest:120,noWeight:true,cue:'Hands close together forming a diamond. Elbows track backward, stay tucked. Full lockout at top, controlled descent to a chest-to-hands stretch. Don\'t add a vest — its thickness blocks the bottom of the range; progress with reps, then a slow 3-count descent, then feet elevated on a bench.'},
+  {id:'diamond_pu',name:'Diamond Push-ups',muscle:'triceps',type:'isolation',eq:['bodyweight'],rMin:10,rMax:15,rest:120,cue:'Hands close together. Elbows track backward. Full lockout at top, controlled descent. Add vest for progressive overload.'},
   {id:'ezbar_skull',name:'EZ Bar Skull Crushers',muscle:'triceps',type:'isolation',eq:['barbell'],rMin:8,rMax:12,rest:120,cue:'Lie on a bench holding an EZ bar on the angled grips, arms extended over your chest. Keeping the elbows fixed and pointed up, lower the bar toward your forehead (or just behind the head for a bigger long-head stretch) — 2 counts down. Press back to lockout without letting the elbows flare out. Strict and controlled, never a speed exercise.'},
-  {id:'tricep_dips',name:'Tricep Dips',muscle:'triceps',type:'compound',eq:['dip_bar'],rMin:8,rMax:15,rest:120,cue:'On parallel dip bars, keep the torso fairly upright to bias the triceps (leaning forward shifts load to the chest). Lower until the elbows reach about 90°, keeping them tucked close to the body — don\'t let them flare. Press back to full lockout and squeeze the triceps at the top. Slow descent. Add a vest or plate on a dip belt to overload.'},
+  {id:'tricep_dips',name:'Tricep Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'On parallel bars or a bench edge, keep the torso fairly upright to bias the triceps (leaning forward shifts load to the chest). Lower until the elbows reach about 90°, keeping them tucked close to the body — don\'t let them flare. Press back to full lockout and squeeze the triceps at the top. Slow descent. Add a vest or plate on the lap to overload.'},
   {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Sit back and down, knees track toes. Full depth. Drive the floor away on the way up.',tags:['quad','squat'],hipRisk:true},
   {id:'bulgarian',name:'Bulgarian Split Squat (RFESS)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated, front foot well forward. Keep the front shin closer to vertical and torso upright — this caps front-hip flexion well short of a deep bilateral squat, and the staggered stance keeps the working hip neutral-to-externally-rotated. The hip-friendly substitute for deep squats. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral']},
   {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold DB at chest. Elbows between knees at bottom. Full depth. Controlled descent.',tags:['quad','squat'],hipRisk:true},
@@ -716,7 +716,7 @@ const EQUIPMENT_PRESETS = {
   ymca: {
     name: '🏋️ YMCA',
     desc: 'Full gym with all equipment available',
-    equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'dip_bar', 'bodyweight'],
+    equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'bodyweight'],
     location: 'ymca'
   },
   westminster_gym: {
@@ -727,7 +727,7 @@ const EQUIPMENT_PRESETS = {
     // are trained the same as dumbbells (existing KB/DB swing movements
     // already tag 'dumbbells'), and GHD/plyo box/med ball work falls under
     // bodyweight movements (e.g. Back Extension's bodyweight variant).
-    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'medball', 'medball_wall', 'dip_bar', 'bodyweight'],
+    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'medball', 'medball_wall', 'bodyweight'],
     location: 'westminster'
   },
   bodyweight: {
@@ -3279,13 +3279,7 @@ function completeSet(exIdx,setIdx){
 
 function updateWarmup(exIdx,weight){
   const w=parseFloat(weight);if(!w||w<=0)return;
-  // Match the render-time rounding: DB movement at a fixed-rack location snaps
-  // each warm-up load DOWN to the nearest pair on hand, else nearest-5.
-  const ex=S.active?.exercises?.[exIdx];
-  const dbW=EQUIPMENT_PRESETS[S.active?.equipmentKey]?.dumbbellWeights;
-  const isDbOnly=!!(ex?.eq?.includes('dumbbells')&&!ex?.eq?.includes('barbell'));
-  const rnd=(n)=>(dbW&&isDbOnly)?roundToAvailable(n,dbW):r5(n);
-  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=`${rnd(w*val)} lb`;};
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=`${r5(w*val)} lb`;};
   set(`wu1-${exIdx}`,0.5);set(`wu2-${exIdx}`,0.75);set(`wu3-${exIdx}`,0.9);
 }
 
@@ -4013,14 +4007,7 @@ function renderWorkout(){
   // each workout shows a date-rotated subset instead of every item: the offset
   // advances daily, the picks keep their pool order (mobilize → activate), and
   // the full pool cycles across consecutive training days.
-  // A warm-up item may carry need:'<equipment>' — drop it when this session's
-  // location doesn't have that gear (e.g. Face Pulls need a cable stack; at
-  // Mom & Dad's there's no cable and no band, so it's filtered out entirely).
-  const sessEquip=new Set(EQUIPMENT_PRESETS[S.active.equipmentKey]?.equipment||[]);
-  const availItems=(pool)=>pool.filter(it=>!it.need||sessEquip.has(it.need));
-  const stretchRot=(rawPool,n)=>{
-    const pool=availItems(rawPool);
-    if(!pool.length)return [];
+  const stretchRot=(pool,n)=>{
     const off=Math.floor(Date.now()/864e5)%pool.length;
     return Array.from({length:Math.min(n,pool.length)},(_,i)=>(off+i)%pool.length).sort((a,b)=>a-b).map(i=>pool[i]);
   };
@@ -4031,7 +4018,6 @@ function renderWorkout(){
   // mobility first (counters a desk block), then hip mobility, then hip
   // stability/activation work, all before the first working set.
   const HIP_POOL=[
-    {n:'Hip Flexor Rockback (self-traction)',d:'30–45 sec/side, left first · half-kneeling, both hands wrapped high around the FRONT thigh just under the hip crease. Gently pull the thigh bone down and away from the hip to unload the joint, and — holding that traction — rock the hips back into flexion through the range that normally pinches. No band; your hands do the distracting. Ease off the instant you feel the left-hip pinch — the joint\'s bony limit, not a stretch to push through'},
     {n:'Ankle Rocks',d:'10 reps/side · Achilles/calf mobility'},
     {n:'Cat-Cow',d:'8 slow reps · thoracic extension'},
     {n:'90/90 Hip Stretch',d:'30 sec/side · breathe into it'},
@@ -4051,14 +4037,27 @@ function renderWorkout(){
     // rotation territory from safer supine/seated positions.
   ];
   // Left-hip anterior impingement (2026-07-16): flexion + rotation jams the
-  // femoral head into the front of the socket. The joint decompression drill
-  // (self-traction rockback) that unloads the rim before range work now lives
-  // as the FIRST entry of HIP_POOL and rotates like everything else — the
-  // dedicated always-on banded 3-drill block was removed 2026-07-18 (user has
-  // no band and it ate too much UI). Restore the banded versions from git
-  // history if a loop band comes back.
+  // femoral head into the front of the socket (Standing Hip Rotations, Open
+  // Gate — both capped below the pinch). Stretching the CAPSULE doesn't fix
+  // that; the joint needs DECOMPRESSING first — gently pulling the femoral
+  // head away from the rim before working range.
+  // Condensed 2026-07-18 (user: no band right now + the 3-drill banded block
+  // ate too much UI) from three banded distraction drills to one compact
+  // BANDLESS self-traction rockback. Self-traction pulls straight down the
+  // bone rather than truly lateral, so it clears the rim less completely than
+  // a banded lateral distraction did — but it's the best bandless option and
+  // still meaningfully unloads the joint before range work. Restore the
+  // banded versions (git history) if a loop band comes back.
+  const HIP_DECOMPRESSION=[
+    {n:'Hip Flexor Rockback (self-traction)',d:'30–45 sec/side, left first · half-kneeling, both hands wrapped high around the FRONT thigh just under the hip crease. Gently pull the thigh bone down and away from the hip to unload the joint, and — holding that traction — rock the hips back into flexion through the range that normally pinches. No band needed; your hands do the distracting. Ease off the instant you feel the left-hip pinch — that\'s the joint\'s bony limit, not a stretch to push through.',hold:45},
+  ];
+  const hipDecompHTML=S.cfg.hipCaution?`<div style='margin-bottom:10px'>
+    ${HIP_DECOMPRESSION.map(wuRow).join('')}
+    <div class='wu-note'>Decompress first, then mobilize into the pool below. Left hip: back off at the pinch.</div>
+  </div>`:'';
   const hipPrehabHTML=S.cfg.hipCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
-    <div class='wu-title' style='color:#c084fc'>🦋 Mobilize &amp; Activate (do these before lifting)</div>
+    <div class='wu-title' style='color:#c084fc'>🦋 Decompress &amp; Mobilize (do these before lifting)</div>
+    ${hipDecompHTML}
     ${stretchRot(HIP_POOL,4).map(wuRow).join('')}
     ${rotNote}
   </div>`:'';
@@ -4067,8 +4066,8 @@ function renderWorkout(){
   // decompression + posture-correction pool when the user has flagged
   // shoulder discomfort or poor posture, shown before the first exercise.
   const SHOULDER_POOL=[
-    {n:'Dead Hang',d:'30–60 sec · shoulder decompression',need:'pullup_bar'},
-    {n:'Face Pulls',d:'15 reps · rear-delt/rotator-cuff stability',need:'cables'},
+    {n:'Dead Hang',d:'30–60 sec · shoulder decompression'},
+    {n:'Face Pulls',d:'15 reps · rear-delt/rotator-cuff stability'},
     // Band Pull-aparts removed 2026-07-15: user has no band. Face Pulls above
     // and the thoracic rotations below cover the same rear-delt/upper-back
     // posture territory bandless. Re-add if a band comes back.
@@ -4169,15 +4168,9 @@ function renderWorkout(){
   const sugW0=prog?prog.suggest:(est?est.weight:null);
   const isDumbbellEx=!!(ex.eq?.includes('dumbbells')&&!ex.eq?.includes('barbell'));
   const wUnit=isDumbbellEx?'lb ea':'lb';
-  // Round warm-up and back-off loads to what's actually rackable here — for a
-  // DB movement at a location with a fixed rack (Mom & Dad's 5/10/15/25/35,
-  // apartment gym's gapped set), snap DOWN to the nearest pair on hand instead
-  // of a generic nearest-5, so a "26 lb" warm-up never lands on a DB that
-  // isn't there. Barbell/other loads keep the nearest-5 rounding.
-  const roundW=(n)=>(dbWeights&&isDumbbellEx)?roundToAvailable(n,dbWeights):r5(n);
-  const wu1Lbl=sugW0?`${roundW(sugW0*0.5)} ${wUnit}`:'~50%';
-  const wu2Lbl=sugW0?`${roundW(sugW0*0.75)} ${wUnit}`:'~75%';
-  const wu3Lbl=sugW0?`${roundW(sugW0*0.9)} ${wUnit}`:'~90%';
+  const wu1Lbl=sugW0?`${r5(sugW0*0.5)} ${wUnit}`:'~50%';
+  const wu2Lbl=sugW0?`${r5(sugW0*0.75)} ${wUnit}`:'~75%';
+  const wu3Lbl=sugW0?`${r5(sugW0*0.9)} ${wUnit}`:'~90%';
   // Weight-acclimation coverage beyond the session's lead lift: the recovery-
   // debt scheduler mixes muscle groups within one session (e.g. Legs · Back ·
   // Chest), so the first LOADABLE lift of each NEW muscle group also gets a
@@ -4236,17 +4229,9 @@ function renderWorkout(){
   // for higher reps. Straight sets for bodyweight, timed, single-set, circuit,
   // and power work (every power set is the same quality — no fatigued sets).
   const useBackoff=!isNoWeight&&!isTimed&&!ex.circuitStyle&&!isPowerEx&&ex.sets>1;
-  const backoffW=(useBackoff&&sugW0)?roundW(sugW0*0.85):null;
+  const backoffW=(useBackoff&&sugW0)?r5(sugW0*0.85):null;
   const backoffRepLo=ex.rMax, backoffRepHi=ex.rMax+5;
   let progHTML;
-  // Isometric holds: scale to what the user can actually hold with a solid
-  // position, then grow the hold — the fixed rMin–rMax target isn't reachable
-  // for everyone on day one (e.g. can't hold a split-squat past 20s). Banks
-  // the same total time-under-tension via shorter holds, then adds ~5s/session
-  // toward the target before loading / harder variation. Shown for every
-  // isometric-tagged movement (the vertical-jump tendon holds included).
-  const isIso=(ex.tags||[]).includes('isometric');
-  const isoScaleNote=isIso?`<div style='font-size:12px;color:var(--mut);margin-bottom:10px'>⏳ Can't hold ${ex.rMin}s${psLbl} yet? Hold only as long as your position stays SOLID (even 8–12s), rest ~30s, repeat until you've banked ~${ex.rMin*3}s total. Add ~5s to your best hold each session; once ${ex.rMax}s${psLbl} is easy, ${isLoadedTimed?'add load':'progress to the single-leg / harder variation'}.</div>`:'';
   if(isTimed){
     if(prog){
       const secStr=prog.minR===prog.maxR?`${prog.minR}s`:`${prog.minR}–${prog.maxR}s`;
@@ -4261,7 +4246,6 @@ function renderWorkout(){
     } else {
       progHTML=`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — start conservatively, focus on form over duration.</div>`;
     }
-    progHTML+=isoScaleNote;
   } else if(isNoWeight){
     if(prog){
       const repStr=prog.minR===prog.maxR?`${prog.minR} reps`:`${prog.minR}–${prog.maxR} reps`;
@@ -4276,7 +4260,7 @@ function renderWorkout(){
     const topTarget=isPowerEx
       ?`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} explosive reps — max intent, stop the set when speed visibly drops`
       :`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} to 1–2 reps shy of failure`;
-    const backoffTarget=useBackoff&&(backoffW||(est&&roundW(est.weight*0.85)))?` · then back-off ${backoffW||roundW(est.weight*0.85)} ${wUnit} × ${backoffRepLo}–${backoffRepHi}`:'';
+    const backoffTarget=useBackoff&&(backoffW||(est&&r5(est.weight*0.85)))?` · then back-off ${backoffW||r5(est.weight*0.85)} ${wUnit} × ${backoffRepLo}–${backoffRepHi}`:'';
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
       ${prog.layoffWeeks?`<div class='prog-hint' style='color:var(--warn)'>⏸ ~${prog.layoffWeeks} weeks since you last did this — suggesting ${prog.layoffWeeks>=8?'80%':'90%'} of your old weight to ramp back in safely.</div>`:''}
       ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! ${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget}</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget}</div>`}`
@@ -4312,7 +4296,7 @@ function renderWorkout(){
   const setsRows=Array.from({length:ex.sets},(_,i)=>{
     const done=ex.done[i];
     const isBackoffSet=useBackoff&&i>0;
-    const sugW=isBackoffSet?(backoffW||(baseW!=null?roundW(baseW*0.85):'')):(baseW!=null?baseW:(done?.weight||''));
+    const sugW=isBackoffSet?(backoffW||(baseW!=null?r5(baseW*0.85):'')):(baseW!=null?baseW:(done?.weight||''));
     const setRep=isBackoffSet?`${backoffRepLo}–${backoffRepHi}`:repRange;
     const sugR=done?.reps||(isBackoffSet?backoffRepLo:ex.rMax);
     const setTag=(isNoWeight||isTimed||!useBackoff)?'':`<div style='font-size:9px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px'>${isBackoffSet?'back-off':'top set'}</div>`;
