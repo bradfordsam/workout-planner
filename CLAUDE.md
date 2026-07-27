@@ -66,6 +66,12 @@ strip it before other debugging.
   exercise is banned by default unless explicitly given `lowImpact:true`.
   Heavy strength variants are deliberately hip-friendly (box squat depth cap,
   elevated trap bar, staggered stance) so they stay outside the ban.
+- Lower back: **any standing overhead press hurts** (2026-07-27, expanded from
+  the push-press-only report). `ohp`, `push_press`, `db_push_press`, and
+  `thrusters` are all on `avoidExercises`. Seated overhead pressing
+  (`seated_db_press`, `arnold_press`) is fine and keeps the shoulders pool
+  supplied with a compound. Don't add new standing overhead press variants
+  (jerks, standing landmine/Z-press, overhead carries under load).
 - Leg training goal (updated 2026-07-14): multi-directional force handling,
   high eccentric loading, and movement resilience — heavy 1–5 @ 85–95% squat/
   hinge/single-leg strength plus eccentric/decel/lateral work; still no
