@@ -1035,9 +1035,12 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 let S={
   view:'setup',step:1,
   cfg:{days:5,mins:60,goal:'lean',bodyLbs:199,hipCaution:true,conditioning:true,
-    // push_press/db_push_press: aggravate the lower back.
+    // ohp/push_press/db_push_press/thrusters: ANY standing overhead press
+    // aggravates the lower back (2026-07-27) — pressing overhead from a
+    // standing brace loads lumbar extension. Seated overhead pressing
+    // (seated_db_press, arnold_press) is fine and stays in the pool.
     // woodchop: rotation under cable load pinches the left hip (FAI history).
-    avoidExercises:['push_press','db_push_press','woodchop'],
+    avoidExercises:['ohp','push_press','db_push_press','thrusters','woodchop'],
     // Seeded from the InBody-style body-composition scan (Starfit, 2026-05-24).
     // Muscle already sits above the normal range — the score gap is pure fat, so
     // the program is tuned to strip fat while preserving muscle (see bodyScoreCard).
@@ -1122,6 +1125,13 @@ function load(){
       // list doesn't exist yet. There's no UI for editing this list, so a
       // plain add-if-missing can't clobber a user removal.
       if(!S.cfg.avoidExercises.includes('woodchop'))S.cfg.avoidExercises.push('woodchop');
+      // Migrate: ANY standing overhead press hurts the lower back (2026-07-27),
+      // not just the push-press family — strict standing barbell OHP and DB
+      // Thrusters go too. Seated pressing (seated_db_press, arnold_press) is
+      // unaffected, so shoulders keeps a compound in every equipment config.
+      ['ohp','thrusters'].forEach(id=>{
+        if(!S.cfg.avoidExercises.includes(id))S.cfg.avoidExercises.push(id);
+      });
       // Migrate: seed the body-composition scan + lean focus for the score goal.
       // Muscle is already above range, so the only lever to 100 is fat loss while
       // holding muscle — switch the goal to lean recomp and turn conditioning on.
