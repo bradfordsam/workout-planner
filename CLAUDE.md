@@ -102,10 +102,14 @@ strip it before other debugging.
   value 100 reps ate the whole week's back MRV and crowded out the mandated
   row/rear-delt work). Weighted pull-ups avoid Century days before Wed.
 - `fundamentalHabits()` / `fundamentalsHTML()`: the Foundation Five coverage
-  card plus six daily habits (protein at target bodyweight, sleep, walking,
-  fibre/satiety, caffeine+alcohol timing, the 80%-week rule). Explicitly NO
-  biohacks — no supplement stack, fasting window, cold plunge, or readiness
-  score. Keep it that way; the point is habits that survive a workday.
+  card plus the daily habits list — protein at target bodyweight, sleep,
+  walking, caffeine+alcohol timing (fibre/satiety and the 80%-week rule were
+  dropped 2026-07-28 as too obvious to earn dashboard space; the
+  consistency argument still lives in the closing "subtraction" callout).
+  Explicitly NO biohacks — no supplement stack, fasting window, cold plunge, or
+  readiness score. Keep it that way; the point is habits that survive a
+  workday. The card's "N habits" line is DERIVED from the array length — a
+  hardcoded count went stale the first time the list was edited.
 
 ## Training constraints (why the code is shaped this way)
 

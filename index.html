@@ -3740,9 +3740,7 @@ function fundamentalHabits(){
     {icon:'🥩',n:`Protein: ~${proteinG} g/day`,d:`About 1 g per lb of your ${b?.target?`${Math.round(b.target)} lb target`:'target'} weight, spread over 3–4 meals. In a calorie deficit this is the single biggest lever on whether the weight you lose is fat or muscle — protein plus lifting is the combination that protects lean mass, and nothing else substitutes for it.`},
     {icon:'😴',n:'Sleep: 7–9 h, same wake time',d:'Consistency matters as much as duration. Short sleep raises hunger signalling, lowers training quality, and blunts recovery from exactly the sessions you just did — it is the cheapest performance and fat-loss intervention that exists. Log it on the sleep card above.'},
     {icon:'🚶',n:'Walk ~1 hour a day',d:'Roughly 8–10k steps, broken up however fits around meetings. For a desk job this is the biggest swing factor in daily energy expenditure, and it costs almost nothing in recovery — it is additive to lifting rather than competing with it.'},
-    {icon:'🥦',n:'Protein + plants at every meal · ~30 g fibre',d:'Satiety per calorie is what makes a deficit survivable for three months instead of three weeks. Volume from vegetables and fibre means you are not fighting hunger with willpower, which is the usual reason the plan dies in week five.'},
     {icon:'☕',n:'Last caffeine ~8 h before bed · alcohol rare',d:"Caffeine's half-life is ~5–6 hours, so an afternoon coffee is still measurably in your system at bedtime and fragments deep sleep even when you fall asleep fine. Alcohol does the same more bluntly. Both quietly tax the recovery that everything else here depends on."},
-    {icon:'🔁',n:'Aim for the 80% week, every week',d:'Twelve consistent weeks beats three perfect ones and a layoff — adaptation is driven by what you repeat, and it needs uninterrupted time to accumulate. A missed session is not a failed week; a two-week gap is. Get the Foundation Five in and let everything else be a bonus.'},
   ];
 }
 function fundamentalsHTML(){
@@ -3780,7 +3778,11 @@ function fundamentalsHTML(){
   }).join('');
   const doneCount=FOUNDATION_FIVE.filter(f=>f.daily||covered.has(f.id)).length;
   const st=centuryStats();
-  const habitRows=fundamentalHabits().map(h=>`<div style='padding:8px 0;border-top:1px solid var(--bdr)'>
+  const habits=fundamentalHabits();
+  // Spelled-out count, derived rather than written into the prose — the list has
+  // been edited before and a hardcoded "Six habits" silently went stale.
+  const habitCount=['No','One','Two','Three','Four','Five','Six','Seven','Eight'][habits.length]||habits.length;
+  const habitRows=habits.map(h=>`<div style='padding:8px 0;border-top:1px solid var(--bdr)'>
     <div style='font-size:13px;font-weight:700'>${h.icon} ${h.n}</div>
     <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px'>${h.d}</div>
   </div>`).join('');
@@ -3796,7 +3798,7 @@ function fundamentalsHTML(){
       <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px'>${PULLUP_CENTURY.target} pull-ups per session, however many sets it takes, on ${centuryDows().length} spaced days a week. The target never moves — the set count is the progress metric, so it self-scales as you get stronger and lighter without ever needing a new plan. ${st.thisWeek?`<strong style='color:var(--ok)'>${st.thisWeek} done this week.</strong>`:''}</div>
     </div>
     <div class='sec-lbl' style='margin:14px 0 2px'>Daily Habits</div>
-    <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-bottom:4px'>Six habits, no biohacks — no supplement stack, no fasting window, no cold plunge, no readiness score. Each one has a real effect size, costs nothing, and survives a workday, which is why they're the ones that actually get repeated long enough to work.</div>
+    <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-bottom:4px'>${habitCount} habits, no biohacks — no supplement stack, no fasting window, no cold plunge, no readiness score. Each one has a real effect size, costs nothing, and survives a workday, which is why they're the ones that actually get repeated long enough to work.</div>
     ${habitRows}
     <div style='margin-top:12px;padding:10px 12px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.25);border-radius:10px;font-size:11px;color:var(--mut);line-height:1.6'>
       <strong style='color:#c084fc'>Removing obstacles beats adding tricks.</strong> Most of what this app does for you is subtraction: standing overhead presses off the list so your lower back stays quiet, hard-landing plyos off it so the hip stays quiet, seated pressing and hip-friendly squat variants swapped in, sessions dropped when a muscle isn't recovered. That's the part that keeps twelve weeks in a row possible — and twelve weeks in a row is the thing that actually works.
