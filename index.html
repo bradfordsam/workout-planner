@@ -255,6 +255,13 @@ const EX = [
   {id:'scap_pullups',name:'Scapular Pull-ups',muscle:'back',type:'isolation',eq:['pullup_bar'],rMin:8,rMax:12,rest:90,noWeight:true,cue:'Dead hang, arms straight. Without bending the elbows, shrug down and back to lift your body a few inches — depress and retract the shoulder blades. Pause at the top, slow return. Pure scapular control, no arm pulling.',tags:['vertical','scapular']},
   {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,rest:180,noWeight:true,cue:'Dead hang start. Drive elbows to hips — think about that, not pulling with hands. 3-count descent every rep, no dropping. Progression ladder: (1) build to 8 strict reps → (2) add 1s pause chin-over-bar each rep → (3) slow negative to 4 counts → (4) L-sit pull-ups (legs parallel) → (5) archer pull-ups. Weight is the last tool, not the first.',tags:['vertical']},
   {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,rest:180,noWeight:true,cue:'Supinated grip. Full dead hang, drive elbows down and back. 3-count descent. Progression: build reps → 1s top pause → 4-count negative → mixed grip → neutral grip → weighted. Great for both back and biceps.',tags:['vertical']},
+  // Foundation Five movement (see FOUNDATION_FIVE). Deliberately NOT tagged
+  // 'strength' — that tag drives the weekly heavy-LEG guarantee via
+  // STRENGTH_IDS/strengthBefore(), and a logged weighted pull-up would
+  // otherwise bank the week's strength slot and stop the heavy squat/hinge
+  // mandate from ever firing. startW:10 keeps the cold-start estimate honest:
+  // the bodyweight-fraction default would have suggested ~40 lb added.
+  {id:'weighted_pullups',name:'Weighted Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:3,rMax:6,rest:180,startW:10,cue:'Vest, or a plate/dumbbell hung from a dip belt. Dead hang, drive the elbows down toward the hips, chin fully clears the bar, 3-count descent — added weight never buys a shorter rep. Start at 10 lb and only add when every set hits the top of the range clean. This is the STRENGTH expression of the pull-up; the Century (100 submaximal reps) is the VOLUME expression. They progress together and neither replaces the other.',tags:['vertical','foundation']},
   {id:'lat_pulldown',name:'Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Slight lean back. Pull to upper chest, feel lat stretch fully at the top. Don\'t let elbows drift forward.',tags:['vertical']},
   {id:'bumstead_pulldown',name:'Bumstead Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:8,rMax:12,rest:150,isoHoldSecs:5,cue:'Wide overhand grip. Pull the bar down to the upper chest, but stop and HOLD at the mid-position (elbows roughly level with your ribs) for a full 5 seconds — squeeze the shoulder blades down and together to lock in the lat contraction before finishing the rep. The mid-position pause is the whole point: it kills momentum and forces the lats, not the arms, to do the work. Use the 5s hold timer below at that point each rep.',tags:['vertical']},
   {id:'bb_row',name:'Barbell Row',muscle:'back',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Hip hinge, chest up. Bar to lower sternum. Drive elbows back and up. Control the negative — don\'t drop the bar.',tags:['horizontal']},
@@ -421,7 +428,16 @@ const EX = [
   {id:'bear_crawl',name:'Bear Crawl',muscle:'core',type:'compound',eq:['bodyweight'],noWeight:true,rMin:20,rMax:40,rest:90,cue:'Hands and toes, knees hovering. Crawl forward moving opposite hand/foot together. Keep hips level, core tight. Great for shoulder stability and core strength. Count steps.',tags:['crawling','stability'],highSweat:true},
   {id:'turkish_getup_bw',name:'Turkish Get-up (Bodyweight)',muscle:'core',type:'compound',eq:['bodyweight'],noWeight:true,rMin:3,rMax:6,rest:150,cue:'Complex movement from lying to standing. Focus on smooth transitions and stability at each position. Master the movement before adding weight. Ultimate full-body coordination exercise. Count per side.',tags:['complex','stability','coordination'],highSweat:true},
   {id:'archer_pushup',name:'Archer Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],noWeight:true,rMin:4,rMax:8,rest:180,cue:'Wide hand position, shift weight to one arm during the push-up. Builds unilateral strength toward one-arm push-up. Control the eccentric phase. Count per side.',tags:['unilateral','advanced']},
-  {id:'pistol_squat',name:'Pistol Squat',muscle:'legs',type:'compound',eq:['bodyweight'],noWeight:true,rMin:3,rMax:6,rest:180,cue:'Single-leg squat to full depth, free leg extended forward. Builds unilateral strength, mobility, and balance. Use assistance if needed. Ultimate bodyweight squat progression. Count per leg.',tags:['unilateral','advanced','squat']},
+  // Foundation Five movement. 'eccentric' added 2026-07-28 and it matters:
+  // LEG_EMPHASIS_TAGS/legAutoOK gate the legs pool to emphasis-tagged work, and
+  // without one of those tags this was UNREACHABLE by every normal pick path —
+  // simulation showed it landing 0 weeks out of 6 on both a lunch-only and a
+  // full lunch+evening schedule. The tag is honest, not a workaround: the slow
+  // full-depth descent on one leg IS the loaded eccentric, which also makes it
+  // a legitimate candidate for the 'eccentric' leg-accent slot. Deliberately
+  // NOT tagged 'strength' — that pool is the heavy loaded 1–5 @ 85–95% tier,
+  // and a bodyweight movement must not be able to satisfy that guarantee.
+  {id:'pistol_squat',name:'Pistol Squat',muscle:'legs',type:'compound',eq:['bodyweight'],noWeight:true,rMin:3,rMax:6,rest:180,cue:'Single-leg squat to full depth, free leg extended forward. Lower SLOWLY — a 3–4 count descent is the whole exercise; dropping into the hole wastes it. Free hand out for balance, heel stays down. Regressions all count: hold a rack upright, sit back to a bench and stand up off one leg, or drop to a box and lower the box height as you get stronger. Count per leg, and match the reps on the weaker side.',tags:['unilateral','advanced','squat','eccentric']},
   {id:'handstand_pushup',name:'Handstand Push-up',muscle:'shoulders',type:'compound',eq:['bodyweight'],noWeight:true,rMin:3,rMax:8,rest:180,cue:'Inverted push-up against wall. Lower head to floor, press back up. Builds shoulder and core strength. Progress from pike push-ups. Advanced bodyweight movement. Count reps.',tags:['inverted','advanced']},
   {id:'l_sits',name:'L-Sit',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:30,rest:120,isTimed:true,cue:'Sit with legs extended, hands flat, lift entire body off ground. Hold position with straight legs parallel to floor. Incredible core and shoulder strength builder. Count seconds.',tags:['isometric','advanced']},
   // Posture corrector: the anti-desk-hunch hold. Chest opens and shoulders
@@ -484,6 +500,7 @@ const FEELS={
   // back
   scap_pullups:'Shoulder blades sliding down and together — mid-back working, arms completely quiet.',
   pullups:'Lats pulling from the armpits toward the hips — elbows drive down, hands are just hooks.',
+  weighted_pullups:'The same lat pull as a strict pull-up, but the extra load makes the mid-back and grip announce themselves — every rep feels deliberate.',
   chinups:'Lats with a strong biceps assist — the pull starts under the armpits, not in the forearms.',
   lat_pulldown:'Lats stretch fully at the top; the muscles under the armpits drag the elbows down.',
   bumstead_pulldown:'Lats pinned during the 5-second hold — the burn lives under the armpits, not in the arms.',
@@ -1048,6 +1065,10 @@ let S={
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},sleepLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
+  // Today's in-progress Pull-up Century tally, {date,sets:[reps,...]} — see
+  // PULLUP_CENTURY. Local-only (not in SINGLETON_FIELDS): the finished LOG
+  // syncs across devices like any other, a half-finished tally needn't.
+  century:null,
 };
 let timerIv=null;
 
@@ -1087,7 +1108,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1095,7 +1116,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -1188,6 +1209,121 @@ const plyoHidden=(e)=>S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')&&!e.
 // one-off "this specific movement doesn't work for me" reports.
 const userAvoids=(e)=>(S.cfg.avoidExercises||[]).includes(e.id);
 
+// ─────────────────────────────────────────────
+// THE FOUNDATION FIVE
+// ─────────────────────────────────────────────
+// Five movements that get a WEEKLY COVERAGE GUARANTEE instead of competing for
+// slots on merit like the rest of the pool (added 2026-07-28). Premise: what
+// actually moves body composition over a 3-month block isn't exercise
+// selection, it's a short list of high-return movements repeated often enough
+// to adapt to — the same finding longevity research keeps landing on (remove
+// the biggest obstacles, repeat a few high-impact habits, allow time). These
+// five cover vertical pull, horizontal push, single-leg squat, loaded crawl,
+// and anti-extension — nearly every joint, both planes — off a pull-up bar and
+// a floor, so travel, equipment, or a short day can't be the reason one gets
+// skipped.
+//
+// Mechanism: dayTemplate stamps ONE still-uncovered movement per session onto a
+// matching slot as `slot.foundationId`; pickEx returns that exact movement (see
+// the short-circuit there — safety gates still apply in full). A movement
+// already logged this calendar week is covered and stops being stamped, so the
+// guarantee reads "each of these at least once a week", never "all five every
+// day". Two of them are unreachable through the normal filters and this is the
+// only way they ever get programmed: pistol_squat carries no LEG_EMPHASIS_TAGS
+// tag (legAutoOK blocks it), and bear_crawl is a type:'compound' core movement
+// the rotating core cycle (rotational/isolation tags) can never select.
+//
+// The plank is deliberately NOT slot-scheduled: it's already a fixed 60s dose
+// EVERY day in DAILY_SPINE_MINIMUMS, which is a stronger guarantee than a
+// weekly slot. It's listed here so the dashboard presents all five as one
+// system rather than hiding the one that's already handled.
+const FOUNDATION_FIVE=[
+  {id:'weighted_pullups',name:'Weighted Pull-ups',muscle:'back',why:'The highest-return upper-body pull there is — lats, mid-back, biceps, grip and a braced core in one movement. Adding load is what keeps it a strength lift as bodyweight comes down.'},
+  {id:'pushups_w',name:'Push-ups (+ Vest)',muscle:'chest',why:'Chest, shoulders and triceps driving a moving plank, at zero setup cost. The vest keeps it progressive once strict reps stop being the limiter.'},
+  {id:'pistol_squat',name:'Single-Leg Squat',muscle:'legs',why:'One leg at a time is how you actually walk, run and land. Exposes the side-to-side gap a barbell hides, and trains hip and knee control through full depth.'},
+  {id:'bear_crawl',name:'Bear Crawl',muscle:'core',why:'A contralateral loaded carry for the deep core and shoulders — anti-rotation while actually moving, which is the part a plank cannot train.'},
+  {id:'plank',name:'Plank',muscle:'core',daily:true,why:'Trunk stiffness is what protects the spine and holds posture through every other lift. Already a fixed 60s dose every single day in the Daily Spine Minimums.'},
+];
+const FOUNDATION_SLOTTED=FOUNDATION_FIVE.filter(f=>!f.daily);
+const FOUNDATION_IDS=new Set(FOUNDATION_SLOTTED.map(f=>f.id));
+// Weekly coverage state, read from the log — no persisted flags to drift.
+function foundationCoveredThisWeek(){
+  const mon=thisMonday(),end=addDays(mon,7),out=new Set();
+  (S.logs||[]).forEach(l=>{
+    if(!l||logDay(l.date)<mon||logDay(l.date)>=end)return;
+    (l.exercises||[]).forEach(e=>{if(e&&FOUNDATION_IDS.has(e.id))out.add(e.id);});
+  });
+  return out;
+}
+
+// ─────────────────────────────────────────────
+// THE PULL-UP CENTURY
+// ─────────────────────────────────────────────
+// 100 pull-ups in a session, however many sets it takes, 2–3× a week. The
+// TARGET never moves — the set count is the progress metric (10+ sets early, a
+// handful by the end). That's what makes it self-scaling: it gets easier as
+// strength rises and bodyweight falls without the prescription ever being
+// rewritten, and no week needs a new plan.
+//
+// Two things keep it from being a recovery hole:
+//  1) Every set ends 2+ reps SHORT of failure. Stimulus and fatigue both scale
+//     with proximity to failure, so submaximal accumulation buys a lot of reps
+//     cheaply — which is why this can run 3×/week for months instead of
+//     wrecking the elbows and shoulders. It's also why century sets are
+//     counted at HALF weight in getWeeklySetVolumes / getMRVBreakdown: 10
+//     easy sets do not cost what 10 hard sets cost, and counting them at face
+//     value would eat the week's entire back MRV and crowd out the mandated
+//     row / rear-delt work.
+//  2) Century days are spaced ≥48h apart and capped at 3/week (centuryDows).
+//
+// Logged as isCardio:true — the same "invisible to session bookkeeping" flag
+// the VO2 log uses, so a century never marks a day completed, never locks that
+// day's lifting template to itself, and never consumes one of the two daily
+// lifting slots. Its `exercises` array is still populated, so it DOES count
+// toward weekly MRV volume (which is what protects recovery here).
+const PULLUP_CENTURY={target:100,maxDays:3,restCap:180};
+// Century days come from AVAILABILITY, never from the generated program:
+// dayTemplate consults this during generation, so reading S.program here would
+// be circular (the same trap documented on getMRVLimits). Walks the week in
+// calendar order and takes every third available training day → Mon/Wed/Fri on
+// a full week, which is the ≥48h spacing the protocol needs.
+function centuryDows(av){
+  av=av||(S.weekPlan?.availability)||defaultAvailability();
+  const trains=(dow)=>{const d=av[dow]||{};return(dow===0||dow===6)?!!d.on:(d.lunch!==false||!!d.eve?.on);};
+  const out=[];let lastPos=-99;
+  [1,2,3,4,5,6,0].forEach((dow,pos)=>{
+    if(out.length>=PULLUP_CENTURY.maxDays||!trains(dow)||pos-lastPos<2)return;
+    out.push(dow);lastPos=pos;
+  });
+  return out;
+}
+function centuryLogs(){return (S.logs||[]).filter(l=>l&&l.century);}
+// Progress readout: the target is fixed, so the numbers worth showing are how
+// many sets it took and the best single set — exactly the two that moved over
+// Damon's 3 months (10 sets → 3, and 30 unbroken by the end).
+function centuryStats(){
+  const logs=centuryLogs().slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  const setsOf=(l)=>(l.exercises?.[0]?.sets||[]).filter(s=>s&&s.reps>0);
+  let best=0;logs.forEach(l=>setsOf(l).forEach(s=>{if(s.reps>best)best=s.reps;}));
+  const last=logs[logs.length-1];
+  const mon=thisMonday(),end=addDays(mon,7);
+  return{
+    total:logs.length,
+    best,
+    firstSets:logs.length?setsOf(logs[0]).length:0,
+    lastSets:last?setsOf(last).length:0,
+    lastReps:last?setsOf(last).reduce((a,s)=>a+s.reps,0):0,
+    thisWeek:logs.filter(l=>logDay(l.date)>=mon&&logDay(l.date)<end).length,
+  };
+}
+// Today's in-progress century, kept in S.century so a half-finished session
+// survives a re-render or a reload (localStorage only — not cloud-synced; the
+// finished LOG syncs like any other, a partial tally doesn't need to).
+function centuryDraft(){
+  if(!S.century||S.century.date!==todayStr())return{date:todayStr(),sets:[]};
+  return S.century;
+}
+
 // Dragon Flag progression track: Tier 1 (Lying Leg Lifts) is always offered;
 // Tier 2/3 unlock only after logging 10+ reps in a single set on the tier
 // directly before it — an automatic gate rather than a manual "mark achieved"
@@ -1259,6 +1395,28 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
   const leastUsed = (list) => list.length
     ? list.reduce((best,e)=> freqOf(e) < freqOf(best) ? e : best)
     : null;
+
+  // ── Foundation Five mandate (highest precedence) ──
+  // slot.foundationId names an EXACT movement — the weekly coverage guarantee
+  // (see FOUNDATION_FIVE), not a preference, so it's returned ahead of every
+  // tier below. Deliberately bypasses the type/tag/legAutoOK filters, since
+  // two of the five are unreachable through them by construction (pistol_squat
+  // has no emphasis tag; bear_crawl is a compound the core cycle can't select),
+  // and bypasses the MRV/frequency caps — the same small, deliberate overage
+  // the hinge/hamstring mandate already accepts, bounded by one stamp per
+  // session and once per movement per week.
+  // The SAFETY gates still apply in full: equipment on hand, the personal
+  // avoid list, hip/knee caution, the plyo ban, and the lunch no-sweat rule.
+  // Blocked by any of those → fall through to the normal tiers and the
+  // movement waits for a session that can host it (dayTemplate re-stamps it
+  // the next day, since coverage is only marked once it actually lands).
+  if(slot.foundationId){
+    const f=allExercises.find(e=>e.id===slot.foundationId);
+    if(f && !used.includes(f.id) && (f.eq||[]).some(q=>eq.has(q)) &&
+       !(S.cfg.hipCaution&&f.hipRisk) && !plyoHidden(f) && !userAvoids(f) &&
+       !kneeCautionBlocks(f) && dragonFlagUnlocked(f.id) &&
+       !(isLunch&&f.highSweat)) return f;
+  }
 
   // For circuit training, prefer circuit-tagged exercises (still within MRV + cap)
   if(isCircuitStyle && !isLunch) {
@@ -1458,6 +1616,21 @@ function genProgram(cfg,av,workoutHistoryLog){
   const STRENGTH_IDS=new Set([...EX,...(S.customExercises||[])].filter(e=>(e.tags||[]).includes('strength')).map(e=>e.id));
   const strengthDates=(history||[]).filter(l=>!l.isCardio&&logDay(l.date)>=mon&&logDay(l.date)<weekEnd&&(l.exercises||[]).some(e=>e&&STRENGTH_IDS.has(e.id))).map(l=>logDay(l.date));
   const strengthBefore=(d)=>strengthDates.some(x=>x<d);
+
+  // Foundation Five weekly coverage (see FOUNDATION_FIVE). Seeded from what was
+  // actually LOGGED this calendar week — and deliberately NOT extended by
+  // merely-planned sessions.
+  // Why (found by simulation): every day re-plans the whole week, so a stamp
+  // placed on a future session usually evaporates before that day arrives. When
+  // planned sessions marked a movement "covered", the single stamp was routinely
+  // spent on a Thursday template that Thursday's own regeneration then discarded
+  // — push-ups landed 0 weeks out of 6 on a full schedule that trained chest
+  // twice a week. Seeding from logs only means EVERY upcoming session with a
+  // matching slot offers the uncovered movement, so it lands at the first real
+  // opportunity; the moment one is logged, foundationCoveredThisWeek() sees it
+  // and the stamps stop. Convergence, not a preview that lies.
+  const foundationDone=foundationCoveredThisWeek();
+  const centuryDowSet=new Set(centuryDows(av));
 
   // Calendar date (YYYY-MM-DD) for a program-week dow, for the fatigue matrix's
   // day-by-day lockout lookback. dow 1-5 = Mon-Fri, 6 = Sat, 0 = next Sun.
@@ -1663,8 +1836,56 @@ function genProgram(cfg,av,workoutHistoryLog){
     if((budget.vol.core||0)+(budget.perExercise||3)<=(budget.limits.core?.max??18)){
       slots.push({muscle:'core',type:coreEmph.type,tag:coreEmph.tag,powerPreferred:!isLunch&&!accented});
     }
+    // ── Foundation Five weekly coverage ──
+    // Stamp AT MOST ONE still-uncovered foundation movement onto a matching
+    // slot in this session (see FOUNDATION_FIVE). One per session keeps a day
+    // from collapsing into all-fundamentals while still covering all four
+    // slotted movements across a 5–8 session week.
+    // Precedence: the HARD mandates are never overwritten — a slot tagged
+    // 'strength' (the weekly heavy 1–5 guarantee), 'hinge' or 'hamstring' (the
+    // knee-flexion corrective) exists for a documented reason and outranks
+    // coverage. The rotating ACCENTS do give way (power/eccentric/decel,
+    // horizontal/rear_delt, the core cycle), since those come back around
+    // within days. Untagged slots are preferred over accent-tagged ones.
+    // Weighted pull-ups skip Century days so the week never stacks two
+    // pull-up sessions onto one day.
+    // Late-week escape valve (calendar position Thu onward): from Thursday on,
+    // a still-uncovered movement may claim a slot it defers on earlier in the
+    // week. Verified necessary by simulation — without it, coverage for two of
+    // the four landed 0 weeks out of 6, because a leg slot ALWAYS carries a
+    // mandate tag (evening 'strength', lunch 'hinge'/'hamstring') and, on a
+    // schedule where back is only trained on Century days, weighted pull-ups
+    // had no non-Century day to land on. Deterministic (calendar position, not
+    // chance), bounded to one stamp per session, and only reachable after the
+    // preferred windows earlier in the week failed to produce one.
+    // 'strength' is NEVER overridden at any point in the week: the weekly heavy
+    // 1–5 @ 85–95% guarantee is the top-priority leg mandate and a bodyweight
+    // movement must not be able to displace it.
+    const domDow=new Date(dateStr+'T12:00:00').getDay();
+    const calPos=[1,2,3,4,5,6,0].indexOf(domDow); // 0=Mon … 6=Sun
+    const lateWeek=calPos>=2; // Wed onward
+    const HARD_MANDATE_TAGS=lateWeek?new Set(['strength']):new Set(['strength','hinge','hamstring']);
+    for(const f of FOUNDATION_SLOTTED){
+      if(foundationDone.has(f.id))continue;
+      // Prefer to keep pull-up work off Century days so the week doesn't stack
+      // heavy weighted singles and 100 submaximal reps onto one day — but not
+      // at the cost of never doing them at all.
+      if(f.id==='weighted_pullups'&&centuryDowSet.has(domDow)&&!lateWeek)continue;
+      const cands=slots.filter(s=>s.muscle===f.muscle&&!HARD_MANDATE_TAGS.has(s.tag)&&!s.foundationId);
+      if(!cands.length)continue;
+      (cands.find(s=>!s.tag)||cands[0]).foundationId=f.id;
+      break; // one stamp per session; coverage is marked in buildSession
+    }
     const names=top.map(t=>MNAME[t.m]||t.m);
-    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')};
+    // The foundation stamp is part of the template KEY: without it, a day whose
+    // muscle set is unchanged matches the previously-generated plan and takes
+    // the "preserve, don't rebuild" path in buildSession — which on the first
+    // generation after this feature shipped would preserve every day and leave
+    // the coverage guarantee unable to ever place a movement. Once the movement
+    // is covered the stamp disappears and the key reverts, so the churn is
+    // bounded to the session that actually adopts it.
+    const stamped=slots.find(s=>s.foundationId);
+    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')+(stamped?'+f:'+stamped.foundationId:'')};
   }
 
   function buildSession(slot,tk,oldData){
@@ -1682,6 +1903,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
       (completedLog.exercises||[]).forEach(e=>{if(e&&e.muscle&&countsForRecoveryLog(e))assignedMuscles[dateStr].add(e.muscle);});
       const allEx=[...EX,...(S.customExercises||[])];
+      (completedLog.exercises||[]).forEach(e=>{if(e&&FOUNDATION_IDS.has(e.id))foundationDone.add(e.id);});
       const exs=(completedLog.exercises||[]).map(e=>{
         const full=allEx.find(x=>x.id===e.id);
         const done=(e.sets||[]).filter(s=>s&&s.reps>0).length;
@@ -1804,6 +2026,9 @@ function genProgram(cfg,av,workoutHistoryLog){
     (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
     exs.forEach(e=>{if(e.muscle&&countsForRecoveryEx(e))assignedMuscles[dateStr].add(e.muscle);});
     if(exs.some(e=>e&&STRENGTH_IDS.has(e.id)))strengthDates.push(dateStr);
+    // NOTE: coverage is deliberately NOT marked here. A planned session is not
+    // a completed one, and marking it would let one provisional template spend
+    // the week's only stamp (see foundationDone above).
 
     return{tk,name:sessionName,desc:sessionDesc,isLunch:slot.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc,equipmentKey};
   }
@@ -2000,12 +2225,21 @@ function getWeeklySetVolumes(){
   const volumes = {};
 
   weekLogs.forEach(log => {
+    // Pull-up Century sets count at HALF weight (see PULLUP_CENTURY): the
+    // protocol is deliberately submaximal — every set ends 2+ reps short of
+    // failure — and both stimulus and fatigue scale with proximity to failure,
+    // so 10 easy sets don't cost what 10 hard sets cost. Counting 100 reps at
+    // face value would consume the entire week's back MRV and crowd out the
+    // mandated row / rear-delt work, which is the opposite of the intent.
+    const w = log.century ? 0.5 : 1;
     log.exercises?.forEach(ex => {
       const muscle = ex.muscle;
       const completedSets = ex.sets?.filter(s => s && s.reps > 0).length || 0;
-      volumes[muscle] = (volumes[muscle] || 0) + completedSets;
+      volumes[muscle] = (volumes[muscle] || 0) + completedSets * w;
     });
   });
+  // Discounted century sets can land on a half — keep the reported volumes whole.
+  Object.keys(volumes).forEach(m => { volumes[m] = Math.round(volumes[m]); });
 
   return volumes;
 }
@@ -2356,7 +2590,10 @@ function getMRVBreakdown(){
     const dow=new Date(l.date).getDay();
     if(!l.isCardio)completedDows.add(dow);
     (l.exercises||[]).forEach(ex=>{
-      const sets=ex.sets?.filter(s=>s&&s.reps>0).length||0;
+      const raw=ex.sets?.filter(s=>s&&s.reps>0).length||0;
+      // Same half-weight century discount the widget totals use, so the
+      // breakdown always reconciles with getWeeklySetVolumes.
+      const sets=l.century?Math.round(raw*0.5):raw;
       add(ex.muscle,{dow,dayLabel:DOW[dow],name:ex.name,sets,source:l.isCustom?'custom':'logged',sessionName:l.dayName});
     });
   });
@@ -3378,6 +3615,148 @@ function dailySpineHTML(){
 }
 
 // ─────────────────────────────────────────────
+// PULL-UP CENTURY — TRACKER
+// ─────────────────────────────────────────────
+// Rendered on the dashboard on Century days (see centuryDows) and on any day a
+// century is already underway or finished. The tally is the whole interface:
+// add a set, watch the bar fill, log it when you get to 100 — the number of
+// sets it took is recorded as a side effect rather than being something to
+// plan in advance.
+function centuryHTML(){
+  const isCenturyDay=centuryDows().includes(todayDow());
+  const draft=centuryDraft();
+  const doneToday=centuryLogs().find(l=>logDay(l.date)===todayStr());
+  if(!isCenturyDay&&!draft.sets.length&&!doneToday)return'';
+  const st=centuryStats();
+  const T=PULLUP_CENTURY.target;
+  // Progress line across sessions — the two numbers that actually moved for
+  // Damon over 3 months: sets-to-100 and best unbroken set.
+  const trend=st.total>1&&st.firstSets&&st.lastSets
+    ?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>${st.total} centuries logged · first took <strong style='color:var(--txt)'>${st.firstSets} sets</strong>, last took <strong style='color:var(--ok)'>${st.lastSets}</strong>${st.best?` · best single set <strong style='color:var(--txt)'>${st.best}</strong>`:''}</div>`
+    :st.total===1?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First century logged — ${st.lastSets} sets${st.best?`, best single set ${st.best}`:''}. That set count is the number that comes down.</div>`
+    :`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First one is the ugly one — 10+ sets is completely normal. The target never changes; the set count is what drops.</div>`;
+  if(doneToday){
+    const sets=(doneToday.exercises?.[0]?.sets||[]).filter(s=>s&&s.reps>0);
+    const total=sets.reduce((a,s)=>a+s.reps,0);
+    return`<div style='margin-top:12px;padding:14px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.25);border-radius:12px;text-align:left'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ok);margin-bottom:4px'>🎯 Pull-up Century · Done</div>
+      <div style='font-size:14px;font-weight:700'>✅ ${total} reps in ${sets.length} set${sets.length!==1?'s':''}</div>
+      <div style='font-size:12px;color:var(--mut);margin-top:2px'>${sets.map(s=>s.reps).join(' · ')}</div>
+      ${trend}
+    </div>`;
+  }
+  const total=draft.sets.reduce((a,n)=>a+n,0);
+  const pct=Math.min(100,Math.round(total/T*100));
+  const bestToday=draft.sets.length?Math.max(...draft.sets):0;
+  const setChips=draft.sets.length
+    ?`<div style='font-size:12px;color:var(--mut);margin-top:8px'>Sets: ${draft.sets.join(' · ')}</div>`:'';
+  const remaining=Math.max(0,T-total);
+  return`<div style='margin-top:12px;padding:14px;background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.3);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>🎯 Pull-up Century · ${DOW[todayDow()]}</div>
+    <div style='font-size:15px;font-weight:800'>${T} pull-ups. However many sets it takes.</div>
+    <div style='display:flex;align-items:baseline;gap:8px;margin-top:8px'>
+      <div style='font-size:24px;font-weight:800;color:${total>=T?'var(--ok)':'var(--txt)'}'>${total}</div>
+      <div style='font-size:13px;color:var(--mut)'>/ ${T} · ${draft.sets.length} set${draft.sets.length!==1?'s':''}${bestToday?` · best ${bestToday}`:''}</div>
+    </div>
+    <div style='height:8px;background:var(--surf2);border-radius:99px;overflow:hidden;margin:6px 0 10px'>
+      <div style='height:100%;width:${pct}%;background:${total>=T?'var(--ok)':'var(--acc)'};border-radius:99px'></div>
+    </div>
+    <div style='display:flex;gap:6px;align-items:center'>
+      <input type='number' id='century-reps' class='ni' placeholder='reps' min='1' max='60' inputmode='numeric' style='width:72px'>
+      <button class='btn btn-s btn-sm' data-action='century-add-set' style='flex:1'>+ Add Set</button>
+      ${draft.sets.length?`<button class='btn btn-g btn-sm' data-action='century-undo-set' style='width:auto'>↩</button>`:''}
+    </div>
+    ${setChips}
+    ${draft.sets.length?`<button class='btn ${total>=T?'btn-ok':'btn-g'} btn-sm' data-action='century-finish' style='width:100%;margin-top:8px'>${total>=T?`✓ Log Century — ${total} reps in ${draft.sets.length} sets`:`Log ${total} reps & stop here (${remaining} short)`}</button>`:''}
+    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>End every set <strong style='color:var(--txt)'>2+ reps short of failure</strong> and rest as long as you need — that's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Bands, feet on a box, or slow negatives all count too.</div>
+    ${trend}
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+// THE FUNDAMENTALS CARD — movements + daily habits
+// ─────────────────────────────────────────────
+// The Foundation Five's weekly coverage status, plus the short list of daily
+// habits that actually decide a 3-month body-composition outcome.
+// Deliberately NO biohacks: no supplement stack, no fasting window, no cold
+// plunge, no wearable-driven readiness score. Every line below is something
+// with a real effect size, that costs nothing, and that survives a workday —
+// which is the whole reason they get repeated long enough to work.
+function fundamentalHabits(){
+  const b=S.cfg?.bodyScore;
+  // Protein anchored to TARGET bodyweight, not current — the goal is to keep
+  // the ~88 lb of skeletal muscle while the fat comes off, and target-weight
+  // protein is the dose that does that without scaling down as you lean out.
+  const proteinG=Math.round(b?.target||S.cfg?.bodyLbs||175);
+  return[
+    {icon:'🥩',n:`Protein: ~${proteinG} g/day`,d:`About 1 g per lb of your ${b?.target?`${Math.round(b.target)} lb target`:'target'} weight, spread over 3–4 meals. In a calorie deficit this is the single biggest lever on whether the weight you lose is fat or muscle — protein plus lifting is the combination that protects lean mass, and nothing else substitutes for it.`},
+    {icon:'😴',n:'Sleep: 7–9 h, same wake time',d:'Consistency matters as much as duration. Short sleep raises hunger signalling, lowers training quality, and blunts recovery from exactly the sessions you just did — it is the cheapest performance and fat-loss intervention that exists. Log it on the sleep card above.'},
+    {icon:'🚶',n:'Walk ~1 hour a day',d:'Roughly 8–10k steps, broken up however fits around meetings. For a desk job this is the biggest swing factor in daily energy expenditure, and it costs almost nothing in recovery — it is additive to lifting rather than competing with it.'},
+    {icon:'🥦',n:'Protein + plants at every meal · ~30 g fibre',d:'Satiety per calorie is what makes a deficit survivable for three months instead of three weeks. Volume from vegetables and fibre means you are not fighting hunger with willpower, which is the usual reason the plan dies in week five.'},
+    {icon:'☕',n:'Last caffeine ~8 h before bed · alcohol rare',d:"Caffeine's half-life is ~5–6 hours, so an afternoon coffee is still measurably in your system at bedtime and fragments deep sleep even when you fall asleep fine. Alcohol does the same more bluntly. Both quietly tax the recovery that everything else here depends on."},
+    {icon:'🔁',n:'Aim for the 80% week, every week',d:'Twelve consistent weeks beats three perfect ones and a layoff — adaptation is driven by what you repeat, and it needs uninterrupted time to accumulate. A missed session is not a failed week; a two-week gap is. Get the Foundation Five in and let everything else be a bonus.'},
+  ];
+}
+function fundamentalsHTML(){
+  const covered=foundationCoveredThisWeek();
+  // Honest placement reporting: a lunch-only week physically cannot host a
+  // highSweat movement (the 40-min no-shower time box is a hard constraint, so
+  // the sweat gate is never overridden). Rather than leave a dot red all week
+  // with no explanation, say what's blocking it and what to do instead —
+  // verified by simulation: bear crawls land 6/6 weeks with an evening or
+  // weekend session available, and 0/6 without one.
+  const av=(S.weekPlan?.availability)||defaultAvailability();
+  const hasNonLunchSession=[1,2,3,4,5].some(d=>!!av[d]?.eve?.on)||!!av[6]?.on||!!av[0]?.on;
+  const placementNote=(f)=>{
+    if(f.daily||covered.has(f.id))return'';
+    const def=EX.find(e=>e.id===f.id);
+    if(def?.highSweat&&!hasNonLunchSession)
+      return`<div style='font-size:11px;color:var(--warn);line-height:1.6;margin-top:3px;padding-left:16px'>⚠️ No evening or weekend session scheduled this week — this one can't be programmed into a 40-min lunch (too sweaty for a no-shower slot). Add an evening, or just do 3 × 30 steps on the floor at home.</div>`;
+    return'';
+  };
+  const rows=FOUNDATION_FIVE.map(f=>{
+    const done=f.daily||covered.has(f.id);
+    const badge=f.daily
+      ?`<span style='font-size:10px;color:#c084fc;flex-shrink:0'>daily ✓</span>`
+      :done?`<span style='font-size:10px;color:var(--ok);flex-shrink:0'>done ✓</span>`
+      :`<span style='font-size:10px;color:var(--mut);flex-shrink:0'>this week</span>`;
+    return`<div style='padding:8px 0;border-top:1px solid var(--bdr)'>
+      <div style='display:flex;align-items:center;gap:8px'>
+        <span style='width:8px;height:8px;border-radius:50%;background:${done?'var(--ok)':'var(--bdr)'};flex-shrink:0;display:inline-block'></span>
+        <span style='font-size:13px;font-weight:700'>${f.name}</span>
+        <span style='margin-left:auto'></span>${badge}
+      </div>
+      <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px;padding-left:16px'>${f.why}</div>
+      ${placementNote(f)}
+    </div>`;
+  }).join('');
+  const doneCount=FOUNDATION_FIVE.filter(f=>f.daily||covered.has(f.id)).length;
+  const st=centuryStats();
+  const habitRows=fundamentalHabits().map(h=>`<div style='padding:8px 0;border-top:1px solid var(--bdr)'>
+    <div style='font-size:13px;font-weight:700'>${h.icon} ${h.n}</div>
+    <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px'>${h.d}</div>
+  </div>`).join('');
+  return`<div class='card' style='margin-bottom:14px'>
+    <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:2px'>
+      <div class='sec-lbl' style='margin-bottom:0'>The Fundamentals</div>
+      <span style='font-size:11px;color:${doneCount===5?'var(--ok)':'var(--mut)'}'>${doneCount}/5 this week</span>
+    </div>
+    <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-bottom:4px'>Five movements the scheduler guarantees every week rather than leaving to chance. Between them they cover a vertical pull, a horizontal push, a single-leg squat, a loaded crawl and anti-extension — off a pull-up bar and a floor, so nothing about travel or a short day can be the reason one gets skipped.</div>
+    ${rows}
+    <div style='margin-top:12px;padding:10px 12px;background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.25);border-radius:10px'>
+      <div style='font-size:12px;font-weight:700;color:var(--acc)'>🎯 Pull-up Century · ${centuryDows().map(d=>DOW[d]).join(' · ')}</div>
+      <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px'>${PULLUP_CENTURY.target} pull-ups per session, however many sets it takes, on ${centuryDows().length} spaced days a week. The target never moves — the set count is the progress metric, so it self-scales as you get stronger and lighter without ever needing a new plan. ${st.thisWeek?`<strong style='color:var(--ok)'>${st.thisWeek} done this week.</strong>`:''}</div>
+    </div>
+    <div class='sec-lbl' style='margin:14px 0 2px'>Daily Habits</div>
+    <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-bottom:4px'>Six habits, no biohacks — no supplement stack, no fasting window, no cold plunge, no readiness score. Each one has a real effect size, costs nothing, and survives a workday, which is why they're the ones that actually get repeated long enough to work.</div>
+    ${habitRows}
+    <div style='margin-top:12px;padding:10px 12px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.25);border-radius:10px;font-size:11px;color:var(--mut);line-height:1.6'>
+      <strong style='color:#c084fc'>Removing obstacles beats adding tricks.</strong> Most of what this app does for you is subtraction: standing overhead presses off the list so your lower back stays quiet, hard-landing plyos off it so the hip stays quiet, seated pressing and hip-friendly squat variants swapped in, sessions dropped when a muscle isn't recovered. That's the part that keeps twelve weeks in a row possible — and twelve weeks in a row is the thing that actually works.
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
 // OFF-DAY ACTIVE RECOVERY
 // ─────────────────────────────────────────────
 function getRecoveryProtocol(dow){
@@ -3731,9 +4110,10 @@ function renderDash(){
             <div class='t-lbl' style='color:var(--warn)'>Sunday · Plan Your Week</div>
             <div class='t-name'>Set Up This Week</div>
             <div class='t-desc'>Tap "Edit" on the Weekly Goal card below to schedule sessions and set your calorie goal.</div>
+            ${centuryHTML()}
             ${recoveryHTML(displayDow)}
           </div>`
-        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div>${isActualToday?recoveryHTML(displayDow):''}</div>`;
+        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div>${isActualToday?centuryHTML():''}${isActualToday?recoveryHTML(displayDow):''}</div>`;
     }
     // The plan's own view of this dow — null when the (possibly regenerated)
     // program disagrees with what was actually logged (marks it rest, or is
@@ -3796,6 +4176,7 @@ function renderDash(){
       }
       ${eveBlock}
       ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession):''}
+      ${isActualToday?centuryHTML():''}
       ${isActualToday?dailySpineHTML():''}
     </div>`;
   }
@@ -3898,6 +4279,7 @@ function renderDash(){
     <button class='btn btn-g btn-sm' data-action='open-log-cardio' style='width:100%;margin-bottom:14px'>🏃 Log Cardio Activity</button>
     ${renderRecoveryBanner()}
     ${todayHTML}
+    ${fundamentalsHTML()}
     ${planCard}
     ${renderMRVWidget()}
     ${recentLogs?`<div class='sec-lbl mt16'>Recent</div>${recentLogs}`:''}
@@ -5886,6 +6268,41 @@ document.addEventListener('click',e=>{
     };
     S.view = 'custom-workout-log';
     render();return;
+  }
+  // ── Pull-up Century tally (see PULLUP_CENTURY) ──
+  if(a==='century-add-set'){
+    const el=document.getElementById('century-reps');
+    const n=parseInt(el?.value);
+    if(!(n>0&&n<=60))return;
+    const d=centuryDraft();
+    S.century={date:d.date,sets:[...d.sets,n]};
+    save();render();return;
+  }
+  if(a==='century-undo-set'){
+    const d=centuryDraft();
+    S.century={date:d.date,sets:d.sets.slice(0,-1)};
+    save();render();return;
+  }
+  if(a==='century-finish'){
+    const d=centuryDraft();
+    if(!d.sets.length)return;
+    // century + isCardio: the SAME "invisible to session bookkeeping" flag the
+    // VO2 log uses, so this never marks the day completed, never locks that
+    // day's lifting template to itself, and never consumes one of the two
+    // daily lifting slots. The exercises array IS populated, so the reps still
+    // count toward weekly back volume — at the documented half weight, since
+    // every set stopped short of failure.
+    S.logs.push({
+      id:Date.now().toString(),date:new Date().toISOString(),
+      dayName:`Pull-up Century · ${d.sets.reduce((a,n)=>a+n,0)} reps`,
+      isCardio:true,century:true,
+      duration:Math.max(10,Math.round(d.sets.length*2)),
+      exercises:[{id:'pullup_century',name:'Pull-up Century',muscle:'back',
+        sets:d.sets.map(n=>({weight:0,reps:n}))}],
+    });
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    S.century=null;
+    save();render();return;
   }
   if(a==='log-vo2-session'){
     const p=currentVO2Protocol();
