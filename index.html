@@ -3255,6 +3255,16 @@ function toLocalInputValue(iso){
 function fromLocalInputValue(v){
   const d=new Date(v);return isNaN(d)?null:d.toISOString();
 }
+// A log stores its FINISH timestamp plus a duration, so the start is derived
+// rather than remembered — and it is exact, because the timer starts when the
+// session does. A session submitted hours late therefore still knows when it
+// really began: only the finish end is wrong, which is the one worth editing.
+function logStartIso(log){
+  return new Date(new Date(log.date).getTime()-(log.duration||0)*60000).toISOString();
+}
+function minsBetween(startIso,finishIso){
+  return Math.round((new Date(finishIso).getTime()-new Date(startIso).getTime())/60000);
+}
 
 // ─────────────────────────────────────────────
 // CALORIE / CARDIO MATH
@@ -5141,17 +5151,18 @@ function renderLogEdit(){
     <div style='font-size:13px;color:var(--mut);margin-bottom:16px'>${log.dayName} · ${fmtDate(log.date)} · ${fmtDur(log.duration)}</div>
     <div class='card' style='margin-bottom:10px'>
       <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>⏱️ Timing — fix a session that was submitted late</div>
-      <div style='display:flex;gap:8px;align-items:flex-end'>
-        <div style='flex:2'>
-          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Finished at</div>
-          <input type='datetime-local' class='ni' id='el-finish' value='${toLocalInputValue(log.date)}' style='width:100%;text-align:left;padding:10px 12px;font-size:13px'>
+      <div style='display:flex;gap:8px'>
+        <div style='flex:1;min-width:0'>
+          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Started at</div>
+          <input type='datetime-local' class='ni' id='el-start' value='${toLocalInputValue(logStartIso(log))}' oninput='updateLogEditDur()' style='width:100%;text-align:left;padding:10px 12px;font-size:13px'>
         </div>
-        <div style='flex:1'>
-          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Minutes</div>
-          <input type='number' class='ni' id='el-mins' min='1' max='${MAX_LOGGED_MINS}' inputmode='numeric' value='${log.duration||0}' style='width:100%'>
+        <div style='flex:1;min-width:0'>
+          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Finished at</div>
+          <input type='datetime-local' class='ni' id='el-finish' value='${toLocalInputValue(log.date)}' oninput='updateLogEditDur()' style='width:100%;text-align:left;padding:10px 12px;font-size:13px'>
         </div>
       </div>
-      <div style='font-size:11px;color:var(--mut);margin-top:8px'>Changing the finish time moves this session to that day in your week grid, recovery debt and MRV.</div>
+      <div id='el-dur-out' style='font-size:12px;margin-top:8px;color:var(--ok)'>Duration: ${fmtDur(log.duration||0)}</div>
+      <div style='font-size:11px;color:var(--mut);margin-top:6px'>Duration is worked out from these two. The start time is the one the app recorded when you tapped Start — usually only the finish needs fixing. Moving the finish time also moves this session to that day in your week grid, recovery debt and MRV.</div>
     </div>
     ${exSections}
     <div class='card' style='margin-bottom:16px'>
@@ -5180,10 +5191,16 @@ function renderLogEdit(){
 // so unsynced typing would silently reset to the draft's stored values.
 function syncLogEditInputs(){
   const log=S.editLogDraft;if(!log)return;
-  const fEl=document.getElementById('el-finish');
-  if(fEl&&fEl.value){const iso=fromLocalInputValue(fEl.value);if(iso)log.date=iso;}
-  const mEl=document.getElementById('el-mins');
-  if(mEl){const m=parseInt(mEl.value);if(!isNaN(m))log.duration=Math.max(1,Math.min(MAX_LOGGED_MINS,m));}
+  // Timing: adopt the start/finish pair only when it's coherent. An impossible
+  // pair (finish before start, a mistyped year) leaves the draft on its previous
+  // values rather than being clamped into a garbage duration — the live readout
+  // flags it, and save-log-edit refuses to save until it's fixed.
+  const s=fromLocalInputValue(document.getElementById('el-start')?.value||'');
+  const f=fromLocalInputValue(document.getElementById('el-finish')?.value||'');
+  if(s&&f){
+    const m=minsBetween(s,f);
+    if(m>=1&&m<=MAX_LOGGED_MINS){log.date=f;log.duration=m;}
+  }
   log.exercises.forEach((ex,ei)=>{
     const isNW=ex.noWeight||EX.find(e=>e.id===ex.id)?.noWeight;
     (ex.sets||[]).forEach((s,si)=>{
@@ -5191,6 +5208,29 @@ function syncLogEditInputs(){
       const rEl=document.getElementById(`el-r-${ei}-${si}`);if(rEl)s.reps=parseInt(rEl.value)||0;
     });
   });
+}
+
+// Live duration readout under the start/finish pair — duration is no longer typed,
+// so this is the only feedback that the two ends actually make sense together.
+function updateLogEditDur(){
+  const out=document.getElementById('el-dur-out');if(!out)return;
+  const err=logEditTimingError();
+  if(err){out.textContent='⚠️ '+err;out.style.color='var(--bad)';return;}
+  const m=minsBetween(fromLocalInputValue(document.getElementById('el-start').value),
+                      fromLocalInputValue(document.getElementById('el-finish').value));
+  out.textContent='Duration: '+fmtDur(m);out.style.color='var(--ok)';
+}
+// Returns a human-readable problem with the timing inputs, or null when they're
+// usable. Shared by the live readout and the save gate so they can't disagree.
+function logEditTimingError(){
+  const sEl=document.getElementById('el-start'),fEl=document.getElementById('el-finish');
+  if(!sEl||!fEl)return null;// timing card not mounted (e.g. called before render)
+  const s=fromLocalInputValue(sEl.value),f=fromLocalInputValue(fEl.value);
+  if(!s||!f)return'Enter both a start and a finish time.';
+  const m=minsBetween(s,f);
+  if(m<1)return'The finish time is at or before the start time.';
+  if(m>MAX_LOGGED_MINS)return'That works out to over 24 hours — check the dates.';
+  return null;
 }
 
 // ─── Add-exercise autocomplete for the Edit Workout view ───
@@ -6656,6 +6696,8 @@ document.addEventListener('click',e=>{
   if(a==='save-log-edit'){
     const log=S.editLogDraft;
     if(log){
+      const timingErr=logEditTimingError();
+      if(timingErr){alert(timingErr);return;}
       syncLogEditInputs();
       const idx=S.logs.findIndex(l=>l.id===log.id);
       if(idx!==-1)S.logs[idx]=log;
