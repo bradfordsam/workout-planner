@@ -3231,6 +3231,31 @@ function fmtDate(iso){
 }
 function fmtDur(mins){return mins<60?`${mins}m`:`${Math.floor(mins/60)}h ${mins%60}m`;}
 
+// A session's timer runs until Finish is tapped, so a workout that was finished
+// but never submitted banks the whole gap until the app is next opened (a lunch
+// session left open logged as a 17 h workout the following morning). Past this
+// threshold the number is measuring the clock, not the training.
+const MAX_SESSION_MINS=240;
+// Manual edits are explicit user intent, so they clamp far looser than the auto
+// sanity check — a logged hike or long ride legitimately runs past MAX_SESSION_MINS.
+const MAX_LOGGED_MINS=1440;
+// Fallback estimate from the work actually recorded: ~3 min per set covers the
+// set plus its rest.
+function estimateSessionMins(exData){
+  const sets=(exData||[]).reduce((n,e)=>n+((e.sets||[]).length),0);
+  return Math.max(15,Math.min(MAX_SESSION_MINS,Math.round(sets*3)));
+}
+// <input type='datetime-local'> speaks local wall-clock with no zone attached;
+// log.date is a full ISO/UTC timestamp. Convert both ways through Date rather
+// than slicing the ISO string, which would shift the shown time by the UTC offset.
+function toLocalInputValue(iso){
+  const d=new Date(iso);if(isNaN(d))return'';
+  return`${localDateStr(d)}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function fromLocalInputValue(v){
+  const d=new Date(v);return isNaN(d)?null:d.toISOString();
+}
+
 // ─────────────────────────────────────────────
 // CALORIE / CARDIO MATH
 // ─────────────────────────────────────────────
@@ -3539,7 +3564,20 @@ function finishWorkout(fatigue){
     const working=e.sets.filter(s=>s&&s.reps>0&&!e.isMakeup);
     if(working.length){const last=working[working.length-1];S.lastWeights[e.id]={weight:last.weight,reps:last.reps,date:new Date().toISOString()};}
   });
-  const log={id:Date.now().toString(),date:new Date().toISOString(),dayName:S.active.dayName,isLunch:S.active.isLunch,duration:Math.round((Date.now()-S.active.startTime)/60000),exercises:exData,fatigue:fatigue||null};
+  // Wall-clock elapsed is only correct if Finish was tapped when the work ended.
+  let mins=Math.round((Date.now()-S.active.startTime)/60000);
+  if(mins>MAX_SESSION_MINS){
+    const est=estimateSessionMins(exData);
+    const ans=prompt(`This session's timer has been running ${fmtDur(mins)} — looks like it wasn't submitted when you finished.\n\nHow many minutes did the workout actually take?`,String(est));
+    const parsed=parseInt(ans);
+    mins=(ans===null||isNaN(parsed))?est:Math.max(1,Math.min(MAX_LOGGED_MINS,parsed));
+  }
+  // Stamp the finish at start+duration rather than "now": a session submitted the
+  // next morning belongs to the day it was TRAINED, and every week-grid, recovery
+  // and MRV lookup keys off logDay(log.date). Normally this lands within a minute
+  // of now; the min() keeps a rounded-up duration from stamping the future.
+  const finishedAt=new Date(Math.min(Date.now(),S.active.startTime+mins*60000)).toISOString();
+  const log={id:Date.now().toString(),date:finishedAt,dayName:S.active.dayName,isLunch:S.active.isLunch,duration:mins,exercises:exData,fatigue:fatigue||null};
   S.logs.push(log);S.active=null;S.view='dash';
   // Re-plan the rest of the week around what was just trained: recovery ordering
   // + the lockout windows push the just-worked muscle groups to later days (e.g.
@@ -5101,6 +5139,20 @@ function renderLogEdit(){
     </button>
     <div class='hdg'>Edit Workout</div>
     <div style='font-size:13px;color:var(--mut);margin-bottom:16px'>${log.dayName} · ${fmtDate(log.date)} · ${fmtDur(log.duration)}</div>
+    <div class='card' style='margin-bottom:10px'>
+      <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>⏱️ Timing — fix a session that was submitted late</div>
+      <div style='display:flex;gap:8px;align-items:flex-end'>
+        <div style='flex:2'>
+          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Finished at</div>
+          <input type='datetime-local' class='ni' id='el-finish' value='${toLocalInputValue(log.date)}' style='width:100%;text-align:left;padding:10px 12px;font-size:13px'>
+        </div>
+        <div style='flex:1'>
+          <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Minutes</div>
+          <input type='number' class='ni' id='el-mins' min='1' max='${MAX_LOGGED_MINS}' inputmode='numeric' value='${log.duration||0}' style='width:100%'>
+        </div>
+      </div>
+      <div style='font-size:11px;color:var(--mut);margin-top:8px'>Changing the finish time moves this session to that day in your week grid, recovery debt and MRV.</div>
+    </div>
     ${exSections}
     <div class='card' style='margin-bottom:16px'>
       <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Add a forgotten exercise</div>
@@ -5128,6 +5180,10 @@ function renderLogEdit(){
 // so unsynced typing would silently reset to the draft's stored values.
 function syncLogEditInputs(){
   const log=S.editLogDraft;if(!log)return;
+  const fEl=document.getElementById('el-finish');
+  if(fEl&&fEl.value){const iso=fromLocalInputValue(fEl.value);if(iso)log.date=iso;}
+  const mEl=document.getElementById('el-mins');
+  if(mEl){const m=parseInt(mEl.value);if(!isNaN(m))log.duration=Math.max(1,Math.min(MAX_LOGGED_MINS,m));}
   log.exercises.forEach((ex,ei)=>{
     const isNW=ex.noWeight||EX.find(e=>e.id===ex.id)?.noWeight;
     (ex.sets||[]).forEach((s,si)=>{
@@ -6603,6 +6659,9 @@ document.addEventListener('click',e=>{
       syncLogEditInputs();
       const idx=S.logs.findIndex(l=>l.id===log.id);
       if(idx!==-1)S.logs[idx]=log;
+      // An edited finish time can move a session past its neighbours; progression
+      // baselines and the cloud merge both read S.logs in workout-date order.
+      S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
       recalcLastWeights();
       S.editLogDraft=null;S.view='history';
       save();render();
