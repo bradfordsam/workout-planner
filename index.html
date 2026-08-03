@@ -1164,7 +1164,10 @@ let S={
     avoidExercises:['ohp','push_press','db_push_press','thrusters','woodchop','plank_outside_climbers','ezbar_upright_row','bench'],
     // Seeded from the InBody-style body-composition scan (Starfit, 2026-05-24).
     // Muscle already sits above the normal range — the score gap is pure fat, so
-    // the program is tuned to strip fat while preserving muscle (see bodyScoreCard).
+    // the program is tuned to strip fat while preserving muscle. (The dashboard
+    // card that used to present this was removed 2026-08-03; the scan now only
+    // feeds the protein target in fundamentalHabits and cfg.bodyLbs, and is
+    // edited from the Plan screen.)
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},sleepLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
@@ -1423,9 +1426,10 @@ const CENTURY_MRV_SETS=3;
 // just costs roughly 20 minutes of a 40-minute lunch right now. That cost is
 // real, so it is charged against the lunch time-box rather than ignored: see
 // centuryMins() and the lunch exercise-limit reduction in buildSession.
-// Still returns an EMPTY list when nothing is available at all, so callers
-// must handle that (fundamentalsHTML says so in words rather than rendering
-// "on 0 spaced days a week").
+// Still returns an EMPTY list when nothing is available at all, so callers must
+// handle that. (The Fundamentals card used to say so in words; it was removed
+// 2026-08-03, so there is no longer a caller that prints the day list — but the
+// empty case is still real for any future one.)
 function centuryEligibleDow(av,dow){
   const d=av[dow]||{};
   return(dow===0||dow===6)?!!d.on:(d.lunch!==false||!!d.eve?.on);
@@ -3577,65 +3581,6 @@ function renderMRVWidget(){
 }
 
 // ─────────────────────────────────────────────
-// BODY SCORE GOAL CARD
-// ─────────────────────────────────────────────
-// Translates the body-composition scan into a TRAINING plan. The scan shows
-// muscle already above the normal range, so the only lever from 79→100 is
-// dropping fat while holding that muscle. Everything surfaced here is on the
-// training side (lift to retain muscle, move to spend energy) — the app stays
-// out of nutrition prescription by design.
-function renderBodyScoreCard(){
-  const b=S.cfg&&S.cfg.bodyScore;
-  if(!b)return'';
-  const score=b.score||0;
-  const pct=Math.max(4,Math.min(100,score));
-  const toLose=Math.max(0,+(b.weight-b.target).toFixed(1));
-  const muscleOver=+(b.skeletalMuscle-b.smRangeHi).toFixed(1); // lb above the normal-range ceiling
-  const ring=score>=95?'var(--ok)':score>=85?'#a5b4fc':'var(--warn)';
-  const stat=(label,val,note,col)=>`<div style='flex:1;min-width:84px'>
-    <div style='font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px'>${label}</div>
-    <div style='font-size:17px;font-weight:800;color:${col||'var(--txt)'}'>${val}</div>
-    <div style='font-size:10px;color:var(--mut)'>${note}</div>
-  </div>`;
-  const step=(icon,title,body)=>`<div style='display:flex;gap:9px;margin-bottom:9px'>
-    <span style='font-size:15px;flex-shrink:0'>${icon}</span>
-    <div><span style='font-size:13px;font-weight:700'>${title}</span>
-    <span style='font-size:12px;color:var(--mut)'> — ${body}</span></div>
-  </div>`;
-  return`<div class='card' style='margin-bottom:14px;border:1px solid rgba(129,140,248,.3);background:linear-gradient(135deg,var(--surf2) 0%,rgba(129,140,248,.06) 100%)'>
-    <div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px'>
-      <div>
-        <div class='sec-lbl' style='margin-bottom:2px'>🎯 Body Score Goal</div>
-        <div style='font-size:11px;color:var(--mut)'>Scan ${b.testDate||''} · target 100</div>
-      </div>
-      <button class='btn btn-s btn-sm' data-action='edit-body-score' style='width:auto'>Update scan</button>
-    </div>
-    <div style='display:flex;align-items:baseline;gap:8px;margin-bottom:6px'>
-      <span style='font-size:38px;font-weight:800;color:${ring};line-height:1'>${score}</span>
-      <span style='font-size:16px;color:var(--mut)'>/ 100</span>
-      <span style='margin-left:auto;font-size:12px;color:var(--mut)'>${100-score>0?`${100-score} to go`:'goal hit 🎉'}</span>
-    </div>
-    <div style='background:var(--surf2);border-radius:5px;height:9px;margin-bottom:14px;overflow:hidden'>
-      <div style='background:${ring};height:100%;width:${pct}%;border-radius:5px'></div>
-    </div>
-    <div style='display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px'>
-      ${stat('Body Fat',`${b.bodyFatPct}%`,'above target','var(--warn)')}
-      ${stat('Skeletal Muscle',`${b.skeletalMuscle} lb`,muscleOver>0?`+${muscleOver} over range`:'in range','var(--ok)')}
-      ${stat('Fat to Lose',`${toLose} lb`,`→ ${b.target} lb`,'var(--acc)')}
-    </div>
-    <div style='font-size:12px;color:var(--txt);background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.2);border-radius:8px;padding:10px;margin-bottom:14px;line-height:1.5'>
-      Your muscle already sits <strong style='color:var(--ok)'>above the normal range</strong> — the scan says add <strong>0 lb</strong> of muscle. The whole gap to 100 is body fat. So the job isn't to build, it's to <strong>strip ${toLose} lb of fat while keeping every pound of muscle.</strong> "Muscular individuals may score above 100," so holding your muscle through the cut is what lets the score climb.
-    </div>
-    <div class='sec-lbl' style='margin-bottom:8px'>Your plan to 100</div>
-    ${step('🏋️','Lift heavy to keep your muscle','in a deficit, hard compound work is the signal to retain muscle. Goal is set to <strong>Lean / Recomp</strong> — keep the weight on the bar, don\'t drop training volume.')}
-    ${step('🚶','Hit the 1-hour daily walk','your biggest no-impact lever — NEAT is now flagged on every rest-day card.')}
-    ${step('🏃','LISS incline cardio','3.0 mph @ 6% incline, fasted AM or pre-sleep — added to your cardio options for steady fat oxidation.')}
-    ${step('🔥','Conditioning finishers','short high-burn circuits, now auto-enabled, tack extra expenditure onto lifting days.')}
-    <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.5'>Fat loss ultimately needs an energy deficit. This app runs the <strong>training side</strong> — preserving muscle and driving expenditure; pair it with your own nutrition for the calorie side.</div>
-  </div>`;
-}
-
-// ─────────────────────────────────────────────
 // RENDER – MRV BREAKDOWN (volume attribution)
 // ─────────────────────────────────────────────
 function renderMRVBreakdown(){
@@ -4778,52 +4723,28 @@ function fundamentalHabits(){
     {icon:'☕',n:'Last caffeine ~8 h before bed · alcohol rare',d:"Caffeine's half-life is ~5–6 hours, so an afternoon coffee is still measurably in your system at bedtime and fragments deep sleep even when you fall asleep fine. Alcohol does the same more bluntly. Both quietly tax the recovery that everything else here depends on."},
   ];
 }
-function fundamentalsHTML(){
-  const covered=foundationCoveredThisWeek();
-  // Honest placement reporting: a lunch-only week physically cannot host a
-  // highSweat movement (the 40-min no-shower time box is a hard constraint, so
-  // the sweat gate is never overridden). Rather than leave a dot red all week
-  // with no explanation, say what's blocking it and what to do instead —
-  // verified by simulation: bear crawls land 6/6 weeks with an evening or
-  // weekend session available, and 0/6 without one.
-  const av=(S.weekPlan?.availability)||defaultAvailability();
-  const hasNonLunchSession=[1,2,3,4,5].some(d=>!!av[d]?.eve?.on)||!!av[6]?.on||!!av[0]?.on;
-  // Same honesty rule for the weighted vest: it's personal kit that doesn't
-  // travel to the YMCA or a hotel gym (see the 'own_gear' token on
-  // EQUIPMENT_PRESETS), so a week made entirely of YMCA sessions has nowhere to
-  // place vested push-ups. Explain it rather than leaving the dot grey.
-  const ownGearVenue=(key)=>(EQUIPMENT_PRESETS[key]?.equipment||[]).includes('own_gear');
-  const hasOwnGearSession=
-    [1,2,3,4,5].some(d=>(av[d]?.lunch!==false&&ownGearVenue(av[d]?.lunchEquipment||'ymca'))
-                       ||(!!av[d]?.eve?.on&&ownGearVenue(av[d].eve.equipment||'ymca')))
-    ||[6,0].some(d=>!!av[d]?.on&&ownGearVenue(av[d].equipment||'ymca'));
-  const placementNote=(f)=>{
-    if(f.daily||covered.has(f.id))return'';
-    const def=EX.find(e=>e.id===f.id);
-    if(def?.highSweat&&!hasNonLunchSession)
-      return`<div style='font-size:11px;color:var(--warn);line-height:1.6;margin-top:3px;padding-left:16px'>⚠️ No evening or weekend session scheduled this week — this one can't be programmed into a 40-min lunch (too sweaty for a no-shower slot). Add an evening, or just do 3 × 30 steps on the floor at home.</div>`;
-    if((def?.eq||[]).includes('own_gear')&&!hasOwnGearSession)
-      return`<div style='font-size:11px;color:var(--warn);line-height:1.6;margin-top:3px;padding-left:16px'>⚠️ Every session this week is at the YMCA or a hotel gym, and the vest doesn't travel — so this one can't be scheduled. Do a set at home, or add a session at the apartment gym, Westminster, or Mom and Dad's.</div>`;
-    return'';
-  };
-  const rows=FOUNDATION_FIVE.map(f=>{
-    const done=f.daily||covered.has(f.id);
-    const badge=f.daily
-      ?`<span style='font-size:10px;color:#c084fc;flex-shrink:0'>daily ✓</span>`
-      :done?`<span style='font-size:10px;color:var(--ok);flex-shrink:0'>done ✓</span>`
-      :`<span style='font-size:10px;color:var(--mut);flex-shrink:0'>this week</span>`;
-    return`<div style='padding:8px 0;border-top:1px solid var(--bdr)'>
-      <div style='display:flex;align-items:center;gap:8px'>
-        <span style='width:8px;height:8px;border-radius:50%;background:${done?'var(--ok)':'var(--bdr)'};flex-shrink:0;display:inline-block'></span>
-        <span style='font-size:13px;font-weight:700'>${f.name}</span>
-        <span style='margin-left:auto'></span>${badge}
-      </div>
-      <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px;padding-left:16px'>${f.why}</div>
-      ${placementNote(f)}
-    </div>`;
-  }).join('');
-  const doneCount=FOUNDATION_FIVE.filter(f=>f.daily||covered.has(f.id)).length;
-  const st=centuryStats();
+// The DAILY HABITS card. Stripped back from the old "Fundamentals" card
+// (2026-08-03, Sam: "I do not need the fundamentals box as long as they are
+// incorporated into the algorithm — you can leave in the daily habits part since
+// those aren't a part of the program planning"). That's the dividing line now:
+// anything the scheduler already enforces doesn't get dashboard space to report
+// on itself, and what's left is the stuff no algorithm can do for him.
+//
+// So the Foundation Five coverage rows and the Pull-up Century schedule block
+// both went. Neither was load-bearing for the behaviour — FOUNDATION_FIVE is
+// enforced by dayTemplate stamping slot.foundationId and pickEx honouring it
+// (seeded from foundationCoveredThisWeek, which is still what the generator
+// reads), and centuryDows still schedules centuries whether or not anything
+// prints the day list. What was lost is REPORTING, deliberately.
+//
+// One consequence worth knowing, since it was the accepted mitigation for two
+// documented coverage gaps: those rows were the only place the app explained IN
+// WORDS why `pushups_w` can't be covered on an all-YMCA week (the vest doesn't
+// travel) and why `bear_crawl` can't be covered on a lunch-only week (highSweat
+// vs a no-shower slot). The gaps still exist and are still by design; they are
+// now simply silent. If that ever needs surfacing again, the logic is in git —
+// see the placementNote() helper in this function's history.
+function dailyHabitsHTML(){
   const habits=fundamentalHabits();
   // Spelled-out count, derived rather than written into the prose — the list has
   // been edited before and a hardcoded "Six habits" silently went stale.
@@ -4833,28 +4754,8 @@ function fundamentalsHTML(){
     <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px'>${h.d}</div>
   </div>`).join('');
   return`<div class='card' style='margin-bottom:14px'>
-    <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:2px'>
-      <div class='sec-lbl' style='margin-bottom:0'>The Fundamentals</div>
-      <span style='font-size:11px;color:${doneCount===5?'var(--ok)':'var(--mut)'}'>${doneCount}/5 this week</span>
-    </div>
-    <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-bottom:4px'>Five movements the scheduler guarantees every week rather than leaving to chance. Between them they cover a vertical pull, a horizontal push, a single-leg squat, a loaded crawl and anti-extension — off a pull-up bar and a floor, so nothing about travel or a short day can be the reason one gets skipped.</div>
-    ${rows}
-    ${(()=>{
-      // Century days are gated on venue, not just availability (see
-      // centuryEligibleDow), so this list can be empty — a week of YMCA-only
-      // lunches has nowhere to host 100 pull-ups. Say that plainly instead of
-      // rendering an empty day list and "on 0 spaced days a week".
-      const cd=centuryDows();
-      const cmins=centuryMins();
-      return`<div style='margin-top:12px;padding:10px 12px;background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.25);border-radius:10px'>
-      <div style='font-size:12px;font-weight:700;color:var(--acc)'>🎯 Pull-up Century${cd.length?' · '+cd.map(d=>DOW[d]).join(' · '):''}</div>
-      <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px'>${cd.length
-        ?`${PULLUP_CENTURY.target} pull-ups per session, however many sets it takes, on ${cd.length} spaced day${cd.length===1?'':'s'} a week. The target never moves — the set count is the progress metric, so it self-scales as you get stronger and lighter without ever needing a new plan. On a lunch day it's timed and costs about ${cmins} min${st.timedCount?'':' (estimated until you\'ve timed a few)'}, so that lunch drops to fewer lifts rather than running over. ${st.thisWeek?`<strong style='color:var(--ok)'>${st.thisWeek} done this week.</strong>`:''}`
-        :`<strong style='color:var(--warn)'>No training days scheduled this week</strong>, so there's nowhere to put a century. Switch on a lunch, an evening, or a weekend session.`}</div>
-    </div>`;
-    })()}
-    <div class='sec-lbl' style='margin:14px 0 2px'>Daily Habits</div>
-    <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-bottom:4px'>${habitCount} habits, no biohacks — no supplement stack, no fasting window, no cold plunge, no readiness score. Each one has a real effect size, costs nothing, and survives a workday, which is why they're the ones that actually get repeated long enough to work.</div>
+    <div class='sec-lbl' style='margin-bottom:2px'>Daily Habits</div>
+    <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-bottom:4px'>${habitCount} habits, no biohacks — no supplement stack, no fasting window, no cold plunge, no readiness score. Each one has a real effect size, costs nothing, and survives a workday, which is why they're the ones that actually get repeated long enough to work. The training itself is handled by the scheduler; these are the parts it can't do for you.</div>
     ${habitRows}
     <div style='margin-top:12px;padding:10px 12px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.25);border-radius:10px;font-size:11px;color:var(--mut);line-height:1.6'>
       <strong style='color:#c084fc'>Removing obstacles beats adding tricks.</strong> Most of what this app does for you is subtraction: standing overhead presses off the list so your lower back stays quiet, hard-landing plyos off it so the hip stays quiet, seated pressing and hip-friendly squat variants swapped in, sessions dropped when a muscle isn't recovered. That's the part that keeps twelve weeks in a row possible — and twelve weeks in a row is the thing that actually works.
@@ -5019,6 +4920,23 @@ function renderPlan(){
     ${renderAvailGrid(av,false)}
 
     ${renderCustomExercises()}
+
+    ${(()=>{
+      // The Body Score card was removed from the dashboard (2026-08-03, not
+      // wanted there) — but the scan is still the SOURCE of the protein target in
+      // fundamentalHabits() and of cfg.bodyLbs. Deleting the card took away the
+      // only button that opened renderScanModal, which would have quietly frozen
+      // a measured input forever, so the trigger moved here instead of vanishing.
+      // One line, on the screen where settings already live.
+      const b=S.cfg?.bodyScore;
+      return`<div class='sec-lbl' style='margin-top:16px'>Body Scan</div>
+      <div class='card' style='margin-bottom:16px;display:flex;align-items:center;gap:10px'>
+        <div style='flex:1;min-width:0;font-size:12px;color:var(--mut);line-height:1.5'>${b
+          ?`${b.weight} lb → <strong style='color:var(--txt)'>${b.target} lb</strong> target${b.testDate?` · scanned ${b.testDate}`:''}. Sets the protein target on the dashboard.`
+          :'No scan on record. Sets the protein target on the dashboard.'}</div>
+        <button class='btn btn-g btn-sm' data-action='edit-body-score' style='width:auto;flex-shrink:0'>Update</button>
+      </div>`;
+    })()}
 
     <div class='sec-lbl' style='margin-top:16px'>Recent External Workouts</div>
     <div class='card' style='margin-bottom:16px'>
@@ -5387,14 +5305,13 @@ function renderDash(){
 
   return`<div class='view'>
     <div class='hdg'>My Program</div>
-    ${renderBodyScoreCard()}
     <div class='sec-lbl'>This Week</div>
     <div class='wk-grid'>${wkGrid}</div>
     ${renderSleepCard()}
     <button class='btn btn-g btn-sm' data-action='open-log-cardio' style='width:100%;margin-bottom:14px'>🏃 Log Cardio Activity</button>
     ${renderRecoveryBanner()}
     ${todayHTML}
-    ${fundamentalsHTML()}
+    ${dailyHabitsHTML()}
     ${planCard}
     ${renderMRVWidget()}
     ${recentLogs?`<div class='sec-lbl mt16'>Recent</div>${recentLogs}`:''}

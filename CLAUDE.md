@@ -108,8 +108,9 @@ strip it before other debugging.
   backfill, the swap list) with no special case. Note `pickEx` does
   `new Set([...equip,'bodyweight'])`, so 'bodyweight' is granted unconditionally
   and could never express this — hence a distinct token. Consequence: an
-  all-YMCA week cannot cover the push-up Foundation movement; `fundamentalsHTML`
-  says so in words (same precedent as bear crawl on a lunch-only week).
+  all-YMCA week cannot cover the push-up Foundation movement. This used to be
+  explained in words on the dashboard; that card was removed 2026-08-03, so the
+  gap is now SILENT (see the Fundamentals-card note below).
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
@@ -141,8 +142,8 @@ strip it before other debugging.
      carries a mandate tag and pistol squats land 0 weeks of 6.
   Coverage measured over 6 simulated weeks: 4/4 movements every week on a
   lunch+evening schedule; 3/4 lunch-only (bear crawl is `highSweat`, so it is
-  structurally unplaceable in a no-shower lunch — `fundamentalsHTML` says so
-  explicitly instead of showing a permanent red dot).
+  structurally unplaceable in a no-shower lunch; the card that used to say so
+  was removed 2026-08-03).
 - `PULLUP_CENTURY` (2026-07-28): 100 pull-ups/session, any number of sets, on
   `centuryDows()` (up to 3 available training days, ≥48h apart, derived from
   AVAILABILITY not the program — `dayTemplate` reads it, so program-derived
@@ -247,8 +248,7 @@ strip it before other debugging.
     (`pyramidCoversCentury`) rather than asking for a second hundred. A shorter
     ladder does not, and the Century card still appears.
   - Never a lunch: high-sweat and ~50 min fails both lunch constraints. The card
-    says so in words on a lunch-only day rather than vanishing (same precedent as
-    bear crawl in `fundamentalsHTML`).
+    says so in words on a lunch-only day rather than vanishing.
   - **The 400-sit-up rung is the one part flagged to Sam as questionable** —
     high-rep loaded lumbar flexion against a stated lower-back history. Left in
     (it's the prescription, it's not on his avoid list, and the core cycle
@@ -319,15 +319,36 @@ strip it before other debugging.
   take 18 min" and handed the lunch more lifting on the day it already overran.
   Completed sessions calibrate directly; partials are extrapolated pro-rata,
   floored at the default and capped at `CENTURY_MAX_BUDGET_MINS`.
-- `fundamentalHabits()` / `fundamentalsHTML()`: the Foundation Five coverage
-  card plus the daily habits list — protein at target bodyweight, sleep,
-  walking, caffeine+alcohol timing (fibre/satiety and the 80%-week rule were
-  dropped 2026-07-28 as too obvious to earn dashboard space; the
-  consistency argument still lives in the closing "subtraction" callout).
-  Explicitly NO biohacks — no supplement stack, fasting window, cold plunge, or
-  readiness score. Keep it that way; the point is habits that survive a
-  workday. The card's "N habits" line is DERIVED from the array length — a
+- `fundamentalHabits()` / `dailyHabitsHTML()`: the daily habits list — protein at
+  target bodyweight, sleep, walking, caffeine+alcohol timing (fibre/satiety and
+  the 80%-week rule were dropped 2026-07-28 as too obvious to earn dashboard
+  space; the consistency argument still lives in the closing "subtraction"
+  callout). Explicitly NO biohacks — no supplement stack, fasting window, cold
+  plunge, or readiness score. Keep it that way; the point is habits that survive
+  a workday. The card's "N habits" line is DERIVED from the array length — a
   hardcoded count went stale the first time the list was edited.
+  **Was `fundamentalsHTML()` until 2026-08-03**, when Sam cut it back: "I do not
+  need the fundamentals box as long as they are incorporated into the algorithm —
+  you can leave in the daily habits part since those aren't a part of the program
+  planning." That's the dividing line for this card now: **anything the scheduler
+  already enforces gets no dashboard space to report on itself.** The Foundation
+  Five coverage rows and the Pull-up Century schedule block both went. Neither
+  was load-bearing — `FOUNDATION_FIVE` is enforced by `dayTemplate` stamping
+  `slot.foundationId` and `pickEx` honouring it (still seeded from
+  `foundationCoveredThisWeek`), and `centuryDows` still schedules centuries with
+  nothing printing the day list. What was lost is REPORTING, on purpose. **The
+  one real cost:** those rows were the only place the two documented coverage
+  gaps were explained in words (`pushups_w` on an all-YMCA week, `bear_crawl` on
+  a lunch-only week). Both gaps still exist by design and are now silent. The
+  `placementNote()` helper that worded them is in git if it's ever wanted back.
+- **Body Score card: removed from the dashboard 2026-08-03** ("not needed").
+  `renderBodyScoreCard` is gone, but `S.cfg.bodyScore` is NOT dead data — it is
+  the source of the protein target in `fundamentalHabits()` and of
+  `cfg.bodyLbs`. The deleted card held the only button that opened
+  `renderScanModal`, so the `edit-body-score` trigger moved to the **Plan
+  screen** rather than disappearing; without that, a measured input would have
+  been frozen forever. The modal itself always rendered independently (off
+  `S.editScan`, in the modal-root writer) and was unaffected.
 
 ## Balance audit (2026-08-03, 8 sim weeks × 4 schedules)
 
@@ -390,7 +411,8 @@ Known-structural, deliberately NOT "fixed":
   ~2 back slots/week recovery debt allocates. Exactly one lands each week.
 - `pushups_w` uncovered on all-YMCA weeks and `bear_crawl` on lunch-only weeks —
   both are direct consequences of stated constraints (vest doesn't travel; no
-  sweating at lunch). `fundamentalsHTML` explains each in words.
+  sweating at lunch). These used to be explained in words on the dashboard; that
+  card was removed 2026-08-03, so both gaps are now silent by choice.
 - Core sits at the top of its band because its slot is reserved, not won. See the
   TRIED AND REVERTED block on the core slot before attempting the obvious fix.
 - ~~On a 3-evening (efficiency-mode) week, `pistol_squat` is uncovered~~ —
