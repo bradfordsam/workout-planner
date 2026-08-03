@@ -235,10 +235,23 @@ body{
 // EXERCISE DATABASE
 // ─────────────────────────────────────────────
 const EX = [
+  // ── Horizontal-press family. ORDER IS LOAD-BEARING (see the horizontal-pull
+  // block below for the full explanation of why leastUsed() makes the first
+  // entry the de-facto default). Floor press leads DELIBERATELY, as of the
+  // left-shoulder report (2026-08-03: "the front of that shoulder hurts when I
+  // bench", tracing back to something popping on a maximal baseball swing years
+  // ago). The floor is a hard mechanical stop that ends the descent with the
+  // upper arm roughly level with the torso, so the shoulder never reaches the
+  // horizontal-extension end range that provokes it — the same protection a
+  // ROM cue asks for, except the floor enforces it when form degrades under
+  // fatigue and a cue does not. Barbell bench sits on avoidExercises for the
+  // opposite reason: the hands are fixed to one bar, so the arms cannot pick
+  // their own path and the bottom position is not negotiable.
+  {id:'floor_press',name:'Floor Press',muscle:'chest',type:'compound',eq:['dumbbells','barbell'],rMin:5,rMax:10,rest:180,cue:'Lie flat on the floor, knees bent, feet planted. Press from the chest with elbows tucked to ~45°, forearms vertical. Lower under control until the BACKS OF THE UPPER ARMS touch the floor — that\'s the stop, and it is the whole point: the shoulder never travels past the torso line, so the front of the joint stays out of its end range. Pause a beat on the floor to kill the bounce, then press. Dumbbells let each arm find its own path; a barbell works too.'},
   {id:'bench',name:'Barbell Bench Press',muscle:'chest',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Retract shoulder blades, slight arch. Tuck elbows to ~45° from your torso (not flared to 90°) to protect the shoulders and load the chest. Keep forearms vertical through the press so tension stays on the chest, not the triceps. Lower bar to mid-chest with control (2 counts), press through the bar. Push the last working set to 1–2 reps shy of failure — the last rep should look ugly.'},
-  {id:'incline_db',name:'Incline DB Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'30–45° incline (~58–100% grade on a bench that reads in percent). Tuck elbows to ~45° from your torso (don\'t flare to 90°) and keep forearms vertical so the chest does the work, not the triceps. At the top, drive your biceps toward each other rather than clanking the dumbbells together — that maximizes the contraction. Control the descent (2 counts) — push the last set to 1–2 reps shy of failure.'},
-  {id:'flat_db_press',name:'Flat Dumbbell Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'Lie flat on a bench, dumbbells at chest level. Retract the shoulder blades. Tuck elbows to ~45° from the torso (don\'t flare to 90°) and keep forearms vertical so tension stays on the chest, not the triceps. Press up and slightly in, driving the dumbbells toward each other at the top for a harder squeeze without clanking them. Control the descent (2 counts) to a full stretch — push the last set to 1–2 reps shy of failure.'},
-  {id:'machine_press',name:'Machine Chest Press',muscle:'chest',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:150,cue:'Set seat so handles are at mid-chest. Retract shoulder blades before pressing. Tuck elbows to ~45° (not flared) and keep forearms vertical so tension stays on the chest, not the triceps. Control the descent — 2 full counts down. Take the last set to 1–2 reps shy of failure.'},
+  {id:'incline_db',name:'Incline DB Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'30–45° incline (~58–100% grade on a bench that reads in percent). Tuck elbows to ~45° from your torso (don\'t flare to 90°) and keep forearms vertical so the chest does the work, not the triceps. At the top, drive your biceps toward each other rather than clanking the dumbbells together — that maximizes the contraction. Control the descent (2 counts) — push the last set to 1–2 reps shy of failure. SHOULDER STOP: end the descent when the upper arms reach the torso line — do not let the elbows travel behind the body chasing a deeper stretch.'},
+  {id:'flat_db_press',name:'Flat Dumbbell Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'Lie flat on a bench, dumbbells at chest level. Retract the shoulder blades. Tuck elbows to ~45° from the torso (don\'t flare to 90°) and keep forearms vertical so tension stays on the chest, not the triceps. Press up and slightly in, driving the dumbbells toward each other at the top for a harder squeeze without clanking them. Control the descent (2 counts) — push the last set to 1–2 reps shy of failure. SHOULDER STOP: stop when the upper arms reach the torso line, NOT at a full stretch. Chasing depth here is what makes the front of the shoulder hurt; if you can\'t feel the line, use the Floor Press instead and let the floor find it for you.'},
+  {id:'machine_press',name:'Machine Chest Press',muscle:'chest',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:150,cue:'Set seat so handles are at mid-chest. Retract shoulder blades before pressing. Tuck elbows to ~45° (not flared) and keep forearms vertical so tension stays on the chest, not the triceps. Control the descent — 2 full counts down. Take the last set to 1–2 reps shy of failure. SHOULDER STOP: set the seat so the handles finish at the torso line, not behind it — most machines have a start-position adjustment for exactly this.'},
   // eq:['own_gear'], NOT 'bodyweight' — the vest is personal kit that doesn't
   // travel to a public gym (2026-08-03). 'own_gear' is carried by the presets
   // where Sam's own equipment is on hand and withheld from ymca/hotel_gym, so
@@ -252,11 +265,18 @@ const EX = [
   // Wall throws use the 'medball_wall' key (med ball + a solid wall to throw
   // against) — the apartment gym has med balls but no throwing wall, so it
   // carries 'medball' (floor slams OK) without 'medball_wall'.
-  {id:'med_ball_chest_pass',name:'Med Ball Chest Pass',muscle:'chest',type:'compound',eq:['medball_wall'],rMin:5,rMax:8,rest:120,startW:10,highSweat:true,tags:['power','ballistic'],cue:'Stand facing a solid wall a few feet away, ball at the chest. Log the ball\'s weight (printed on it) so you can track moving up in balls over time. Explode the ball into the wall like a two-hand pass — maximal intent, full arm extension — catch the rebound (or pick it up) and reset. Throw as HARD as possible every rep; stop the set when velocity visibly drops. Power work: if a heavier ball makes your throws visibly slow, drop back down. Builds the pressing power a barbell can\'t train, because you can\'t let go of a barbell.'},
-  {id:'plyo_pushup',name:'Plyo Push-up',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:150,noWeight:true,highSweat:true,tags:['power','ballistic'],cue:'Push-up position, lower under control, then explode up hard enough that your hands leave the floor. Land soft with elbows unlocked, absorb, reset, repeat with full intent. End the set the moment your height drops — this is power work, not a burnout. Regress to hands on a bench; progress to a clap.'},
-  {id:'cable_fly',name:'Cable Fly',muscle:'chest',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing in the middle of the cable crossover station, both pulleys set at shoulder height for a flat, mid-chest line — set them higher (above the head) to bias the lower chest on a high-to-low fly, or lower (near the floor) to bias the upper chest on a low-to-high fly. Slight elbow bend. Reach your chest to the sky as you descend to maximize the stretch. Full stretch at bottom — feel it. Slow eccentric back. Squeeze hard at contraction.'},
-  {id:'db_fly',name:'Dumbbell Fly',muscle:'chest',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower only to shoulder level. Reach your chest to the sky as you descend to maximize the stretch. 2-count descent — slow and controlled. Soft elbows throughout.'},
-  {id:'pec_deck',name:'Pec Deck',muscle:'chest',type:'isolation',eq:['machine'],rMin:8,rMax:12,rest:120,cue:'Full ROM, hard squeeze at contraction. Slow negative — resist the weight on the way back. Great for overload tracking.'},
+  // shoulderRisk (2026-08-03): both of these load the anterior shoulder
+  // BALLISTICALLY — a catch/rebound and a landing on straight arms respectively.
+  // Velocity is the aggravator with an anterior shoulder that already got hurt
+  // by one violent swing, and unlike the strength lifts there is no ROM cue that
+  // makes them safe, because the joint is being decelerated by tissue rather
+  // than by a stop. Hidden while cfg.shoulderCaution is on; they return the
+  // moment it's switched off.
+  {id:'med_ball_chest_pass',name:'Med Ball Chest Pass',muscle:'chest',type:'compound',eq:['medball_wall'],rMin:5,rMax:8,rest:120,startW:10,highSweat:true,shoulderRisk:true,tags:['power','ballistic'],cue:'Stand facing a solid wall a few feet away, ball at the chest. Log the ball\'s weight (printed on it) so you can track moving up in balls over time. Explode the ball into the wall like a two-hand pass — maximal intent, full arm extension — catch the rebound (or pick it up) and reset. Throw as HARD as possible every rep; stop the set when velocity visibly drops. Power work: if a heavier ball makes your throws visibly slow, drop back down. Builds the pressing power a barbell can\'t train, because you can\'t let go of a barbell.'},
+  {id:'plyo_pushup',name:'Plyo Push-up',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:150,noWeight:true,highSweat:true,shoulderRisk:true,tags:['power','ballistic'],cue:'Push-up position, lower under control, then explode up hard enough that your hands leave the floor. Land soft with elbows unlocked, absorb, reset, repeat with full intent. End the set the moment your height drops — this is power work, not a burnout. Regress to hands on a bench; progress to a clap.'},
+  {id:'cable_fly',name:'Cable Fly',muscle:'chest',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing in the middle of the cable crossover station, both pulleys set at shoulder height for a flat, mid-chest line — set them higher (above the head) to bias the lower chest on a high-to-low fly, or lower (near the floor) to bias the upper chest on a low-to-high fly. Slight elbow bend. Reach your chest to the sky as you descend. SHOULDER STOP: hands come back to the torso line and no further — the deep "full stretch" fly position is a direct pull on the front of the shoulder capsule, which is the tissue that\'s already unhappy. Slow eccentric back. Squeeze hard at contraction.'},
+  {id:'db_fly',name:'Dumbbell Fly',muscle:'chest',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower only to shoulder level — that limit is the point, not a compromise, and it matters more than usual with a cranky front shoulder. Reach your chest to the sky as you descend. 2-count descent — slow and controlled. Soft elbows throughout.'},
+  {id:'pec_deck',name:'Pec Deck',muscle:'chest',type:'isolation',eq:['machine'],rMin:8,rMax:12,rest:120,cue:'Hard squeeze at contraction. Slow negative — resist the weight on the way back. SHOULDER STOP: set the start position so the handles begin at the torso line rather than stretched behind it; let the stack stop you there on every rep. Great for overload tracking.'},
   {id:'scap_pullups',name:'Scapular Pull-ups',muscle:'back',type:'isolation',eq:['pullup_bar'],rMin:8,rMax:12,rest:90,noWeight:true,cue:'Dead hang, arms straight. Without bending the elbows, shrug down and back to lift your body a few inches — depress and retract the shoulder blades. Pause at the top, slow return. Pure scapular control, no arm pulling.',tags:['vertical','scapular']},
   {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,rest:180,noWeight:true,cue:'Dead hang start. Drive elbows to hips — think about that, not pulling with hands. 3-count descent every rep, no dropping. Progression ladder: (1) build to 8 strict reps → (2) add 1s pause chin-over-bar each rep → (3) slow negative to 4 counts → (4) L-sit pull-ups (legs parallel) → (5) archer pull-ups. Weight is the last tool, not the first.',tags:['vertical']},
   {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,rest:180,noWeight:true,cue:'Supinated grip. Full dead hang, drive elbows down and back. 3-count descent. Progression: build reps → 1s top pause → 4-count negative → mixed grip → neutral grip → weighted. Great for both back and biceps.',tags:['vertical']},
@@ -313,7 +333,14 @@ const EX = [
   {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Standing, cross-body cable. "Scrape the wall" with your hand on the way up to keep the arm path in the scapular plane. Constant tension throughout ROM. Resist the weight on the way down — don\'t let it snap back.'},
   {id:'lying_cable_lat',name:'Lying Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Lie sideways, cable from low pulley. Raise arm up. Slow descent. Excellent lateral delt isolation.'},
   {id:'incline_lateral',name:'45° Incline DB Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Set the bench to 45° (~100% grade). Lie on incline bench. Raise arm out from a fully stretched position, "scraping the wall" with your hand to stay in the scapular plane. Control the negative all the way down.'},
-  {id:'ezbar_upright_row',name:'EZ Bar Upright Rows',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:8,rMax:12,rest:120,cue:'Grip an EZ bar at about shoulder width on the angled sections. Pull the bar straight up the front of the body, leading with the elbows, to roughly mid-chest — stop before the elbows climb above the shoulders to keep the joint happy. Squeeze the side delts and traps at the top, lower under control. Keep it smooth — no heaving.',tags:['trap']},
+  // On avoidExercises since 2026-08-03 (reported pain, left shoulder). Also
+  // carries shoulderRisk so it stays hidden even if the avoid entry is ever
+  // removed without the shoulder actually being better: the upright row drives
+  // abduction plus internal rotation simultaneously, which is the textbook
+  // impingement position and the single most reliably provocative lift in the
+  // pool for this complaint. The existing "stop before the elbows climb above
+  // the shoulders" cue reduces it but does not remove it.
+  {id:'ezbar_upright_row',name:'EZ Bar Upright Rows',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:8,rMax:12,rest:120,shoulderRisk:true,cue:'Grip an EZ bar at about shoulder width on the angled sections. Pull the bar straight up the front of the body, leading with the elbows, to roughly mid-chest — stop before the elbows climb above the shoulders to keep the joint happy. Squeeze the side delts and traps at the top, lower under control. Keep it smooth — no heaving.',tags:['trap']},
   {id:'alt_front_raise',name:'Alternating Front Lateral Raises',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Stand tall with a dumbbell in each hand, palms facing your thighs. Raise one arm straight in front to about shoulder height with a slight elbow bend, pause, then lower under control as you raise the other — alternating each rep. No swinging or leaning back; the front delts do the work. Count per side.'},
   {id:'db_curl',name:'DB Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Standing. Full supination at top (palm faces ceiling) — rotate the pinky side of your hand up and in at peak contraction for a harder squeeze. 2-count negative — lower slowly, don\'t drop it. Full ROM at bottom.'},
   {id:'hammer_curl',name:'Hammer Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Standing, neutral grip. Trains brachialis and brachioradialis. Resist the descent — 2 counts down.'},
@@ -325,7 +352,7 @@ const EX = [
   {id:'skull_crushers',name:'DB Skull Crushers',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower DBs toward forehead with control — 2 counts down. Elbows slightly flared. Press back up. This is not a speed exercise.'},
   {id:'diamond_pu',name:'Diamond Push-ups',muscle:'triceps',type:'isolation',eq:['bodyweight'],rMin:10,rMax:15,rest:120,cue:'Hands close together. Elbows track backward. Full lockout at top, controlled descent. Add vest for progressive overload.'},
   {id:'ezbar_skull',name:'EZ Bar Skull Crushers',muscle:'triceps',type:'isolation',eq:['barbell'],rMin:8,rMax:12,rest:120,cue:'Lie on a bench holding an EZ bar on the angled grips, arms extended over your chest. Keeping the elbows fixed and pointed up, lower the bar toward your forehead (or just behind the head for a bigger long-head stretch) — 2 counts down. Press back to lockout without letting the elbows flare out. Strict and controlled, never a speed exercise.'},
-  {id:'tricep_dips',name:'Tricep Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'On parallel bars or a bench edge, keep the torso fairly upright to bias the triceps (leaning forward shifts load to the chest). Lower until the elbows reach about 90°, keeping them tucked close to the body — don\'t let them flare. Press back to full lockout and squeeze the triceps at the top. Slow descent. Add a vest or plate on the lap to overload.'},
+  {id:'tricep_dips',name:'Tricep Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'PARALLEL BARS ONLY — not the bench-edge version. Bench dips pin the hands behind the body and load the shoulder at its extension end range, which is the exact position the front of the left shoulder objects to; parallel bars let the arms hang under the torso instead. NOT flagged shoulderRisk (it\'s the only compound in the triceps pool) — the depth cap is what keeps it safe, so respect it. Keep the torso fairly upright to bias the triceps (leaning forward shifts load to the chest). Lower until the elbows reach about 90° and NO further, keeping them tucked close to the body — don\'t let them flare. Press back to full lockout and squeeze the triceps at the top. Slow descent. Add a vest or plate on the lap to overload.'},
   {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Sit back and down, knees track toes. Full depth. Drive the floor away on the way up.',tags:['quad','squat'],hipRisk:true},
   {id:'bulgarian',name:'Bulgarian Split Squat (RFESS)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated, front foot well forward. Keep the front shin closer to vertical and torso upright — this caps front-hip flexion well short of a deep bilateral squat, and the staggered stance keeps the working hip neutral-to-externally-rotated. The hip-friendly substitute for deep squats. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral']},
   {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold DB at chest. Elbows between knees at bottom. Full depth. Controlled descent.',tags:['quad','squat'],hipRisk:true},
@@ -421,7 +448,12 @@ const EX = [
   {id:'split_stance_row',name:'Split-Stance Cable Row',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:12,rest:90,cue:'Staggered stance (opposite foot forward from the rowing arm), torso tall. Row the cable to your ribs without letting the shoulders or hips rotate open — the narrow stance gives the core nowhere to hide. Slow return, resist the twist the whole way back. Count per side.',tags:['asymmetrical','anti-rotation']},
   {id:'ab_rollout',name:'Ab Rollout (Barbell/Wheel)',muscle:'core',type:'rotational',eq:['barbell','bodyweight'],rMin:6,rMax:12,rest:90,noWeight:true,cue:'Kneel with hands on a loaded barbell (or ab wheel). Brace, tuck the pelvis, and roll out only as far as you can keep the lower back from arching — the abs resist extension the entire way out — then drag yourself back with lats and abs together. A shorter range done rigid beats a long saggy rep. The king of anti-extension work.',tags:['anti-extension']},
   {id:'crunches',name:'Crunches',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on back, knees bent. Curl shoulder blades off the floor, exhale at the top. Keep lower back pressed down — small controlled range, no momentum.',tags:['flexion']},
-  {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on your back, knees bent, feet flat (anchor them if needed). Curl up through a full range until your torso is upright, leading with the chest — don\'t yank on your neck. Exhale at the top, then lower under control all the way down. Cross arms on the chest to regress, or hold a plate at the chest to add load.',tags:['flexion']},
+  // noWeight REMOVED 2026-08-03 (from Sam: "sit up can be weighted"). The cue
+  // already told him to hold a plate; noWeight:true then hid the weight field,
+  // so the load he was actually using could never be logged or progressed —
+  // the estimate carried the set instead of the number. decline_situps was
+  // already weight-enabled, which is what made the inconsistency visible.
+  {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,cue:'Lie on your back, knees bent, feet flat (anchor them if needed). Curl up through a full range until your torso is upright, leading with the chest — don\'t yank on your neck. Exhale at the top, then lower under control all the way down. Cross arms on the chest to regress, or hold a plate at the chest to add load.',tags:['flexion']},
   {id:'hanging_leg_raise',name:'Hanging Leg Raise',muscle:'core',type:'isolation',eq:['pullup_bar','bodyweight'],rMin:8,rMax:15,rest:90,noWeight:true,cue:'Hang from a bar with shoulders active (slight pull-down, not a loose dead hang). Curl your PELVIS up toward your ribs — don\'t just lift the legs from the hips. No swinging or momentum: pause briefly at the top, lower under control (2–3 counts). Bend the knees to regress, keep legs straighter to progress. Considered the elite movement for full core training.',tags:['flexion','anti-extension']},
   {id:'incline_leg_raise',name:'Incline Elevated Leg Raises',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:20,rest:75,noWeight:true,cue:'Set the bench to a 30–40° incline (~58–84% grade), head-up, gripping the top pad behind your head for an anchor. Keeping legs fairly straight, curl the pelvis and raise the legs up toward vertical — drive from the lower abs, not momentum. Lower under control without letting the feet touch down between reps to keep tension on the abs. Bend the knees to regress.',tags:['flexion']},
   {id:'body_v',name:'Body V (V-Ups)',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:8,rMax:15,rest:75,noWeight:true,cue:'Lie flat on your back, arms extended overhead, legs straight. Simultaneously lift the torso and legs, reaching the hands toward the feet so the body folds into a "V" balanced on the glutes. Exhale and squeeze the abs hard at the top, then lower both halves under control without slamming down. Bend the knees or do tuck-ups to regress.',tags:['flexion']},
@@ -1118,7 +1150,18 @@ let S={
     // cue sold it as "a deep hip-flexor opener"; on this hip it pinches
     // (2026-08-03). mountain_climbers stays: knees drive straight to the chest,
     // inside the hands, so it never reaches end-range.
-    avoidExercises:['ohp','push_press','db_push_press','thrusters','woodchop','plank_outside_climbers'],
+    // ezbar_upright_row / bench: LEFT SHOULDER, a third constraint distinct from
+    // the hip and the lower back (2026-08-03). Reported as pain on upright rows
+    // and at the front of the shoulder while benching, tracing to something
+    // popping on a maximal baseball swing years ago. The two provocative lifts
+    // share one mechanism — the humeral head loaded at an end range it can't
+    // control — so both go, rather than only the one that hurts most. Pressing
+    // is NOT banned as a class: floor_press leads the chest block and the DB
+    // variants keep a "stop at the torso line" cue, because the arms can pick
+    // their own path there and a barbell's fixed hands cannot. See also the
+    // shoulderRisk flag, which hides the BALLISTIC pressing that no cue fixes.
+    shoulderCaution:true,
+    avoidExercises:['ohp','push_press','db_push_press','thrusters','woodchop','plank_outside_climbers','ezbar_upright_row','bench'],
     // Seeded from the InBody-style body-composition scan (Starfit, 2026-05-24).
     // Muscle already sits above the normal range — the score gap is pure fat, so
     // the program is tuned to strip fat while preserving muscle (see bodyScoreCard).
@@ -1219,6 +1262,17 @@ function load(){
       // territory — despite the movement carrying no 'plyometric' tag and no
       // hipRisk flag, so neither the plyo ban nor hipCaution would catch it.
       if(!S.cfg.avoidExercises.includes('plank_outside_climbers'))S.cfg.avoidExercises.push('plank_outside_climbers');
+      // Migrate: LEFT SHOULDER (2026-08-03). Upright rows hurt, and the front of
+      // the shoulder hurts while benching — one mechanism, two lifts, so both go.
+      ['ezbar_upright_row','bench'].forEach(id=>{
+        if(!S.cfg.avoidExercises.includes(id))S.cfg.avoidExercises.push(id);
+      });
+      // Turn the achy-shoulder warm-up + the shoulderRisk gate on, ONCE. Guarded
+      // by its own marker rather than by `===undefined`, because the toggle has
+      // shipped as `false` for a long time and a plain undefined-check would
+      // never fire — while an unguarded assignment would re-enable it on every
+      // reload and make the plan-screen checkbox impossible to switch off.
+      if(!S.cfg.shoulderSeeded){S.cfg.shoulderCaution=true;S.cfg.shoulderSeeded=true;}
       // Migrate: seed the body-composition scan + lean focus for the score goal.
       // Muscle is already above range, so the only lever to 100 is fat loss while
       // holding muscle — switch the goal to lean recomp and turn conditioning on.
@@ -1377,11 +1431,33 @@ function centuryEligibleDow(av,dow){
 // lunch century is budgeted from evidence instead of a guess. Median of the
 // last 5 timed sessions (median, not mean, so one interrupted session doesn't
 // skew the budget), falling back to 20 min until there's data.
-const CENTURY_DEFAULT_MINS=20;
+// Until there's a measured session, budget the century at what the PRESCRIBED
+// pacing actually costs (centurySetPlan) rather than at a round guess. The old
+// flat 20 was invented before there was a pacing prescription to derive it
+// from; now that the card tells him sets of N with a fixed rest, the honest
+// budget is the arithmetic of that instruction. It also self-scales for free —
+// as his best set climbs, the plan gets shorter and so does the reservation.
+function centuryDefaultMins(){return centurySetPlan().mins;}
+// A PARTIAL century must never make the budget SMALLER. The card deliberately
+// offers "log N reps & stop here", so a short session is a normal outcome —
+// and 26 reps in 18 minutes is evidence the century runs SLOWER than the
+// default, not faster. The original median took every timedMins at face value,
+// which would have read that session as "centuries take 18 min", cut the
+// reserved time, and handed the lunch MORE lifting on the exact day it had
+// already overrun. Completed sessions calibrate directly; partials are only
+// used pro-rata and only ever push the number up.
+const CENTURY_MAX_BUDGET_MINS=40; // a full lunch — past this it simply doesn't fit
 function centuryMins(){
-  const timed=centuryLogs().filter(l=>l.timedMins>0).slice(-5).map(l=>l.timedMins).sort((a,b)=>a-b);
-  if(!timed.length)return CENTURY_DEFAULT_MINS;
-  return timed[Math.floor(timed.length/2)];
+  const timed=centuryLogs().filter(l=>l.timedMins>0);
+  const done=timed.filter(l=>centuryRepsOf(l)>=PULLUP_CENTURY.target)
+    .slice(-5).map(l=>l.timedMins).sort((a,b)=>a-b);
+  if(done.length)return done[Math.floor(done.length/2)];
+  const partial=timed.slice(-5)
+    .map(l=>{const r=centuryRepsOf(l);return r>0?l.timedMins*PULLUP_CENTURY.target/r:0;})
+    .filter(m=>m>0).sort((a,b)=>a-b);
+  if(!partial.length)return centuryDefaultMins();
+  const est=Math.round(partial[Math.floor(partial.length/2)]);
+  return Math.min(CENTURY_MAX_BUDGET_MINS,Math.max(centuryDefaultMins(),est));
 }
 function centuryDows(av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
@@ -1446,6 +1522,110 @@ function centuryDraft(){
   if(!S.century||S.century.date!==todayStr())return{date:todayStr(),sets:[]};
   return S.century;
 }
+// Total reps in a logged century — needed because a "century" log may be a
+// PARTIAL one (the card's own button offers "log N reps & stop here").
+function centuryRepsOf(l){
+  return (l.exercises?.[0]?.sets||[]).filter(s=>s&&s.reps>0).reduce((a,s)=>a+s.reps,0);
+}
+// ── HOW TO PACE THE CENTURY (2026-08-03) ──
+// Sam asked how long to rest between sets. The card used to say "rest as long
+// as you need", which is correct advice for a standalone century and wrong
+// advice for one inside a 40-minute lunch — and the lunch that ran 43 minutes
+// with only 26 of the 100 reps done is what that answer costs.
+//
+// The governing constraint is that every set ends 2+ reps short of failure
+// (see PULLUP_CENTURY). Deliberately submaximal sets don't need long rests:
+// the 2–3 minute recommendation people quote comes from work on maximising
+// performance in HARD sets (e.g. Schoenfeld et al. 2016, J Strength Cond Res,
+// where 3 min beat 1 min for strength and hypertrophy in trained lifters) —
+// that's a study of sets taken near failure, which is exactly what this
+// protocol is built to avoid. Rest long enough here and you aren't being
+// careful, you're just adding minutes.
+//
+// So the set SIZE is what gets prescribed, and the rest follows from it: take
+// roughly half your best unbroken set. At half of max you are ~10 reps from
+// failure on rep one and still several reps clear on the last, so 60–75s
+// returns you to fresh. It is also self-scaling in the same way the fixed
+// 100-rep target is (see the consistency-over-optimization note in CLAUDE.md):
+// as `best` climbs, the sets get bigger and the session gets shorter, and the
+// prescription itself never needs rewriting.
+const CENTURY_REST_SECS=75;
+const CENTURY_SET_FRACTION=0.5; // of best unbroken set
+function centurySetPlan(){
+  const best=centuryStats().best;
+  // No history yet: sets of 10 is the conventional opening and divides 100
+  // evenly, which matters more than precision on day one.
+  const setSize=best?Math.max(3,Math.round(best*CENTURY_SET_FRACTION)):10;
+  const sets=Math.ceil(PULLUP_CENTURY.target/setSize);
+  // ~3s/rep at the cued 3-count descent, plus the rest between (not after) sets.
+  const mins=Math.round((sets*setSize*3+(sets-1)*CENTURY_REST_SECS)/60);
+  return{setSize,sets,restSecs:CENTURY_REST_SECS,mins};
+}
+
+// ─────────────────────────────────────────────
+// THE LUNCH TIME LEDGER
+// ─────────────────────────────────────────────
+// A lunch is a hard 40 minutes with no shower. The old model was a flat
+// "3 exercises, minus some if it's a Century day", which charged for the
+// lifting and the century and nothing else — so two things that happen at
+// every single lunch were invisible to it:
+//
+//   1) DAILY_SPINE_MINIMUMS. Four fixed holds, ~5 minutes, done every day.
+//   2) The conditioning FINISHER. The whole lunchOK subset exists to be done
+//      at lunch and every one of them declares its own `mins` (8–10), none of
+//      which were ever subtracted from anything.
+//
+// Reported 2026-08-03: a lunch ran 43 minutes for the workout, the spine work
+// and 26 pull-ups, with no finisher at all. That is the ledger's own arithmetic
+// showing up on a clock — the box was being spent three ways and counted one.
+//
+// So the budget is now an actual ledger: box − spine − century − lifts, and a
+// finisher only appears if what's left covers it. Lifting is filled first
+// because it's the point of the session and the finisher is the bonus; the
+// practical consequence at 40 minutes is that a lunch finisher needs the day to
+// be both century-free AND short on lifts, which is honest — it is roughly
+// never, and the card claiming otherwise is what made lunches overrun.
+const LUNCH_LEDGER={
+  spineMins:5,   // DAILY_SPINE_MINIMUMS: 60s + 2min + 60s + 60s
+  exMins:11,     // per exercise, DEFAULT ONLY — lunchExMins() measures the real one
+  maxLifts:3,    // the 2026-07-14 time-box calibration; 4 ran ~7 min long
+  minLifts:1,    // a century day never becomes a no-lifting day
+};
+// The per-exercise rate, measured rather than assumed — same principle as
+// centuryMins(). Only CENTURY-FREE lunches calibrate it, because on a century
+// day the two unknowns (rate per lift, minutes per century) can't be separated
+// from one number. Only `measured` logs count: finishWorkout falls back to a
+// set-count ESTIMATE when the timer was left running, and feeding an estimate
+// back in as if it were a measurement is the exact circularity the century's
+// timedMins/duration split exists to prevent.
+function lunchExMins(){
+  const centuryDates=new Set(centuryLogs().map(l=>logDay(l.date)));
+  const rates=(S.logs||[])
+    .filter(l=>l&&l.isLunch&&!l.isCardio&&l.measured&&l.duration>0&&(l.exercises||[]).length)
+    .filter(l=>!centuryDates.has(logDay(l.date)))
+    .slice(-5)
+    .map(l=>(l.duration-LUNCH_LEDGER.spineMins)/l.exercises.length)
+    .filter(m=>m>3&&m<30) // discard nonsense: an abandoned or mis-timed session
+    .sort((a,b)=>a-b);
+  if(!rates.length)return LUNCH_LEDGER.exMins;
+  return rates[Math.floor(rates.length/2)];
+}
+// Everything that spends the lunch box, in priority order. `av` is passed
+// explicitly during generation for the same reason centuryDows takes it —
+// reading S.program mid-generation would be circular.
+function lunchBudget(dow,av,boxMins){
+  const box=boxMins||40;
+  const spine=LUNCH_LEDGER.spineMins;
+  const century=centuryDows(av).includes(dow)?centuryMins():0;
+  const per=lunchExMins();
+  let left=box-spine-century;
+  const lifts=Math.max(LUNCH_LEDGER.minLifts,Math.min(LUNCH_LEDGER.maxLifts,Math.floor(left/per)));
+  left-=lifts*per;
+  const f=S.cfg?.conditioning?getFinisher(dow,true):null;
+  const finisher=(f&&left>=(f.mins||8))?f:null;
+  if(finisher)left-=(finisher.mins||8);
+  return{box,spine,century,per:Math.round(per*10)/10,lifts,finisher,left:Math.round(left)};
+}
 
 // Dragon Flag progression track: Tier 1 (Lying Leg Lifts) is always offered;
 // Tier 2/3 unlock only after logging 10+ reps in a single set on the tier
@@ -1506,6 +1686,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     e.eq.some(q=>eq.has(q)) &&
     legGateOK(e) &&
     !(S.cfg.hipCaution && e.hipRisk) &&
+    !(S.cfg.shoulderCaution && e.shoulderRisk) &&
     !plyoHidden(e) &&
     !userAvoids(e) &&
     dragonFlagUnlocked(e.id) &&
@@ -2023,7 +2204,8 @@ function genProgram(cfg,av,workoutHistoryLog){
       const def=EX.find(e=>e.id===id);
       if(!def)return false;
       return (def.eq||[]).some(q=>eqSet.has(q))
-        &&!(S.cfg.hipCaution&&def.hipRisk)&&!plyoHidden(def)&&!userAvoids(def)
+        &&!(S.cfg.hipCaution&&def.hipRisk)&&!(S.cfg.shoulderCaution&&def.shoulderRisk)
+        &&!plyoHidden(def)&&!userAvoids(def)
         &&!kneeCautionBlocks(def)&&dragonFlagUnlocked(def.id)
         &&!(isLunch&&def.highSweat);
     };
@@ -2151,22 +2333,15 @@ function genProgram(cfg,av,workoutHistoryLog){
       });
       return{tk,name:completedLog.dayName,desc:`Completed · ${completedLog.exercises.length} exercise${completedLog.exercises.length!==1?'s':''} logged`,isLunch:!!completedLog.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc,preserved:true,completed:true};
     }
-    // ── Lunch time-box, minus the century ──
-    // A lunch is a hard 40 minutes with no shower, calibrated to 3 exercises (4
-    // ran ~7 min long). A century on the same lunch spends real time out of that
-    // box — MEASURED via centuryMins(), not assumed — so the lifting gives way
-    // by that amount instead of silently overrunning, which is the exact failure
-    // the time-box calibration existed to fix.
-    // The rate here is ~10 min/exercise, not the 40÷3 ≈ 13 the whole box works
-    // out to, because the century absorbs the warm-up: 100 pull-ups leaves the
-    // upper body thoroughly warm, so the 2-set lunch ramp is already paid for
-    // and what's left is working sets only. At the 20-min default that leaves 2
-    // lifts; a slower century (25 min+) correctly drops it to 1. Floor of 1 —
-    // a century day never becomes a no-lifting day.
-    let limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
-    if(slot.isLunch&&centuryDows(av).includes(slot.dow)){
-      limit=Math.max(1,Math.min(limit,Math.floor(((slot.mins||40)-centuryMins())/10)));
-    }
+    // ── Lunch time-box ──
+    // Charged as a real ledger now (see LUNCH_LEDGER): the box pays for the
+    // daily spine minimums and any century BEFORE it pays for lifting, and the
+    // per-exercise rate is measured from Sam's own logged lunches rather than
+    // assumed. Evenings keep the plain EX_LIMIT cap — they have a shower, a
+    // flexible finish time, and no century contending for the same minutes.
+    const limit=slot.isLunch
+      ?lunchBudget(slot.dow,av,slot.mins).lifts
+      :(EX_LIMIT[slot.mins]||5);
     // Plan this day on demand from recovery debt (most-overdue rested muscles).
     const tmpl=dayTemplate(dateStr,limit,slot.isLunch,equip);
     if(!tmpl)return null; // nothing adequately rested → this day stays a rest day
@@ -2180,7 +2355,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       // planned days are already counted via getCommittedVolumes).
       if(!completedDows.has(slot.dow) && !od.customWorkout && !od.plannedCustomWorkout){
         (od.exercises||[]).forEach(e=>{
-          if(e&&e.muscle) budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+(e.sets||3);
+          creditVolume(budget.vol,exFull(e),e&&(e.sets||3));
           if(e&&e.id) exFreq[e.id]=(exFreq[e.id]||0)+1;
         });
       }
@@ -2220,8 +2395,10 @@ function genProgram(cfg,av,workoutHistoryLog){
         if(e.circuit) modifiedEx.circuitStyle = true;
       }
 
-      // Consume MRV headroom for this muscle
-      budget.vol[e.muscle] = (budget.vol[e.muscle] || 0) + modifiedEx.sets;
+      // Consume MRV headroom for this muscle — and for the muscles it trains
+      // indirectly, so a session full of pulling stops the generator from also
+      // prescribing curls on top of it (see SECONDARY_CREDIT_RULES).
+      creditVolume(budget.vol, e, modifiedEx.sets);
 
       return modifiedEx;
     }).filter(Boolean);
@@ -2241,7 +2418,7 @@ function genProgram(cfg,av,workoutHistoryLog){
         modifiedEx.sets=e.circuit?4:3;
         if(e.circuit)modifiedEx.circuitStyle=true;
       }
-      budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+modifiedEx.sets;
+      creditVolume(budget.vol,e,modifiedEx.sets);
       exs.push(modifiedEx);
     }
 
@@ -2257,7 +2434,10 @@ function genProgram(cfg,av,workoutHistoryLog){
     // the muscle's weekly MRV budget so other sessions can use the headroom.
     if(slot.isLunch){
       exs.forEach((e,i)=>{
-        if(i>0&&e.sets>2){budget.vol[e.muscle]=(budget.vol[e.muscle]||0)-(e.sets-2);e.sets=2;}
+        // Hand the trimmed sets back through the SAME ledger that booked them,
+        // so the secondary credit is refunded with them — a plain subtraction on
+        // e.muscle would leave phantom biceps/triceps volume behind.
+        if(i>0&&e.sets>2){creditVolume(budget.vol,e,-(e.sets-2));e.sets=2;}
       });
     }
 
@@ -2467,6 +2647,106 @@ function getUpcomingCustomWorkoutMuscles(){
   return upcomingMuscles;
 }
 
+// ─────────────────────────────────────────────
+// SECONDARY-MUSCLE SET CREDIT  (2026-08-03, requested by Sam)
+// ─────────────────────────────────────────────
+// A pull-up is not zero biceps work, but until now the volume ledger booked it
+// as zero — every set counted 1.0 toward its `muscle` field and nothing
+// anywhere else. That is what produced the standing balance-audit finding that
+// biceps sit UNDER band at ~5 sets/week while the same week contains 300
+// Century pull-ups. The muscle was being trained; the app just couldn't see it,
+// so it kept trying to fix a deficit that didn't exist.
+//
+// HOW THE NUMBERS WERE DERIVED — and what they are NOT.
+// Sam asked for a scientific percentage grounded in muscle activation, so the
+// honest thing is to state where that evidence is strong and where it isn't:
+//
+//  1) Surface EMG amplitude (%MVIC) is the usual "activation" measure, and it
+//     is NOT a valid proxy for hypertrophy. This is the single most important
+//     caveat and it is well argued in Vigotsky et al. (2018, Front Physiol,
+//     "Interpreting Signal Amplitudes in Surface Electromyography Studies in
+//     Sport and Rehabilitation Sciences"): amplitude is confounded by muscle
+//     length, contraction velocity, fatigue, electrode placement and
+//     normalization, so a higher acute reading does not license a claim about
+//     long-term growth. Anyone quoting a bare "the biceps are 78% active in a
+//     chin-up" as if it were a dose is over-reading the instrument.
+//  2) Raw %MVIC therefore is NOT used here. What is used is a RATIO: the
+//     secondary muscle's activation in the compound, divided by its activation
+//     in the standard isolation lift for that same muscle. Dividing one %MVIC
+//     by another cancels the normalization and electrode-placement terms that
+//     make absolute EMG numbers untrustworthy, which is exactly the comparison
+//     the raw figure can't support but the ratio can.
+//  3) The ratio is then rounded to a COARSE bucket (0.5 / 0.33 / 0.25). The
+//     precision of the underlying data does not justify two decimal places, and
+//     pretending otherwise would be the same over-reading as (1). The 0.5
+//     bucket also happens to match the "indirect work counts as half a set"
+//     convention already in common programming practice, which is reassuring
+//     but is not itself the reason for the number.
+//  4) Where direct hypertrophy trials exist they support the coarse call rather
+//     than the exact one: elbow-flexor growth from rowing/pulling alone has
+//     come out comparable to curling in controlled comparisons (e.g. Mannarino
+//     et al. 2021, J Strength Cond Res, rows vs. biceps curls on elbow flexor
+//     thickness). Treat the 0.5 as "substantial but not equivalent" — deliberately
+//     LESS than those trials would justify, because the century's sets are also
+//     deliberately submaximal and shouldn't be credited as hard sets.
+//
+// WHAT IS DELIBERATELY NOT CREDITED, so the omissions read as decisions:
+//  - Back compounds → shoulders (rear delt). Real but modest, and the rear-delt
+//    accent mandate exists precisely BECAUSE rowing doesn't cover it. Crediting
+//    it would inflate the shoulder ledger with the exact work the mandate is
+//    there to compensate for.
+//  - Squats/hinges → core. The trunk braces hard but isometrically, without
+//    loaded range of motion; the evidence for that producing growth is far
+//    weaker than for the elbow flexors in a chin-up.
+//  - Isolation movements credit nothing. Straight-arm pulldowns and pullovers
+//    keep the elbow locked, flyes keep it locked, shrugs never flex it — the
+//    type:'isolation' filter below is what excludes them, and it is why the
+//    rules key on `type` rather than listing ids.
+const SECONDARY_CREDIT_RULES=[
+  // Vertical + horizontal pulling: the elbow flexors work through a full range
+  // under near-bodyweight load. Applies to pull-ups, chin-ups, weighted
+  // pull-ups, both pulldowns and every row, plus the Century (which is booked
+  // as back volume and so inherits this automatically).
+  {when:e=>e.muscle==='back'&&e.type==='compound',credit:{biceps:0.5}},
+  // Horizontal pressing: triceps extend the elbow under load throughout, and
+  // the anterior delt is a genuine prime mover. The delt credit is the smaller
+  // 0.33 bucket for an app-specific reason — this app buckets ALL deltoid work
+  // as one 'shoulders' muscle, and a press does nothing for the side or rear
+  // head, so crediting a press at 0.5 would let bench press "cover" a lateral
+  // raise it shares no function with.
+  {when:e=>e.muscle==='chest'&&e.type==='compound',credit:{triceps:0.5,shoulders:0.33}},
+  // Seated overhead pressing (the standing variants are all on avoidExercises).
+  // Triceps only — the shoulder is the primary here, not a secondary.
+  {when:e=>e.muscle==='shoulders'&&e.type==='compound',credit:{triceps:0.5}},
+  // Dips are the mirror image: booked as triceps, but the chest does real work.
+  {when:e=>e.muscle==='triceps'&&e.type==='compound',credit:{chest:0.5}},
+];
+function secondaryCredit(ex){
+  if(!ex||!ex.muscle||!ex.type)return null;
+  const rule=SECONDARY_CREDIT_RULES.find(r=>r.when(ex));
+  return rule?rule.credit:null;
+}
+// The ONE place set volume is booked, so the ledger can never disagree with
+// itself. `sets` may be negative — the lunch time-box hands back the sets it
+// trims, and the secondary credit has to be handed back with them.
+// `ex` needs muscle+type, which means callers holding a LOG entry (those carry
+// muscle but not type) must re-hydrate from EX first; exFull() does that.
+function creditVolume(vol,ex,sets){
+  if(!ex||!ex.muscle||!sets)return;
+  vol[ex.muscle]=(vol[ex.muscle]||0)+sets;
+  const sec=secondaryCredit(ex);
+  if(sec)Object.keys(sec).forEach(m=>{vol[m]=(vol[m]||0)+sets*sec[m];});
+}
+// Log entries store {id,name,muscle,sets} — no `type`, so a rule that keys on
+// type can't fire without looking the movement back up. Falls back to the bare
+// entry (primary credit only) for custom/deleted movements, which is the safe
+// direction to be wrong in.
+function exFull(e){
+  if(!e||!e.id)return e;
+  if(e.type)return e;
+  return [...EX,...(S.customExercises||[])].find(x=>x.id===e.id)||e;
+}
+
 // ─── MRV (Maximum Recoverable Volume) Tracking ───
 function getWeeklySetVolumes(){
   // Calculate set volumes by muscle group for the current week
@@ -2489,18 +2769,21 @@ function getWeeklySetVolumes(){
       // purely because he improved. Charging the fixed work a fixed price is
       // both correct and stable: 100 deliberately submaximal reps (every set
       // 2+ short of failure) ≈ one hard back exercise's recoverable volume.
+      // Secondary credit rides along: 100 pull-ups is the single biggest source
+      // of uncounted biceps work in the week, and it is the case that motivated
+      // the whole SECONDARY_CREDIT_RULES table.
       (log.exercises||[]).forEach(ex=>{
-        volumes[ex.muscle]=(volumes[ex.muscle]||0)+CENTURY_MRV_SETS;
+        creditVolume(volumes,exFull(ex),CENTURY_MRV_SETS);
       });
       return;
     }
     log.exercises?.forEach(ex => {
-      const muscle = ex.muscle;
       const completedSets = ex.sets?.filter(s => s && s.reps > 0).length || 0;
-      volumes[muscle] = (volumes[muscle] || 0) + completedSets;
+      creditVolume(volumes, exFull(ex), completedSets);
     });
   });
-  // Discounted century sets can land on a half — keep the reported volumes whole.
+  // Century discounts and fractional secondary credit both land on halves —
+  // keep the reported volumes whole.
   Object.keys(volumes).forEach(m => { volumes[m] = Math.round(volumes[m]); });
 
   return volumes;
@@ -2530,22 +2813,23 @@ function trainingDayCount(av){
   return dows.size;
 }
 
-// Projected weekly working-set capacity from availability: a lunch session
-// physically holds 7 sets (3-exercise cap, lead keeps 3 + 2×2 after the
-// time-box calibration in buildSession) and an evening holds EX_LIMIT[mins]×3.
-// The default 5-lunch week holds ~35 sets against ~64 sets of summed muscle
+// Projected weekly working-set capacity from availability: the lead lift keeps
+// 3 sets and every later one is cut to 2 (the lunch time-box calibration in
+// buildSession), while an evening holds EX_LIMIT[mins]×3.
+// The default 5-lunch week holds far fewer sets than the ~64 of summed muscle
 // minimums — that gap is surfaced as a plan-screen warning (the bands
 // themselves stay untouched: they're the physiological targets, and the
 // dashboard staying yellow on a light week is honest).
 function weeklySetCapacity(av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
   let sets=0;
-  // A century lunch is a SHORTER lunch: buildSession cuts it to ~2 exercises
-  // because the century eats ~20 min of the 40 (see centuryMins). Counting all
-  // lunches at the full 7 would overstate capacity on exactly the weeks that
-  // have least of it, and this figure drives the plan-screen shortfall warning.
-  const cDows=new Set(centuryDows(av));
-  const lunchSets=(dow)=>cDows.has(dow)?5:7; // 3+2 vs 3+2+2
+  // Read the lift count from the SAME ledger buildSession uses, rather than
+  // re-deriving it here. The two used to be maintained separately and drifted:
+  // this one assumed a century lunch still fits 2 exercises after the ledger had
+  // already been taught to charge for the spine work as well. Since this figure
+  // drives the plan-screen shortfall warning, drift here silently understates
+  // exactly the weeks that need the warning most.
+  const lunchSets=(dow)=>{const n=lunchBudget(dow,av).lifts;return n>0?3+(n-1)*2:0;};
   [1,2,3,4,5].forEach(dow=>{const d=av[dow]||{};
     if(d.lunch!==false)sets+=lunchSets(dow);
     if(d.eve?.on)sets+=3*(EX_LIMIT[d.eve.mins||60]||5);
@@ -2875,7 +3159,7 @@ function getCommittedVolumes(){
           const sets = Array.isArray(ex.sets)
             ? ex.sets.filter(s => s && s.reps > 0).length
             : (parseInt(ex.sets) || 0);
-          if(ex.muscle) vol[ex.muscle] = (vol[ex.muscle] || 0) + sets;
+          creditVolume(vol, exFull(ex), sets);
         });
       }
     });
@@ -2900,6 +3184,21 @@ function getMRVBreakdown(){
     if(entry.source==='scheduled')breakdown[muscle].projected+=entry.sets;
     else breakdown[muscle].committed+=entry.sets;
   };
+  // Book an exercise everywhere it counts: its own muscle at face value, plus
+  // any secondary muscles at their evidence-derived fraction (see
+  // SECONDARY_CREDIT_RULES). Every add() site goes through this so the
+  // breakdown can never drift from getWeeklySetVolumes' totals — the two are
+  // shown side by side in the MRV widget and a mismatch reads as a bug.
+  // `indirect` lets the UI label the row rather than showing a bare "1.5 sets
+  // of Pull-ups" under Biceps, which looks like a data error.
+  const addWithSecondary=(ex,sets,entry)=>{
+    const full=exFull(ex);
+    add(full.muscle,{...entry,name:ex.name,sets});
+    const sec=secondaryCredit(full);
+    if(sec)Object.keys(sec).forEach(m=>{
+      add(m,{...entry,name:ex.name,sets:Math.round(sets*sec[m]*10)/10,indirect:true});
+    });
+  };
 
   // 1) Logged sessions this calendar week (regular + custom) — completed sets only
   const completedDows=new Set();
@@ -2911,7 +3210,7 @@ function getMRVBreakdown(){
       // Same FLAT century cost getWeeklySetVolumes charges, so the breakdown
       // always reconciles with the widget totals.
       const sets=l.century?CENTURY_MRV_SETS:raw;
-      add(ex.muscle,{dow,dayLabel:DOW[dow],name:ex.name,sets,source:l.isCustom?'custom':'logged',sessionName:l.dayName});
+      addWithSecondary(ex,sets,{dow,dayLabel:DOW[dow],source:l.isCustom?'custom':'logged',sessionName:l.dayName});
     });
   });
 
@@ -2921,7 +3220,7 @@ function getMRVBreakdown(){
       if(day&&day.plannedCustomWorkout&&day.plannedCustomLog&&!day.customWorkout){
         day.plannedCustomLog.exercises.forEach(ex=>{
           const sets=Array.isArray(ex.sets)?ex.sets.filter(s=>s&&s.reps>0).length:(parseInt(ex.sets)||0);
-          add(ex.muscle,{dow:day.dow,dayLabel:DOW[day.dow],name:ex.name,sets,source:'planned',sessionName:'Planned Custom Workout'});
+          addWithSecondary(ex,sets,{dow:day.dow,dayLabel:DOW[day.dow],source:'planned',sessionName:'Planned Custom Workout'});
         });
       }
     });
@@ -2934,7 +3233,7 @@ function getMRVBreakdown(){
       const dayISO=addDays(mondayStr,day.dow===0?6:day.dow-1);
       if(dayISO<todayISO)return; // missed past days don't project volume
       const collect=(sess)=>{(sess?.exercises||[]).forEach(e=>{
-        add(e.muscle,{dow:day.dow,dayLabel:DOW[day.dow],name:e.name,sets:e.sets||3,source:'scheduled',sessionName:sess.name});
+        addWithSecondary(e,e.sets||3,{dow:day.dow,dayLabel:DOW[day.dow],source:'scheduled',sessionName:sess.name});
       });};
       collect(day);
       if(day.eveningSession)collect(day.eveningSession);
@@ -3214,7 +3513,7 @@ function pickEveningExercises(day,sessionMins){
     const e=pickEx(sl,equip,used,false,budget); // Evening sessions allow high-sweat exercises
     if(!e) return null;
     used.push(e.id);
-    budget.vol[e.muscle]=(budget.vol[e.muscle]||0)+3;
+    creditVolume(budget.vol,e,3);
     return {...e,sets:3,sessionMins};
   }).filter(Boolean);
   flagFirstWorkingSet(exs); // compounds first; warm-up flag on first loaded lift
@@ -3893,10 +4192,19 @@ function finishWorkout(fatigue){
   });
   // Wall-clock elapsed is only correct if Finish was tapped when the work ended.
   let mins=Math.round((Date.now()-S.active.startTime)/60000);
+  // `measured` records whether `duration` is a real clock reading or a recovered
+  // guess. lunchExMins() calibrates the lunch time-box off these durations, and
+  // an estimate derived FROM the set count must never feed back into the budget
+  // that decides the set count — the same circularity the century's separate
+  // timedMins field exists to prevent.
+  let measured=true;
   if(mins>MAX_SESSION_MINS){
     const est=estimateSessionMins(exData);
     const ans=prompt(`This session's timer has been running ${fmtDur(mins)} — looks like it wasn't submitted when you finished.\n\nHow many minutes did the workout actually take?`,String(est));
     const parsed=parseInt(ans);
+    // A number he typed IS a measurement — he read it off a clock. Only the
+    // fallback estimate is disqualified.
+    measured=!(ans===null||isNaN(parsed));
     mins=(ans===null||isNaN(parsed))?est:Math.max(1,Math.min(MAX_LOGGED_MINS,parsed));
   }
   // Stamp the finish at start+duration rather than "now": a session submitted the
@@ -3904,7 +4212,7 @@ function finishWorkout(fatigue){
   // and MRV lookup keys off logDay(log.date). Normally this lands within a minute
   // of now; the min() keeps a rounded-up duration from stamping the future.
   const finishedAt=new Date(Math.min(Date.now(),S.active.startTime+mins*60000)).toISOString();
-  const log={id:Date.now().toString(),date:finishedAt,dayName:S.active.dayName,isLunch:S.active.isLunch,duration:mins,exercises:exData,fatigue:fatigue||null};
+  const log={id:Date.now().toString(),date:finishedAt,dayName:S.active.dayName,isLunch:S.active.isLunch,duration:mins,measured,exercises:exData,fatigue:fatigue||null};
   S.logs.push(log);S.active=null;S.view='dash';
   // Re-plan the rest of the week around what was just trained: recovery ordering
   // + the lockout windows push the just-worked muscle groups to later days (e.g.
@@ -3930,6 +4238,11 @@ function getFinisher(dow,isLunch){
   return pool[dow%pool.length];
 }
 function finisherHTML(dow,compact,isLunch){
+  // At lunch the finisher has to be AFFORDABLE, not just low-sweat. Its minutes
+  // are now charged against the box like everything else (see LUNCH_LEDGER), so
+  // if the ledger didn't leave room, no card is rendered — showing one anyway is
+  // how a 40-minute lunch became a 43-minute one.
+  if(isLunch&&!lunchBudget(dow).finisher)return'';
   const f=getFinisher(dow,isLunch);
   const primer=f.sprint?`<div style='margin-top:10px;padding:10px 12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:10px'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>🔑 ${SPRINT_PRIMER.title}</div>
@@ -3971,6 +4284,28 @@ const DAILY_SPINE_MINIMUMS=[
 ];
 // Dashboard/rest-day card version — plain text, NO hold-timer buttons: the
 // rest overlay writes to S.active, which is null outside a workout.
+// Where the 40 minutes actually goes. Shown on lunch days because the box is
+// the binding constraint there and, until it was itemised, an overrun looked
+// like "the workout took too long" rather than "three things are being charged
+// to one budget" (see LUNCH_LEDGER). Also the honest place to say out loud that
+// the finisher didn't fit, instead of silently not rendering one.
+function lunchBudgetHTML(dow){
+  const b=lunchBudget(dow);
+  const rows=[
+    [`${b.lifts} lift${b.lifts===1?'':'s'}`,Math.round(b.lifts*b.per)],
+    b.century?['Pull-up century',b.century]:null,
+    ['Daily spine minimums',b.spine],
+    b.finisher?[`Finisher · ${b.finisher.name}`,b.finisher.mins]:null,
+  ].filter(Boolean);
+  const measured=lunchExMins()!==LUNCH_LEDGER.exMins;
+  return`<div style='margin-top:10px;padding:12px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:6px'>⏱ The ${b.box}-minute lunch</div>
+    ${rows.map(r=>`<div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9'><span style='color:var(--mut)'>${r[0]}</span><span style='font-weight:700'>${r[1]} min</span></div>`).join('')}
+    <div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9;border-top:1px solid var(--bdr);margin-top:4px;padding-top:4px'><span style='color:var(--mut)'>Slack</span><span style='font-weight:700;color:${b.left<0?'var(--warn)':'var(--ok)'}'>${b.left} min</span></div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}.${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
+  </div>`;
+}
+
 function dailySpineHTML(){
   return`<div style='margin-top:10px;padding:14px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.2);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:6px'>🧘 Daily Spine Minimums · ~5 min</div>
@@ -4000,7 +4335,7 @@ function centuryHTML(){
   // (centuryMins → buildSession), so show what's actually being used.
   const clock=st.timedCount
     ?`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Typically <strong style='color:var(--txt)'>${centuryMins()} min</strong> (median of ${st.timedCount} timed session${st.timedCount!==1?'s':''}${st.lastMins?` · last ${st.lastMins} min`:''}) — that's what gets reserved out of a 40-min lunch.</div>`
-    :`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Timing starts on your first set. Until there's data, lunches budget ${CENTURY_DEFAULT_MINS} min for this.</div>`;
+    :`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Timing starts on your first set. Until there's data, lunches budget ${centuryDefaultMins()} min for this — the pacing above is where that number comes from.</div>`;
   const trend=st.total>1&&st.firstSets&&st.lastSets
     ?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>${st.total} centuries logged · first took <strong style='color:var(--txt)'>${st.firstSets} sets</strong>, last took <strong style='color:var(--ok)'>${st.lastSets}</strong>${st.best?` · best single set <strong style='color:var(--txt)'>${st.best}</strong>`:''}</div>`
     :st.total===1?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First century logged — ${st.lastSets} sets${st.best?`, best single set ${st.best}`:''}. That set count is the number that comes down.</div>`
@@ -4017,6 +4352,7 @@ function centuryHTML(){
     </div>`;
   }
   const total=draft.sets.reduce((a,n)=>a+n,0);
+  const plan=centurySetPlan();
   const pct=Math.min(100,Math.round(total/T*100));
   const bestToday=draft.sets.length?Math.max(...draft.sets):0;
   const setChips=draft.sets.length
@@ -4039,7 +4375,12 @@ function centuryHTML(){
     </div>
     ${setChips}
     ${draft.sets.length?`<button class='btn ${total>=T?'btn-ok':'btn-g'} btn-sm' data-action='century-finish' style='width:100%;margin-top:8px'>${total>=T?`✓ Log Century — ${total} reps in ${draft.sets.length} sets`:`Log ${total} reps & stop here (${remaining} short)`}</button>`:''}
-    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>End every set <strong style='color:var(--txt)'>2+ reps short of failure</strong> and rest as long as you need — that's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Bands, feet on a box, or slow negatives all count too.</div>
+    <div style='margin-top:10px;padding:10px 12px;background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.25);border-radius:10px'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>⏱ Pacing</div>
+      <div style='font-size:13px;font-weight:700'>Sets of ${plan.setSize} · rest ${plan.restSecs}s</div>
+      <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>${plan.sets} sets at that size gets you to ${T} in about <strong style='color:var(--txt)'>${plan.mins} min</strong>${st.best?` — sized at half your best set of ${st.best}, so every set starts ~${Math.max(1,st.best-plan.setSize)} reps clear of failure`:''}. Half-max sets don't need long rests; the 2–3 min figure comes from research on sets taken NEAR failure, which this deliberately isn't. If you're resting much past ${plan.restSecs}s, cut the set size rather than the rest — that's what keeps this inside a lunch.</div>
+    </div>
+    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>End every set <strong style='color:var(--txt)'>2+ reps short of failure</strong> — that's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Bands, feet on a box, or slow negatives all count too.</div>
     ${trend}
   </div>`;
 }
@@ -4569,6 +4910,7 @@ function renderDash(){
         `<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 ${isActualToday?'Log Custom Workout Instead':'Log Custom Workout'}</button>`
       }
       ${eveBlock}
+      ${isActualToday&&dd?.isLunch?lunchBudgetHTML(displayDow):''}
       ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession):''}
       ${isActualToday?centuryHTML():''}
       ${isActualToday?dailySpineHTML():''}

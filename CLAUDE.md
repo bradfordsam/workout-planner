@@ -85,7 +85,20 @@ strip it before other debugging.
   outside foot-step is deep flexion + abduction, i.e. the FAI impingement
   position, and it carries neither a `plyometric` tag nor `hipRisk`, so nothing
   else would have caught it. `mountain_climbers` stays (knees drive inside the
-  hands, never end-range).
+  hands, never end-range). Also `ezbar_upright_row` + `bench` (2026-08-03, left
+  shoulder — see the training-constraints section).
+- `shoulderRisk` flag + `S.cfg.shoulderCaution` (2026-08-03) is the shoulder
+  twin of `hipRisk`/`hipCaution`, gated in the SAME two places (pickEx's
+  `baseFor` and `dayTemplate`'s `canPlaceFoundation` — they must stay in sync or
+  the template offers what pickEx will refuse). Reserved for BALLISTIC anterior
+  loading that no cue can make safe: `med_ball_chest_pass`, `plyo_pushup`,
+  `ezbar_upright_row`. Strength lifts are handled with a ROM cue instead, and
+  `tricep_dips` deliberately carries NO flag (it is the triceps pool's only
+  compound; the 90° depth cap is what keeps it safe). `shoulderCaution` is
+  seeded on via a one-time `S.cfg.shoulderSeeded` marker — a plain
+  `===undefined` check can't fire (the toggle has shipped as `false` for
+  months) and an unguarded assignment would make the plan-screen checkbox
+  impossible to turn off.
 - `'own_gear'` (2026-08-03) is a PSEUDO-equipment token on `EQUIPMENT_PRESETS`
   meaning "Sam's own kit is on hand" — currently the weighted vest. Carried by
   apartment_gym / westminster_gym / bodyweight / moms_and_dads, withheld from
@@ -153,6 +166,57 @@ strip it before other debugging.
   `getMRVBreakdown` (submaximal sets don't cost what hard sets cost; at face
   value 100 reps ate the whole week's back MRV and crowded out the mandated
   row/rear-delt work). Weighted pull-ups avoid Century days before Wed.
+- `SECONDARY_CREDIT_RULES` / `creditVolume` / `exFull` (2026-08-03): a set
+  counts toward the muscles it trains INDIRECTLY, at an evidence-derived
+  fraction — pulls → biceps 0.5, chest compounds → triceps 0.5 + shoulders
+  0.33, seated overhead press → triceps 0.5, dips → chest 0.5. Rules key on
+  `muscle`+`type`, never on id lists, which is what correctly excludes
+  straight-arm pulldowns, pullovers, flyes, shrugs and face pulls (all
+  `isolation`, no elbow/secondary loading). **Read the derivation comment before
+  changing a number**: raw EMG %MVIC is deliberately NOT used (it doesn't
+  predict hypertrophy — Vigotsky et al. 2018); the fraction is a RATIO of the
+  secondary muscle's activation in the compound to its activation in the
+  isolation lift for that muscle, then rounded to a coarse bucket because the
+  data doesn't support more precision. `creditVolume` is the ONE booking
+  function — every `budget.vol` / `volumes` write goes through it, INCLUDING
+  the lunch time-box's set refund, which must hand back the secondary credit
+  too or phantom biceps volume accumulates. Log entries carry `muscle` but not
+  `type`, so callers holding a log must re-hydrate through `exFull` first.
+  Measured effect (6 sim weeks, daily replan, lunch+3-evening): biceps 11 → 16,
+  triceps 8 → 12–14, legs 15/11/12/12/14 → 18 every week (40% → 100% in band),
+  because the generator stops spending slots on curls it no longer thinks are
+  needed. It also closed the documented `pistol_squat` gap on efficiency weeks
+  (0% → 100%).
+- `LUNCH_LEDGER` / `lunchBudget` / `lunchExMins` (2026-08-03): the 40-min lunch
+  is a real ledger — box − spine − century − lifts, and a finisher only if what
+  remains covers it. It replaced a flat "3 exercises, minus some on a century
+  day" that charged for the lifting and the century and nothing else, so the
+  ~5 min of `DAILY_SPINE_MINIMUMS` and the finisher's own declared `mins` were
+  both invisible. Reported symptom: a lunch that ran 43 minutes for the workout,
+  the spine work and 26 pull-ups, with no finisher at all. Consequences worth
+  knowing: **a 40-min lunch never has room for a finisher** (lifting fills
+  first; `finisherHTML` returns '' rather than showing one it can't afford), and
+  **a century lunch drops from 2 lifts to 1**. `lunchExMins()` calibrates
+  minutes-per-exercise from Sam's own logs — only `measured` ones (finishWorkout
+  now records whether `duration` was a clock reading or a recovered estimate)
+  and only century-free lunches, since a century day has two unknowns in one
+  number. `weeklySetCapacity` reads lift counts from the same `lunchBudget`
+  rather than re-deriving them; they were maintained separately before and drifted.
+- Century pacing (`centurySetPlan`, 2026-08-03): the card used to say "rest as
+  long as you need", which is right for a standalone century and wrong for one
+  inside a lunch. It now prescribes **sets of ~half your best unbroken set,
+  75s rest** — at half max every set is many reps clear of failure, so the
+  2–3 min rest figure doesn't apply (that literature is about sets taken NEAR
+  failure, which this protocol exists to avoid). Self-scaling like the fixed
+  100-rep target: as `best` climbs the sets grow and the session shortens.
+  `centuryDefaultMins()` now derives the reserved lunch minutes from that plan
+  (16 at the opening prescription) instead of a round 20. **`centuryMins()`
+  must never let a PARTIAL century shrink the budget** — the card deliberately
+  offers "log N reps & stop here", and 26 reps in 18 min is evidence a century
+  is SLOWER than assumed; taken at face value it would have read as "centuries
+  take 18 min" and handed the lunch more lifting on the day it already overran.
+  Completed sessions calibrate directly; partials are extrapolated pro-rata,
+  floored at the default and capped at `CENTURY_MAX_BUDGET_MINS`.
 - `fundamentalHabits()` / `fundamentalsHTML()`: the Foundation Five coverage
   card plus the daily habits list — protein at target bodyweight, sleep,
   walking, caffeine+alcohol timing (fibre/satiety and the 80%-week rule were
@@ -227,9 +291,38 @@ Known-structural, deliberately NOT "fixed":
   sweating at lunch). `fundamentalsHTML` explains each in words.
 - Core sits at the top of its band because its slot is reserved, not won. See the
   TRIED AND REVERTED block on the core slot before attempting the obvious fix.
-- On a 3-evening (efficiency-mode) week, `pistol_squat` is uncovered: legs get a
-  single slot there and it is always the 'strength' slot, which the Foundation
-  stamp never overrides. Fixing it costs the leg volume gain above.
+- ~~On a 3-evening (efficiency-mode) week, `pistol_squat` is uncovered~~ —
+  FIXED as a side effect of secondary-credit (2026-08-03), 0% → 100% of weeks.
+
+## Third pass (2026-08-03) — secondary credit + the lunch ledger
+
+Method changed: the harness now **re-plans every simulated day**, the way the
+live app does after each `finishWorkout`. The old once-per-week harness planned
+Monday and logged the whole week against zero history, which books three
+centuries the generator never budgeted for — it reports back and biceps over
+MRV max that the app never actually produces. Measure with the daily-replan
+harness and take a BASELINE from `git show HEAD:index.html` through the same
+harness; several "regressions" on first run were pre-existing.
+
+Measured, 6 weeks × 3 schedules, baseline → now:
+- **lunch+3 evenings** (the main schedule): legs 40% → **100% in band**,
+  biceps 11 → 16, triceps 8 → 12–14, chest 10–12 → 10–13. Every mandate and
+  every Foundation movement stayed at 100%.
+- **3 evenings only**: `pistol_squat` 0% → 100%, chest 6 → 8, shoulders 3 → 5–8,
+  biceps 6 → 8–9, legs 6 → 9. `weighted_pullups` still 0% and back still 9
+  (both pre-existing).
+- **lunch-only**: biceps 2 → 8–10 (0% → 100% in band), triceps 2–3 → 5–7,
+  chest 3 → 4–7. Mandate rates unchanged.
+
+Accepted cost, measured not assumed:
+- **Core on lunch-only weeks: 10–11 → 4 sets.** A century lunch is now 1 lift,
+  and `tmpl.slots.slice(0,limit)` at limit=1 takes the muscle slot and drops the
+  reserved core slot. Accepted because (a) the plank in `DAILY_SPINE_MINIMUMS`
+  is done all 7 days and is never booked as core sets anyway, and (b) the
+  alternative is spending a century lunch's only lift on core. Do NOT "fix" this
+  by reordering the core slot ahead of the muscle slot — read the TRIED AND
+  REVERTED block on the core slot first.
+- lunch-only still under-fills nearly every band. Unchanged, still by design.
 
 ## Training constraints (why the code is shaped this way)
 
@@ -243,6 +336,23 @@ Known-structural, deliberately NOT "fixed":
   exercise is banned by default unless explicitly given `lowImpact:true`.
   Heavy strength variants are deliberately hip-friendly (box squat depth cap,
   elevated trap bar, staggered stance) so they stay outside the ban.
+- Left shoulder (2026-08-03): **upright rows hurt, and the front of the
+  shoulder hurts while benching.** Origin: something popped on a maximal
+  baseball swing a few years ago. Both provocative lifts share one mechanism —
+  the humeral head loaded at an end range it can't control — so the exclusion
+  generalised past the two named lifts rather than stopping at them:
+  `ezbar_upright_row` (abduction + internal rotation, the textbook impingement
+  position) and `bench` (fixed hands, so the arms can't pick their own path and
+  the bottom position isn't negotiable) both go on `avoidExercises`. Pressing
+  is NOT banned as a class — `floor_press` now LEADS the chest compound block
+  (the floor is a mechanical stop that enforces the ROM limit when a cue would
+  be ignored under fatigue), the DB/machine variants carry a "SHOULDER STOP:
+  stop at the torso line" cue, and the fly family lost its "full stretch at the
+  bottom" cueing for the same reason. Don't add new pressing that fixes the
+  hands to one bar or cues a deep bottom stretch. **This has never been
+  assessed** — the pattern (a pop under a violent swing, still symptomatic
+  years later on two specific loaded positions) is worth a physio's opinion,
+  and the app changes are load management, not treatment.
 - Lower back: **any standing overhead press hurts** (2026-07-27, expanded from
   the push-press-only report). `ohp`, `push_press`, `db_push_press`, and
   `thrusters` are all on `avoidExercises`. Seated overhead pressing
