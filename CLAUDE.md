@@ -192,9 +192,33 @@ strip it before other debugging.
   from `centuryStats().best` minus `PYRAMID_PEAK_HEADROOM`, so the top rung stays
   2 reps clear of failure (the same rule the Century runs on) and the ladder
   never needs rewriting as he improves. No Century history → peak 6 (540 reps).
-  **OFFERED, NEVER SCHEDULED** — `dayTemplate` knows nothing about it. A
+  **NEVER SCHEDULED BY THE GENERATOR** — `dayTemplate` knows nothing about it. A
   generated session that could be silently swapped would make the recovery-debt
   bookkeeping a lie, and "every Monday" is what Sam explicitly didn't want.
+  It IS prescribed on suitable nights, at PRESENTATION level only —
+  `pyramidPrescription()` (2026-08-03, Sam's rule: "if I am not working out at
+  YMCA or hotel one day and I have a lot of time the ladder is prescribed"):
+  - `PYRAMID_EXCLUDED_GYMS=['ymca','hotel_gym']`, a named list rather than a
+    "has a barbell" test because the two exclusions have DIFFERENT reasons. The
+    YMCA is the only place the heavy 1–5 barbell mandate can happen, so spending
+    that evening on bodyweight reps trades the scarce resource for the abundant
+    one. `hotel_gym` has no `pullup_bar`, so the ×1 rung — the movement that SETS
+    the peak — can't be done at all.
+  - `PYRAMID_PRESCRIBE_MINS` is DERIVED as the first rung above the standard
+    60-min evening on the `EX_LIMIT` scale (→75), not an invented constant, so it
+    still means "more than a normal evening" if that scale ever changes.
+  - The evening must also cover `plan.mins + LUNCH_LEDGER.spineMins`. This does
+    real work: once a few MEASURED sessions push `pyramidPlan().mins` past ~70,
+    a 75-min evening stops qualifying. Prescribing a session that doesn't fit is
+    the exact failure the lunch ledger exists to prevent.
+  - A ladder missing any rung is offered but never PRESCRIBED — which is why the
+    bar-less `bodyweight` (field) preset doesn't get the star even though it
+    isn't on the excluded list.
+  - Presentation level means: the card renders expanded with a "Tonight's
+    session" banner and its reasoning, the evening block gets a note at the
+    button he'd otherwise tap, and the planned lifting session stays fully
+    available as the alternative. The engine books whichever one gets logged, so
+    nothing is projected that might not happen.
   Non-obvious decisions:
   - **Movements live in `PYRAMID_LADDER`, deliberately NOT in `EX`.** EX ORDER IS
     LOAD-BEARING — adding a plain push-up to the chest compound block would

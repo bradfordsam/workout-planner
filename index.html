@@ -1584,11 +1584,17 @@ function centurySetPlan(){
 // the self-scaling rule in CLAUDE.md: the prescription never gets rewritten, the
 // peak moves. Drop to peak 7 and it's 735 reps in the identical shape.
 //
-// OFFERED, NEVER SCHEDULED. dayTemplate knows nothing about this — a generated
-// session that could be silently swapped out would make the recovery-debt
-// engine's bookkeeping a lie, and "every Monday" is exactly what Sam said he
-// didn't want. It's a manual card, the same shape as the Century, which is the
-// precedent already working here.
+// NEVER SCHEDULED BY THE GENERATOR. dayTemplate knows nothing about this — a
+// generated session that could be silently swapped out would make the
+// recovery-debt engine's bookkeeping a lie, and "every Monday" is exactly what
+// Sam said he didn't want. It's a card, the same shape as the Century, which is
+// the precedent already working here.
+//
+// It IS prescribed on nights that suit it, though — see pyramidPrescription
+// (2026-08-03), which decides that at PRESENTATION level only. The distinction
+// matters: the card leads the dashboard and says why, while dayTemplate still
+// plans the ordinary lifting session underneath as the alternative, and the
+// engine books whichever one actually gets logged.
 //
 // NOT A LUNCH SESSION: ~1,500 reps is high-sweat and runs ~50 min, so it fails
 // both lunch constraints outright. The card says so on a lunch-only day rather
@@ -1635,15 +1641,16 @@ const PYRAMID_LADDER=[
      cue:'Feet shoulder-width, sit back and down to full depth, knees tracking the toes, stand all the way up. Unloaded and low-impact, so this stays outside the hip caution — but keep the depth honest rather than turning the last rungs into quarter squats.'},
   ]},
 ];
-// Equipment on hand for today's EVENING, which is the only slot this fits.
-// Mirrors pickEveningExercises' resolution; falls back to the apartment gym
-// (his home base, and it has a bar) rather than the YMCA, since the whole appeal
-// of this session is that it runs without a gym.
-function pyramidEquip(){
-  const av=(S.weekPlan?.availability||{})[todayDow()]||{};
-  const preset=EQUIPMENT_PRESETS[av.eve?.equipment]||EQUIPMENT_PRESETS.apartment_gym;
-  return preset.equipment;
+// Today's evening slot, which is the only slot this session fits.
+function pyramidEveSlot(){return ((S.weekPlan?.availability||{})[todayDow()]||{}).eve||{};}
+// Equipment key for tonight. Falls back to the apartment gym (his home base, and
+// it has a bar) rather than the YMCA, since the whole appeal of this session is
+// that it runs without a gym.
+function pyramidGymKey(){
+  const k=pyramidEveSlot().equipment;
+  return EQUIPMENT_PRESETS[k]?k:'apartment_gym';
 }
+function pyramidEquip(){return EQUIPMENT_PRESETS[pyramidGymKey()].equipment;}
 // Same gates pickEx applies, minus the scheduling ones (frequency, MRV, tags) —
 // those are about what to PROGRAM, and this session isn't programmed. Note the
 // unconditional 'bodyweight' grant, copied from pickEx.
@@ -1735,6 +1742,53 @@ function pyramidDraft(){
 }
 function pyramidDoneToday(){
   return pyramidLogs().find(l=>logDay(l.date)===todayStr())||null;
+}
+// ── WHEN THE LADDER IS PRESCRIBED RATHER THAN MERELY OFFERED (2026-08-03) ──
+// Sam's rule: on a day he ISN'T at the YMCA or a hotel gym and has plenty of
+// time, the app should tell him to run the ladder instead of leaving it as a card
+// he might scroll past.
+//
+// Both gym exclusions earn their place for different reasons, which is why this
+// is a named list and not a "has a barbell" test:
+//   - ymca: the full gym is the ONLY place the heavy 1–5 barbell mandate can
+//     happen. Spending a YMCA evening on bodyweight reps is trading the scarce
+//     resource for the abundant one.
+//   - hotel_gym: no pull-up bar in the preset, so the ×1 rung — the movement that
+//     SETS the peak and anchors the whole ladder — can't be done. A four-rung
+//     ladder is a different, worse workout.
+// Everything else (apartment, Westminster, Mom and Dad's, a field) is fair game.
+const PYRAMID_EXCLUDED_GYMS=['ymca','hotel_gym'];
+// "A lot of time" in the app's own vocabulary. Session lengths are the EX_LIMIT
+// scale — 30/45/60/75/90 — where 60 is the standard evening, so "a lot" is the
+// first rung ABOVE standard. Deriving it from that scale rather than inventing a
+// number means it still means something if the scale ever changes.
+const PYRAMID_PRESCRIBE_MINS=Math.min(...Object.keys(EX_LIMIT).map(Number).filter(m=>m>60));
+// Returns why the ladder is tonight's session, or null. Note this is a
+// PRESENTATION-level prescription: it changes what the dashboard leads with, and
+// deliberately does NOT reach into dayTemplate. The recovery-debt engine books
+// volume from LOGS, so a pyramid that actually gets done is accounted for exactly
+// like any other session the moment it's logged — whereas a generator that
+// planned a session it can't model would be lying to itself. The generated
+// lifting template stays available underneath as the alternative.
+function pyramidPrescription(){
+  if(pyramidDoneToday())return null;
+  const eve=pyramidEveSlot();
+  if(!eve.on)return null;// no evening slot tonight — nowhere to put it
+  const gym=pyramidGymKey();
+  if(PYRAMID_EXCLUDED_GYMS.includes(gym))return null;
+  const mins=getEveningMins();
+  if(!(mins>=PYRAMID_PRESCRIBE_MINS))return null;
+  const plan=pyramidPlan();
+  // A crippled ladder is never PRESCRIBED, only offered. The ×1 pull rung is
+  // what sets the peak, so a bar-less location (the bodyweight/field preset)
+  // resolves to four rungs and falls back to the card being merely available.
+  if(plan.moves.length<PYRAMID_LADDER.length)return null;
+  // The time has to actually cover the work, spine minimums included — otherwise
+  // this "prescribes" a session that won't fit, which is the exact failure the
+  // lunch ledger exists to prevent.
+  const needed=plan.mins+LUNCH_LEDGER.spineMins;
+  if(mins<needed)return null;
+  return{gym,gymName:EQUIPMENT_PRESETS[gym].name,mins,needed,plan};
 }
 // A peak-10 ladder is 100 pull-ups — the Century, arriving in a different shape.
 // The Century card defers to it rather than asking for a second hundred.
@@ -4628,8 +4682,10 @@ function pyramidHTML(dd){
       <div style='font-size:12px;color:var(--mut);margin-top:4px;line-height:1.6'>${mv}</div>
     </div>`;
   }
-  // Collapsed: one line, one button.
-  if(!S.pyramidOpen&&!started){
+  const rx=pyramidPrescription();
+  // Collapsed: one line, one button. Skipped entirely when the ladder is tonight's
+  // prescription — a prescription you have to go find and expand isn't one.
+  if(!S.pyramidOpen&&!started&&!rx){
     return`<div style='margin-top:12px;padding:12px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;text-align:left'>
       <div style='display:flex;align-items:center;gap:8px'>
         <span style='font-size:16px'>🔺</span>
@@ -4665,11 +4721,18 @@ function pyramidHTML(dd){
   const movesLine=plan.moves.map(m=>`${m.reps} ${m.name.toLowerCase()}`).join(' · ');
   const missing=PYRAMID_LADDER.length-plan.moves.length;
   const missingNote=missing>0?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>${missing} rung${missing>1?'s':''} dropped — nothing available today passes the equipment and avoid-list gates.</div>`:'';
-  return`<div style='margin-top:12px;padding:14px;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.28);border-radius:12px;text-align:left'>
+  // Prescribed nights get a brighter border and say WHY, so the reasoning is
+  // visible rather than the card just mysteriously being open.
+  const rxBanner=rx&&!started?`<div style='padding:10px 12px;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.4);border-radius:10px;margin-bottom:10px'>
+      <div style='font-size:13px;font-weight:700;color:#f97316'>⭐ Tonight's session</div>
+      <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>${rx.gymName} tonight with ${rx.mins} min — no barbell needed and plenty of time, which is exactly what this is for. It needs ~${rx.needed} min including the spine work, so it fits. Run this instead of the planned lifting; the planned session is still below if you'd rather.</div>
+    </div>`:'';
+  return`<div style='margin-top:12px;padding:14px;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,${rx?'.55':'.28'});border-radius:12px;text-align:left'>
     <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#f97316;flex:1'>🔺 The Pyramid · peak ${plan.peak}</div>
-      ${!started?`<button class='btn btn-g btn-sm' data-action='pyramid-toggle' style='width:auto'>Close</button>`:''}
+      ${!started&&!rx?`<button class='btn btn-g btn-sm' data-action='pyramid-toggle' style='width:auto'>Close</button>`:''}
     </div>
+    ${rxBanner}
     <div style='font-size:15px;font-weight:700'>${repsDone} / ${plan.totalReps} reps</div>
     <div style='font-size:12px;color:var(--mut);margin-top:2px'>${movesLine}</div>
     <div style='height:8px;background:var(--surf2);border-radius:99px;overflow:hidden;margin:8px 0 10px'>
@@ -5197,11 +5260,18 @@ function renderDash(){
     let eveBlock='';
     if(dd?.eveningSession){
       const eveExs=dd.eveningSession.exercises.slice(0,3).map(exRow).join('');
+      // On a prescribed-Pyramid night, say so HERE — this is the button he'd
+      // otherwise tap, and a prescription further down the card is one he can
+      // scroll past. The lifting session stays fully available underneath.
+      const rxNote=isActualToday&&pyramidPrescription()
+        ?`<div style='margin-top:8px;padding:8px 10px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.35);border-radius:8px;font-size:11px;color:var(--mut);line-height:1.6'>⭐ <strong style='color:#f97316'>The Pyramid is tonight's call</strong> — no barbell here and ${getEveningMins()} min to work with. See the card below; this lifting session is the alternative, not both.</div>`
+        :'';
       eveBlock=`<div style='margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)'>
         <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px'>After Work · ${dd.eveningSession.mins} min</div>
         <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${dd.eveningSession.name}</div>
         <div class='t-exlist'>${eveExs}</div>
-        ${isActualToday?`<button class='btn btn-s' data-action='start-workout' data-session='eve' style='margin-top:8px'>Start Evening Workout →</button>`:''}
+        ${rxNote}
+        ${isActualToday?`<button class='btn ${pyramidPrescription()?'btn-g':'btn-s'}' data-action='start-workout' data-session='eve' style='margin-top:8px'>Start Evening Workout →</button>`:''}
       </div>`;
     }
     return`<div class='today'${isCompleted?" style='border-color:rgba(74,222,128,.4)'":''}>
