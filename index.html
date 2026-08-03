@@ -1393,12 +1393,28 @@ function centuryDows(av){
   // out of 7. Leaving at least one training day century-free is what keeps the
   // rest of the back mandate reachable on small schedules.
   const cap=Math.max(1,Math.min(PULLUP_CENTURY.maxDays,trainingDayCount(av)-1));
-  const out=[];let lastPos=-99;
-  [1,2,3,4,5,6,0].forEach((dow,pos)=>{
-    if(out.length>=cap||!centuryEligibleDow(av,dow)||pos-lastPos<2)return;
-    out.push(dow);lastPos=pos;
-  });
-  return out;
+  const ORDER=[1,2,3,4,5,6,0];
+  const posOf=(dow)=>ORDER.indexOf(dow);
+  // Greedy fill in a given day order, keeping the ≥48h spacing the protocol
+  // needs (positions at least 2 apart in calendar order).
+  const fill=(order,seed)=>{
+    const out=seed?seed.slice():[];
+    order.forEach(dow=>{
+      if(out.length>=cap||!centuryEligibleDow(av,dow))return;
+      if(out.some(d=>Math.abs(posOf(d)-posOf(dow))<2))return;
+      out.push(dow);
+    });
+    return out;
+  };
+  // PREFERENCE (2026-08-03, from Sam): pull-ups are easier on Tue/Thu/Sat than on
+  // Mon/Wed/Fri, and that trio satisfies the ≥48h spacing just as well. Prefer
+  // it — but never at the cost of a session: on a weekday-only week Tue/Thu
+  // leaves no room for a third (Mon and Fri are both adjacent to it), so the
+  // calendar-order walk wins there and still yields Mon/Wed/Fri.
+  const preferred=fill([2,4,6].concat(ORDER));
+  const calendar=fill(ORDER);
+  const out=preferred.length>=calendar.length?preferred:calendar;
+  return out.sort((a,b)=>posOf(a)-posOf(b));
 }
 function centuryLogs(){return (S.logs||[]).filter(l=>l&&l.century);}
 // Progress readout: the target is fixed, so the numbers worth showing are how
@@ -1773,7 +1789,13 @@ function genProgram(cfg,av,workoutHistoryLog){
       const vol=budget.vol[m]||0;
       // under = still below the week's optimal range ("yellow" on the dashboard
       // volume bars). Yellow muscles outrank green ones when picking a day.
-      return{m,hrs,rested:hrs>=(MUSCLE_LOCKOUT_HOURS[m]||48),headroom:max-vol,under:vol<min};
+      // Legs use the split heavy/accent windows (see legsRecovered) — 48h after
+      // an accent day, 72h after heavy 1–5 work. Same predicate getLockedMuscles
+      // uses, so eligibility here and the MRV pin there always agree.
+      const rested=m==='legs'
+        ?legsRecovered(dateStr,history,assignedMuscles,strengthDates)
+        :hrs>=(MUSCLE_LOCKOUT_HOURS[m]||48);
+      return{m,hrs,rested,headroom:max-vol,under:vol<min};
     });
     // Eligible = rested with weekly MRV headroom. Priority: under-range
     // ("yellow") muscles first — get every group to its weekly minimum before
@@ -1827,7 +1849,20 @@ function genProgram(cfg,av,workoutHistoryLog){
     // Pairing bonus applies WITHIN a volume tier — an in-range (green) muscle
     // sharing the anchor's group never jumps ahead of an under-range (yellow) one.
     const rest2=elig.slice(1).map(r=>({r,score:r.hrs+(GROUP[r.m]===ag?PAIR_BONUS:0)})).sort((a,b)=>(b.r.under?1:0)-(a.r.under?1:0)||b.score-a.score).map(o=>o.r);
-    const top=[anchor,...rest2].slice(0,Math.min(3,elig.length));
+    // ── DEPTH OVER BREADTH (2026-08-03) ──
+    // A 60-min evening is EX_LIMIT[60]=4 exercises → muscleSlots=3, which
+    // exactly matched the 3-muscle breadth below. Every chosen muscle therefore
+    // got EXACTLY ONE exercise and no muscle could ever take a second, so any
+    // muscle whose weekly band needs more than ~3 sets per training day was
+    // unreachable by construction — legs topped out near 9 sets against a 14–24
+    // band no matter how overdue they were.
+    // When the ANCHOR is still under its weekly minimum, spend the third slot on
+    // a second exercise for it instead of reaching onto a third muscle: the
+    // muscle that most needs volume gets a compound AND an accessory. Applies to
+    // whichever muscle anchors the day, not just legs. Total slots are unchanged,
+    // so no session gets longer — this trades breadth for depth, nothing else.
+    const breadthCap=(anchor.under&&muscleSlots>=2)?2:3;
+    const top=[anchor,...rest2].slice(0,Math.min(breadthCap,elig.length));
     const slots=[];
     for(let i=0;i<muscleSlots;i++)slots.push({muscle:top[i%top.length].m,type:i<top.length?'compound':'isolation'});
     const domDay=parseInt(dateStr.slice(8,10),10)||0; // day-of-month, drives all emphasis rotations
@@ -1867,6 +1902,17 @@ function genProgram(cfg,av,workoutHistoryLog){
         slots[legSlotIdx[0]].tag=LEG_ACCENTS[domDay%LEG_ACCENTS.length];
         accented=true;
       }
+      // Tagged IMMEDIATELY, unlike the back accent — deferring this one until
+      // after the Foundation stamp was tried and cost more than it bought.
+      // An untagged leg slot is not free: the hybrid-athlete accent block below
+      // converts an untagged isolation slot of a power-capable muscle into a
+      // 'power' accent, and under hip caution most of that pool is banned, so
+      // pickEx often found nothing and the slot was dropped entirely. Measured:
+      // legs fell from 14–15 sets/week back to 9 (out of band again) on the full
+      // schedule. An explicit 'hamstring' tag also bypasses legAutoOK, so the
+      // slot is always fillable. Cost of keeping it here: on a 3-evening week,
+      // where legs get one slot and it is always 'strength', pistol_squat has no
+      // leg slot to be stamped on. That is the documented trade.
       if(legSlotIdx.length>1&&!slots[legSlotIdx[1]].tag)slots[legSlotIdx[1]].tag='hamstring';
     }
     // Upper-back mandate, same rotation shape: vertical pulling trains the
@@ -2152,7 +2198,7 @@ function genProgram(cfg,av,workoutHistoryLog){
     // inside its recovery-lockout window (relative to dateStr) to its current
     // committed volume, so pickEx drops new sets for it this session — same
     // "fewer sets" path as a muscle that's already at its weekly MRV max.
-    const lockedMuscles=getLockedMuscles(dateStr,history,assignedMuscles);
+    const lockedMuscles=getLockedMuscles(dateStr,history,assignedMuscles,strengthDates);
     const lockedLimits={};
     lockedMuscles.forEach(m=>{
       if(budget.limits[m]){lockedLimits[m]=budget.limits[m];budget.limits[m]={min:budget.limits[m].min,max:budget.vol[m]||0};}
@@ -2570,6 +2616,49 @@ function getFatiguedMuscles(){
 // its weekly MRV max.
 const MUSCLE_LOCKOUT_HOURS={chest:48,shoulders:48,back:48,legs:72,biceps:24,triceps:24,core:24};
 
+// ─── SPLIT LEG RECOVERY WINDOW (2026-08-03) ───
+// Legs carry TWO windows, not one. The 72h above is what heavy 1–5 @ 85–95%
+// squat/hinge work genuinely needs; an accent day (eccentric / decel /
+// single-leg / lateral) does not need three days off, and charging it 72h
+// capped legs at ~3 eligible days a week × 1 slot × 3 sets ≈ 9 sets against a
+// 14–24 band — i.e. the band was unreachable by construction, which is why legs
+// read UNDER every single week in the balance audit.
+// So: 48h after an accent day, still 72h after a heavy day.
+const LEG_LIGHT_LOCKOUT=48;
+// Heavy leg work = the 'strength' pool (1–5 @ 85–95%). Weighted pull-ups are
+// deliberately NOT tagged 'strength' (see the note on that EX entry), so this
+// really is just the heavy squat/hinge family.
+function heavyLegIdSet(){
+  return new Set([...EX,...(S.customExercises||[])]
+    .filter(e=>e.muscle==='legs'&&(e.tags||[]).includes('strength')).map(e=>e.id));
+}
+// SINGLE source of truth for "are legs recovered as of dateStr", used by BOTH
+// dayTemplate's eligibility race and getLockedMuscles' MRV pin. They must never
+// disagree: if the template thinks legs are rested but the pin still holds, the
+// session gets a leg slot that pickEx then refuses to add sets to — a silently
+// wasted slot, the same failure mode as a wasted Foundation stamp.
+// heavyDates carries strength sessions PLANNED earlier in this generation run
+// (genProgram's strengthDates); `assigned` days not listed there count as light.
+function legsRecovered(dateStr,history,assigned,heavyDates){
+  const heavy=heavyLegIdSet();
+  let lastAny=null,lastHeavy=null;
+  const bumpAny=(d)=>{if(d<dateStr&&(!lastAny||d>lastAny))lastAny=d;};
+  const bumpHeavy=(d)=>{if(d<dateStr&&(!lastHeavy||d>lastHeavy))lastHeavy=d;};
+  (history||[]).forEach(l=>{
+    if(!l||l.isCardio)return;
+    const d=logDay(l.date);
+    const legEx=(l.exercises||[]).filter(e=>e&&e.muscle==='legs'&&countsForRecoveryLog(e));
+    if(!legEx.length)return;
+    bumpAny(d);
+    if(legEx.some(e=>heavy.has(e.id)))bumpHeavy(d);
+  });
+  Object.entries(assigned||{}).forEach(([d,muscles])=>{if(muscles.has('legs'))bumpAny(d);});
+  (heavyDates||[]).forEach(bumpHeavy);
+  if(lastAny&&hoursBetweenDates(lastAny,dateStr)<LEG_LIGHT_LOCKOUT)return false;
+  if(lastHeavy&&hoursBetweenDates(lastHeavy,dateStr)<(MUSCLE_LOCKOUT_HOURS.legs||72))return false;
+  return true;
+}
+
 // ─── WEIGHTED-ONLY LEGS RULE (2026-07-15) ───
 // Bodyweight/tendon leg work (ATG splits, bottom-half squats, warm-up
 // movements) doesn't demand the 72h recovery window heavy leg training does —
@@ -2602,9 +2691,15 @@ function hoursBetweenDates(fromDateStr,toDateStr){
 // Muscles locked for `dateStr`, scanning `history` (logged sessions on any date
 // strictly before dateStr) plus `assigned` (a {dateStr: Set<muscle>} map of
 // sessions already built earlier in this generation run).
-function getLockedMuscles(dateStr,history,assigned){
+function getLockedMuscles(dateStr,history,assigned,heavyDates){
   const locked=new Set();
   Object.entries(MUSCLE_LOCKOUT_HOURS).forEach(([muscle,hrs])=>{
+    // Legs are decided entirely by legsRecovered (split heavy/accent windows) —
+    // the same predicate dayTemplate races on, so the two can't diverge.
+    if(muscle==='legs'){
+      if(!legsRecovered(dateStr,history,assigned,heavyDates))locked.add('legs');
+      return;
+    }
     const fromHistory=(history||[]).some(l=>{
       if(l.isCardio)return false;
       const d=logDay(l.date);

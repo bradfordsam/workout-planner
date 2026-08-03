@@ -186,6 +186,34 @@ Fixed in that pass:
 - **`centuryDows` leaves ≥1 training day century-free.** On a 3-evening week all
   three days were century days, back hit 15 against an efficiency band of 3–10,
   and the MRV gate then blocked ALL rowing/rear-delt work.
+- **`centuryDows` prefers Tue/Thu/Sat** — pull-ups are easier for Sam on those
+  days (2026-08-03) and the trio satisfies the ≥48h spacing equally. It falls
+  back to the calendar walk whenever the preference would yield FEWER days (a
+  weekday-only week can't fit a third around Tue/Thu, so it still gets
+  Mon/Wed/Fri). Side benefit worth knowing: moving centuries off Mon/Wed/Fri
+  freed back slots there — horizontal 57%→86%, rear_delt 43%→71%.
+
+Second pass (same day) — legs were UNDER band on every schedule, and it was
+arithmetic, not the scheduler misjudging recovery. Core never competed for those
+slots at all (it isn't in `dayTemplate`'s `MUSCLES` list; it holds a reserved
+slot via `muscleSlots = limit-1`). Two real causes, both fixed:
+- **Legs now carry TWO recovery windows** (`legsRecovered`, `LEG_LIGHT_LOCKOUT`):
+  72h after heavy 1–5 @85–95%, but 48h after an accent day, which doesn't need
+  three days. `getLockedMuscles` calls the SAME predicate — if the two disagree
+  the template makes a leg slot that pickEx then refuses to fill.
+- **Depth over breadth**: a 60-min evening is `EX_LIMIT[60]`=4 → `muscleSlots`=3,
+  which exactly matched the 3-muscle breadth, so no muscle could EVER take a
+  second exercise. Any muscle needing >3 sets/day was unreachable by
+  construction. When the anchor is under its weekly minimum it now takes 2 slots
+  instead of reaching onto a third muscle. Applies to whichever muscle anchors.
+  Legs 8–9 → 14–15 sets (0% → 100% in band); hinge and hamstring → 100%.
+  Cost, accepted: chest 12→9 and biceps 9→5 (slightly under band) since total
+  slots are conserved — biceps in particular still get 300 pull-ups/week.
+- Do NOT defer the second leg slot's 'hamstring' tag the way the back accent is
+  deferred. Tried: an untagged leg slot gets captured by the hybrid-athlete
+  power-accent conversion, hip caution bans most of that pool, pickEx finds
+  nothing and the slot is DROPPED — legs fell straight back to 9. An explicit
+  'hamstring' tag also bypasses `legAutoOK`, so the slot always fills.
 
 Known-structural, deliberately NOT "fixed":
 - Lunch-only weeks under-fill nearly every band. That gap is surfaced by the
@@ -197,8 +225,11 @@ Known-structural, deliberately NOT "fixed":
 - `pushups_w` uncovered on all-YMCA weeks and `bear_crawl` on lunch-only weeks —
   both are direct consequences of stated constraints (vest doesn't travel; no
   sweating at lunch). `fundamentalsHTML` explains each in words.
-- Legs sit under band while core sits at the top of its. See the TRIED AND
-  REVERTED block on the core slot before attempting the obvious fix.
+- Core sits at the top of its band because its slot is reserved, not won. See the
+  TRIED AND REVERTED block on the core slot before attempting the obvious fix.
+- On a 3-evening (efficiency-mode) week, `pistol_squat` is uncovered: legs get a
+  single slot there and it is always the 'strength' slot, which the Foundation
+  stamp never overrides. Fixing it costs the leg volume gain above.
 
 ## Training constraints (why the code is shaped this way)
 
