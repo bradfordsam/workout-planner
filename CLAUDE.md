@@ -163,6 +163,43 @@ strip it before other debugging.
   workday. The card's "N habits" line is DERIVED from the array length — a
   hardcoded count went stale the first time the list was edited.
 
+## Balance audit (2026-08-03, 8 sim weeks × 4 schedules)
+
+Harness measures every muscle against its MRV band plus every mandate as "% of
+steady weeks satisfied". Re-run it before touching `dayTemplate` — several of
+these interact.
+
+Fixed in that pass:
+- **Wasted Foundation stamps.** Only ONE movement is stamped per session, so
+  stamping something `pickEx` will then reject burns the whole session's
+  coverage budget. `dayTemplate` now runs `canPlaceFoundation` (equipment,
+  avoid list, hip/knee, plyo, lunch-sweat) — deliberately the same conditions
+  as pickEx's foundation gate. Coverage 0% → 100% of weeks on two schedules.
+- **The `domDay%2` aliasing again, in the LUNCH LEG mandate** — same bug as the
+  back accent, same fix (`floor(domDay/2)%2`). Hamstring 57% → 86%.
+- **Back slot 1 takes the COMPLEMENTARY accent**, not always `rear_delt`; when
+  slot 0 was already rear_delt the week could never reach a row.
+- **Century MRV cost is now FLAT (`CENTURY_MRV_SETS`)**, not `sets × 0.5`. Set
+  count is the PROGRESS metric and falls as he improves, so the old costing
+  made the identical 100 reps progressively cheaper — 12 sets billed 6, later 4
+  sets billed 2.
+- **`centuryDows` leaves ≥1 training day century-free.** On a 3-evening week all
+  three days were century days, back hit 15 against an efficiency band of 3–10,
+  and the MRV gate then blocked ALL rowing/rear-delt work.
+
+Known-structural, deliberately NOT "fixed":
+- Lunch-only weeks under-fill nearly every band. That gap is surfaced by the
+  `weeklySetCapacity` plan-screen warning by design — bands are physiological
+  targets and a yellow dashboard on a light week is honest. Don't shrink bands.
+- Back accents cap around horizontal 57% / rear_delt 43% on full schedules:
+  three claimants (weighted-pull-up guarantee, horizontal, rear_delt) for the
+  ~2 back slots/week recovery debt allocates. Exactly one lands each week.
+- `pushups_w` uncovered on all-YMCA weeks and `bear_crawl` on lunch-only weeks —
+  both are direct consequences of stated constraints (vest doesn't travel; no
+  sweating at lunch). `fundamentalsHTML` explains each in words.
+- Legs sit under band while core sits at the top of its. See the TRIED AND
+  REVERTED block on the core slot before attempting the obvious fix.
+
 ## Training constraints (why the code is shaped this way)
 
 - Left hip has FAI history (`hipCaution`): no HARD-landing/impact plyos, no

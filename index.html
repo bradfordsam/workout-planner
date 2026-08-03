@@ -1348,6 +1348,10 @@ function foundationCoveredThisWeek(){
 // lifting slots. Its `exercises` array is still populated, so it DOES count
 // toward weekly MRV volume (which is what protects recovery here).
 const PULLUP_CENTURY={target:100,maxDays:3,restCap:180};
+// What one century costs against weekly back MRV. Flat, because the WORK is
+// flat — see the note in getWeeklySetVolumes on why costing it by set count
+// made the same 100 reps progressively cheaper as the set count came down.
+const CENTURY_MRV_SETS=3;
 // Century days come from AVAILABILITY, never from the generated program:
 // dayTemplate consults this during generation, so reading S.program here would
 // be circular (the same trap documented on getMRVLimits). Walks the week in
@@ -1381,9 +1385,17 @@ function centuryMins(){
 }
 function centuryDows(av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
+  // NEVER let every training day be a century day. The protocol is "2–3× a
+  // week", and on a thin schedule the flat cap of 3 turned into "every session
+  // starts with 100 pull-ups": on a 3-evening week that put back at 15 sets
+  // against an efficiency-mode band of 3–10, and the MRV gate then blocked ALL
+  // rowing and rear-delt work — horizontal and rear_delt both landed 0 weeks
+  // out of 7. Leaving at least one training day century-free is what keeps the
+  // rest of the back mandate reachable on small schedules.
+  const cap=Math.max(1,Math.min(PULLUP_CENTURY.maxDays,trainingDayCount(av)-1));
   const out=[];let lastPos=-99;
   [1,2,3,4,5,6,0].forEach((dow,pos)=>{
-    if(out.length>=PULLUP_CENTURY.maxDays||!centuryEligibleDow(av,dow)||pos-lastPos<2)return;
+    if(out.length>=cap||!centuryEligibleDow(av,dow)||pos-lastPos<2)return;
     out.push(dow);lastPos=pos;
   });
   return out;
@@ -1743,7 +1755,7 @@ function genProgram(cfg,av,workoutHistoryLog){
   // assembled into that day's session. No fixed split — a group recurs as soon
   // as it's rested, and the day is named for whatever it actually trains.
   // Returns {name,desc,slots,tk} or null when nothing is recovered → rest day.
-  function dayTemplate(dateStr,limit,isLunch){
+  function dayTemplate(dateStr,limit,isLunch,equip){
     const MUSCLES=['legs','back','chest','shoulders','biceps','triceps'];
     // Most recent training date per muscle (logs + sessions already assigned
     // earlier this run), on or before dateStr.
@@ -1840,7 +1852,11 @@ function genProgram(cfg,av,workoutHistoryLog){
     const legSlotIdx=slots.map((s,i)=>s.muscle==='legs'?i:-1).filter(i=>i>=0);
     if(legSlotIdx.length){
       if(isLunch){
-        if(domDay%2){slots[legSlotIdx[0]].type='isolation';slots[legSlotIdx[0]].tag='hamstring';}
+        // floor(domDay/2), NOT domDay — the same aliasing that broke the back
+        // accent applies here verbatim: legs also come around every ~2 days, so
+        // raw day-of-month parity made every lunch leg slot in a week take the
+        // SAME tag. Measured hamstring coverage was 29–57% of weeks before this.
+        if(Math.floor(domDay/2)%2){slots[legSlotIdx[0]].type='isolation';slots[legSlotIdx[0]].tag='hamstring';}
         else slots[legSlotIdx[0]].tag='hinge';
       }else if(!strengthBefore(dateStr)){
         slots[legSlotIdx[0]].tag='strength';
@@ -1945,6 +1961,44 @@ function genProgram(cfg,av,workoutHistoryLog){
     // is spent, skip the slot — buildSession's backfill hands the freed exercise
     // to whichever muscle is furthest under its range, where the sets are
     // actually needed.
+    // A Foundation stamp this session CANNOT place is a wasted stamp: only one
+    // movement is stamped per session (the loop breaks below), so stamping
+    // something pickEx will reject burns the session's whole coverage budget and
+    // the next movement in the list never gets a turn. This bit the two most
+    // constrained movements hardest — measured 2026-08-03 over 8 simulated
+    // weeks, pushups_w (needs 'own_gear', absent at the YMCA) and bear_crawl
+    // (highSweat, illegal at lunch) were stamped onto matching muscle slots,
+    // rejected downstream, and BOTH ended up covered 0 weeks out of 7 on three
+    // of four schedules — while the stamp that could have covered them was
+    // already spent. These are exactly pickEx's foundation-gate conditions, kept
+    // in sync deliberately: dayTemplate must not offer what pickEx will refuse.
+    const eqSet=new Set([...(equip||[]),'bodyweight']);
+    const canPlaceFoundation=(id)=>{
+      const def=EX.find(e=>e.id===id);
+      if(!def)return false;
+      return (def.eq||[]).some(q=>eqSet.has(q))
+        &&!(S.cfg.hipCaution&&def.hipRisk)&&!plyoHidden(def)&&!userAvoids(def)
+        &&!kneeCautionBlocks(def)&&dragonFlagUnlocked(def.id)
+        &&!(isLunch&&def.highSweat);
+    };
+    // TRIED AND REVERTED (2026-08-03) — do not re-attempt without reading this.
+    // Core runs to the top of its band on a full schedule (16–17 sets of 8–18)
+    // in every session while legs sit under their minimum (8–9 of 14–24), so
+    // yielding this slot once core clears its weekly MINIMUM looks like free
+    // rebalancing. It is not. The forced core slot is load-bearing for three
+    // separate things at once, and yielding it broke all three:
+    //   1) bear_crawl is muscle:'core' — this is the ONLY slot it can be
+    //      stamped on, so its weekly coverage went straight to 0.
+    //   2) Adding a "keep it when a core Foundation movement is pending"
+    //      carve-out fixed that and then dropped HAMSTRING coverage from 86% to
+    //      0% on two schedules, because the freed slots re-shuffled the leg
+    //      mandates.
+    //   3) Work displaced out of the slot arrives via buildSession's backfill,
+    //      which carries no foundation stamp — so weighted_pullups stopped
+    //      being covered at all on the lunch-only schedule.
+    // Net: one rebalanced band in exchange for three broken guarantees. The
+    // core/legs imbalance is real, but the fix belongs in the recovery-debt
+    // muscle SELECTION (which hands legs ~3 slots a week), not here.
     if((budget.vol.core||0)+(budget.perExercise||3)<=(budget.limits.core?.max??18)){
       slots.push({muscle:'core',type:coreEmph.type,tag:coreEmph.tag,powerPreferred:!isLunch&&!accented});
     }
@@ -1979,6 +2033,7 @@ function genProgram(cfg,av,workoutHistoryLog){
     const HARD_MANDATE_TAGS=lateWeek?new Set(['strength']):new Set(['strength','hinge','hamstring']);
     for(const f of FOUNDATION_SLOTTED){
       if(foundationDone.has(f.id))continue;
+      if(!canPlaceFoundation(f.id))continue;
       // Prefer to keep pull-up work off Century days so the week doesn't stack
       // heavy weighted singles and 100 submaximal reps onto one day — but not
       // at the cost of never doing them at all.
@@ -1987,30 +2042,33 @@ function genProgram(cfg,av,workoutHistoryLog){
       if(!cands.length)continue;
       // Preference order: an UNTAGGED slot first (costs no mandate at all), then
       // a slot whose tag the movement ALREADY satisfies (weighted pull-ups on a
-      // 'vertical' slot covers both at once), and only then any remaining
-      // candidate — which does cost that slot's accent.
-      (cands.find(s=>!s.tag)
+      // 'vertical' slot covers both at once).
+      // Anything else and the accent yields — a session is always exactly at its
+      // exercise limit (muscleSlots is limit−1 and the core slot takes the last
+      // one), so there is no spare capacity to add a slot instead of evicting
+      // one. Verified: an "add a slot when under the limit" branch here never
+      // fired in 8 simulated weeks across 4 schedules.
+      const target=cands.find(s=>!s.tag)
         ||cands.find(s=>(EX.find(e=>e.id===f.id)?.tags||[]).includes(s.tag))
-        ||cands[0]).foundationId=f.id;
+        ||cands[0];
+      target.foundationId=f.id;
       break; // one stamp per session; coverage is marked in buildSession
     }
-    // ── Second back slot's 'rear_delt' bonus (deferred from the back-mandate
-    // block above) ──
-    // This tag is explicitly a BONUS for a back-heavy day that repeats the
-    // muscle, and it is the lowest-priority thing competing for the slot. Applied
-    // eagerly up there it was silently the most expensive line in the template:
-    // on odd days it left NO untagged back slot, so the Foundation stamp fell
-    // through to cands[0] — the 'horizontal' slot — and weighted pull-ups (a
-    // VERTICAL pull) ate the row mandate. Measured over 6 simulated weeks it took
-    // 11/15 horizontal slots on a lunch-only schedule and 27/39 on lunch+evening,
-    // so a row actually landed in only 1–2 weeks out of 5 while the session
-    // quietly ran two vertical pulls and no row.
-    // Applying it here instead yields the slot to coverage when the stamp needs
-    // it and keeps the bonus every other time. Rear delts lose nothing over the
-    // week: they are slot 0's own accent on even days.
-    if(backSlotIdx.length>1&&slots[backSlotIdx[0]].tag!=='rear_delt'
-       &&!slots[backSlotIdx[1]].tag&&!slots[backSlotIdx[1]].foundationId){
-      slots[backSlotIdx[1]].tag='rear_delt';
+    // ── Second back slot takes the COMPLEMENTARY accent (deferred from the
+    // back-mandate block above) ──
+    // Deferred to here, after the Foundation stamp, because applying it eagerly
+    // left no untagged back slot on half the days: the stamp then fell through
+    // to cands[0] — the accent slot — and weighted pull-ups (a VERTICAL pull)
+    // ate the row mandate outright.
+    // Complementary, not always 'rear_delt': slot 0 carries whichever of
+    // horizontal/rear_delt the rotation picked, so slot 1 should carry THE
+    // OTHER. Hardcoding rear_delt here meant a week whose back slot 0 was
+    // already rear_delt could never reach a row at all, which is half the weeks.
+    // Only fills a slot that is still free — coverage outranks the accent.
+    if(backSlotIdx.length>1&&!slots[backSlotIdx[1]].tag&&!slots[backSlotIdx[1]].foundationId){
+      const other=slots[backSlotIdx[0]].tag==='rear_delt'?'horizontal':'rear_delt';
+      slots[backSlotIdx[1]].tag=other;
+      if(other==='rear_delt')slots[backSlotIdx[1]].type='isolation';
     }
     const names=top.map(t=>MNAME[t.m]||t.m);
     // The foundation stamp is part of the template KEY: without it, a day whose
@@ -2064,7 +2122,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       limit=Math.max(1,Math.min(limit,Math.floor(((slot.mins||40)-centuryMins())/10)));
     }
     // Plan this day on demand from recovery debt (most-overdue rested muscles).
-    const tmpl=dayTemplate(dateStr,limit,slot.isLunch);
+    const tmpl=dayTemplate(dateStr,limit,slot.isLunch,equip);
     if(!tmpl)return null; // nothing adequately rested → this day stays a rest day
     if(oldData===undefined)oldData=oldWeek?.[slot.dow];
     // Preserve existing exercises if already completed this week, OR the same
@@ -2376,17 +2434,24 @@ function getWeeklySetVolumes(){
   const volumes = {};
 
   weekLogs.forEach(log => {
-    // Pull-up Century sets count at HALF weight (see PULLUP_CENTURY): the
-    // protocol is deliberately submaximal — every set ends 2+ reps short of
-    // failure — and both stimulus and fatigue scale with proximity to failure,
-    // so 10 easy sets don't cost what 10 hard sets cost. Counting 100 reps at
-    // face value would consume the entire week's back MRV and crowd out the
-    // mandated row / rear-delt work, which is the opposite of the intent.
-    const w = log.century ? 0.5 : 1;
+    if(log.century){
+      // A century costs a FLAT CENTURY_MRV_SETS, not a discount on its set
+      // count (see PULLUP_CENTURY). Set-count-based costing was backwards: the
+      // target is fixed at 100 reps and the SET COUNT is the progress metric, so
+      // it falls as he gets stronger — a 12-set century billed 6 sets and the
+      // very same 100 reps later billed 2. Identical work, one third the cost,
+      // purely because he improved. Charging the fixed work a fixed price is
+      // both correct and stable: 100 deliberately submaximal reps (every set
+      // 2+ short of failure) ≈ one hard back exercise's recoverable volume.
+      (log.exercises||[]).forEach(ex=>{
+        volumes[ex.muscle]=(volumes[ex.muscle]||0)+CENTURY_MRV_SETS;
+      });
+      return;
+    }
     log.exercises?.forEach(ex => {
       const muscle = ex.muscle;
       const completedSets = ex.sets?.filter(s => s && s.reps > 0).length || 0;
-      volumes[muscle] = (volumes[muscle] || 0) + completedSets * w;
+      volumes[muscle] = (volumes[muscle] || 0) + completedSets;
     });
   });
   // Discounted century sets can land on a half — keep the reported volumes whole.
@@ -2429,8 +2494,14 @@ function trainingDayCount(av){
 function weeklySetCapacity(av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
   let sets=0;
+  // A century lunch is a SHORTER lunch: buildSession cuts it to ~2 exercises
+  // because the century eats ~20 min of the 40 (see centuryMins). Counting all
+  // lunches at the full 7 would overstate capacity on exactly the weeks that
+  // have least of it, and this figure drives the plan-screen shortfall warning.
+  const cDows=new Set(centuryDows(av));
+  const lunchSets=(dow)=>cDows.has(dow)?5:7; // 3+2 vs 3+2+2
   [1,2,3,4,5].forEach(dow=>{const d=av[dow]||{};
-    if(d.lunch!==false)sets+=7;
+    if(d.lunch!==false)sets+=lunchSets(dow);
     if(d.eve?.on)sets+=3*(EX_LIMIT[d.eve.mins||60]||5);
   });
   [6,0].forEach(dow=>{const d=av[dow]||{};
@@ -2742,9 +2813,9 @@ function getMRVBreakdown(){
     if(!l.isCardio)completedDows.add(dow);
     (l.exercises||[]).forEach(ex=>{
       const raw=ex.sets?.filter(s=>s&&s.reps>0).length||0;
-      // Same half-weight century discount the widget totals use, so the
-      // breakdown always reconciles with getWeeklySetVolumes.
-      const sets=l.century?Math.round(raw*0.5):raw;
+      // Same FLAT century cost getWeeklySetVolumes charges, so the breakdown
+      // always reconciles with the widget totals.
+      const sets=l.century?CENTURY_MRV_SETS:raw;
       add(ex.muscle,{dow,dayLabel:DOW[dow],name:ex.name,sets,source:l.isCustom?'custom':'logged',sessionName:l.dayName});
     });
   });
