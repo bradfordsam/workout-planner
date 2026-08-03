@@ -264,6 +264,32 @@ const EX = [
   {id:'weighted_pullups',name:'Weighted Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:3,rMax:6,rest:180,startW:10,cue:'Vest, or a plate/dumbbell hung from a dip belt. Dead hang, drive the elbows down toward the hips, chin fully clears the bar, 3-count descent — added weight never buys a shorter rep. Start at 10 lb and only add when every set hits the top of the range clean. This is the STRENGTH expression of the pull-up; the Century (100 submaximal reps) is the VOLUME expression. They progress together and neither replaces the other.',tags:['vertical','foundation']},
   {id:'lat_pulldown',name:'Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Slight lean back. Pull to upper chest, feel lat stretch fully at the top. Don\'t let elbows drift forward.',tags:['vertical']},
   {id:'bumstead_pulldown',name:'Bumstead Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:8,rMax:12,rest:150,isoHoldSecs:5,cue:'Wide overhand grip. Pull the bar down to the upper chest, but stop and HOLD at the mid-position (elbows roughly level with your ribs) for a full 5 seconds — squeeze the shoulder blades down and together to lock in the lat contraction before finishing the rep. The mid-position pause is the whole point: it kills momentum and forces the lats, not the arms, to do the work. Use the 5s hold timer below at that point each rep.',tags:['vertical']},
+  // ── Horizontal-pull family. ORDER IS LOAD-BEARING HERE. ──
+  // pickEx's leastUsed() breaks frequency ties by EX array order, and the
+  // rolling 7-day frequency window decays to zero between horizontal slots
+  // (simulation: only 1–2 land per week, and the Foundation stamp takes most
+  // of them for weighted_pullups). So this slot is effectively winner-take-all
+  // — whichever horizontal row is listed FIRST is the one that gets programmed,
+  // and anything below it only appears in a week that hosts two of them.
+  // Adding a row anywhere but the top of this block is adding dead code; that
+  // is exactly what the first attempt at inverted_row did (0 picks in 6
+  // simulated weeks on BOTH availability profiles).
+  //
+  // Inverted row leads deliberately:
+  //  - It is the only BODYWEIGHT horizontal pull in the pool. Every other
+  //    option needs a loaded implement, so hotel/parents'/apartment sessions
+  //    previously had at most one way to satisfy the horizontal mandate.
+  //  - Lowest lumbar load of the rows: the torso is held in a rigid full-body
+  //    plank instead of a loaded hip hinge, which matters given the lower-back
+  //    constraint that already bans every standing overhead press.
+  //  - It scales by BAR ANGLE, not load — self-scaling in the same way the
+  //    Century's fixed 100-rep target is, so the prescription never needs
+  //    rewriting as strength changes (see PULLUP_CENTURY).
+  // bb_row is NOT displaced, only demoted: it takes the second horizontal slot
+  // in any week that has one, so loaded rowing still happens.
+  // eq deliberately omits plain 'bodyweight' — this needs a waist-height bar or
+  // rings, which the grassy-field preset doesn't have.
+  {id:'inverted_row',name:'Inverted Row',muscle:'back',type:'compound',eq:['barbell','cables','machine','pullup_bar'],rMin:8,rMax:10,rest:120,noWeight:true,cue:'Bar in a rack at roughly waist height (or rings/straps). Hang underneath, hands just outside shoulder width, body in ONE straight line from heels to head. Squeeze the glutes hard to drive the pelvis neutral and keep the abs braced the whole set — the plank IS the exercise, and letting it go is the main thing that kills this movement. Squeeze the shoulder blades down and together first to set the shoulders back, then pull, imagining you\'re pulling the BAR DOWN to your chest rather than hauling yourself up. Go as high as you can and stop there — do NOT arch the back to cheat the chest into the bar. No rushing: control both directions. 3 sets of 8–10 with clean form. Scale by angle, not weight: regress by raising the bar toward vertical or bending the knees to shorten the lever; progress by lowering the bar, then feet on a bench, then feet elevated + vest, then one arm.',tags:['horizontal']},
   {id:'bb_row',name:'Barbell Row',muscle:'back',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Hip hinge, chest up. Bar to lower sternum. Drive elbows back and up. Control the negative — don\'t drop the bar.',tags:['horizontal']},
   {id:'db_row',name:'Dumbbell Row',muscle:'back',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Brace hand on bench. Drive elbow to hip — not to the ceiling. Full stretch at bottom, full row.',tags:['horizontal']},
   {id:'cable_row',name:'Seated Cable Row',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Sit tall, slight forward lean to stretch. Drive elbows back past your sides. No momentum.',tags:['horizontal']},
@@ -507,6 +533,7 @@ const FEELS={
   bb_row:'Mid-back and lats contracting as the elbows drive back — the back pulls the bar, the arms never curl it.',
   db_row:'One lat stretching long at the bottom, then an elbow-to-hip drag — back, not bicep.',
   cable_row:'Shoulder blades squeezing together at the finish — mid-back thickness, torso dead still.',
+  inverted_row:'Mid-back and lats pulling you to the bar while the glutes and abs hold you rigid — if the hips sag, the set is over.',
   straight_pull:'A pure lat sweep down the sides — feel it from armpit to waist with locked arms.',
   face_pulls:'Rear delts and the muscles between the shoulder blades — traps stay calm.',
   rev_fly:'Rear delts (back of the shoulder) lifting — the moment the traps take over, drop the weight.',
