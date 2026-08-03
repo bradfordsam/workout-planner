@@ -1173,6 +1173,11 @@ let S={
   // PULLUP_CENTURY. Cloud-synced, but NOT via SINGLETON_FIELDS — it has its own
   // merge (mergeCentury), because last-writer-wins would eat sets.
   century:null,
+  // Today's in-progress Pyramid ladder, {date,rung,...} — see PYRAMID_LADDER.
+  // Synced by the same stamped-draft merge as `century`.
+  pyramid:null,
+  // Card expansion only — deliberately NOT persisted or synced, like viewDay.
+  pyramidOpen:false,
 };
 let timerIv=null;
 
@@ -1212,7 +1217,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1220,7 +1225,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -1560,6 +1565,182 @@ function centurySetPlan(){
   // ~3s/rep at the cued 3-count descent, plus the rest between (not after) sets.
   const mins=Math.round((sets*setSize*3+(sets-1)*CENTURY_REST_SECS)/60);
   return{setSize,sets,restSecs:CENTURY_REST_SECS,mins};
+}
+
+// ─────────────────────────────────────────────
+// THE PYRAMID LADDER
+// ─────────────────────────────────────────────
+// Tom Holland's Spider-Man conditioning session, taken as LOGIC rather than
+// copied as a fixed prescription (Sam, 2026-08-03: "I don't have to do this
+// exact workout every Monday, it just clearly works"). The structure: climb the
+// rungs 1,2,3…peak, then back down peak-1…1, with each movement carrying a
+// multiplier — rung r means r × mult reps of that movement.
+//
+// The arithmetic is what makes it worth having as a feature instead of a note.
+// Summing up and back down gives sum(1..peak) + sum(1..peak-1) = peak² reps per
+// unit of multiplier. So the whole session is (Σ mult) × peak² — at peak 10 with
+// multipliers 1/2/3/4/5 that is exactly the 100/200/300/400/500 = 1,500 reps of
+// the original. ONE number sets the entire dose, which is what lets this obey
+// the self-scaling rule in CLAUDE.md: the prescription never gets rewritten, the
+// peak moves. Drop to peak 7 and it's 735 reps in the identical shape.
+//
+// OFFERED, NEVER SCHEDULED. dayTemplate knows nothing about this — a generated
+// session that could be silently swapped out would make the recovery-debt
+// engine's bookkeeping a lie, and "every Monday" is exactly what Sam said he
+// didn't want. It's a manual card, the same shape as the Century, which is the
+// precedent already working here.
+//
+// NOT A LUNCH SESSION: ~1,500 reps is high-sweat and runs ~50 min, so it fails
+// both lunch constraints outright. The card says so on a lunch-only day rather
+// than silently hiding.
+const PYRAMID_MAX_PEAK=10;// the original prescription, and where it stops fitting an hour
+const PYRAMID_MIN_PEAK=5; // below this it isn't a session
+// The top rung is one unbroken set of `peak` pull-ups. Keeping it 2 reps clear
+// of failure is the SAME rule the Century runs on (every set 2+ short), and it
+// is what lets this repeat for months instead of being a one-off hero workout.
+const PYRAMID_PEAK_HEADROOM=2;
+// Movement pool. Deliberately its own list rather than entries in EX, for two
+// reasons: EX ORDER IS LOAD-BEARING (see CLAUDE.md — adding a plain push-up to
+// the chest compound block would displace floor_press, which must LEAD there for
+// the left shoulder), and the generator must not be able to program these as
+// ordinary slots. Entries carry `type` so exFull() passes them straight through
+// and SECONDARY_CREDIT_RULES still fires — 100 pull-ups' worth of biceps credit
+// is exactly the case that table exists for. rMin/rMax are real working ranges;
+// pyramidMrvSets reads them to price the session.
+//
+// `options` is a preference list resolved against today's equipment and the
+// personal gates, first match wins — so this degrades on a bar-less day instead
+// of prescribing something that can't be done.
+const PYRAMID_LADDER=[
+  {mult:1,pattern:'pull',options:[
+    {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,
+     cue:'Dead hang, drive the elbows to the hips, chin clears the bar. Switch grips freely as the rungs climb — overhand, neutral and chin-ups all count. Bands or feet on a box are legitimate regressions on the top rungs; a broken set of the right number beats a missed rung.'},
+    {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,
+     cue:'Supinated grip, full dead hang, elbows down and back.'},
+  ]},
+  {mult:2,pattern:'dip',options:[
+    {id:'tricep_dips',name:'Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,
+     cue:'PARALLEL BARS ONLY — never the bench-edge version, which pins the hands behind the body and loads the left shoulder exactly where it objects. SHOULDER STOP: elbows to about 90° and no further, tucked close, then press to lockout. At 200 reps the depth cap is the whole safety margin, and it is the first thing fatigue takes away — if you cannot hold the stop, end the rung.'},
+  ]},
+  {mult:3,pattern:'push',options:[
+    {id:'bw_pushups',name:'Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:12,rMax:25,
+     cue:'Hands under the shoulders, body in one line, full lockout at the top. SHOULDER STOP: chest to about fist height off the floor rather than flat to the deck — the hands are fixed here, so the bottom position is the one the left shoulder objects to under load. Drop to the knees to keep the reps rather than grinding out slop.'},
+  ]},
+  {mult:4,pattern:'core',options:[
+    {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,
+     cue:'Curl up leading with the chest, exhale at the top, lower under control — never yank on the neck. NOTE: at the top peak this rung is 400 reps of loaded spinal flexion, which is the one part of this session your lower back has a stated history with. If it talks back, swap this rung to crunches (shorter range) or dead bugs on the avoid list and the ladder re-resolves around it.'},
+  ]},
+  {mult:5,pattern:'squat',options:[
+    {id:'bw_squat',name:'Bodyweight Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,
+     cue:'Feet shoulder-width, sit back and down to full depth, knees tracking the toes, stand all the way up. Unloaded and low-impact, so this stays outside the hip caution — but keep the depth honest rather than turning the last rungs into quarter squats.'},
+  ]},
+];
+// Equipment on hand for today's EVENING, which is the only slot this fits.
+// Mirrors pickEveningExercises' resolution; falls back to the apartment gym
+// (his home base, and it has a bar) rather than the YMCA, since the whole appeal
+// of this session is that it runs without a gym.
+function pyramidEquip(){
+  const av=(S.weekPlan?.availability||{})[todayDow()]||{};
+  const preset=EQUIPMENT_PRESETS[av.eve?.equipment]||EQUIPMENT_PRESETS.apartment_gym;
+  return preset.equipment;
+}
+// Same gates pickEx applies, minus the scheduling ones (frequency, MRV, tags) —
+// those are about what to PROGRAM, and this session isn't programmed. Note the
+// unconditional 'bodyweight' grant, copied from pickEx.
+function pyramidExOK(ex,equip){
+  if(userAvoids(ex))return false;
+  if(ex.hipRisk&&S.cfg.hipCaution)return false;
+  if(ex.shoulderRisk&&S.cfg.shoulderCaution)return false;
+  const have=new Set([...(equip||[]),'bodyweight']);
+  return (ex.eq||['bodyweight']).some(e=>have.has(e));
+}
+// The single self-scaling knob. Derived from the Century's measured best
+// unbroken set, because the ×1 rung IS pull-ups and the peak rung is one
+// unbroken set of that size — so his hardest single set is precisely the
+// constraint. No Century history yet: open at 6 (540 reps), which is a real
+// session and nowhere near the 1,500-rep version.
+function pyramidPeak(){
+  const best=centuryStats().best;
+  if(!best)return 6;
+  return Math.max(PYRAMID_MIN_PEAK,Math.min(PYRAMID_MAX_PEAK,best-PYRAMID_PEAK_HEADROOM));
+}
+function pyramidRungSizes(peak){
+  const out=[];
+  for(let i=1;i<=peak;i++)out.push(i);
+  for(let i=peak-1;i>=1;i--)out.push(i);
+  return out;
+}
+// ~1.5 s/rep at the brisk cadence these movements actually run at (they're
+// deliberately submaximal), plus rest between rungs but not after the last.
+// Only ever a DEFAULT: pyramidMins() prefers measured sessions the moment there
+// are any, the same way centuryMins() does.
+const PYRAMID_SECS_PER_REP=1.5;
+const PYRAMID_REST_SECS=45;
+function pyramidLogs(){return (S.logs||[]).filter(l=>l&&l.pyramid);}
+function pyramidPlan(){
+  const peak=pyramidPeak();
+  const equip=pyramidEquip();
+  const sizes=pyramidRungSizes(peak);
+  const moves=PYRAMID_LADDER.map(rung=>{
+    const ex=(rung.options||[]).find(o=>pyramidExOK(o,equip));
+    return ex?{...ex,mult:rung.mult,pattern:rung.pattern,reps:rung.mult*peak*peak}:null;
+  }).filter(Boolean);
+  const totalReps=moves.reduce((a,m)=>a+m.reps,0);
+  const est=Math.round((totalReps*PYRAMID_SECS_PER_REP+Math.max(0,sizes.length-1)*PYRAMID_REST_SECS)/60);
+  // Median of the last 5 COMPLETED sessions once they exist — same rule as
+  // centuryMins, including why partials are excluded rather than averaged in
+  // (a session stopped at rung 4 says nothing about how long the whole thing
+  // takes, and taking it at face value would report the hardest workout in the
+  // program as the shortest).
+  const done=pyramidLogs().filter(l=>l.timedMins>0&&l.pyramidComplete).slice(-5)
+    .map(l=>l.timedMins).sort((a,b)=>a-b);
+  const mins=done.length?done[Math.floor(done.length/2)]:est;
+  return{peak,sizes,moves,totalReps,mins,measured:!!done.length};
+}
+// Reps of each movement completed after `rungsDone` rungs of `sizes`.
+function pyramidRepsAfter(sizes,rungsDone,mult){
+  return sizes.slice(0,Math.max(0,rungsDone)).reduce((a,n)=>a+n,0)*mult;
+}
+// What a pyramid costs against weekly MRV. The set count is meaningless here
+// (19 rungs × 5 movements = 95 "sets" of 1–10 reps), so this prices REPS, and it
+// prices them off the one anchor already in the file rather than a new invented
+// constant: a Century is 100 pull-up reps for CENTURY_MRV_SETS, i.e. ~33 reps
+// per recoverable set for a movement whose working range centres on 6. Scale
+// that rate by how many reps a working set of the movement in question actually
+// holds, and every rung is priced in the same currency.
+//
+// Sanity check that falls out of it, and the reason to trust the model: the ×1
+// pull-up rung at peak 10 is 100 reps and prices at exactly CENTURY_MRV_SETS —
+// the same 100 pull-ups cost the same whether they arrive as a Century or as a
+// ladder. At peak 10 the whole session books roughly back 3 / triceps 3 /
+// chest 3 / core 4.5 / legs 3, plus secondary credit, which is a real dent in
+// the week rather than the fiction 95 sets would have been.
+function pyramidMrvSets(ex,reps){
+  if(!reps)return 0;
+  const anchor=EX.find(x=>x.id==='pullups');
+  const anchorMid=anchor?(anchor.rMin+anchor.rMax)/2:6;
+  const mid=((ex.rMin||8)+(ex.rMax||12))/2;
+  const repsPerSet=(PULLUP_CENTURY.target/CENTURY_MRV_SETS)*(mid/anchorMid);
+  return Math.round(reps/repsPerSet*10)/10;
+}
+function pyramidRepsOf(ex){
+  return (ex.sets||[]).reduce((a,s)=>a+(s&&s.reps>0?s.reps:0),0);
+}
+// Today's in-progress ladder, {date,rung,startedAt,touchedAt}. `rung` counts
+// COMPLETED rungs, so the tracker is one number — matching how the session is
+// actually run (a rung is one round of every movement, done straight through).
+function pyramidDraft(){
+  if(!S.pyramid||S.pyramid.date!==todayStr())return{date:todayStr(),rung:0,startedAt:null,touchedAt:null};
+  return S.pyramid;
+}
+function pyramidDoneToday(){
+  return pyramidLogs().find(l=>logDay(l.date)===todayStr())||null;
+}
+// A peak-10 ladder is 100 pull-ups — the Century, arriving in a different shape.
+// The Century card defers to it rather than asking for a second hundred.
+function pyramidCoversCentury(log){
+  const pull=(log?.exercises||[]).find(e=>e&&e.muscle==='back');
+  return !!pull&&pyramidRepsOf(pull)>=PULLUP_CENTURY.target;
 }
 
 // ─────────────────────────────────────────────
@@ -2792,6 +2973,18 @@ function getWeeklySetVolumes(){
       });
       return;
     }
+    if(log.pyramid){
+      // Same problem the century had, one order of magnitude worse: a peak-10
+      // ladder is 19 rungs × 5 movements, so a set count would bill 95 sets of
+      // 1–10 reps. Priced by REPS off the century anchor instead — see
+      // pyramidMrvSets, and note the ×1 pull-up rung reconciles exactly with
+      // what the same 100 reps cost as a Century.
+      (log.exercises||[]).forEach(ex=>{
+        const full=exFull(ex);
+        creditVolume(volumes,full,pyramidMrvSets(full,pyramidRepsOf(ex)));
+      });
+      return;
+    }
     log.exercises?.forEach(ex => {
       const completedSets = ex.sets?.filter(s => s && s.reps > 0).length || 0;
       creditVolume(volumes, exFull(ex), completedSets);
@@ -3222,9 +3415,12 @@ function getMRVBreakdown(){
     if(!l.isCardio)completedDows.add(dow);
     (l.exercises||[]).forEach(ex=>{
       const raw=ex.sets?.filter(s=>s&&s.reps>0).length||0;
-      // Same FLAT century cost getWeeklySetVolumes charges, so the breakdown
-      // always reconciles with the widget totals.
-      const sets=l.century?CENTURY_MRV_SETS:raw;
+      // Same FLAT century cost — and the same rep-priced pyramid cost — that
+      // getWeeklySetVolumes charges, so the breakdown always reconciles with the
+      // widget totals.
+      const sets=l.century?CENTURY_MRV_SETS
+        :l.pyramid?pyramidMrvSets(exFull(ex),pyramidRepsOf(ex))
+        :raw;
       addWithSecondary(ex,sets,{dow,dayLabel:DOW[dow],source:l.isCustom?'custom':'logged',sessionName:l.dayName});
     });
   });
@@ -4341,6 +4537,19 @@ function centuryHTML(){
   const isCenturyDay=centuryDows().includes(todayDow());
   const draft=centuryDraft();
   const doneToday=centuryLogs().find(l=>logDay(l.date)===todayStr());
+  // A full Pyramid is 100 pull-ups arriving in a different shape (see
+  // pyramidCoversCentury). Asking for a second hundred on the same day would be
+  // the app failing to notice work it just logged itself — so defer, unless a
+  // century was somehow already started or finished today anyway.
+  const pyr=pyramidDoneToday();
+  if(pyr&&pyramidCoversCentury(pyr)&&!draft.sets.length&&!doneToday){
+    const pullReps=pyramidRepsOf((pyr.exercises||[]).find(e=>e&&e.muscle==='back')||{});
+    return`<div style='margin-top:12px;padding:14px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.25);border-radius:12px;text-align:left'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ok);margin-bottom:4px'>🎯 Pull-up Century · Covered</div>
+      <div style='font-size:14px;font-weight:700'>✅ ${pullReps} pull-ups came from today's Pyramid</div>
+      <div style='font-size:12px;color:var(--mut);margin-top:4px;line-height:1.6'>Same hundred reps, different shape — spread one rung at a time across the ladder instead of in dedicated sets. It's already booked against this week's back volume, so there's no second century to do.</div>
+    </div>`;
+  }
   if(!isCenturyDay&&!draft.sets.length&&!doneToday)return'';
   const st=centuryStats();
   const T=PULLUP_CENTURY.target;
@@ -4397,6 +4606,90 @@ function centuryHTML(){
     </div>
     <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>End every set <strong style='color:var(--txt)'>2+ reps short of failure</strong> — that's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Bands, feet on a box, or slow negatives all count too.</div>
     ${trend}
+  </div>`;
+}
+
+// The Pyramid card. Collapsed to a single line until tapped, because this is an
+// ALTERNATIVE to the day's session and nagging about it every day is exactly how
+// "it just clearly works" turns into another thing to ignore.
+function pyramidHTML(dd){
+  const done=pyramidDoneToday();
+  const draft=pyramidDraft();
+  const started=draft.rung>0;
+  const plan=pyramidPlan();
+  if(!plan.moves.length)return'';
+  const totalRungs=plan.sizes.length;
+  if(done){
+    const mv=(done.exercises||[]).map(e=>`${pyramidRepsOf(e)} ${e.name.toLowerCase()}`).join(' · ');
+    const reps=(done.exercises||[]).reduce((a,e)=>a+pyramidRepsOf(e),0);
+    return`<div style='margin-top:12px;padding:14px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.25);border-radius:12px;text-align:left'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ok);margin-bottom:4px'>🔺 Pyramid · Done</div>
+      <div style='font-size:14px;font-weight:700'>✅ ${reps} reps${done.pyramidComplete?'':` · stopped at rung ${done.pyramidRungs} of ${done.pyramidTotalRungs}`}${done.timedMins?` · ${done.timedMins} min`:''}</div>
+      <div style='font-size:12px;color:var(--mut);margin-top:4px;line-height:1.6'>${mv}</div>
+    </div>`;
+  }
+  // Collapsed: one line, one button.
+  if(!S.pyramidOpen&&!started){
+    return`<div style='margin-top:12px;padding:12px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;text-align:left'>
+      <div style='display:flex;align-items:center;gap:8px'>
+        <span style='font-size:16px'>🔺</span>
+        <div style='flex:1;min-width:0'>
+          <div style='font-size:13px;font-weight:700'>The Pyramid — ${plan.totalReps} reps, ~${plan.mins} min</div>
+          <div style='font-size:11px;color:var(--mut);margin-top:2px'>Bodyweight ladder, no barbell. Instead of today's session.</div>
+        </div>
+        <button class='btn btn-g btn-sm' data-action='pyramid-toggle' style='width:auto;flex-shrink:0'>Open</button>
+      </div>
+    </div>`;
+  }
+  const rungsDone=draft.rung;
+  const repsDone=plan.moves.reduce((a,m)=>a+pyramidRepsAfter(plan.sizes,rungsDone,m.mult),0);
+  const pct=plan.totalReps?Math.min(100,Math.round(repsDone/plan.totalReps*100)):0;
+  const cur=rungsDone<totalRungs?plan.sizes[rungsDone]:null;
+  const climbing=rungsDone<plan.peak;
+  // The prescription for the rung you're actually on — the only thing worth
+  // reading mid-session.
+  const curRows=cur===null?'':plan.moves.map(m=>
+    `<div style='display:flex;justify-content:space-between;gap:8px;padding:3px 0'>
+      <span style='color:var(--mut)'>${m.name}</span>
+      <strong style='color:var(--txt)'>${cur*m.mult}</strong>
+    </div>`).join('');
+  // Whole-ladder view, so the shape is visible and you can see what's left.
+  const ladder=plan.sizes.map((n,i)=>{
+    const state=i<rungsDone?'done':i===rungsDone?'now':'todo';
+    const bg=state==='done'?'var(--ok)':state==='now'?'var(--acc)':'var(--surf2)';
+    const col=state==='todo'?'var(--mut)':'#0b1020';
+    return`<span style='display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 4px;border-radius:6px;background:${bg};color:${col};font-size:11px;font-weight:700'>${n}</span>`;
+  }).join('');
+  const lunchOnly=dd&&dd.isLunch&&!dd.eveningSession;
+  const lunchWarn=lunchOnly?`<div style='font-size:11px;color:var(--bad);margin-top:8px;line-height:1.6'>⚠ Today is a lunch-only day. This is high-sweat and runs ~${plan.mins} min, so it doesn't fit a 40-minute no-shower lunch — save it for an evening or the weekend.</div>`:'';
+  const movesLine=plan.moves.map(m=>`${m.reps} ${m.name.toLowerCase()}`).join(' · ');
+  const missing=PYRAMID_LADDER.length-plan.moves.length;
+  const missingNote=missing>0?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>${missing} rung${missing>1?'s':''} dropped — nothing available today passes the equipment and avoid-list gates.</div>`:'';
+  return`<div style='margin-top:12px;padding:14px;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.28);border-radius:12px;text-align:left'>
+    <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#f97316;flex:1'>🔺 The Pyramid · peak ${plan.peak}</div>
+      ${!started?`<button class='btn btn-g btn-sm' data-action='pyramid-toggle' style='width:auto'>Close</button>`:''}
+    </div>
+    <div style='font-size:15px;font-weight:700'>${repsDone} / ${plan.totalReps} reps</div>
+    <div style='font-size:12px;color:var(--mut);margin-top:2px'>${movesLine}</div>
+    <div style='height:8px;background:var(--surf2);border-radius:99px;overflow:hidden;margin:8px 0 10px'>
+      <div style='height:100%;width:${pct}%;background:${pct>=100?'var(--ok)':'#f97316'};border-radius:99px'></div>
+    </div>
+    <div style='display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px'>${ladder}</div>
+    ${cur!==null?`<div style='padding:10px 12px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:10px'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#f97316;margin-bottom:4px'>Rung ${rungsDone+1} of ${totalRungs} · ${climbing?'climbing':'descending'}</div>
+      ${curRows}
+    </div>
+    <div style='display:flex;gap:6px;align-items:center;margin-top:8px'>
+      <button class='btn btn-s btn-sm' data-action='pyramid-complete-rung' style='flex:1'>✓ Rung of ${cur} done</button>
+      ${rungsDone?`<button class='btn btn-g btn-sm' data-action='pyramid-undo-rung' style='width:auto'>↩</button>`:''}
+    </div>`
+    :`<div style='padding:10px 12px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3);border-radius:10px;font-size:13px;font-weight:700;color:var(--ok)'>🔺 Ladder complete — all ${totalRungs} rungs.</div>`}
+    ${started?`<button class='btn ${cur===null?'btn-ok':'btn-g'} btn-sm' data-action='pyramid-finish' style='width:100%;margin-top:8px'>${cur===null?`✓ Log Pyramid — ${repsDone} reps`:`Log ${repsDone} reps & stop here (rung ${rungsDone} of ${totalRungs})`}</button>`:''}
+    ${lunchWarn}
+    ${missingNote}
+    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>Up 1→${plan.peak}, then back down to 1. Every rung is <strong style='color:var(--txt)'>${plan.moves.map(m=>'×'+m.mult).join(' / ')}</strong> of the movements above, so the whole session is one number: ${plan.peak}² × ${plan.moves.reduce((a,m)=>a+m.mult,0)} = ${plan.totalReps} reps. ${plan.measured?`Your last sessions ran ~${plan.mins} min.`:`Estimated ~${plan.mins} min until there's a timed one to go on.`}</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>Peak is set to <strong style='color:var(--txt)'>${plan.peak}</strong>${centuryStats().best?` — ${PYRAMID_PEAK_HEADROOM} clear of your best unbroken set of ${centuryStats().best}, so even the top rung isn't a grinder`:` until there's a Century on record to size it from`}. It moves on its own as that number climbs; the ladder never gets rewritten.</div>
   </div>`;
 }
 
@@ -4928,6 +5221,7 @@ function renderDash(){
       ${isActualToday&&dd?.isLunch?lunchBudgetHTML(displayDow):''}
       ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession):''}
       ${isActualToday?centuryHTML():''}
+      ${isActualToday?pyramidHTML(dd):''}
       ${isActualToday?dailySpineHTML():''}
     </div>`;
   }
@@ -7121,6 +7415,55 @@ document.addEventListener('click',e=>{
     S.century=null;
     save();render();return;
   }
+  // ── The Pyramid ladder (see PYRAMID_LADDER) ──
+  if(a==='pyramid-toggle'){S.pyramidOpen=!S.pyramidOpen;render();return;}
+  if(a==='pyramid-complete-rung'){
+    const d=pyramidDraft();
+    const plan=pyramidPlan();
+    if(d.rung>=plan.sizes.length)return;
+    // Clock starts on the FIRST completed rung, not at render — same reasoning
+    // as the century's startedAt: the card sits on the dashboard all day.
+    S.pyramid={date:d.date,rung:d.rung+1,startedAt:d.startedAt||new Date().toISOString(),touchedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='pyramid-undo-rung'){
+    const d=pyramidDraft();
+    const rung=Math.max(0,d.rung-1);
+    S.pyramid={date:d.date,rung,startedAt:rung?d.startedAt:null,touchedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='pyramid-finish'){
+    const d=pyramidDraft();
+    if(!d.rung)return;
+    const plan=pyramidPlan();
+    // Logged as a REAL session (no isCardio): 1,500 reps across five movements
+    // IS the day's training, so it should mark the day completed, feed the
+    // recovery-debt engine, and lock the day's template the way any logged
+    // session does. That's the opposite of the century, which is deliberately
+    // invisible to session bookkeeping because it rides alongside a session.
+    const timedMins=d.startedAt
+      ?Math.max(1,Math.round((Date.now()-new Date(d.startedAt).getTime())/60000))
+      :0;
+    const complete=d.rung>=plan.sizes.length;
+    S.logs.push({
+      id:Date.now().toString(),date:new Date().toISOString(),
+      dayName:`The Pyramid · peak ${plan.peak}${complete?'':` (rung ${d.rung}/${plan.sizes.length})`}`,
+      pyramid:true,pyramidComplete:complete,pyramidRungs:d.rung,pyramidTotalRungs:plan.sizes.length,
+      pyramidPeak:plan.peak,
+      duration:timedMins||plan.mins,timedMins,measured:!!timedMins,
+      // ONE set entry per movement holding the total reps. The rung-by-rung
+      // breakdown isn't stored because nothing reads it — pyramidMrvSets prices
+      // the session off total reps, and a 19-entry sets array would be read as
+      // 19 working sets by anything that didn't know about the pyramid flag.
+      exercises:plan.moves.map(m=>({
+        id:m.id,name:m.name,muscle:m.muscle,type:m.type,rMin:m.rMin,rMax:m.rMax,
+        sets:[{weight:0,reps:pyramidRepsAfter(plan.sizes,d.rung,m.mult)}],
+      })).filter(e=>e.sets[0].reps>0),
+    });
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    S.pyramid=null;S.pyramidOpen=false;
+    save();render();return;
+  }
   if(a==='log-vo2-session'){
     const p=currentVO2Protocol();
     // Backdate support: the dashboard card carries data-date for the day being
@@ -7617,14 +7960,15 @@ async function saveToCloud(){
         S.customExercises=unionById(S.customExercises,cloud.customExercises);
         S.lastWeights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
         S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
-        // AFTER the log merge above: mergeCentury asks whether today's century
-        // is already finished, and the log that says so may have arrived from
-        // the other device in this very read.
+        // AFTER the log merge above: the draft merges ask whether today's
+        // session is already finished, and the log that says so may have
+        // arrived from the other device in this very read.
         S.century=mergeCentury(S.century,cloud.century);
+        S.pyramid=mergePyramid(S.pyramid,cloud.pyramid);
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -7647,12 +7991,13 @@ function unionById(localArr,cloudArr,idOf){
   return out;
 }
 
-// The in-progress Century tally fits NEITHER existing merge: it isn't in
-// SINGLETON_FIELDS (whose per-field stamps move only on save(), which is far too
-// coarse — every completed set of squats saves too) and it isn't an id-bearing
-// collection unionById can reconcile, since its sets are ANONYMOUS rep counts.
-// So it carries its OWN stamp, touchedAt, bumped by the add-set and undo-set
-// handlers and nowhere else; the newer-touched draft wins whole.
+// In-progress SESSION DRAFTS (the Century tally, the Pyramid rung counter) fit
+// NEITHER existing merge: they aren't in SINGLETON_FIELDS (whose per-field stamps
+// move only on save(), which is far too coarse — every completed set of squats
+// saves too) and they aren't id-bearing collections unionById can reconcile,
+// since their contents are ANONYMOUS counts. So a draft carries its OWN stamp,
+// touchedAt, bumped by the handlers that mutate it and nowhere else; the
+// newer-touched draft wins whole.
 //
 // TRIED AND REVERTED — "the LONGER draft wins", on the theory that sets are only
 // ever appended. Undo is the counter-example, and it bites on ONE device: tap a
@@ -7669,25 +8014,35 @@ function unionById(localArr,cloudArr,idOf){
 // next round.
 //
 // Two guards on top of the stamp:
-//  - startedAt takes the EARLIEST of the two, never the winner's. centuryMins()
-//    measures the whole session, and the first set may well have been tapped on
-//    the other phone.
-//  - A century already FINISHED today kills the draft on both sides. Without it,
-//    finishing on one phone (which nulls S.century) leaves the other phone's
+//  - startedAt takes the EARLIEST of the two, never the winner's. The session
+//    clock (centuryMins, the Pyramid's timedMins) measures the whole session,
+//    and the first set may well have been tapped on the other phone.
+//  - A session already FINISHED today kills the draft on both sides. Without it,
+//    finishing on one phone (which nulls the draft) leaves the other phone's
 //    draft as the only stamped copy, and it wins — RESURRECTING the session that
-//    was just logged. Deliberately the same condition centuryHTML() uses to
-//    render its Done card, so the card and the merge can never disagree about
-//    whether today's century is over.
-function mergeCentury(local,cloud){
+//    was just logged. `doneToday` is deliberately the same condition the card
+//    uses to render its Done state, so the card and the merge can never disagree
+//    about whether today's session is over.
+// `shape` guards against a malformed cloud payload being adopted.
+function mergeStampedDraft(local,cloud,doneToday,shape){
   const t=todayStr();
-  if(centuryLogs().some(l=>logDay(l.date)===t))return null;
-  const live=c=>(c&&c.date===t&&Array.isArray(c.sets))?c:null;
+  if(doneToday)return null;
+  const live=c=>(c&&c.date===t&&shape(c))?c:null;
   const l=live(local),c=live(cloud);
   if(!l||!c)return l||c;
   // Missing touchedAt = a draft written before this shipped, or by an older
   // client. Treat it as the older one; a stamped draft always beats it.
   const pick=(c.touchedAt||'')>(l.touchedAt||'')?c:l;
   return{...pick,startedAt:[l.startedAt,c.startedAt].filter(Boolean).sort()[0]||null};
+}
+function mergeCentury(local,cloud){
+  return mergeStampedDraft(local,cloud,
+    centuryLogs().some(l=>logDay(l.date)===todayStr()),
+    c=>Array.isArray(c.sets));
+}
+function mergePyramid(local,cloud){
+  return mergeStampedDraft(local,cloud,!!pyramidDoneToday(),
+    c=>typeof c.rung==='number'&&c.rung>=0);
 }
 
 // Post-merge consistency: another device may have logged a planned workout
@@ -7757,10 +8112,11 @@ async function loadFromCloud(){
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
       // device must not ride back in through this device's stale copy.
       S.logs=filterTombstoned(merged).slice(-LOG_KEEP);
-      // AFTER S.logs: a century FINISHED on the other device arrives as a log,
-      // and that log is what tells mergeCentury to drop the draft rather than
-      // resurrect the session that was just completed.
+      // AFTER S.logs: a session FINISHED on the other device arrives as a log,
+      // and that log is what tells the draft merges to drop the draft rather
+      // than resurrect the session that was just completed.
       S.century=mergeCentury(S.century,cloud.century);
+      S.pyramid=mergePyramid(S.pyramid,cloud.pyramid);
       reconcileProgramWithLogs();
       recalcLastWeights();
       lastCloudMergeRead=Date.now();// this WAS a full merge — saveToCloud can skip its read

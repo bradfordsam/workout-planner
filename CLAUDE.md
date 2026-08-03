@@ -157,8 +157,8 @@ strip it before other debugging.
   absorbs the warm-up. `timedMins` is stored SEPARATELY from `duration` so the
   old set-count estimate can never feed back into scheduling as if it were a
   measurement. Target is fixed; the SET COUNT is the progress metric.
-  Tally lives in `S.century`, cloud-synced via its OWN merge (`mergeCentury`,
-  2026-08-03) rather than `SINGLETON_FIELDS`: the draft carries a `touchedAt`
+  Tally lives in `S.century`, cloud-synced via its OWN merge (`mergeCentury` on
+  the shared `mergeStampedDraft`, 2026-08-03) rather than `SINGLETON_FIELDS`: the draft carries a `touchedAt`
   stamp bumped by the add-set/undo-set handlers only, and the newer-touched
   draft wins whole. `SINGLETON_FIELDS`' per-field stamps move on any `save()`
   (every completed set of squats saves), which is far too coarse, and
@@ -181,6 +181,59 @@ strip it before other debugging.
   `getMRVBreakdown` (submaximal sets don't cost what hard sets cost; at face
   value 100 reps ate the whole week's back MRV and crowded out the mandated
   row/rear-delt work). Weighted pull-ups avoid Century days before Wed.
+- `PYRAMID_LADDER` (2026-08-03): Tom Holland's Spider-Man ladder, taken as LOGIC
+  not as a fixed prescription (Sam: "I don't have to do this exact workout every
+  Monday, it just clearly works"). Climb rungs 1→peak then back down, each
+  movement carrying a multiplier. The arithmetic is the whole reason it's a
+  feature: up-and-back sums to **peak² reps per unit of multiplier**, so the
+  session is (Σ mult) × peak² — at peak 10 with 1/2/3/4/5 that's exactly the
+  original 100/200/300/400/500 = 1,500 reps. **ONE number sets the entire dose**,
+  which is what makes it obey the self-scaling rule: `pyramidPeak()` derives it
+  from `centuryStats().best` minus `PYRAMID_PEAK_HEADROOM`, so the top rung stays
+  2 reps clear of failure (the same rule the Century runs on) and the ladder
+  never needs rewriting as he improves. No Century history → peak 6 (540 reps).
+  **OFFERED, NEVER SCHEDULED** — `dayTemplate` knows nothing about it. A
+  generated session that could be silently swapped would make the recovery-debt
+  bookkeeping a lie, and "every Monday" is what Sam explicitly didn't want.
+  Non-obvious decisions:
+  - **Movements live in `PYRAMID_LADDER`, deliberately NOT in `EX`.** EX ORDER IS
+    LOAD-BEARING — adding a plain push-up to the chest compound block would
+    displace `floor_press`, which must LEAD there for the left shoulder. Keeping
+    them out also means the generator can never program them. They carry `type`
+    so `exFull` passes them through and `SECONDARY_CREDIT_RULES` still fires
+    (100 pull-ups' worth of biceps credit is exactly that table's motivating
+    case). `options` is a preference list resolved per-day against equipment +
+    `userAvoids` + hip/shoulder caution, so a bar-less day drops the pull rung
+    instead of prescribing something undoable, and blacklisting `situps` swaps
+    that rung out with no code change.
+  - **MRV is priced by REPS, not sets** (`pyramidMrvSets`). A set count would
+    bill 19 rungs × 5 movements = 95 sets — the century bug an order of magnitude
+    worse. The rate is derived from the ONE anchor already in the file: a Century
+    is 100 pull-up reps for `CENTURY_MRV_SETS`, i.e. ~33 reps per recoverable set
+    for a movement whose range centres on 6, scaled by the target movement's own
+    range. Falls out of it as a check: the ×1 rung at peak 10 prices at exactly
+    `CENTURY_MRV_SETS` — **the same 100 pull-ups cost the same whether they
+    arrive as a Century or as a ladder**. Measured at peak 10: back 3 / triceps
+    3.1 / chest 2.9 / core 4.5 / legs 3, plus secondary credit.
+  - **Logged as a REAL session (no `isCardio`)** — the opposite of the Century.
+    1,500 reps across five movements IS the day's training, so it marks the day
+    completed, feeds recovery, and locks the template. The Century is invisible
+    to session bookkeeping precisely because it rides ALONGSIDE a session.
+  - A peak-10 ladder is 100 pull-ups, so `centuryHTML` defers to it
+    (`pyramidCoversCentury`) rather than asking for a second hundred. A shorter
+    ladder does not, and the Century card still appears.
+  - Never a lunch: high-sweat and ~50 min fails both lunch constraints. The card
+    says so in words on a lunch-only day rather than vanishing (same precedent as
+    bear crawl in `fundamentalsHTML`).
+  - **The 400-sit-up rung is the one part flagged to Sam as questionable** —
+    high-rep loaded lumbar flexion against a stated lower-back history. Left in
+    (it's the prescription, it's not on his avoid list, and the core cycle
+    already includes `flexion`), with the concern written into the movement's cue
+    and a documented swap path via the avoid list.
+  - Draft state `S.pyramid` = `{date,rung,startedAt,touchedAt}` — `rung` counts
+    COMPLETED rungs, matching how the session is actually run. Cloud-synced by
+    the shared `mergeStampedDraft` (see the Century's note on why
+    `SINGLETON_FIELDS` and `unionById` both fail for session drafts).
 - `SECONDARY_CREDIT_RULES` / `creditVolume` / `exFull` (2026-08-03): a set
   counts toward the muscles it trains INDIRECTLY, at an evidence-derived
   fraction — pulls → biceps 0.5, chest compounds → triceps 0.5 + shoulders
