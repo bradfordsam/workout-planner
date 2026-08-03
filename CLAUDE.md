@@ -157,8 +157,23 @@ strip it before other debugging.
   absorbs the warm-up. `timedMins` is stored SEPARATELY from `duration` so the
   old set-count estimate can never feed back into scheduling as if it were a
   measurement. Target is fixed; the SET COUNT is the progress metric.
-  Tally lives in `S.century` (localStorage only, not a `SINGLETON_FIELDS`
-  cloud-synced field). Logged as `isCardio:true` + `century:true` — the same
+  Tally lives in `S.century`, cloud-synced via its OWN merge (`mergeCentury`,
+  2026-08-03) rather than `SINGLETON_FIELDS`: the draft carries a `touchedAt`
+  stamp bumped by the add-set/undo-set handlers only, and the newer-touched
+  draft wins whole. `SINGLETON_FIELDS`' per-field stamps move on any `save()`
+  (every completed set of squats saves), which is far too coarse, and
+  `unionById` can't help because the sets are anonymous rep counts. **Do not
+  "simplify" this to longest-draft-wins** — tried, and it breaks undo on a
+  SINGLE device: tap a set, undo the typo 90s later, and `saveToCloud`'s
+  read-merge (60s throttle, so it re-reads) restores the set from the cloud
+  before the undo is ever written. A rule that can't express deletion cannot
+  merge a list with an undo button. Two guards on top of the stamp: `startedAt`
+  takes the EARLIEST of the two copies (the first set may have been tapped on
+  the other phone, and `centuryMins()` measures the whole session), and a
+  century already logged today kills the draft on both sides — otherwise
+  finishing on phone A (which nulls `S.century`) leaves phone B's draft as the
+  only stamped copy and RESURRECTS the session just logged. Both call sites run
+  AFTER the log union, since that guard reads `S.logs`. Logged as `isCardio:true` + `century:true` — the same
   "invisible to session bookkeeping" flag the VO2 log uses, so it never marks a
   day completed, never locks that day's lifting template to itself, and never
   eats a lifting slot — but its `exercises` array IS populated, so it counts

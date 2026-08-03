@@ -1170,8 +1170,8 @@ let S={
   weekPlan:null,lastWeights:{},sleepLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
   // Today's in-progress Pull-up Century tally, {date,sets:[reps,...]} — see
-  // PULLUP_CENTURY. Local-only (not in SINGLETON_FIELDS): the finished LOG
-  // syncs across devices like any other, a half-finished tally needn't.
+  // PULLUP_CENTURY. Cloud-synced, but NOT via SINGLETON_FIELDS — it has its own
+  // merge (mergeCentury), because last-writer-wins would eat sets.
   century:null,
 };
 let timerIv=null;
@@ -1516,8 +1516,8 @@ function centuryStats(){
   };
 }
 // Today's in-progress century, kept in S.century so a half-finished session
-// survives a re-render or a reload (localStorage only — not cloud-synced; the
-// finished LOG syncs like any other, a partial tally doesn't need to).
+// survives a re-render, a reload, or a hop to another device (see mergeCentury
+// for how two devices' drafts are reconciled).
 function centuryDraft(){
   if(!S.century||S.century.date!==todayStr())return{date:todayStr(),sets:[]};
   return S.century;
@@ -7078,7 +7078,8 @@ document.addEventListener('click',e=>{
     // Clock starts on the FIRST set, not when the card renders — the card is on
     // the dashboard all day, so render time would measure the morning, not the
     // session. Preserved across re-renders/reloads because it lives in S.century.
-    S.century={date:d.date,sets:[...d.sets,n],startedAt:d.startedAt||new Date().toISOString()};
+    // touchedAt: which device's copy of the draft is newest — see mergeCentury.
+    S.century={date:d.date,sets:[...d.sets,n],startedAt:d.startedAt||new Date().toISOString(),touchedAt:new Date().toISOString()};
     save();render();return;
   }
   if(a==='century-undo-set'){
@@ -7086,7 +7087,7 @@ document.addEventListener('click',e=>{
     const sets=d.sets.slice(0,-1);
     // Undoing back to empty also clears the clock, so a mistyped first set
     // doesn't leave a start time running from minutes ago.
-    S.century={date:d.date,sets,startedAt:sets.length?d.startedAt:null};
+    S.century={date:d.date,sets,startedAt:sets.length?d.startedAt:null,touchedAt:new Date().toISOString()};
     save();render();return;
   }
   if(a==='century-finish'){
@@ -7616,10 +7617,14 @@ async function saveToCloud(){
         S.customExercises=unionById(S.customExercises,cloud.customExercises);
         S.lastWeights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
         S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
+        // AFTER the log merge above: mergeCentury asks whether today's century
+        // is already finished, and the log that says so may have arrived from
+        // the other device in this very read.
+        S.century=mergeCentury(S.century,cloud.century);
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -7640,6 +7645,49 @@ function unionById(localArr,cloudArr,idOf){
   const out=[...(cloudArr||[])];
   (localArr||[]).forEach(l=>{if(!out.find(c=>idOf(c)===idOf(l)))out.push(l);});
   return out;
+}
+
+// The in-progress Century tally fits NEITHER existing merge: it isn't in
+// SINGLETON_FIELDS (whose per-field stamps move only on save(), which is far too
+// coarse — every completed set of squats saves too) and it isn't an id-bearing
+// collection unionById can reconcile, since its sets are ANONYMOUS rep counts.
+// So it carries its OWN stamp, touchedAt, bumped by the add-set and undo-set
+// handlers and nowhere else; the newer-touched draft wins whole.
+//
+// TRIED AND REVERTED — "the LONGER draft wins", on the theory that sets are only
+// ever appended. Undo is the counter-example, and it bites on ONE device: tap a
+// set, come back 90s later and undo the typo, and saveToCloud's read-merge
+// (throttled to 60s, so it re-reads) restores the set from the cloud before the
+// undo is ever written. A rule that can't express deletion cannot merge a list
+// with an undo button. touchedAt orders both directions.
+//
+// Stale-push protection comes free from the existing read-merge: a phone that
+// saves for an unrelated reason (a logged set) adopts the newer cloud draft on
+// the read and pushes THAT back, not its own stale copy. The <60s throttle
+// window can still blind-write a stale draft, self-healing the same way the
+// other collections do — the other device holds the newer touchedAt and wins the
+// next round.
+//
+// Two guards on top of the stamp:
+//  - startedAt takes the EARLIEST of the two, never the winner's. centuryMins()
+//    measures the whole session, and the first set may well have been tapped on
+//    the other phone.
+//  - A century already FINISHED today kills the draft on both sides. Without it,
+//    finishing on one phone (which nulls S.century) leaves the other phone's
+//    draft as the only stamped copy, and it wins — RESURRECTING the session that
+//    was just logged. Deliberately the same condition centuryHTML() uses to
+//    render its Done card, so the card and the merge can never disagree about
+//    whether today's century is over.
+function mergeCentury(local,cloud){
+  const t=todayStr();
+  if(centuryLogs().some(l=>logDay(l.date)===t))return null;
+  const live=c=>(c&&c.date===t&&Array.isArray(c.sets))?c:null;
+  const l=live(local),c=live(cloud);
+  if(!l||!c)return l||c;
+  // Missing touchedAt = a draft written before this shipped, or by an older
+  // client. Treat it as the older one; a stamped draft always beats it.
+  const pick=(c.touchedAt||'')>(l.touchedAt||'')?c:l;
+  return{...pick,startedAt:[l.startedAt,c.startedAt].filter(Boolean).sort()[0]||null};
 }
 
 // Post-merge consistency: another device may have logged a planned workout
@@ -7709,6 +7757,10 @@ async function loadFromCloud(){
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
       // device must not ride back in through this device's stale copy.
       S.logs=filterTombstoned(merged).slice(-LOG_KEEP);
+      // AFTER S.logs: a century FINISHED on the other device arrives as a log,
+      // and that log is what tells mergeCentury to drop the draft rather than
+      // resurrect the session that was just completed.
+      S.century=mergeCentury(S.century,cloud.century);
       reconcileProgramWithLogs();
       recalcLastWeights();
       lastCloudMergeRead=Date.now();// this WAS a full merge — saveToCloud can skip its read
