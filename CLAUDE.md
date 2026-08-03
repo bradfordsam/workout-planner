@@ -64,13 +64,43 @@ strip it before other debugging.
   'hinge', second leg slot = 'hamstring'; back gets horizontal/rear-delt.
   Leg accent slot rotates power/eccentric/decel by day-of-month; the core
   slot cycles anti-rotation/rotation/flexion/anti-extension/lateral.
+  **Day-of-month rotations can ALIAS with a muscle's training cadence.** The
+  back accent used `domDay%2`, but recovery brings back around every ~2 days,
+  so every back day in a week shared one parity: the flip stopped alternating
+  within a week and alternated between weeks instead, all-or-nothing. Measured
+  2026-08-03 over 6 simulated weeks — 3 of 5 steady weeks logged ZERO horizontal
+  rows and the others logged no direct rear-delt work. Fixed by rotating on
+  `Math.floor(domDay/2)%2` so the counter advances at the rate back actually
+  recurs (2/5 → 5/5 weeks with a row). Before adding or editing a `domDay%N`
+  rotation, check N against how often that muscle is actually trained — and
+  measure the LANDED outcome per week, not the pick counts, which are inflated
+  by discarded replans.
 - Conditioning: `CONDITIONING_FINISHERS` (sprint-centric; `sprint:true`
   renders `SPRINT_PRIMER`, `lunchOK` marks the low-sweat subset lunch draws
   from) and `VO2_PROTOCOLS` (4-protocol engine rotation incl. Zone 2 and
   off-feet anaerobic repeats).
 - Personal exclusions: `S.cfg.avoidExercises` id blacklist (movements that
   flare a specific issue). Seed new ones in BOTH the default cfg and a `load()`
-  migration.
+  migration. Current list includes `plank_outside_climbers` (2026-08-03) — the
+  outside foot-step is deep flexion + abduction, i.e. the FAI impingement
+  position, and it carries neither a `plyometric` tag nor `hipRisk`, so nothing
+  else would have caught it. `mountain_climbers` stays (knees drive inside the
+  hands, never end-range).
+- `'own_gear'` (2026-08-03) is a PSEUDO-equipment token on `EQUIPMENT_PRESETS`
+  meaning "Sam's own kit is on hand" — currently the weighted vest. Carried by
+  apartment_gym / westminster_gym / bodyweight / moms_and_dads, withheld from
+  ymca and hotel_gym, because the vest doesn't travel to a public gym. So
+  `pushups_w` is `eq:['own_gear']` and the ORDINARY equipment gate filters it
+  everywhere at once (normal pickEx tiers, the Foundation short-circuit, the
+  backfill, the swap list) with no special case. Note `pickEx` does
+  `new Set([...equip,'bodyweight'])`, so 'bodyweight' is granted unconditionally
+  and could never express this — hence a distinct token. Consequence: an
+  all-YMCA week cannot cover the push-up Foundation movement; `fundamentalsHTML`
+  says so in words (same precedent as bear crawl on a lunch-only week).
+- `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
+  notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
+  gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
+  Westminster and Mom and Dad's, neither of which has a stack.
 - Stretch pools (`HIP_POOL`, `SHOULDER_POOL`, `LOWER/UPPER_MOBILITY_POOL`,
   `COOLDOWN_POOL`) live inline in the workout render fn and rotate by date.
 - `DAILY_SPINE_MINIMUMS` (global, near `recoveryHTML`): four FIXED daily poses
@@ -103,7 +133,17 @@ strip it before other debugging.
 - `PULLUP_CENTURY` (2026-07-28): 100 pull-ups/session, any number of sets, on
   `centuryDows()` (up to 3 available training days, ≥48h apart, derived from
   AVAILABILITY not the program — `dayTemplate` reads it, so program-derived
-  would be circular). Target is fixed; the SET COUNT is the progress metric.
+  would be circular). **A YMCA lunch IS eligible** (2026-08-03) — it just costs
+  time, so the cost is charged rather than ignored: `S.century.startedAt` is
+  stamped on the FIRST set (not at render — the card sits on the dashboard all
+  day), the finish handler writes MEASURED `timedMins` to the log, and
+  `centuryMins()` returns the median of the last 5 timed sessions (default 20).
+  `buildSession` then cuts a century lunch's exercise limit to
+  `floor((40 − centuryMins)/10)`, ~2 lifts at the default. The rate is 10
+  min/exercise, not the 40÷3 ≈ 13 the whole box implies, because the century
+  absorbs the warm-up. `timedMins` is stored SEPARATELY from `duration` so the
+  old set-count estimate can never feed back into scheduling as if it were a
+  measurement. Target is fixed; the SET COUNT is the progress metric.
   Tally lives in `S.century` (localStorage only, not a `SINGLETON_FIELDS`
   cloud-synced field). Logged as `isCardio:true` + `century:true` — the same
   "invisible to session bookkeeping" flag the VO2 log uses, so it never marks a

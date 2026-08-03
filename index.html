@@ -239,7 +239,12 @@ const EX = [
   {id:'incline_db',name:'Incline DB Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'30–45° incline (~58–100% grade on a bench that reads in percent). Tuck elbows to ~45° from your torso (don\'t flare to 90°) and keep forearms vertical so the chest does the work, not the triceps. At the top, drive your biceps toward each other rather than clanking the dumbbells together — that maximizes the contraction. Control the descent (2 counts) — push the last set to 1–2 reps shy of failure.'},
   {id:'flat_db_press',name:'Flat Dumbbell Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'Lie flat on a bench, dumbbells at chest level. Retract the shoulder blades. Tuck elbows to ~45° from the torso (don\'t flare to 90°) and keep forearms vertical so tension stays on the chest, not the triceps. Press up and slightly in, driving the dumbbells toward each other at the top for a harder squeeze without clanking them. Control the descent (2 counts) to a full stretch — push the last set to 1–2 reps shy of failure.'},
   {id:'machine_press',name:'Machine Chest Press',muscle:'chest',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:150,cue:'Set seat so handles are at mid-chest. Retract shoulder blades before pressing. Tuck elbows to ~45° (not flared) and keep forearms vertical so tension stays on the chest, not the triceps. Control the descent — 2 full counts down. Take the last set to 1–2 reps shy of failure.'},
-  {id:'pushups_w',name:'Push-ups (+ Weighted Vest)',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:6,rMax:10,rest:120,cue:'Hands shoulder-width, body straight. Chest to floor, lock out top. Slow descent. Add vest for progressive overload.'},
+  // eq:['own_gear'], NOT 'bodyweight' — the vest is personal kit that doesn't
+  // travel to a public gym (2026-08-03). 'own_gear' is carried by the presets
+  // where Sam's own equipment is on hand and withheld from ymca/hotel_gym, so
+  // the ordinary equipment gate does the filtering everywhere at once: normal
+  // pickEx tiers, the Foundation short-circuit, the backfill, and the swap list.
+  {id:'pushups_w',name:'Push-ups (+ Weighted Vest)',muscle:'chest',type:'compound',eq:['own_gear'],rMin:6,rMax:10,rest:120,cue:'Hands shoulder-width, body straight. Chest to floor, lock out top. Slow descent. Add vest for progressive overload.'},
   {id:'perfect_pushups',name:'Perfect Pushups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'Rotating-handle push-up grips (or dumbbells). Grip the handles and let them rotate naturally as you lower — this opens up a deeper stretch at the bottom and is easier on the wrists. Hands under shoulders, body in a straight line, brace the core. Lower under control until the chest is below the hands, press back to full lockout. Slow descent every rep. Add a vest to progressively overload.'},
   // Athletic power accents (goal: look like a bodybuilder, MOVE like an athlete).
   // Tagged 'power'/'ballistic' — NOT 'plyometric' — because the hip-caution
@@ -734,15 +739,39 @@ const HANDLES={
 };
 const handleFor=(ex)=>HANDLES[ex.id]||'';
 
+// ─── RIG / BAR SETUP ───
+// Same idea as HANDLES, for movements whose question is "on WHAT do I do this?"
+// rather than "which handle do I clip on". Kept separate because HANDLES is
+// gated on the gym having a cable stack (several of those movements have DB or
+// band fallbacks whose setup differs) — a rack/bar note must show everywhere,
+// which is exactly the gate an inverted_row entry in HANDLES would have failed:
+// it would have been hidden at Westminster and Mom and Dad's, neither of which
+// has cables.
+const SETUP={
+  inverted_row:'Barbell in a squat rack or rig, set at about hip height · a Smith machine bar · rings or TRX straps hung to the same height · or any fixed low bar (even a sturdy table edge). THE HEIGHT IS THE DIAL: lower bar = more of your weight = harder, higher bar = easier.',
+};
+const setupFor=(ex)=>SETUP[ex.id]||'';
+const SETUP_ROW=(ex)=>setupFor(ex)
+  ?`<div style='font-size:12px;color:var(--txt-dim);line-height:1.5;margin:0 0 10px;padding:6px 10px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:8px'>🏗️ <strong style='color:var(--acc)'>Set up on:</strong> ${setupFor(ex)}</div>`
+  :'';
+
 // ─────────────────────────────────────────────
 // YMCA / LUNCH SESSION CONSTANTS
 // ─────────────────────────────────────────────
 // Equipment Presets - User's 4 main categories
+//
+// 'own_gear' is a pseudo-equipment token meaning "Sam's own kit is on hand"
+// (right now: the weighted vest). It is deliberately NOT real gym equipment —
+// it marks the venues he doesn't carry gear to. ymca and hotel_gym omit it, so
+// anything with eq:['own_gear'] is filtered out there by the ordinary equipment
+// gate rather than by a special case bolted onto pickEx. Note that pickEx does
+// `new Set([...equip,'bodyweight'])`, so 'bodyweight' is granted everywhere and
+// could never express this — hence a separate token.
 const EQUIPMENT_PRESETS = {
   apartment_gym: {
     name: '🏢 Apartment Gym',
     desc: 'Dumbbells (5–50 lb ea, no 30s/35s), bench, cable machine (rope + EZ bar), pull-up bar, treadmill/elliptical, medicine balls',
-    equipment: ['dumbbells', 'cables', 'pullup_bar', 'medball', 'bodyweight'],
+    equipment: ['dumbbells', 'cables', 'pullup_bar', 'medball', 'bodyweight', 'own_gear'],
     // Exact pairs on hand — 5 lb steps to 25, then a gap (no 30/35) straight to
     // 40/45/50. Weight suggestions round DOWN to the nearest weight in this list
     // rather than just capping at the max, so a "38 lb" suggestion never lands
@@ -771,19 +800,19 @@ const EQUIPMENT_PRESETS = {
     // are trained the same as dumbbells (existing KB/DB swing movements
     // already tag 'dumbbells'), and GHD/plyo box/med ball work falls under
     // bodyweight movements (e.g. Back Extension's bodyweight variant).
-    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'medball', 'medball_wall', 'bodyweight'],
+    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'medball', 'medball_wall', 'bodyweight', 'own_gear'],
     location: 'westminster'
   },
   bodyweight: {
     name: '🌱 Bodyweight Only',
     desc: 'Grassy field, no equipment needed',
-    equipment: ['bodyweight'],
+    equipment: ['bodyweight', 'own_gear'],
     location: 'field'
   },
   moms_and_dads: {
     name: '🏠 Mom and Dad\'s',
     desc: 'Pull-up bar (neutral/underhand/normal grips), dumbbells (5/10/15/25/35 lb), bench, jump rope',
-    equipment: ['dumbbells', 'pullup_bar', 'bodyweight'],
+    equipment: ['dumbbells', 'pullup_bar', 'bodyweight', 'own_gear'],
     // Exact pairs on hand — no weights between these five.
     dumbbellWeights: [5,10,15,25,35],
     dumbbellMax: 35,
@@ -1084,7 +1113,12 @@ let S={
     // standing brace loads lumbar extension. Seated overhead pressing
     // (seated_db_press, arnold_press) is fine and stays in the pool.
     // woodchop: rotation under cable load pinches the left hip (FAI history).
-    avoidExercises:['ohp','push_press','db_push_press','thrusters','woodchop'],
+    // plank_outside_climbers: stepping the foot up OUTSIDE the hand is deep
+    // flexion + abduction under load — the exact FAI impingement position. The
+    // cue sold it as "a deep hip-flexor opener"; on this hip it pinches
+    // (2026-08-03). mountain_climbers stays: knees drive straight to the chest,
+    // inside the hands, so it never reaches end-range.
+    avoidExercises:['ohp','push_press','db_push_press','thrusters','woodchop','plank_outside_climbers'],
     // Seeded from the InBody-style body-composition scan (Starfit, 2026-05-24).
     // Muscle already sits above the normal range — the score gap is pure fat, so
     // the program is tuned to strip fat while preserving muscle (see bodyScoreCard).
@@ -1180,6 +1214,11 @@ function load(){
       ['ohp','thrusters'].forEach(id=>{
         if(!S.cfg.avoidExercises.includes(id))S.cfg.avoidExercises.push(id);
       });
+      // Migrate: Plank Hold + Outside Climbers pinches the left hip (2026-08-03).
+      // The outside foot-step is deep flexion + abduction — FAI impingement
+      // territory — despite the movement carrying no 'plyometric' tag and no
+      // hipRisk flag, so neither the plyo ban nor hipCaution would catch it.
+      if(!S.cfg.avoidExercises.includes('plank_outside_climbers'))S.cfg.avoidExercises.push('plank_outside_climbers');
       // Migrate: seed the body-composition scan + lean focus for the score goal.
       // Muscle is already above range, so the only lever to 100 is fat loss while
       // holding muscle — switch the goal to lean recomp and turn conditioning on.
@@ -1312,14 +1351,39 @@ const PULLUP_CENTURY={target:100,maxDays:3,restCap:180};
 // Century days come from AVAILABILITY, never from the generated program:
 // dayTemplate consults this during generation, so reading S.program here would
 // be circular (the same trap documented on getMRVLimits). Walks the week in
-// calendar order and takes every third available training day → Mon/Wed/Fri on
-// a full week, which is the ≥48h spacing the protocol needs.
+// calendar order and takes every third ELIGIBLE day, which is the ≥48h spacing
+// the protocol needs.
+//
+// ELIGIBILITY (2026-08-03, from Sam): any available training day qualifies,
+// INCLUDING a YMCA lunch. A lunch century was briefly gated out on the theory
+// that it needs a bar you can monopolize, but Sam's call is that it fits — it
+// just costs roughly 20 minutes of a 40-minute lunch right now. That cost is
+// real, so it is charged against the lunch time-box rather than ignored: see
+// centuryMins() and the lunch exercise-limit reduction in buildSession.
+// Still returns an EMPTY list when nothing is available at all, so callers
+// must handle that (fundamentalsHTML says so in words rather than rendering
+// "on 0 spaced days a week").
+function centuryEligibleDow(av,dow){
+  const d=av[dow]||{};
+  return(dow===0||dow===6)?!!d.on:(d.lunch!==false||!!d.eve?.on);
+}
+// Measured minutes a century actually takes — the whole point of timing it.
+// The prescription (100 reps) never moves, so the two things that DO move are
+// the set count and the clock; this reads the clock back into scheduling so a
+// lunch century is budgeted from evidence instead of a guess. Median of the
+// last 5 timed sessions (median, not mean, so one interrupted session doesn't
+// skew the budget), falling back to 20 min until there's data.
+const CENTURY_DEFAULT_MINS=20;
+function centuryMins(){
+  const timed=centuryLogs().filter(l=>l.timedMins>0).slice(-5).map(l=>l.timedMins).sort((a,b)=>a-b);
+  if(!timed.length)return CENTURY_DEFAULT_MINS;
+  return timed[Math.floor(timed.length/2)];
+}
 function centuryDows(av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
-  const trains=(dow)=>{const d=av[dow]||{};return(dow===0||dow===6)?!!d.on:(d.lunch!==false||!!d.eve?.on);};
   const out=[];let lastPos=-99;
   [1,2,3,4,5,6,0].forEach((dow,pos)=>{
-    if(out.length>=PULLUP_CENTURY.maxDays||!trains(dow)||pos-lastPos<2)return;
+    if(out.length>=PULLUP_CENTURY.maxDays||!centuryEligibleDow(av,dow)||pos-lastPos<2)return;
     out.push(dow);lastPos=pos;
   });
   return out;
@@ -1341,6 +1405,10 @@ function centuryStats(){
     lastSets:last?setsOf(last).length:0,
     lastReps:last?setsOf(last).reduce((a,s)=>a+s.reps,0):0,
     thisWeek:logs.filter(l=>logDay(l.date)>=mon&&logDay(l.date)<end).length,
+    // Only genuinely TIMED sessions count — see the note on centuryMins about
+    // never letting a fallback estimate masquerade as a measurement.
+    timedCount:logs.filter(l=>l.timedMins>0).length,
+    lastMins:last?.timedMins||0,
   };
 }
 // Today's in-progress century, kept in S.century so a half-finished session
@@ -1795,9 +1863,26 @@ function genProgram(cfg,av,workoutHistoryLog){
     // a bonus when a back-heavy day does repeat the muscle.
     const backSlotIdx=slots.map((s,i)=>s.muscle==='back'?i:-1).filter(i=>i>=0);
     if(backSlotIdx.length){
-      if(domDay%2===0){slots[backSlotIdx[0]].type='isolation';slots[backSlotIdx[0]].tag='rear_delt';}
+      // ── Why floor(domDay/2) and not domDay ──
+      // This rotation used to be domDay%2, which ALIASED with the back training
+      // cadence and silently broke the whole horizontal mandate. Recovery
+      // scheduling brings back around every ~2 days, so every back day inside a
+      // given week shares one day-of-month parity: the flip stopped alternating
+      // within a week and started alternating BETWEEN weeks, all-or-nothing.
+      // Measured over 6 simulated weeks (lunch+evening): back trained on
+      // 5/7/9, then 12/14/16, then 19/21/23 … so 3 of 5 steady weeks were
+      // all-even and logged ZERO rows, while the other weeks logged nothing but
+      // rows and no direct rear-delt work. Halving the day first makes the
+      // counter advance once per ~2 calendar days — the same rate back actually
+      // recurs — so consecutive back sessions land on opposite tags and every
+      // week now gets both. Residual: a back cadence of exactly 4 days would
+      // re-alias, but that only arises at ~1 back session/week, where a week can
+      // only carry one tag anyway.
+      if(Math.floor(domDay/2)%2===0){slots[backSlotIdx[0]].type='isolation';slots[backSlotIdx[0]].tag='rear_delt';}
       else slots[backSlotIdx[0]].tag='horizontal';
-      if(backSlotIdx.length>1&&slots[backSlotIdx[0]].tag!=='rear_delt')slots[backSlotIdx[1]].tag='rear_delt';
+      // The second-slot 'rear_delt' bonus is applied AFTER the Foundation stamp
+      // below, not here — see the note there. Tagging it at this point starved
+      // both the horizontal mandate and the weekly pull-up guarantee.
     }
     // Hybrid-athlete accent (goal: look like a bodybuilder, MOVE like an
     // athlete): evening sessions convert ONE isolation fill slot of a
@@ -1900,8 +1985,32 @@ function genProgram(cfg,av,workoutHistoryLog){
       if(f.id==='weighted_pullups'&&centuryDowSet.has(domDow)&&!lateWeek)continue;
       const cands=slots.filter(s=>s.muscle===f.muscle&&!HARD_MANDATE_TAGS.has(s.tag)&&!s.foundationId);
       if(!cands.length)continue;
-      (cands.find(s=>!s.tag)||cands[0]).foundationId=f.id;
+      // Preference order: an UNTAGGED slot first (costs no mandate at all), then
+      // a slot whose tag the movement ALREADY satisfies (weighted pull-ups on a
+      // 'vertical' slot covers both at once), and only then any remaining
+      // candidate — which does cost that slot's accent.
+      (cands.find(s=>!s.tag)
+        ||cands.find(s=>(EX.find(e=>e.id===f.id)?.tags||[]).includes(s.tag))
+        ||cands[0]).foundationId=f.id;
       break; // one stamp per session; coverage is marked in buildSession
+    }
+    // ── Second back slot's 'rear_delt' bonus (deferred from the back-mandate
+    // block above) ──
+    // This tag is explicitly a BONUS for a back-heavy day that repeats the
+    // muscle, and it is the lowest-priority thing competing for the slot. Applied
+    // eagerly up there it was silently the most expensive line in the template:
+    // on odd days it left NO untagged back slot, so the Foundation stamp fell
+    // through to cands[0] — the 'horizontal' slot — and weighted pull-ups (a
+    // VERTICAL pull) ate the row mandate. Measured over 6 simulated weeks it took
+    // 11/15 horizontal slots on a lunch-only schedule and 27/39 on lunch+evening,
+    // so a row actually landed in only 1–2 weeks out of 5 while the session
+    // quietly ran two vertical pulls and no row.
+    // Applying it here instead yields the slot to coverage when the stamp needs
+    // it and keeps the bonus every other time. Rear delts lose nothing over the
+    // week: they are slot 0's own accent on even days.
+    if(backSlotIdx.length>1&&slots[backSlotIdx[0]].tag!=='rear_delt'
+       &&!slots[backSlotIdx[1]].tag&&!slots[backSlotIdx[1]].foundationId){
+      slots[backSlotIdx[1]].tag='rear_delt';
     }
     const names=top.map(t=>MNAME[t.m]||t.m);
     // The foundation stamp is part of the template KEY: without it, a day whose
@@ -1938,7 +2047,22 @@ function genProgram(cfg,av,workoutHistoryLog){
       });
       return{tk,name:completedLog.dayName,desc:`Completed · ${completedLog.exercises.length} exercise${completedLog.exercises.length!==1?'s':''} logged`,isLunch:!!completedLog.isLunch,exercises:exs,mins:slot.mins,loc:slot.loc,preserved:true,completed:true};
     }
-    const limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
+    // ── Lunch time-box, minus the century ──
+    // A lunch is a hard 40 minutes with no shower, calibrated to 3 exercises (4
+    // ran ~7 min long). A century on the same lunch spends real time out of that
+    // box — MEASURED via centuryMins(), not assumed — so the lifting gives way
+    // by that amount instead of silently overrunning, which is the exact failure
+    // the time-box calibration existed to fix.
+    // The rate here is ~10 min/exercise, not the 40÷3 ≈ 13 the whole box works
+    // out to, because the century absorbs the warm-up: 100 pull-ups leaves the
+    // upper body thoroughly warm, so the 2-set lunch ramp is already paid for
+    // and what's left is working sets only. At the 20-min default that leaves 2
+    // lifts; a slower century (25 min+) correctly drops it to 1. Floor of 1 —
+    // a century day never becomes a no-lifting day.
+    let limit=slot.isLunch?3:(EX_LIMIT[slot.mins]||5);
+    if(slot.isLunch&&centuryDows(av).includes(slot.dow)){
+      limit=Math.max(1,Math.min(limit,Math.floor(((slot.mins||40)-centuryMins())/10)));
+    }
     // Plan this day on demand from recovery debt (most-overdue rested muscles).
     const tmpl=dayTemplate(dateStr,limit,slot.isLunch);
     if(!tmpl)return null; // nothing adequately rested → this day stays a rest day
@@ -3706,6 +3830,11 @@ function centuryHTML(){
   const T=PULLUP_CENTURY.target;
   // Progress line across sessions — the two numbers that actually moved for
   // Damon over 3 months: sets-to-100 and best unbroken set.
+  // Clock line: the measured minutes are what buy the lunch time-box its budget
+  // (centuryMins → buildSession), so show what's actually being used.
+  const clock=st.timedCount
+    ?`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Typically <strong style='color:var(--txt)'>${centuryMins()} min</strong> (median of ${st.timedCount} timed session${st.timedCount!==1?'s':''}${st.lastMins?` · last ${st.lastMins} min`:''}) — that's what gets reserved out of a 40-min lunch.</div>`
+    :`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Timing starts on your first set. Until there's data, lunches budget ${CENTURY_DEFAULT_MINS} min for this.</div>`;
   const trend=st.total>1&&st.firstSets&&st.lastSets
     ?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>${st.total} centuries logged · first took <strong style='color:var(--txt)'>${st.firstSets} sets</strong>, last took <strong style='color:var(--ok)'>${st.lastSets}</strong>${st.best?` · best single set <strong style='color:var(--txt)'>${st.best}</strong>`:''}</div>`
     :st.total===1?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First century logged — ${st.lastSets} sets${st.best?`, best single set ${st.best}`:''}. That set count is the number that comes down.</div>`
@@ -3715,8 +3844,9 @@ function centuryHTML(){
     const total=sets.reduce((a,s)=>a+s.reps,0);
     return`<div style='margin-top:12px;padding:14px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.25);border-radius:12px;text-align:left'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ok);margin-bottom:4px'>🎯 Pull-up Century · Done</div>
-      <div style='font-size:14px;font-weight:700'>✅ ${total} reps in ${sets.length} set${sets.length!==1?'s':''}</div>
+      <div style='font-size:14px;font-weight:700'>✅ ${total} reps in ${sets.length} set${sets.length!==1?'s':''}${doneToday.timedMins?` · ${doneToday.timedMins} min`:''}</div>
       <div style='font-size:12px;color:var(--mut);margin-top:2px'>${sets.map(s=>s.reps).join(' · ')}</div>
+      ${clock}
       ${trend}
     </div>`;
   }
@@ -3731,7 +3861,7 @@ function centuryHTML(){
     <div style='font-size:15px;font-weight:800'>${T} pull-ups. However many sets it takes.</div>
     <div style='display:flex;align-items:baseline;gap:8px;margin-top:8px'>
       <div style='font-size:24px;font-weight:800;color:${total>=T?'var(--ok)':'var(--txt)'}'>${total}</div>
-      <div style='font-size:13px;color:var(--mut)'>/ ${T} · ${draft.sets.length} set${draft.sets.length!==1?'s':''}${bestToday?` · best ${bestToday}`:''}</div>
+      <div style='font-size:13px;color:var(--mut)'>/ ${T} · ${draft.sets.length} set${draft.sets.length!==1?'s':''}${bestToday?` · best ${bestToday}`:''}${draft.startedAt?` · ${Math.max(1,Math.round((Date.now()-new Date(draft.startedAt).getTime())/60000))} min`:''}</div>
     </div>
     <div style='height:8px;background:var(--surf2);border-radius:99px;overflow:hidden;margin:6px 0 10px'>
       <div style='height:100%;width:${pct}%;background:${total>=T?'var(--ok)':'var(--acc)'};border-radius:99px'></div>
@@ -3780,11 +3910,22 @@ function fundamentalsHTML(){
   // weekend session available, and 0/6 without one.
   const av=(S.weekPlan?.availability)||defaultAvailability();
   const hasNonLunchSession=[1,2,3,4,5].some(d=>!!av[d]?.eve?.on)||!!av[6]?.on||!!av[0]?.on;
+  // Same honesty rule for the weighted vest: it's personal kit that doesn't
+  // travel to the YMCA or a hotel gym (see the 'own_gear' token on
+  // EQUIPMENT_PRESETS), so a week made entirely of YMCA sessions has nowhere to
+  // place vested push-ups. Explain it rather than leaving the dot grey.
+  const ownGearVenue=(key)=>(EQUIPMENT_PRESETS[key]?.equipment||[]).includes('own_gear');
+  const hasOwnGearSession=
+    [1,2,3,4,5].some(d=>(av[d]?.lunch!==false&&ownGearVenue(av[d]?.lunchEquipment||'ymca'))
+                       ||(!!av[d]?.eve?.on&&ownGearVenue(av[d].eve.equipment||'ymca')))
+    ||[6,0].some(d=>!!av[d]?.on&&ownGearVenue(av[d].equipment||'ymca'));
   const placementNote=(f)=>{
     if(f.daily||covered.has(f.id))return'';
     const def=EX.find(e=>e.id===f.id);
     if(def?.highSweat&&!hasNonLunchSession)
       return`<div style='font-size:11px;color:var(--warn);line-height:1.6;margin-top:3px;padding-left:16px'>⚠️ No evening or weekend session scheduled this week — this one can't be programmed into a 40-min lunch (too sweaty for a no-shower slot). Add an evening, or just do 3 × 30 steps on the floor at home.</div>`;
+    if((def?.eq||[]).includes('own_gear')&&!hasOwnGearSession)
+      return`<div style='font-size:11px;color:var(--warn);line-height:1.6;margin-top:3px;padding-left:16px'>⚠️ Every session this week is at the YMCA or a hotel gym, and the vest doesn't travel — so this one can't be scheduled. Do a set at home, or add a session at the apartment gym, Westminster, or Mom and Dad's.</div>`;
     return'';
   };
   const rows=FOUNDATION_FIVE.map(f=>{
@@ -3820,10 +3961,20 @@ function fundamentalsHTML(){
     </div>
     <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-bottom:4px'>Five movements the scheduler guarantees every week rather than leaving to chance. Between them they cover a vertical pull, a horizontal push, a single-leg squat, a loaded crawl and anti-extension — off a pull-up bar and a floor, so nothing about travel or a short day can be the reason one gets skipped.</div>
     ${rows}
-    <div style='margin-top:12px;padding:10px 12px;background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.25);border-radius:10px'>
-      <div style='font-size:12px;font-weight:700;color:var(--acc)'>🎯 Pull-up Century · ${centuryDows().map(d=>DOW[d]).join(' · ')}</div>
-      <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px'>${PULLUP_CENTURY.target} pull-ups per session, however many sets it takes, on ${centuryDows().length} spaced days a week. The target never moves — the set count is the progress metric, so it self-scales as you get stronger and lighter without ever needing a new plan. ${st.thisWeek?`<strong style='color:var(--ok)'>${st.thisWeek} done this week.</strong>`:''}</div>
-    </div>
+    ${(()=>{
+      // Century days are gated on venue, not just availability (see
+      // centuryEligibleDow), so this list can be empty — a week of YMCA-only
+      // lunches has nowhere to host 100 pull-ups. Say that plainly instead of
+      // rendering an empty day list and "on 0 spaced days a week".
+      const cd=centuryDows();
+      const cmins=centuryMins();
+      return`<div style='margin-top:12px;padding:10px 12px;background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.25);border-radius:10px'>
+      <div style='font-size:12px;font-weight:700;color:var(--acc)'>🎯 Pull-up Century${cd.length?' · '+cd.map(d=>DOW[d]).join(' · '):''}</div>
+      <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px'>${cd.length
+        ?`${PULLUP_CENTURY.target} pull-ups per session, however many sets it takes, on ${cd.length} spaced day${cd.length===1?'':'s'} a week. The target never moves — the set count is the progress metric, so it self-scales as you get stronger and lighter without ever needing a new plan. On a lunch day it's timed and costs about ${cmins} min${st.timedCount?'':' (estimated until you\'ve timed a few)'}, so that lunch drops to fewer lifts rather than running over. ${st.thisWeek?`<strong style='color:var(--ok)'>${st.thisWeek} done this week.</strong>`:''}`
+        :`<strong style='color:var(--warn)'>No training days scheduled this week</strong>, so there's nowhere to put a century. Switch on a lunch, an evening, or a weekend session.`}</div>
+    </div>`;
+    })()}
     <div class='sec-lbl' style='margin:14px 0 2px'>Daily Habits</div>
     <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-bottom:4px'>${habitCount} habits, no biohacks — no supplement stack, no fasting window, no cold plunge, no readiness score. Each one has a real effect size, costs nothing, and survives a workday, which is why they're the ones that actually get repeated long enough to work.</div>
     ${habitRows}
@@ -4861,6 +5012,7 @@ function renderWorkout(){
       <div class='ex-name'>${ex.name}</div>
       <span class='m-tag' style='background:${mcolor}22;color:${mcolor}'>${MNAME[ex.muscle]||ex.muscle} · ${ex.type}</span>
       ${feelFor(ex)?`<div style='font-size:12.5px;color:var(--txt-dim);line-height:1.5;margin:8px 0 10px;padding:8px 10px;background:${mcolor}0d;border-left:3px solid ${mcolor}66;border-radius:0 8px 8px 0'>🎯 <strong style='color:${mcolor}'>Feel it:</strong> ${feelFor(ex)}</div>`:''}
+      ${SETUP_ROW(ex)}
       ${handleFor(ex)&&(EQUIPMENT_PRESETS[S.active.equipmentKey||'ymca']?.equipment||[]).includes('cables')?`<div style='font-size:12px;color:var(--txt-dim);line-height:1.5;margin:0 0 10px;padding:6px 10px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:8px'>🔗 <strong style='color:var(--acc)'>Attachment:</strong> ${handleFor(ex)}</div>`:''}
       <div style='display:flex;gap:8px;align-items:center;margin-bottom:10px'>
         <button class='cue-btn' data-action='toggle-cue' data-id='cue-${exIdx}' style='margin-bottom:0'>💡 Technique tip</button>
@@ -4946,7 +5098,7 @@ function renderReviewWorkout(){
       <div class='ex-name'>${ex.name}</div>
       <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>${ex.sets} sets × ${ex.rMin}–${ex.rMax} ${ex.isTimed?'seconds':'reps'}</div>
       <button class='cue-btn' data-action='toggle-cue' data-id='review-cue-${idx}'>💡 Technique tip</button>
-      <div class='cue-txt' id='review-cue-${idx}'>${ex.cue || 'No technique notes available.'}${handleFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🔗 <strong>Attachment:</strong> ${handleFor(ex)}</div>`:''}${feelFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🎯 <strong>Feel it:</strong> ${feelFor(ex)}</div>`:''}</div>
+      <div class='cue-txt' id='review-cue-${idx}'>${ex.cue || 'No technique notes available.'}${setupFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🏗️ <strong>Set up on:</strong> ${setupFor(ex)}</div>`:''}${handleFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🔗 <strong>Attachment:</strong> ${handleFor(ex)}</div>`:''}${feelFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🎯 <strong>Feel it:</strong> ${feelFor(ex)}</div>`:''}</div>
     </div>`;
   }).join('');
 
@@ -6400,12 +6552,18 @@ document.addEventListener('click',e=>{
     const n=parseInt(el?.value);
     if(!(n>0&&n<=60))return;
     const d=centuryDraft();
-    S.century={date:d.date,sets:[...d.sets,n]};
+    // Clock starts on the FIRST set, not when the card renders — the card is on
+    // the dashboard all day, so render time would measure the morning, not the
+    // session. Preserved across re-renders/reloads because it lives in S.century.
+    S.century={date:d.date,sets:[...d.sets,n],startedAt:d.startedAt||new Date().toISOString()};
     save();render();return;
   }
   if(a==='century-undo-set'){
     const d=centuryDraft();
-    S.century={date:d.date,sets:d.sets.slice(0,-1)};
+    const sets=d.sets.slice(0,-1);
+    // Undoing back to empty also clears the clock, so a mistyped first set
+    // doesn't leave a start time running from minutes ago.
+    S.century={date:d.date,sets,startedAt:sets.length?d.startedAt:null};
     save();render();return;
   }
   if(a==='century-finish'){
@@ -6417,11 +6575,21 @@ document.addEventListener('click',e=>{
     // daily lifting slots. The exercises array IS populated, so the reps still
     // count toward weekly back volume — at the documented half weight, since
     // every set stopped short of failure.
+    // MEASURED duration, wall-clock from the first set to this tap. `duration`
+    // was previously a guess (2 min × set count); that guess is now only the
+    // fallback for a draft with no start time (one begun before timing existed).
+    // timedMins is stored SEPARATELY from duration so centuryMins() only ever
+    // averages real measurements — a fallback estimate must never feed back into
+    // the schedule as if it were evidence.
+    const timedMins=d.startedAt
+      ?Math.max(1,Math.round((Date.now()-new Date(d.startedAt).getTime())/60000))
+      :0;
     S.logs.push({
       id:Date.now().toString(),date:new Date().toISOString(),
       dayName:`Pull-up Century · ${d.sets.reduce((a,n)=>a+n,0)} reps`,
       isCardio:true,century:true,
-      duration:Math.max(10,Math.round(d.sets.length*2)),
+      duration:timedMins||Math.max(10,Math.round(d.sets.length*2)),
+      timedMins,
       exercises:[{id:'pullup_century',name:'Pull-up Century',muscle:'back',
         sets:d.sets.map(n=>({weight:0,reps:n}))}],
     });
