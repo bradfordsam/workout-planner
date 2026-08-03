@@ -46,6 +46,18 @@ strip it before other debugging.
 
 - Exercise pool: `EX` array (~line 250+), objects with
   `id/name/muscle/type/eq/rMin/rMax/rest/cue/tags`.
+  **EX ORDER IS LOAD-BEARING for thinly-populated slots.** `pickEx`'s
+  `leastUsed()` breaks frequency ties by array order, and the rolling 7-day
+  frequency window decays to zero between slots that only fire once or twice a
+  week — so such a slot is winner-take-all and the FIRST matching movement is
+  the only one that ever gets programmed. Adding a movement lower in that
+  block is adding dead code (proven 2026-08-03: `inverted_row` listed fourth
+  among 'horizontal' took 0 picks across 6 simulated weeks on BOTH availability
+  profiles; leading the block it lands every week that hosts the slot, with
+  `bb_row` demoted to the second slot rather than displaced). When adding to a
+  low-frequency slot family, decide the intended default and order accordingly
+  — then SIMULATE, because a never-picked entry looks identical to a working
+  one in a syntax check.
 - Scheduling: per-day recovery-debt engine (`dayTemplate`), 6 muscle groups +
   a forced core slot. Mandates: first evening leg slot = 'strength' (heavy
   1–5 pool, falls back to 'hinge' when no barbell/DB), lunch leg slot =
