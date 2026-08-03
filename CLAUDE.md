@@ -196,7 +196,17 @@ strip it before other debugging.
   the spine work and 26 pull-ups, with no finisher at all. Consequences worth
   knowing: **a 40-min lunch never has room for a finisher** (lifting fills
   first; `finisherHTML` returns '' rather than showing one it can't afford), and
-  **a century lunch drops from 2 lifts to 1**. `lunchExMins()` calibrates
+  **a century lunch drops from 2 lifts to 1**.
+  Two rules guard the finisher, both from a bug found by driving the DEPLOYED
+  build rather than the sim: **never on a century day** (100 pull-ups already is
+  the conditioning) and **only with a ≥2 min margin left over**. `left` is a
+  FLOORING REMAINDER, not free time — a 1-lift century day banked the 8 unspent
+  minutes of the lift that didn't fit and bought a finisher with them, so the
+  tightest day of the week was the one getting extra work while an ordinary
+  3-lift lunch (2 min spare) got none. It was also day-dependent, since
+  `getFinisher` rotates by dow: an 8-min circuit slipped through where a 10-min
+  one didn't. **Any check on the finisher must sweep every dow on every
+  profile** — testing one day proves nothing. `lunchExMins()` calibrates
   minutes-per-exercise from Sam's own logs — only `measured` ones (finishWorkout
   now records whether `duration` was a clock reading or a recovered estimate)
   and only century-free lunches, since a century day has two unknowns in one

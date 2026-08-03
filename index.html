@@ -1621,8 +1621,23 @@ function lunchBudget(dow,av,boxMins){
   let left=box-spine-century;
   const lifts=Math.max(LUNCH_LEDGER.minLifts,Math.min(LUNCH_LEDGER.maxLifts,Math.floor(left/per)));
   left-=lifts*per;
-  const f=S.cfg?.conditioning?getFinisher(dow,true):null;
-  const finisher=(f&&left>=(f.mins||8))?f:null;
+  // A finisher has to be affordable TWICE OVER before it's offered.
+  //  1) Never on a century day. 100 pull-ups already IS the conditioning, and
+  //     stacking a circuit on top is precisely the recovery hole PULLUP_CENTURY
+  //     is spaced and capped to avoid. Without this the arithmetic did the
+  //     opposite of what anyone would want: a 1-lift century day "saves" the
+  //     unspent remainder of the lift that didn't fit (8 of 11 min) and buys a
+  //     finisher with it, while an ordinary 3-lift lunch has only 2 min spare
+  //     and gets none — the tightest day of the week was the one getting extra
+  //     work. Worse, it depended on WHICH day: getFinisher rotates by dow, so
+  //     an 8-min circuit slipped in and a 10-min one didn't. Caught by driving
+  //     the deployed build, not by the headless sim, which happened to land on
+  //     a 10-min day.
+  //  2) Leave a real margin. `left` is a flooring remainder, not free time —
+  //     spending it to the last minute is how a 40-minute lunch becomes 43.
+  const FINISHER_MARGIN_MINS=2;
+  const f=(S.cfg?.conditioning&&!century)?getFinisher(dow,true):null;
+  const finisher=(f&&left>=(f.mins||8)+FINISHER_MARGIN_MINS)?f:null;
   if(finisher)left-=(finisher.mins||8);
   return{box,spine,century,per:Math.round(per*10)/10,lifts,finisher,left:Math.round(left)};
 }
