@@ -117,6 +117,44 @@ strip it before other debugging.
   Westminster and Mom and Dad's, neither of which has a stack.
 - Stretch pools (`HIP_POOL`, `SHOULDER_POOL`, `LOWER/UPPER_MOBILITY_POOL`,
   `COOLDOWN_POOL`) live inline in the workout render fn and rotate by date.
+- `MCGILL_BIG3` + `mcgillHTML()` (2026-08-03, Sam asked for it by name): McGill's
+  modified curl-up / side bridge / bird dog, rendered in the same three places as
+  `DAILY_SPINE_MINIMUMS` (dashboard, rest card, evening cool-down). That pairing
+  is the point — the spine minimums are the mobility/decompression side, this is
+  the STABILITY side. Doses are ~10s holds with reps DESCENDING 6→4→2, because
+  the protocol targets trunk-muscle ENDURANCE, and high-rep/high-load trunk work
+  is what aggravates a cranky back rather than sparing it.
+  - **NOT folded into `DAILY_SPINE_MINIMUMS`, and NOT charged to
+    `LUNCH_LEDGER.spineMins`** — the deciding number, since "it's only 6 minutes"
+    is exactly the reasoning the lunch ledger exists to refute: spine 5 → 11 min
+    turns an ordinary lunch from `floor((40−5)/11)`=3 lifts into
+    `floor((40−11)/11)`=2. A third of his lunch lifting is too much to pay for
+    floor work that needs no gym, so the card says morning-or-evening instead.
+    **If it ever moves into the lunch box, `spineMins` must move with it.**
+  - **NOT in `EX`**, following the plank's precedent in `FOUNDATION_FIVE`: a fixed
+    daily dose is a stronger guarantee than a weekly slot, and adding these to the
+    core pool would double-program the same three movements.
+  - `mcgillHTML(holds)` — the dashboard/rest callers must pass falsy, since
+    `start-hold` → `startRest` writes to `S.active`, which is null outside a
+    workout. Same trap `dailySpineHTML` already documents.
+  - Note the tension it creates with the Pyramid's 400-sit-up rung, which McGill
+    would specifically argue against. Flagged in that rung's cue rather than
+    silently resolved; Sam's call either way.
+- `hip_airplane` (2026-08-03, asked for by name): in `EX` as a `hips`/`mobility`
+  entry beside `hip_cars`, and in the rotating pre-lift `HIP_POOL` which is what
+  actually delivers hip work (`hips` is NOT one of `dayTemplate`'s `MUSCLES`, so
+  hips entries are never slot-scheduled — which is also why adding one carries no
+  EX-ordering risk). **Why this doesn't violate the hip rule:** the constraint is
+  no *loaded* end-range rotation (why `woodchop` is on `avoidExercises`). This is
+  bodyweight and the range is SELF-SELECTED — you only rotate as far as you can
+  control and return from, which stops short of the passive end range where a cam
+  impinges. `hip_cars` is already in the pool on exactly that reasoning and
+  `hip_90_90` deliberately trains internal rotation because impingement restricts
+  it. Cued external-rotation-first and further, because IR *in flexion* is the FAI
+  provocation position and the hinge already supplies the flexion. Deliberately
+  NOT flagged `hipRisk` — that flag would hide it entirely under `hipCaution`,
+  which is on; the pinch cue and the self-limited range are the safety mechanism,
+  the same way `tricep_dips` relies on its depth cap.
 - `DAILY_SPINE_MINIMUMS` (global, near `recoveryHTML`): four FIXED daily poses
   (child's pose knees-wide 60s / cobra 2min / plank 60s / down dog 60s) shown
   every day — rest card, today card, and evening cool-down (with hold timers).

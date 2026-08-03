@@ -477,6 +477,26 @@ const EX = [
   {id:'hip_90_90',name:'90/90 Hip Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Sit with both knees at 90°. Front leg externally rotated, back leg internally rotated. Lean forward over your front shin to the max comfortable stretch (PAILS/RAILS): hold, then gently push the front knee into the floor for 5s (contract the stretched muscle), relax, then use the back leg to pull yourself deeper for 5s (assisted by the antagonist) — repeat 2-3x per side. This targets hip internal rotation, which is often restricted with impingement. Count seconds per side.',tags:['mobility','internal_rotation']},
   {id:'hip_flexor_half_kneel',name:'Half-Kneeling Hip Flexor Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Down knee on pad, front foot forward. FIRST: posteriorly tilt your pelvis (tuck tailbone). THEN drive hips forward. That pelvic tilt is the key — without it you compress the hip instead of stretching the flexor. Hold, breathe. Count seconds per side.',tags:['mobility','hip_flexor']},
   {id:'hip_cars',name:'Hip CARs',muscle:'hips',type:'mobility',eq:['bodyweight'],noWeight:true,rMin:5,rMax:8,rest:30,cue:'Stand near wall for balance. Lift one knee high, then rotate it OUT and sweep the full circle (Controlled Articular Rotation). Goal is to find and explore your full active range. Go slow — speed defeats the purpose. Squeeze glute at the back. Count full circles per side.',tags:['mobility','rotation']},
+  // Hip Airplanes (2026-08-03, Sam asked for these by name). The standing
+  // single-leg sibling of Hip CARs: same FRC premise of owning rotation actively
+  // rather than stretching into it, but on ONE leg and hinged, so the stance hip
+  // has to control rotation while bearing bodyweight. That is the specific quality
+  // an FAI hip is usually missing.
+  //
+  // WHY THIS DOESN'T CONTRADICT THE HIP RULE. The constraint is no LOADED
+  // end-range rotation (which is why woodchop is on avoidExercises). This is
+  // bodyweight, and — the part that matters — the range is self-selected: you only
+  // rotate as far as you can control and return from, which by definition stops
+  // short of the passive end range where a cam impinges. hip_cars is already in
+  // the pool on exactly that reasoning, and hip_90_90 deliberately trains internal
+  // rotation because impingement restricts it. Same family, same logic.
+  //
+  // Cued EXTERNAL rotation first and further, because internal rotation in hip
+  // flexion is the FAI provocation position — the hinge already supplies the
+  // flexion, so IR is the direction to be conservative in here. Not flagged
+  // hipRisk: the pinch cue and the self-limited range are the safety mechanism,
+  // the same way tricep_dips relies on its depth cap.
+  {id:'hip_airplane',name:'Hip Airplane',muscle:'hips',type:'mobility',eq:['bodyweight'],noWeight:true,rMin:5,rMax:8,rest:45,cue:'Stand on one leg with a hand on a wall or rack for balance. Hinge forward until the torso and the free leg are roughly parallel to the floor, in one line from head to heel — that shape is held throughout and never changes. Now rotate the PELVIS over the stance hip: open the free hip up toward the ceiling (external rotation), pause, then slowly rotate it back down and under (internal rotation) — the torso and spine stay still, all the movement happens at the stance hip. Slow enough that you could stop anywhere and hold it; if you cannot, you have gone past your active range, which is the whole thing this trains. Left hip: go FURTHER opening up than rotating under, and back off at the first hint of a pinch in the front of the joint — that is the bony limit, not a stretch. Count full cycles per side.',tags:['mobility','rotation','unilateral','stability']},
   // ─── Hip Flexor Rehab (strengthening entry points) ───
   {id:'straight_leg_raise',name:'Straight Leg Raise',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:8,rMax:15,rest:60,noWeight:true,cue:'Lie on your back, one knee bent (foot flat), the other leg straight. Tighten the quad to lock the knee, then lift the straight leg to the height of the bent knee. Slow, controlled — no jerking. Lower under control without touching down between reps. A safe low-level entry point for hip-flexor and quad strength. Count per side.\n\nProgression: (1) build strict reps → (2) add a 2s hold at the top → (3) slow the lower to 3 counts → (4) add an ankle weight.',tags:['rehab','hip_flexor']},
   {id:'hip_flexor_rock_back',name:'Eccentric Hip Flexor Rock Back',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:6,rMax:10,rest:60,noWeight:true,cue:'Half-kneeling (down knee on a pad), front foot planted. Keeping a tall torso and a posterior pelvic tilt (tuck the tailbone), slowly rock your hips BACK over the down leg — loading the hip flexor as it lengthens — then return. The control on the way back is the point: a slow eccentric is what builds tolerance in an irritated hip flexor. Stop short of any pinch. Count per side.',tags:['rehab','hip_flexor','eccentric']},
@@ -1638,7 +1658,7 @@ const PYRAMID_LADDER=[
   ]},
   {mult:4,pattern:'core',options:[
     {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,
-     cue:'Curl up leading with the chest, exhale at the top, lower under control — never yank on the neck. NOTE: at the top peak this rung is 400 reps of loaded spinal flexion, which is the one part of this session your lower back has a stated history with. If it talks back, swap this rung to crunches (shorter range) or dead bugs on the avoid list and the ladder re-resolves around it.'},
+     cue:'Curl up leading with the chest, exhale at the top, lower under control — never yank on the neck. NOTE: at the top peak this rung is 400 reps of loaded spinal flexion, which is the one part of this session your lower back has a stated history with — and it is the exact movement McGill argues against for a symptomatic back, so it sits oddly next to the Big 3 you now do daily. Nothing here forces you to keep it: put `situps` on the avoid list and the ladder re-resolves around it, dropping to four rungs. If you want the rung but not the flexion, sub in dead bugs or side planks for the same count.'},
   ]},
   {mult:5,pattern:'squat',options:[
     {id:'bw_squat',name:'Bodyweight Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,
@@ -4492,6 +4512,41 @@ const DAILY_SPINE_MINIMUMS=[
   {n:'Plank',d:'60 sec, split as needed · elbows under shoulders, glutes squeezed, ribs down — core stiffness is what protects the spine and holds posture',hold:60},
   {n:'Downward Dog',d:'60 sec · hips high, heels reaching, soft knees are fine — stretches the whole back line and gets blood moving',hold:60},
 ];
+// ─────────────────────────────────────────────
+// McGILL BIG 3
+// ─────────────────────────────────────────────
+// Stuart McGill's spine-sparing core protocol (2026-08-03, Sam asked for it by
+// name). It is the standard-of-care answer for a lower back that's symptomatic
+// but not injured — which is exactly this back: standing overhead pressing hurts,
+// nothing else does. DAILY_SPINE_MINIMUMS is the mobility/decompression side of
+// that; this is the STABILITY side, and the two are complements rather than
+// alternatives. The shared principle: endurance, not strength. Holds are ~10s
+// and reps descend, because trunk-muscle ENDURANCE is what correlates with
+// spared backs, and high-rep or high-load trunk work is what aggravates them.
+//
+// Two McGill rules built into the cues rather than left to be looked up:
+//  1) The lumbar spine does NOT move. Every one of the three is a braced hold
+//     with movement happening somewhere else. If the low back is moving, the
+//     exercise has become the thing it's meant to replace.
+//  2) Not in the first hour after waking. Discs are at peak hydration overnight,
+//     so loaded spine flexion right out of bed carries the most risk of the day.
+//
+// NOT ADDED TO DAILY_SPINE_MINIMUMS, and deliberately NOT charged to
+// LUNCH_LEDGER.spineMins — this is a floor protocol that needs no gym, and the
+// lunch arithmetic makes the cost of pretending otherwise concrete: spine 5 → 11
+// min turns an ordinary lunch from floor((40−5)/11)=3 lifts into
+// floor((40−11)/11)=2. Paying a third of his lunch lifting for work he can do on
+// a rug at home would be a bad trade, so the card says morning or evening
+// instead. If it ever DOES move into the lunch box, spineMins must move with it.
+//
+// Also deliberately NOT in EX, following the plank's precedent in FOUNDATION_FIVE:
+// a fixed daily dose is a stronger guarantee than a weekly slot, and adding these
+// to the core pool would double-program the same movements.
+const MCGILL_BIG3=[
+  {n:'Modified Curl-up',d:'Hands stacked under the low back, ONE knee bent and one leg straight. Tuck the chin slightly and lift the head, neck and shoulders as a single unit only an inch or two — the low back stays pressed on your hands and does not flatten or arch. Hold 10s, breathe. 6 reps, then 4, then 2, swapping which knee is bent between sets.',hold:10},
+  {n:'Side Bridge',d:'On your side, elbow under the shoulder, knees bent (or legs straight to progress). Lift the hips into a straight line from knee to shoulder and brace — no sagging, no rolling forward. Hold 10s per side. 6 reps, then 4, then 2, each side.',hold:10},
+  {n:'Bird Dog',d:'Quadruped, spine neutral and ribs down. Extend the opposite arm and leg to horizontal without letting the low back arch or the hips tip — a broomstick on your back shouldn\'t roll off. Hold 10s, then sweep the hand and knee along the floor to reset rather than standing down. 6 reps, then 4, then 2, each side.',hold:10},
+];
 // Dashboard/rest-day card version — plain text, NO hold-timer buttons: the
 // rest overlay writes to S.active, which is null outside a workout.
 // Where the 40 minutes actually goes. Shown on lunch days because the box is
@@ -4521,6 +4576,23 @@ function dailySpineHTML(){
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:6px'>🧘 Daily Spine Minimums · ~5 min</div>
     ${DAILY_SPINE_MINIMUMS.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>Fixed daily doses — these never rotate. A few minutes every day keeps the spine decompressed, the core protective, and posture honest. Evening training days fold them into the cool-down; otherwise do them any time.</div>
+  </div>
+  ${mcgillHTML()}`;
+}
+
+// The Big 3, rendered wherever the daily spine work is (see MCGILL_BIG3 for why
+// it's a separate block and not folded into DAILY_SPINE_MINIMUMS). `holds`
+// controls the timer buttons: the dashboard and rest cards must pass false,
+// because startRest writes to S.active, which is null outside a workout.
+function mcgillHTML(holds){
+  const row=(it)=>`<div style='font-size:12px;color:var(--mut);line-height:1.7;display:flex;gap:8px;align-items:flex-start'>
+    <span>•</span><span style='flex:1'><strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</span>
+    ${holds&&it.hold?`<button data-action='start-hold' data-secs='${it.hold}' style='flex-shrink:0;font-size:11px;font-weight:600;color:#c084fc;background:rgba(192,132,252,.12);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>${it.hold}s</button>`:''}
+  </div>`;
+  return`<div style='margin-top:10px;padding:14px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:6px'>🦴 McGill Big 3 · ~6 min</div>
+    ${MCGILL_BIG3.map(row).join('')}
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>The stability half of the spine work, done <strong style='color:var(--txt)'>daily</strong>. Endurance is the goal, not strength — that's why the holds are short and the reps come DOWN rather than up, and why you never take these near failure. Two rules that matter more than the reps: the <strong style='color:var(--txt)'>low back doesn't move</strong> in any of the three, and skip them in the first hour after waking (discs are at their most swollen overnight). Morning or evening on a rug — deliberately not part of the 40-minute lunch, which needs its minutes for lifting.</div>
   </div>`;
 }
 
@@ -5448,6 +5520,10 @@ function renderWorkout(){
     {n:'Half-Kneeling Hip Flexor Stretch',d:'30 sec/side · tuck pelvis first'},
     {n:'Figure 4 Stretch',d:'30 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch'},
     {n:'Hip CARs',d:'5 circles/side · slow, full range'},
+    // Sits next to Hip CARs on purpose — same active-rotation idea, one leg and
+    // loaded by bodyweight. Pool order is mobilize → activate and this is the
+    // activation end of rotation work, so it comes after the passive stretches.
+    {n:'Hip Airplanes',d:'5 cycles/side · hand on a wall, hinge until torso and free leg are one horizontal line, then rotate the pelvis over the stance hip — open UP toward the ceiling, pause, slowly back under. Torso stays still; only the stance hip moves. Slow enough to stop anywhere. Left hip: open up further than you rotate under, and back off at any pinch in the front'},
     {n:'Clamshells',d:'15 reps/side · hips stacked'},
     {n:'Butterfly Stretch',d:'30–45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch'},
     {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back'},
@@ -5778,6 +5854,9 @@ function renderWorkout(){
     <div class='wu-title' style='color:#c084fc;margin-top:14px'>🧘 Daily Spine Minimums · ~5 min · these never rotate</div>
     ${DAILY_SPINE_MINIMUMS.map(wuRow).join('')}
     <div class='wu-note'>Fixed daily doses, every day: 60s child's pose (knees wide — hip-friendly), 2 min of cobra split into a few holds, 60s plank, 60s down dog. Knocking them out here checks off today's minimums, so there's nothing left to do at home.</div>
+    <div class='wu-title' style='color:var(--acc);margin-top:14px'>🦴 McGill Big 3 · ~6 min · the stability half</div>
+    ${MCGILL_BIG3.map(wuRow).join('')}
+    <div class='wu-note'>Braced holds, ~10s each, reps descending 6 → 4 → 2. Endurance is the target, not strength, so none of these go near failure. In all three the LOW BACK DOESN'T MOVE — if it's moving, the exercise has turned into the thing it exists to replace. Doing them here means they're done for the day.</div>
   </div>`:'';
   const nextBtn=allDone
     ?`<button class='btn ${isLast?'btn-ok':'btn-p'}' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`
