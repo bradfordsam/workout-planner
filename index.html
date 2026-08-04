@@ -1551,6 +1551,48 @@ function centuryDraft(){
   if(!S.century||S.century.date!==todayStr())return{date:todayStr(),sets:[]};
   return S.century;
 }
+// A draft abandoned overnight — the reps WERE done, but the card's "log N reps
+// & stop here" button was never tapped — used to be dropped silently by the
+// date check above: no history entry, no back-MRV cost, and nothing for
+// centuryMins() to calibrate the time budget from. Flush it to a PARTIAL log
+// stamped to the day it actually happened, then clear it.
+//
+// It deliberately does NOT roll the remaining reps into today. The century is a
+// DENSITY challenge — 100 reps in one bout — so finishing yesterday's remainder
+// today is just two ordinary pull-up sessions, and stacking a remainder onto a
+// back that already did 70 the day before is how elbows and shoulders get
+// cranky. An unfinished century is that day's honest capacity; the next attempt
+// starts from zero, which is exactly what centuryDraft() already returns.
+//
+// Sync-safe: mergeStampedDraft() discards any draft not dated today, so a stale
+// draft can't ride back in from another device after this clears it, and the
+// already-logged guard keeps a second device from double-logging the same day.
+function flushStaleCentury(){
+  const c=S.century;
+  if(!c||c.date===todayStr())return;
+  const sets=Array.isArray(c.sets)?c.sets.filter(n=>n>0):[];
+  if(sets.length&&!centuryLogs().some(l=>logDay(l.date)===c.date)){
+    // Stamp to the draft's OWN day — last activity when known, else 18:00
+    // local, the same convention the backdated VO2 log uses.
+    const when=c.touchedAt||new Date(c.date+'T18:00:00').toISOString();
+    // Only claim an elapsed time when both ends are known. centuryMins()
+    // filters on timedMins>0, so 0 keeps a guess out of the time budget.
+    const timedMins=(c.startedAt&&c.touchedAt)
+      ?Math.max(1,Math.round((new Date(c.touchedAt).getTime()-new Date(c.startedAt).getTime())/60000)):0;
+    S.logs.push({
+      id:Date.now().toString(),date:when,
+      dayName:`Pull-up Century · ${sets.reduce((a,n)=>a+n,0)} reps`,
+      isCardio:true,century:true,
+      duration:timedMins||Math.max(10,Math.round(sets.length*2)),
+      timedMins,
+      exercises:[{id:'pullup_century',name:'Pull-up Century',muscle:'back',
+        sets:sets.map(n=>({weight:0,reps:n}))}],
+    });
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  }
+  S.century=null;
+  save();
+}
 // Total reps in a logged century — needed because a "century" log may be a
 // PARTIAL one (the card's own button offers "log N reps & stop here").
 function centuryRepsOf(l){
@@ -6522,6 +6564,9 @@ function updateModals(){
 
 function render(){
   const root=document.getElementById('root');
+  // Cheap no-op unless a century draft survived past its own day (see the
+  // function's note) — banks those reps before anything reads the tally.
+  flushStaleCentury();
   if(!S.program&&S.view!=='setup'){S.view='setup';}
   updateModals();
   if(S.view==='setup'){root.innerHTML=renderSetup();return;}
