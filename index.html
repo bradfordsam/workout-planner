@@ -889,7 +889,7 @@ const EQUIPMENT_PRESETS = {
   apartment_gym: {
     name: '🏢 Apartment Gym',
     desc: 'Dumbbells (5–50 lb ea, no 30s/35s), bench, cable machine (rope + EZ bar), pull-up bar, treadmill/elliptical, medicine balls',
-    equipment: ['dumbbells', 'cables', 'pullup_bar', 'medball', 'bodyweight', 'own_gear'],
+    equipment: ['cardio_machine', 'dumbbells', 'cables', 'pullup_bar', 'medball', 'bodyweight', 'own_gear'],
     // Exact pairs on hand — 5 lb steps to 25, then a gap (no 30/35) straight to
     // 40/45/50. Weight suggestions round DOWN to the nearest weight in this list
     // rather than just capping at the max, so a "38 lb" suggestion never lands
@@ -901,13 +901,13 @@ const EQUIPMENT_PRESETS = {
   hotel_gym: {
     name: '🏨 Hotel Gym',
     desc: 'Basic hotel gym with dumbbells & machines',
-    equipment: ['dumbbells', 'machine', 'bodyweight'],
+    equipment: ['cardio_machine', 'dumbbells', 'machine', 'bodyweight'],
     location: 'hotel'
   },
   ymca: {
     name: '🏋️ YMCA',
     desc: 'Full gym with all equipment available',
-    equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'bodyweight'],
+    equipment: ['cardio_machine', 'barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'bodyweight'],
     location: 'ymca'
   },
   westminster_gym: {
@@ -918,7 +918,7 @@ const EQUIPMENT_PRESETS = {
     // are trained the same as dumbbells (existing KB/DB swing movements
     // already tag 'dumbbells'), and GHD/plyo box/med ball work falls under
     // bodyweight movements (e.g. Back Extension's bodyweight variant).
-    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'medball', 'medball_wall', 'bodyweight', 'own_gear'],
+    equipment: ['cardio_machine', 'barbell', 'dumbbells', 'pullup_bar', 'medball', 'medball_wall', 'bodyweight', 'own_gear'],
     location: 'westminster'
   },
   bodyweight: {
@@ -1126,8 +1126,15 @@ const CONDITIONING_FINISHERS=[
   // is fine only fresh and fully primed, since 30s all-out foot sprints are far
   // more hamstring-aggressive than the app's short accel sprints.
   {name:'GH Sprint Repeats (6 × 30s)',desc:'6 × 30s ALL-OUT sprints, 3–4 min full recovery between each — the recovery is mandatory so every rep is genuinely maximal. Six max efforts drives a large temporary growth-hormone surge. Do it on a bike or rower (default — repeatable and easy on the hamstrings), a steep hill, or flat-out running only when fresh and fully primed. Warm up thoroughly first, then stop the moment a rep drops below all-out.',icon:'⚡',mins:22,sprint:true},
-  {name:'Row Intervals',desc:'6 × 250m hard row / 60s rest — anaerobic power, zero impact',icon:'🚣',mins:14},
-  {name:'Bike Sprint Intervals',desc:'8 × 20s hard / 100s easy spin — off-feet anaerobic repeats, zero impact',icon:'🚴',mins:16},
+  {name:'Row Intervals',needsEquip:'cardio_machine',desc:'6 × 250m hard row / 60s rest — anaerobic power, zero impact',icon:'🚣',mins:14},
+  {name:'Bike Sprint Intervals',needsEquip:'cardio_machine',desc:'8 × 20s hard / 100s easy spin — off-feet anaerobic repeats, zero impact',icon:'🚴',mins:16},
+  // Anti-boredom conditioning: Sam finds stationary bikes and treadmills
+  // miserable, and gating foot sprints to Westminster pushed the rotation
+  // further onto machines everywhere else. These two are hard, off-feet-ish
+  // and skill-based rather than staring at a console. needsEquip keeps them
+  // from being prescribed where the gear isn't.
+  {name:'Med Ball Complex',needsEquip:'medball',desc:'4 rounds, 60s rest: Slams × 8 · Rotational Throws × 6/side · Overhead-to-floor Slam × 6. Every rep maximal intent — this is power work that happens to spike the heart rate, not a metcon. Put the ball down between rounds.',icon:'\ud83c\udfaf',mins:12},
+  {name:'Carry & Crawl Medley',desc:'3 rounds, walk 60s between: Farmer Carry 40 m heavy · Suitcase Carry 20 m/side · Bear Crawl 15 m forward + 15 m backward. Grip, trunk and shoulders under continuous load — athletic conditioning with zero machine time.',icon:'\ud83e\uddf3',mins:12},
   {name:'Brace Circuit',desc:'2 quiet rounds: Suitcase Carry 40s/side · Pallof Press Hold 30s/side · Ab Rollout × 8 · Copenhagen Plank 25s/side. Resist rotation, extension, and lateral flexion — no sweat required.',icon:'🛡️',mins:8,lunchOK:true},
   // Bounce work in two tiers: the iso foundation is impact-free (always in
   // rotation); the reactive jump protocol carries plyo:true so getFinisher
@@ -1149,13 +1156,13 @@ const VO2_PROTOCOLS=[
    desc:w=>`${w} × 4 min hard (90–95% max HR) on run, bike, or rower · 3 min easy between`,
    mins:w=>w*7+10},
   {key:'zone2',name:'Zone 2 Base (Off-Feet)',icon:'🚴',base:35,maxW:50,
-   desc:w=>`${w} min steady bike, row, or ski erg — conversational pace, could nose-breathe throughout. The aerobic base everything else recovers on`,
+   desc:w=>`${w} min conversational pace — could nose-breathe throughout. Pick whatever you'll actually finish: a brisk hike or ruck, an easy OUTDOOR bike, rower, ski erg, or incline treadmill walk. Zone 2 is defined by intensity, not by the machine, so the least boring option is the correct one`,
    mins:w=>w+5},
   {key:'billat',name:'Billat 30/30s',icon:'⚡',base:12,maxW:20,
    desc:w=>`${w} × (30s @ ~vVO2max / 30s easy) · split into 2 blocks, 3 min between`,
    mins:()=>25},
   {key:'anaerobic',name:'Anaerobic Repeats (Off-Feet)',icon:'🔥',base:8,maxW:14,
-   desc:w=>`${w} × 30s hard / 90s easy on bike or rower — repeatable hard efforts, zero impact, not a death march`,
+   desc:w=>`${w} × 30s hard / 90s easy — repeatable efforts, zero impact, not a death march. Rower or ski erg first, then sled push, battle ropes, or hard KB swings; bike only if nothing else is free`,
    mins:w=>Math.round(w*2+6)},
 ];
 // 20-minute maximal row benchmark: every 8th engine session (~every 2–3
@@ -4629,7 +4636,11 @@ function getFinisher(dow,isLunch,equipmentKey){
   // Lunch sessions only draw from the lunchOK (low-sweat) subset — sprints and
   // hard intervals live on evenings/weekends so the lunch time-box stays dry.
   const hasRunway=SPRINT_LOCATIONS.has(equipmentKey);
-  const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution)&&(!isLunch||f.lunchOK)&&!(f.needsRunway&&!hasRunway));
+  // needsEquip: a finisher that names specific gear is dropped where that gear
+  // isn't. Unknown location => treat as unequipped, same conservative default
+  // as the runway check.
+  const equip=new Set(EQUIPMENT_PRESETS[equipmentKey]?.equipment||[]);
+  const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution)&&(!isLunch||f.lunchOK)&&!(f.needsRunway&&!hasRunway)&&!(f.needsEquip&&!equip.has(f.needsEquip)));
   return pool[dow%pool.length];
 }
 function finisherHTML(dow,compact,isLunch,equipmentKey){
