@@ -2261,6 +2261,23 @@ function genProgram(cfg,av,workoutHistoryLog){
   const strengthDates=(history||[]).filter(l=>!l.isCardio&&logDay(l.date)>=mon&&logDay(l.date)<weekEnd&&(l.exercises||[]).some(e=>e&&STRENGTH_IDS.has(e.id))).map(l=>logDay(l.date));
   const strengthBefore=(d)=>strengthDates.some(x=>x<d);
 
+  // Weekly hip-hinge guarantee. Same derived-from-logs shape as strengthBefore.
+  //
+  // Hinge coverage used to be PROBABILISTIC on evenings: the heavy 'strength'
+  // slot rotates a 4-movement pool of which only two (heavy trap bar, heavy
+  // RDL) are hinges, and once heavy work is banked the remaining leg slots take
+  // athletic accents or the 'hamstring' isolation slot — and leg curls are KNEE
+  // FLEXION, not a hip hinge. Measured over 8 simulated weeks on both of Sam's
+  // real schedule shapes: 88% of weeks got a hinge, i.e. roughly one week in
+  // eight trained legs all week with zero hip-hinge pattern. The lunch mandate
+  // can't cover it either — it alternates hinge/hamstring by parity, so a week
+  // can legitimately land all-hamstring.
+  const HINGE_IDS=new Set([...EX,...(S.customExercises||[])].filter(e=>(e.tags||[]).includes('hinge')).map(e=>e.id));
+  const hingeDates=(history||[]).filter(l=>!l.isCardio&&logDay(l.date)>=mon&&logDay(l.date)<weekEnd&&(l.exercises||[]).some(e=>e&&HINGE_IDS.has(e.id))).map(l=>logDay(l.date));
+  // Counts sessions already assigned earlier in THIS generation run too, so a
+  // single pass doesn't stack two hinge rescues into the same week.
+  const hingeBanked=(d)=>hingeDates.some(x=>x<=d)||Object.entries(assignedHinge).some(([x])=>x<=d);
+
   // Foundation Five weekly coverage (see FOUNDATION_FIVE). Seeded from what was
   // actually LOGGED this calendar week — and deliberately NOT extended by
   // merely-planned sessions.
@@ -2282,6 +2299,8 @@ function genProgram(cfg,av,workoutHistoryLog){
   // Muscles trained per date, accumulated as sessions are assigned this run —
   // lets getLockedMuscles see "preceding" days within the same generation pass.
   const assignedMuscles={};
+  // Dates in this generation run that already carry a hinge (see hingeBanked).
+  const assignedHinge={};
 
   // The actual logged session for a slot's date AND session type (lunch vs
   // evening) this week, if any — the source of truth for a completed day.
@@ -2416,6 +2435,28 @@ function genProgram(cfg,av,workoutHistoryLog){
         else slots[legSlotIdx[0]].tag='hinge';
       }else if(!strengthBefore(dateStr)){
         slots[legSlotIdx[0]].tag='strength';
+      }else if(!hingeBanked(dateStr)){
+        // HINGE RESCUE. Heavy work is banked but nothing this week has actually
+        // hinged — the strength slot rotated to box squat / split squat, and
+        // neither the athletic accents nor leg curls (knee flexion) hinge
+        // either. Spend this accent slot on the hinge so the week can't end
+        // without one.
+        //
+        // Fires at the FIRST such slot rather than waiting for late week: a
+        // thin schedule can put both of its leg days on Mon/Wed, so a Thursday
+        // threshold simply never got a turn there (measured: schedule A rose to
+        // 100% but 5-evening weeks stayed at 88%). Self-limiting — hingeBanked
+        // counts sessions assigned earlier in this same run, so at most one
+        // accent per week is ever converted.
+        slots[legSlotIdx[0]].tag='hinge';
+        // Protected from the Foundation Five's late-week escape valve below.
+        // Without this the stamp wins and the rescue silently evaporates: a
+        // 5-evening week has only ~2 leg slots, so pistol_squat (a Foundation
+        // movement) took the very slot the rescue had just claimed and the week
+        // still ended with zero hinges. Foundation coverage is robust here
+        // (pistol landed every other week in the same run), the hinge is the
+        // scarce one, and this fires at most once a week.
+        slots[legSlotIdx[0]].hingeRescue=true;
       }else{
         // One heavy session is already banked this week — later evening leg
         // slots rotate the athletic accents (produce → absorb) instead of
@@ -2606,7 +2647,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       // heavy weighted singles and 100 submaximal reps onto one day — but not
       // at the cost of never doing them at all.
       if(f.id==='weighted_pullups'&&centuryDowSet.has(domDow)&&!lateWeek)continue;
-      const cands=slots.filter(s=>s.muscle===f.muscle&&!HARD_MANDATE_TAGS.has(s.tag)&&!s.foundationId);
+      const cands=slots.filter(s=>s.muscle===f.muscle&&!HARD_MANDATE_TAGS.has(s.tag)&&!s.hingeRescue&&!s.foundationId);
       if(!cands.length)continue;
       // Preference order: an UNTAGGED slot first (costs no mandate at all), then
       // a slot whose tag the movement ALREADY satisfies (weighted pull-ups on a
@@ -2647,7 +2688,12 @@ function genProgram(cfg,av,workoutHistoryLog){
     // is covered the stamp disappears and the key reverts, so the churn is
     // bounded to the session that actually adopts it.
     const stamped=slots.find(s=>s.foundationId);
-    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')+(stamped?'+f:'+stamped.foundationId:'')};
+    // The hinge rescue depends on LOGS, not on domDay like the other leg
+    // mandates, so it must be part of tk — otherwise a day whose template
+    // changed only by the rescue matches the previous plan and takes the
+    // preserve-don't-rebuild path, and the rescue never lands.
+    const rescued=slots.some(s=>s.hingeRescue);
+    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')+(stamped?'+f:'+stamped.foundationId:'')+(rescued?'+hr':'')};
   }
 
   function buildSession(slot,tk,oldData){
@@ -2704,6 +2750,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
       (od.exercises||[]).forEach(e=>{if(e&&e.muscle&&countsForRecoveryEx(e))assignedMuscles[dateStr].add(e.muscle);});
       if((od.exercises||[]).some(e=>e&&STRENGTH_IDS.has(e.id)))strengthDates.push(dateStr);
+      if((od.exercises||[]).some(e=>e&&HINGE_IDS.has(e.id)))assignedHinge[dateStr]=1;
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,equipmentKey,preserved:true};
     }
     const used=[];
@@ -2801,6 +2848,7 @@ function genProgram(cfg,av,workoutHistoryLog){
     (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
     exs.forEach(e=>{if(e.muscle&&countsForRecoveryEx(e))assignedMuscles[dateStr].add(e.muscle);});
     if(exs.some(e=>e&&STRENGTH_IDS.has(e.id)))strengthDates.push(dateStr);
+    if(exs.some(e=>e&&HINGE_IDS.has(e.id)))assignedHinge[dateStr]=1;
     // NOTE: coverage is deliberately NOT marked here. A planned session is not
     // a completed one, and marking it would let one provisional template spend
     // the week's only stamp (see foundationDone above).
