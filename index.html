@@ -333,6 +333,8 @@ const EX = [
   {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Standing, cross-body cable. "Scrape the wall" with your hand on the way up to keep the arm path in the scapular plane. Constant tension throughout ROM. Resist the weight on the way down — don\'t let it snap back.'},
   {id:'lying_cable_lat',name:'Lying Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Lie sideways, cable from low pulley. Raise arm up. Slow descent. Excellent lateral delt isolation.'},
   {id:'incline_lateral',name:'45° Incline DB Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Set the bench to 45° (~100% grade). Lie on incline bench. Raise arm out from a fully stretched position, "scraping the wall" with your hand to stay in the scapular plane. Control the negative all the way down.'},
+  {id:'machine_lateral',name:'Machine Lateral Raise',muscle:'shoulders',type:'isolation',eq:['machine'],rMin:12,rMax:20,rest:120,cue:'Seat set so the pivot sits at shoulder height and the pads rest on the OUTER upper arm — not the forearms. Lead with the elbows, drive out and up to about shoulder height, pause a beat, then resist all the way down. The machine holds tension on the side delt through the whole arc including the bottom, where dumbbells go slack — that plus the fixed path (no swinging, no momentum) is what makes it an S-tier side-delt builder. Go light and strict; this muscle responds to reps, not load.',tags:['side_delt']},
+  {id:'y_raise',name:'Y-Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells','bodyweight'],rMin:12,rMax:20,rest:90,cue:'Chest on an incline bench set ~30–45° (or hinged over standing), very light DBs or no weight at all. Raise both arms overhead into a wide Y with the thumbs up, squeezing the shoulder blades DOWN and back — think of reaching long, not lifting heavy. Lower under control. Trains the lower traps and rear delt, which is why it replaces the front raise: the front delt already gets plenty from every press, while this is the piece that actually improves posture and shoulder health. Light weight only — if the neck or upper traps take over, drop the load.',tags:['rear_delt','posture']},
   // On avoidExercises since 2026-08-03 (reported pain, left shoulder). Also
   // carries shoulderRisk so it stays hidden even if the avoid entry is ever
   // removed without the shoulder actually being better: the upright row drives
@@ -346,6 +348,7 @@ const EX = [
   {id:'hammer_curl',name:'Hammer Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Standing, neutral grip. Trains brachialis and brachioradialis. Resist the descent — 2 counts down.'},
   {id:'cable_curl',name:'Cable Curl',muscle:'biceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing at the low pulley. EZ-bar or straight bar. Constant tension throughout. Control the eccentric — cable should never go slack.'},
   {id:'incline_curl',name:'Incline DB Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Set the bench to 45–60° incline (~100–173% grade) so your arms hang straight down from the shoulder. Long head fully stretched at bottom — key for peak development. Full supination at top, rotating the pinky upward at peak for maximum contraction. Slow negative. Very strict form.'},
+  {id:'bayesian_curl',name:'Bayesian Cable Curl',muscle:'biceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Low pulley, single D-handle, and stand a step or two IN FRONT of the stack so the working arm hangs BEHIND your torso at the bottom. That shoulder-extended position puts the biceps at full stretch under load — the cable keeps tension there where a dumbbell has none. Curl without letting the elbow drift forward, squeeze, then lower slowly all the way back into the stretch. Peak tension at long muscle length is the whole point; a deep controlled stretch beats a heavier swing every time. One arm at a time.',tags:['stretch']},
   {id:'pushdown',name:'Tricep Pushdown',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Elbows pinned to sides. Full lockout every rep. Resist the stack on the way back up — slow eccentric builds the horseshoe.'},
   {id:'overhead_ext',name:'Cable Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing (or seated on a bench for extra back support), facing away from a low pulley with a rope attachment — hands together behind the head at the bottom. Long head fully stretched overhead — highest growth potential. Keep elbows forward and pointed at the ceiling, don\'t let them flare. 2-count descent, no swinging the cable. Full ROM.'},
   {id:'db_overhead_ext',name:'DB Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Standing (or seated on a bench for extra back support). Hold a single dumbbell with both hands, cupped under the top plate, arms straight overhead. Lower behind the head under control until you feel a full stretch in the long head of the tricep — keep elbows pointed at the ceiling and close to your ears, don\'t let them flare. Press back to full lockout. 2-count descent, full ROM.'},
@@ -442,6 +445,7 @@ const EX = [
   // rest 60→90s: Singer et al. 2024 Bayesian meta-analysis ("Give it a Rest", Frontiers Sports Act Living) — hypertrophy slightly favors >60s rest, no further benefit beyond ~90s; ≤60s is the only clearly suboptimal zone.
   {id:'calf_raise',name:'Calf Raises',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Full stretch at bottom (off step edge). Full contraction at top. Slow tempo — calves are resistant to fast reps.',tags:['calf']},
   {id:'tib_raise',name:'Tibialis Raises',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:15,rMax:25,rest:60,noWeight:true,cue:'Lean your back against a wall, feet a foot or so out in front, legs straight. Lift your toes toward your shins as high as possible, pause, lower under control — don\'t let the toes slap down. The shin muscle (tibialis anterior) absorbs impact on every walking/running step, especially incline work: strengthening it is what relieves chronic shin stiffness, not just stretching. Walk your feet further from the wall to make it harder; progress toward single-leg.',tags:['tibialis','tendon']},
+  {id:'backward_drag',name:'Backward Sled Drag / Backward Walk',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:60,rMax:180,rest:90,isTimed:true,noWeight:true,cue:'Sled: load it light, face it, and walk BACKWARDS pulling the straps with the arms locked out — smooth continuous steps, no jerking. No sled? A treadmill set to a slow speed walked backwards (hold the rails), or just backward walking across any open space, gets most of the benefit. The quad works CONCENTRICALLY with almost no eccentric load, so it strengthens the muscle and tendon around the knee without the soreness or joint stress that squatting adds — which is exactly why it is the first thing to add when knees are cranky, and why it can run 2–3x a week alongside everything else. Knees stay soft, torso tall, land toe-to-heel. Count total seconds of continuous work.',tags:['quad','tendon','knee_health']},
   {id:'single_leg_calf_raise',name:'Single-Leg Calf Raise',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Balance on one foot (hold something for stability). Full stretch at bottom (off step edge). Full contraction at top. Slow tempo. Count per side.',tags:['calf','unilateral']},
   {id:'hip_abduct',name:'Hip Abduction',muscle:'legs',type:'isolation',eq:['machine'],rMin:15,rMax:20,rest:90,cue:'Slow and controlled. Feel glute med. No momentum or pelvic tilt.',tags:['glute']},
   {id:'glute_bridge_2leg',name:'Glute Bridges',muscle:'legs',type:'isolation',eq:['bodyweight'],noWeight:true,rMin:12,rMax:20,rest:90,cue:'Lie on back, knees bent, feet flat on the floor. Drive through both heels to full hip extension — squeeze glutes hard at the top, avoid arching through the lower back. Slow controlled descent.\n\nProgression: once 20 reps feel easy, move to the Single-leg Glute Bridge below for added difficulty.',tags:['glute']},
@@ -625,6 +629,10 @@ const FEELS={
   cable_lateral:'Constant side-delt tension through the whole arc — especially the bottom third where dumbbells go slack.',
   lying_cable_lat:'Isolated side-delt pull with zero momentum — working from the very first inch.',
   incline_lateral:'The side delt working from a fully lengthened position — hardest right at the bottom stretch.',
+  machine_lateral:'Constant side-delt tension through the entire arc — the bottom stays loaded where dumbbells go slack.',
+  y_raise:'The muscles BELOW and between the shoulder blades pulling the arms up — if the upper traps shrug or the neck tenses, go lighter.',
+  bayesian_curl:'A deep stretch through the front of the upper arm at the bottom, with the cable still pulling — tension where a dumbbell would have none.',
+  backward_drag:'Quads burning with almost no impact through the knee — pure push, no pounding.',
   ezbar_upright_row:'Side delts and traps lifting the elbows — the hands just hang on.',
   alt_front_raise:'The front delt raising the weight alone — no lean, no swing.',
   handstand_pushup:'The entire shoulder girdle pressing your bodyweight — delts, traps, and triceps as one unit.',
@@ -787,6 +795,38 @@ const MUSCLE_FEELS={
 };
 const feelFor=(ex)=>FEELS[ex.id]||MUSCLE_FEELS[ex.muscle]||'';
 
+// ─── LAST-SET INTENSITY TECHNIQUES ───
+// Shown on the FINAL working set only, never earlier: both techniques add
+// fatigue disproportionate to their volume, so they belong where they can't
+// degrade the quality of the sets that follow. Explicit id lists rather than a
+// tag rule — "does this movement have a loaded stretch position" isn't
+// derivable from muscle+type, and guessing wrong prescribes partials on a
+// movement whose bottom third is its weakest, least useful range.
+//
+// LENGTHENED PARTIALS: after the last full rep, keep going with short reps in
+// the STRETCHED third until failure. The evidence favouring long-muscle-length
+// training is strongest exactly here, and it's free volume at the end of a set
+// that's already there. Limited to movements whose stretch position is both
+// loaded and safe to fail in — nothing overhead, nothing where failing at the
+// bottom pins you.
+const LENGTHENED_PARTIAL_IDS=new Set(['seated_leg_curl','leg_curl','calf_raise','single_leg_calf_raise',
+  'db_lateral','cable_lateral','lying_cable_lat','incline_lateral','machine_lateral',
+  'cable_fly','db_fly','pec_deck','rev_fly','pec_deck_rev_fly','straight_pull',
+  'incline_curl','bayesian_curl','cable_curl','overhead_ext','db_overhead_ext','leg_ext']);
+// ONE-AND-A-QUARTER REPS: full rep, then a quarter rep back out of the bottom,
+// then finish — doubling time spent in the hardest, most stretched position.
+// For compounds where the bottom is the sticking point and a partial there is
+// controllable. Deliberately NOT on the heavy 1–5 strength tier: near-max
+// singles don't need extra bottom-range time, they need bar speed.
+const QUARTER_REP_IDS=new Set(['incline_db','flat_db_press','machine_press','pullups','chinups',
+  'lat_pulldown','cable_row','db_row','bulgarian','goblet','sumo_squat','leg_press','reverse_lunge','step_ups']);
+function lastSetTechnique(ex){
+  if(!ex||ex.isTimed||(ex.tags||[]).some(t=>['power','ballistic','plyometric','overcoming','strength'].includes(t)))return'';
+  if(LENGTHENED_PARTIAL_IDS.has(ex.id))return'After your last full rep, keep going with 3–5 <strong>lengthened partials</strong> — short reps in the bottom (stretched) third until you can\'t. Free stimulus where the muscle is longest.';
+  if(QUARTER_REP_IDS.has(ex.id))return'Try <strong>1¼ reps</strong> this set: full rep down, come up a quarter, sink back to the bottom, then finish. Doubles time in the stretched position where the work is hardest.';
+  return'';
+}
+
 // ─── CABLE ATTACHMENT VERIFICATION ───
 // Which handle to clip on (and where to set the pulley) for every cable
 // movement — shown as its own line on the workout card so the setup can be
@@ -797,11 +837,13 @@ const HANDLES={
   lat_pulldown:'Wide lat bar · overhand grip just outside shoulder width',
   bumstead_pulldown:'Wide lat bar · overhand grip',
   cable_row:'V-grip (close triangle) · neutral palms facing each other',
+  inverted_row:'No attachment — a fixed bar in a rack at waist height (rings or straps also work); set the bar lower to make it harder',
   straight_pull:'Straight bar (rope also works) · high pulley',
   face_pulls:'Rope · high pulley — grip with thumbs pointing back toward you',
   cable_lateral:'Single D-handle · lowest pulley, stand side-on to the stack',
   lying_cable_lat:'Single D-handle · low pulley',
   cable_curl:'Straight or EZ bar · lowest pulley',
+  bayesian_curl:'Single D-handle · lowest pulley — stand a step or two in FRONT of the stack so the arm hangs behind you',
   pushdown:'Rope (preferred — lets you split at the bottom) or straight bar · high pulley',
   overhead_ext:'Rope · low pulley, facing away from the stack',
   spanish_squat:'No handle — loop the strap (or a heavy band) behind BOTH knees · low anchor',
@@ -5914,12 +5956,18 @@ function renderWorkout(){
     const setRep=isBackoffSet?`${backoffRepLo}–${backoffRepHi}`:repRange;
     const sugR=done?.reps||(isBackoffSet?backoffRepLo:ex.rMax);
     const setTag=(isNoWeight||isTimed||!useBackoff)?'':`<div style='font-size:9px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px'>${isBackoffSet?'back-off':'top set'}</div>`;
+    // Last working set only (see lastSetTechnique) — and only once every
+    // earlier set is logged, so it appears as the cue for the set being done
+    // rather than as clutter from the moment the card opens.
+    const techNote=(i===ex.sets-1&&!done&&ex.done.filter(Boolean).length>=ex.sets-1&&lastSetTechnique(ex))
+      ?`<div style='grid-column:1/-1;font-size:11.5px;color:var(--txt-dim);line-height:1.45;margin-top:6px;padding:6px 8px;background:rgba(251,191,36,.07);border-left:3px solid rgba(251,191,36,.5);border-radius:0 6px 6px 0'>🔥 ${lastSetTechnique(ex)}</div>`:'';
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
       <div class='st'>${setRep}${setTag}</div>
       ${hideWeight?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='${isDumbbellEx?'each':'lb'}' value='${done?done.weight:sugW||''}' min='0' step='5' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${(ex.isFirst||isGroupFirst)&&i===0?exIdx:''}'>`}
       <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' inputmode='numeric' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
+      ${techNote}
     </div>`;
   }).join('');
 
