@@ -1105,11 +1105,19 @@ const SPRINT_PRIMER={
 // (row/bike) covers anaerobic conditioning with zero impact. lunchOK marks
 // the low-sweat subset: lunch sessions only ever draw from that pool, so
 // sprints and hard intervals land on evenings/weekends by construction.
+// Foot sprints need somewhere to actually run. Sam has open ground only at
+// Westminster (turf/track) and on bodyweight/field days — the apartment gym,
+// hotel gym, YMCA and Mom & Dad's have no usable runway, so the four
+// needsRunway finishers are filtered out there and the rotation falls to the
+// off-feet and circuit work instead. GH Sprint Repeats is deliberately NOT
+// flagged: its own prescription makes a bike or rower the default modality.
+// An unknown location is treated as having no runway (conservative).
+const SPRINT_LOCATIONS=new Set(['westminster_gym','bodyweight']);
 const CONDITIONING_FINISHERS=[
-  {name:'Acceleration Sprints (Short)',desc:'6–8 × 15–20 m from a 2-point stance — maximal intent, tall by the last steps, FULL walk-back recovery (~90s). Quality dies with fatigue: stop the session when you visibly slow down.',icon:'🏃',mins:12,sprint:true},
-  {name:'Loaded Sprints',desc:'6–8 × 10–15 m heavy sled push/pull, or steep-hill sprints — the load caps top speed (easier on the hamstrings) while building raw acceleration horsepower. Full recovery between reps.',icon:'🛷',mins:12,sprint:true},
-  {name:'Tempo Strides (Long)',desc:'4–6 × 60–80 m at 85–90% — smooth, tall, relaxed speed, never straining. Walk back fully between reps. This is where the longer unloaded speed work lives.',icon:'💨',mins:14,sprint:true},
-  {name:'Decel + Change of Direction',desc:'4 × sprint-to-stick (15 m sprint → dead stop within 3 steps) · 5-10-5 shuttle: 4 at 80% + 2 at full · 4 × 10 m lateral shuffle into forward sprint. Stay tall through the cuts — brake with the legs, not the hip at end range.',icon:'🔀',mins:12,sprint:true},
+  {name:'Acceleration Sprints (Short)',needsRunway:true,desc:'6–8 × 15–20 m from a 2-point stance — maximal intent, tall by the last steps, FULL walk-back recovery (~90s). Quality dies with fatigue: stop the session when you visibly slow down.',icon:'🏃',mins:12,sprint:true},
+  {name:'Loaded Sprints',needsRunway:true,desc:'6–8 × 10–15 m heavy sled push/pull, or steep-hill sprints — the load caps top speed (easier on the hamstrings) while building raw acceleration horsepower. Full recovery between reps.',icon:'🛷',mins:12,sprint:true},
+  {name:'Tempo Strides (Long)',needsRunway:true,desc:'4–6 × 60–80 m at 85–90% — smooth, tall, relaxed speed, never straining. Walk back fully between reps. This is where the longer unloaded speed work lives.',icon:'💨',mins:14,sprint:true},
+  {name:'Decel + Change of Direction',needsRunway:true,desc:'4 × sprint-to-stick (15 m sprint → dead stop within 3 steps) · 5-10-5 shuttle: 4 at 80% + 2 at full · 4 × 10 m lateral shuffle into forward sprint. Stay tall through the cuts — brake with the legs, not the hip at end range.',icon:'🔀',mins:12,sprint:true},
   // GH sprint repeats: the classic six-all-out-30s protocol that drives a large
   // acute growth-hormone spike. 3–4 min FULL recovery is the whole point — every
   // rep must be genuinely maximal, so this is anaerobic power, never a metcon.
@@ -4616,20 +4624,21 @@ function abandonWorkout(){
 // ─────────────────────────────────────────────
 // CONDITIONING FINISHER
 // ─────────────────────────────────────────────
-function getFinisher(dow,isLunch){
+function getFinisher(dow,isLunch,equipmentKey){
   // Hip caution drops jump-based finishers, mirroring the pickEx plyometric ban.
   // Lunch sessions only draw from the lunchOK (low-sweat) subset — sprints and
   // hard intervals live on evenings/weekends so the lunch time-box stays dry.
-  const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution)&&(!isLunch||f.lunchOK));
+  const hasRunway=SPRINT_LOCATIONS.has(equipmentKey);
+  const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution)&&(!isLunch||f.lunchOK)&&!(f.needsRunway&&!hasRunway));
   return pool[dow%pool.length];
 }
-function finisherHTML(dow,compact,isLunch){
+function finisherHTML(dow,compact,isLunch,equipmentKey){
   // At lunch the finisher has to be AFFORDABLE, not just low-sweat. Its minutes
   // are now charged against the box like everything else (see LUNCH_LEDGER), so
   // if the ledger didn't leave room, no card is rendered — showing one anyway is
   // how a 40-minute lunch became a 43-minute one.
   if(isLunch&&!lunchBudget(dow).finisher)return'';
-  const f=getFinisher(dow,isLunch);
+  const f=getFinisher(dow,isLunch,equipmentKey);
   const primer=f.sprint?`<div style='margin-top:10px;padding:10px 12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:10px'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>🔑 ${SPRINT_PRIMER.title}</div>
       ${SPRINT_PRIMER.items.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• ${it}</div>`).join('')}
@@ -5435,7 +5444,7 @@ function renderDash(){
       }
       ${eveBlock}
       ${isActualToday&&dd?.isLunch?lunchBudgetHTML(displayDow):''}
-      ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession):''}
+      ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession,dd?.eveningSession?.equipmentKey||dd?.equipmentKey):''}
       ${isActualToday?centuryHTML():''}
       ${isActualToday?pyramidHTML(dd):''}
       ${isActualToday?dailySpineHTML():''}
@@ -5973,7 +5982,7 @@ function renderWorkout(){
 
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
   const isLast=exIdx===total-1;
-  const condBlock=isLast&&S.cfg.conditioning&&allDone?finisherHTML(S.active.dow,false,!!S.active.isLunch):'';
+  const condBlock=isLast&&S.cfg.conditioning&&allDone?finisherHTML(S.active.dow,false,!!S.active.isLunch,S.active.equipmentKey):'';
   // Post-session cool-down (~5 min, evening/weekend sessions only — lunch is
   // hard time-boxed): static relief for the desk-stiff areas (neck, lower
   // back) plus tibialis work for incline-walking shin stiffness. The tib
