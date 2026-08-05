@@ -8556,6 +8556,14 @@ document.addEventListener('click',e=>{
       S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
       recalcLastWeights();
       S.editLogDraft=null;S.view='history';
+      // Re-plan around the corrected log, exactly as finishWorkout does. Editing
+      // history changes the same inputs finishing a session does — recovery debt,
+      // weekly MRV, and (for a century) centuryMins → the lunch time-box — but
+      // this path only ever recalculated lastWeights, so the PROGRAM kept running
+      // on the old numbers until something else happened to trigger a replan.
+      // Reported 2026-08-05: "I just saw i was able to change it in my history but
+      // it didnt update the median time."
+      replanCurrentWeek();
       save();render();
     }
     return;

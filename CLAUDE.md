@@ -273,7 +273,12 @@ strip it before other debugging.
   is EDITABLE afterwards from the Done card (`centuryTimeEditHTML`) and from Edit
   Workout, where `syncLogEditInputs` keeps `timedMins` in step with the edited
   duration — otherwise a fix would look right in History and change nothing about
-  the schedule. **Blank/0 means "untimed", which is a real answer**: `centuryMins`
+  the schedule. **`save-log-edit` also calls `replanCurrentWeek()` now**, which it
+  never did (it only recalculated `lastWeights`): editing history changes the same
+  inputs finishing a session does — recovery debt, weekly MRV, and via
+  `centuryMins` the lunch time-box — so the program was left running on the old
+  numbers until some unrelated event triggered a replan. That is general, not
+  century-specific; any log edit was affected. **Blank/0 means "untimed", which is a real answer**: `centuryMins`
   filters on `timedMins>0`, so an unknown session is skipped rather than
   poisoning the median with a guess. That is the whole reason `timedMins` is
   separate from `duration`. `centuryDefaultMins()` is now capped at
