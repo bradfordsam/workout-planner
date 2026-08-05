@@ -333,6 +333,8 @@ const EX = [
   {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Standing, cross-body cable. "Scrape the wall" with your hand on the way up to keep the arm path in the scapular plane. Constant tension throughout ROM. Resist the weight on the way down — don\'t let it snap back.'},
   {id:'lying_cable_lat',name:'Lying Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Lie sideways, cable from low pulley. Raise arm up. Slow descent. Excellent lateral delt isolation.'},
   {id:'incline_lateral',name:'45° Incline DB Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Set the bench to 45° (~100% grade). Lie on incline bench. Raise arm out from a fully stretched position, "scraping the wall" with your hand to stay in the scapular plane. Control the negative all the way down.'},
+  {id:'machine_lateral',name:'Machine Lateral Raise',muscle:'shoulders',type:'isolation',eq:['machine'],rMin:12,rMax:20,rest:120,cue:'Seat set so the pivot sits at shoulder height and the pads rest on the OUTER upper arm — not the forearms. Lead with the elbows, drive out and up to about shoulder height, pause a beat, then resist all the way down. The machine holds tension on the side delt through the whole arc including the bottom, where dumbbells go slack — that plus the fixed path (no swinging, no momentum) is what makes it an S-tier side-delt builder. Go light and strict; this muscle responds to reps, not load.',tags:['side_delt']},
+  {id:'y_raise',name:'Y-Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells','bodyweight'],rMin:12,rMax:20,rest:90,cue:'Chest on an incline bench set ~30–45° (or hinged over standing), very light DBs or no weight at all. Raise both arms overhead into a wide Y with the thumbs up, squeezing the shoulder blades DOWN and back — think of reaching long, not lifting heavy. Lower under control. Trains the lower traps and rear delt, which is why it replaces the front raise: the front delt already gets plenty from every press, while this is the piece that actually improves posture and shoulder health. Light weight only — if the neck or upper traps take over, drop the load.',tags:['rear_delt','posture']},
   // On avoidExercises since 2026-08-03 (reported pain, left shoulder). Also
   // carries shoulderRisk so it stays hidden even if the avoid entry is ever
   // removed without the shoulder actually being better: the upright row drives
@@ -352,6 +354,10 @@ const EX = [
   {id:'hammer_curl',name:'Hammer Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'SIMULTANEOUS — both dumbbells at once. Standing, neutral grip. Trains brachialis and brachioradialis. Resist the descent — 2 counts down. Alternating is the common gym default here and costs you nothing but time; if you do alternate, count reps per arm.'},
   {id:'cable_curl',name:'Cable Curl',muscle:'biceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Both hands on one bar, so this one is simultaneous by construction. Standing at the low pulley. EZ-bar or straight bar. Constant tension throughout. Control the eccentric — cable should never go slack.'},
   {id:'incline_curl',name:'Incline DB Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'SIMULTANEOUS — both arms together. Alternating here lets the resting arm drift up out of the stretch, which is the entire reason to do the movement. Set the bench to 45–60° incline (~100–173% grade) so your arms hang straight down from the shoulder. Long head fully stretched at bottom — key for peak development. Full supination at top, rotating the pinky upward at peak for maximum contraction. Slow negative. Very strict form.'},
+  // Bayesian curls are the deliberate exception to the simultaneous default:
+  // the setup needs a single handle and a torso position the second arm can't
+  // share, so one arm at a time is the movement, not a preference.
+  {id:'bayesian_curl',name:'Bayesian Cable Curl',muscle:'biceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'ONE ARM AT A TIME — this is the exception; the setup only works single-handed. Low pulley, single D-handle, and stand a step or two IN FRONT of the stack so the working arm hangs BEHIND your torso at the bottom. That shoulder-extended position puts the biceps at full stretch under load — the cable keeps tension there where a dumbbell has none. Curl without letting the elbow drift forward, squeeze, then lower slowly all the way back into the stretch. Peak tension at long muscle length is the whole point; a deep controlled stretch beats a heavier swing every time. Count reps per arm.',tags:['stretch']},
   {id:'pushdown',name:'Tricep Pushdown',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Elbows pinned to sides. Full lockout every rep. Resist the stack on the way back up — slow eccentric builds the horseshoe.'},
   {id:'overhead_ext',name:'Cable Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing (or seated on a bench for extra back support), facing away from a low pulley with a rope attachment — hands together behind the head at the bottom. Long head fully stretched overhead — highest growth potential. Keep elbows forward and pointed at the ceiling, don\'t let them flare. 2-count descent, no swinging the cable. Full ROM.'},
   {id:'db_overhead_ext',name:'DB Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Standing (or seated on a bench for extra back support). Hold a single dumbbell with both hands, cupped under the top plate, arms straight overhead. Lower behind the head under control until you feel a full stretch in the long head of the tricep — keep elbows pointed at the ceiling and close to your ears, don\'t let them flare. Press back to full lockout. 2-count descent, full ROM.'},
@@ -425,10 +431,30 @@ const EX = [
   {id:'sl_wall_sit',name:'Single-Leg Wall Sit',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:20,rMax:45,rest:120,isTimed:true,noWeight:true,cue:'Set up a normal wall sit — back flat, thighs parallel — then extend one leg straight out so the planted leg holds everything. Hips stay level, no sliding down. Twice the tendon stimulus of the two-leg version and closer to the single-leg demands of jumping. Work toward 3×45s per leg. Count seconds per side.',tags:['quad','isometric','tendon','unilateral']},
   {id:'reverse_nordic_iso',name:'Reverse Nordic Iso Hold',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:20,rMax:40,rest:120,isTimed:true,noWeight:true,cue:'Kneel tall, feet flat behind you, body in a straight line from knees to head. Keeping the hips locked open (no folding), lean the whole line BACK until you feel serious tension down the quads, and hold there. The knees-over-toes staple for quad-tendon length and strength — go only as deep as you can hold without the hips breaking. Count seconds.',tags:['quad','isometric','tendon']},
   {id:'iso_calf',name:'Isometric Calf Hold',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:20,rMax:45,rest:90,isTimed:true,cue:'Rise to the top of a calf raise (single-leg once able) and HOLD at full plantarflexion, or mid-range for more Achilles load. Stiff, tall ankle — don\'t sink. Directly builds the Achilles/ankle stiffness that returns energy in every bounce and sprint step. Count seconds.',tags:['calf','isometric','tendon']},
+  // ── SPEED ISOMETRICS (2026-08-04, asked for by name) ──
+  // Two families, and the distinction drives the whole prescription:
+  //   YIELDING (holding a position against gravity) — long holds, 20–45s,
+  //     builds tendon stiffness and positional strength.
+  //   OVERCOMING (pushing/pulling maximally into something that cannot move) —
+  //     SHORT max-intent efforts, 3–6s. This is the rate-of-force-development
+  //     tool: no eccentric, so it's the least fatiguing way to train maximal
+  //     intent, which is why sprinters use it. Progress by pushing HARDER at
+  //     the same joint angle, never by holding longer — the app's generic
+  //     "hit top time → try +5s" prompt is the wrong advice for these three,
+  //     so each cue says so explicitly.
+  // All are single-leg or hinge-pattern except the trap bar, matching the
+  // sprint-specific positions; tagged isometric/tendon so the leg-emphasis
+  // gate (LEG_EMPHASIS_TAGS) lets them fill accent slots.
+  {id:'sl_bent_knee_iso',name:'Single-Leg Bent-Knee Hold',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:20,rMax:45,rest:120,isTimed:true,noWeight:true,cue:'Stand on one leg and bend the knee to about a QUARTER squat — roughly the angle your leg holds at sprint ground contact, far shallower than a wall sit. Hold dead still: knee tracking over the mid-foot, hips level, torso tall. The shallow angle is the point — it loads the quad and patellar tendon in the exact position that has to resist collapse at footstrike. Hold a wall or post with a fingertip for balance only. Count seconds per side.',tags:['quad','isometric','tendon','unilateral']},
+  {id:'sl_glute_bridge_iso',name:'Single-Leg Glute Bridge Hold',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:20,rMax:45,rest:120,isTimed:true,noWeight:true,cue:'Shoulders on the floor (or a bench for more range), one foot planted, the other leg held straight out in line with the torso. Drive to FULL hip extension and hold — glute squeezed hard, ribs down, hips dead level, no sagging on the free-leg side. Isolates single-leg hip extension endurance, the position the stance leg finishes every stride in. If the hamstring cramps, walk the foot slightly closer and drive more through the heel. Count seconds per side.',tags:['hinge','glute','isometric','unilateral']},
+  {id:'sl_straight_leg_overcoming',name:'SL Straight-Leg Overcoming Iso',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:3,rMax:6,rest:180,isTimed:true,noWeight:true,cue:'OVERCOMING iso — you push into something immovable, nothing moves. Lie on your back with one leg straight and the heel pressed into a wall, a loaded barbell, or the underside of a fixed bench. Keep that leg LONG and drive the heel down and back into it as hard as you possibly can, like you\'re trying to pull the floor underneath you. Ramp to max over ~1s, then hold max effort 3–6s. Glute and hamstring at a long lever — the sprint hip-extension position. PROGRESS BY PUSHING HARDER, NOT LONGER: 3–5 efforts per side with full rest; ignore any prompt to extend the hold. Count seconds per side.',tags:['glute','isometric','overcoming','tendon','unilateral']},
+  {id:'trapbar_overcoming_iso',name:'Trap Bar Overcoming Iso',muscle:'legs',type:'compound',eq:['barbell'],rMin:3,rMax:6,rest:180,isTimed:true,noWeight:true,cue:'OVERCOMING iso — set the trap bar in a rack against the safety pins at just-below-knee height (or load it far beyond anything you could lift), take your normal deadlift setup, and PULL as hard as physically possible into a bar that cannot move. Chest up, back locked, pull the slack out first, then ramp to absolute max over ~1s and hold 3–6s. Nothing moves, so there is no eccentric and almost no muscle damage — this is the cheapest way to train maximal whole-body force production, and it carries straight into acceleration. PROGRESS BY PUSHING HARDER, NOT LONGER: 3–5 max efforts, full rest between; ignore any prompt to extend the hold. Vary pin height every few weeks to hit different joint angles.',tags:['isometric','overcoming','tendon']},
+  {id:'sl_sprint_overcoming_iso',name:'Overcoming SL Sprint Iso',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:3,rMax:6,rest:180,isTimed:true,noWeight:true,cue:'OVERCOMING iso in the acceleration position. Set up in a wall-drive: hands on a wall, body in a straight line leaning forward ~45°, one knee driven up to hip height, the other leg long behind with the ball of the foot planted. Now drive that planted foot into the ground and the wall as hard as you can — try to push the earth backwards — while the front knee simultaneously drives up into a fixed strap or your own hand. Ramp to max over ~1s, hold 3–6s, keeping the whole body rigid and hips square. The single most sprint-specific entry here: it trains max force in the exact shape of the first steps. PROGRESS BY PUSHING HARDER, NOT LONGER: 3–5 efforts per side, full rest; ignore any prompt to extend the hold. Count seconds per side.',tags:['quad','glute','isometric','overcoming','tendon','unilateral']},
   {id:'tempo_calf',name:'Springy Calf Bounces (Stiff Ankle)',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:20,rest:90,cue:'Fast, short rebounds driven by the ankle — touch the bottom and snap back up with minimal ground-contact time, like a stiff spring. Feet stay grounded (no jumping) so it stays low-impact, but the quick stretch-shorten action trains reactive Achilles stiffness and bounce.',tags:['calf','tendon','power']},
   // rest 60→90s: Singer et al. 2024 Bayesian meta-analysis ("Give it a Rest", Frontiers Sports Act Living) — hypertrophy slightly favors >60s rest, no further benefit beyond ~90s; ≤60s is the only clearly suboptimal zone.
   {id:'calf_raise',name:'Calf Raises',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Full stretch at bottom (off step edge). Full contraction at top. Slow tempo — calves are resistant to fast reps.',tags:['calf']},
   {id:'tib_raise',name:'Tibialis Raises',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:15,rMax:25,rest:60,noWeight:true,cue:'Lean your back against a wall, feet a foot or so out in front, legs straight. Lift your toes toward your shins as high as possible, pause, lower under control — don\'t let the toes slap down. The shin muscle (tibialis anterior) absorbs impact on every walking/running step, especially incline work: strengthening it is what relieves chronic shin stiffness, not just stretching. Walk your feet further from the wall to make it harder; progress toward single-leg.',tags:['tibialis','tendon']},
+  {id:'backward_drag',name:'Backward Sled Drag / Backward Walk',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:60,rMax:180,rest:90,isTimed:true,noWeight:true,cue:'Sled: load it light, face it, and walk BACKWARDS pulling the straps with the arms locked out — smooth continuous steps, no jerking. No sled? A treadmill set to a slow speed walked backwards (hold the rails), or just backward walking across any open space, gets most of the benefit. The quad works CONCENTRICALLY with almost no eccentric load, so it strengthens the muscle and tendon around the knee without the soreness or joint stress that squatting adds — which is exactly why it is the first thing to add when knees are cranky, and why it can run 2–3x a week alongside everything else. Knees stay soft, torso tall, land toe-to-heel. Count total seconds of continuous work.',tags:['quad','tendon','knee_health']},
   {id:'single_leg_calf_raise',name:'Single-Leg Calf Raise',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Balance on one foot (hold something for stability). Full stretch at bottom (off step edge). Full contraction at top. Slow tempo. Count per side.',tags:['calf','unilateral']},
   {id:'hip_abduct',name:'Hip Abduction',muscle:'legs',type:'isolation',eq:['machine'],rMin:15,rMax:20,rest:90,cue:'Slow and controlled. Feel glute med. No momentum or pelvic tilt.',tags:['glute']},
   {id:'glute_bridge_2leg',name:'Glute Bridges',muscle:'legs',type:'isolation',eq:['bodyweight'],noWeight:true,rMin:12,rMax:20,rest:90,cue:'Lie on back, knees bent, feet flat on the floor. Drive through both heels to full hip extension — squeeze glutes hard at the top, avoid arching through the lower back. Slow controlled descent.\n\nProgression: once 20 reps feel easy, move to the Single-leg Glute Bridge below for added difficulty.',tags:['glute']},
@@ -612,6 +638,10 @@ const FEELS={
   cable_lateral:'Constant side-delt tension through the whole arc — especially the bottom third where dumbbells go slack.',
   lying_cable_lat:'Isolated side-delt pull with zero momentum — working from the very first inch.',
   incline_lateral:'The side delt working from a fully lengthened position — hardest right at the bottom stretch.',
+  machine_lateral:'Constant side-delt tension through the entire arc — the bottom stays loaded where dumbbells go slack.',
+  y_raise:'The muscles BELOW and between the shoulder blades pulling the arms up — if the upper traps shrug or the neck tenses, go lighter.',
+  bayesian_curl:'A deep stretch through the front of the upper arm at the bottom, with the cable still pulling — tension where a dumbbell would have none.',
+  backward_drag:'Quads burning with almost no impact through the knee — pure push, no pounding.',
   ezbar_upright_row:'Side delts and traps lifting the elbows — the hands just hang on.',
   alt_front_raise:'The front delt raising the weight alone — no lean, no swing.',
   handstand_pushup:'The entire shoulder girdle pressing your bodyweight — delts, traps, and triceps as one unit.',
@@ -682,6 +712,11 @@ const FEELS={
   calf_raise:'A deep calf stretch off the edge, then a squeeze up to tiptoe — pause at both ends.',
   single_leg_calf_raise:'One calf loading completely — stretch to squeeze with no bounce.',
   iso_calf:'The calf and Achilles humming under a stiff, tall ankle hold.',
+  sl_bent_knee_iso:'One quad braced hard at a shallow angle — a deep burn just above the knee while everything else stays perfectly still.',
+  sl_glute_bridge_iso:'One glute locked at full extension, holding the hips level — the free-leg side wants to drop, and refusing to let it IS the exercise.',
+  sl_straight_leg_overcoming:'The hamstring and glute of a long, straight leg firing at absolute maximum — no movement at all, just rising tension you have to build into.',
+  trapbar_overcoming_iso:'Everything from the floor up firing at once into a bar that will not budge — feet driving, back locked, the whole system at max with nothing moving.',
+  sl_sprint_overcoming_iso:'The planted leg trying to shove the ground backwards while the front knee drives up — the exact whole-body tension of a first sprint step, frozen.',
   tempo_calf:'Ankles like pogo springs — energy bouncing back instantly through the Achilles.',
   tib_raise:'A burn along the front of the shin — that burn is exactly the adaptation you want.',
   hip_abduct:'The outer glute (side of the hip) squeezing outward — no rocking for momentum.',
@@ -817,6 +852,38 @@ function cueBlockHTML(ex,color){
   </div>`;
 }
 
+// ─── LAST-SET INTENSITY TECHNIQUES ───
+// Shown on the FINAL working set only, never earlier: both techniques add
+// fatigue disproportionate to their volume, so they belong where they can't
+// degrade the quality of the sets that follow. Explicit id lists rather than a
+// tag rule — "does this movement have a loaded stretch position" isn't
+// derivable from muscle+type, and guessing wrong prescribes partials on a
+// movement whose bottom third is its weakest, least useful range.
+//
+// LENGTHENED PARTIALS: after the last full rep, keep going with short reps in
+// the STRETCHED third until failure. The evidence favouring long-muscle-length
+// training is strongest exactly here, and it's free volume at the end of a set
+// that's already there. Limited to movements whose stretch position is both
+// loaded and safe to fail in — nothing overhead, nothing where failing at the
+// bottom pins you.
+const LENGTHENED_PARTIAL_IDS=new Set(['seated_leg_curl','leg_curl','calf_raise','single_leg_calf_raise',
+  'db_lateral','cable_lateral','lying_cable_lat','incline_lateral','machine_lateral',
+  'cable_fly','db_fly','pec_deck','rev_fly','pec_deck_rev_fly','straight_pull',
+  'incline_curl','bayesian_curl','cable_curl','overhead_ext','db_overhead_ext','leg_ext']);
+// ONE-AND-A-QUARTER REPS: full rep, then a quarter rep back out of the bottom,
+// then finish — doubling time spent in the hardest, most stretched position.
+// For compounds where the bottom is the sticking point and a partial there is
+// controllable. Deliberately NOT on the heavy 1–5 strength tier: near-max
+// singles don't need extra bottom-range time, they need bar speed.
+const QUARTER_REP_IDS=new Set(['incline_db','flat_db_press','machine_press','pullups','chinups',
+  'lat_pulldown','cable_row','db_row','bulgarian','goblet','sumo_squat','leg_press','reverse_lunge','step_ups']);
+function lastSetTechnique(ex){
+  if(!ex||ex.isTimed||(ex.tags||[]).some(t=>['power','ballistic','plyometric','overcoming','strength'].includes(t)))return'';
+  if(LENGTHENED_PARTIAL_IDS.has(ex.id))return'After your last full rep, keep going with 3–5 <strong>lengthened partials</strong> — short reps in the bottom (stretched) third until you can\'t. Free stimulus where the muscle is longest.';
+  if(QUARTER_REP_IDS.has(ex.id))return'Try <strong>1¼ reps</strong> this set: full rep down, come up a quarter, sink back to the bottom, then finish. Doubles time in the stretched position where the work is hardest.';
+  return'';
+}
+
 // ─── CABLE ATTACHMENT VERIFICATION ───
 // Which handle to clip on (and where to set the pulley) for every cable
 // movement — shown as its own line on the workout card so the setup can be
@@ -827,11 +894,13 @@ const HANDLES={
   lat_pulldown:'Wide lat bar · overhand grip just outside shoulder width',
   bumstead_pulldown:'Wide lat bar · overhand grip',
   cable_row:'V-grip (close triangle) · neutral palms facing each other',
+  inverted_row:'No attachment — a fixed bar in a rack at waist height (rings or straps also work); set the bar lower to make it harder',
   straight_pull:'Straight bar (rope also works) · high pulley',
   face_pulls:'Rope · high pulley — grip with thumbs pointing back toward you',
   cable_lateral:'Single D-handle · lowest pulley, stand side-on to the stack',
   lying_cable_lat:'Single D-handle · low pulley',
   cable_curl:'Straight or EZ bar · lowest pulley',
+  bayesian_curl:'Single D-handle · lowest pulley — stand a step or two in FRONT of the stack so the arm hangs behind you',
   pushdown:'Rope (preferred — lets you split at the bottom) or straight bar · high pulley',
   overhead_ext:'Rope · low pulley, facing away from the stack',
   spanish_squat:'No handle — loop the strap (or a heavy band) behind BOTH knees · low anchor',
@@ -877,7 +946,7 @@ const EQUIPMENT_PRESETS = {
   apartment_gym: {
     name: '🏢 Apartment Gym',
     desc: 'Dumbbells (5–50 lb ea, no 30s/35s), bench, cable machine (rope + EZ bar), pull-up bar, treadmill/elliptical, medicine balls',
-    equipment: ['dumbbells', 'cables', 'pullup_bar', 'medball', 'bodyweight', 'own_gear'],
+    equipment: ['cardio_machine', 'dumbbells', 'cables', 'pullup_bar', 'medball', 'bodyweight', 'own_gear'],
     // Exact pairs on hand — 5 lb steps to 25, then a gap (no 30/35) straight to
     // 40/45/50. Weight suggestions round DOWN to the nearest weight in this list
     // rather than just capping at the max, so a "38 lb" suggestion never lands
@@ -889,13 +958,13 @@ const EQUIPMENT_PRESETS = {
   hotel_gym: {
     name: '🏨 Hotel Gym',
     desc: 'Basic hotel gym with dumbbells & machines',
-    equipment: ['dumbbells', 'machine', 'bodyweight'],
+    equipment: ['cardio_machine', 'dumbbells', 'machine', 'bodyweight'],
     location: 'hotel'
   },
   ymca: {
     name: '🏋️ YMCA',
     desc: 'Full gym with all equipment available',
-    equipment: ['barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'bodyweight'],
+    equipment: ['cardio_machine', 'barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'bodyweight'],
     location: 'ymca'
   },
   westminster_gym: {
@@ -906,7 +975,7 @@ const EQUIPMENT_PRESETS = {
     // are trained the same as dumbbells (existing KB/DB swing movements
     // already tag 'dumbbells'), and GHD/plyo box/med ball work falls under
     // bodyweight movements (e.g. Back Extension's bodyweight variant).
-    equipment: ['barbell', 'dumbbells', 'pullup_bar', 'medball', 'medball_wall', 'bodyweight', 'own_gear'],
+    equipment: ['cardio_machine', 'barbell', 'dumbbells', 'pullup_bar', 'medball', 'medball_wall', 'bodyweight', 'own_gear'],
     location: 'westminster'
   },
   bodyweight: {
@@ -1093,11 +1162,19 @@ const SPRINT_PRIMER={
 // (row/bike) covers anaerobic conditioning with zero impact. lunchOK marks
 // the low-sweat subset: lunch sessions only ever draw from that pool, so
 // sprints and hard intervals land on evenings/weekends by construction.
+// Foot sprints need somewhere to actually run. Sam has open ground only at
+// Westminster (turf/track) and on bodyweight/field days — the apartment gym,
+// hotel gym, YMCA and Mom & Dad's have no usable runway, so the four
+// needsRunway finishers are filtered out there and the rotation falls to the
+// off-feet and circuit work instead. GH Sprint Repeats is deliberately NOT
+// flagged: its own prescription makes a bike or rower the default modality.
+// An unknown location is treated as having no runway (conservative).
+const SPRINT_LOCATIONS=new Set(['westminster_gym','bodyweight']);
 const CONDITIONING_FINISHERS=[
-  {name:'Acceleration Sprints (Short)',desc:'6–8 × 15–20 m from a 2-point stance — maximal intent, tall by the last steps, FULL walk-back recovery (~90s). Quality dies with fatigue: stop the session when you visibly slow down.',icon:'🏃',mins:12,sprint:true},
-  {name:'Loaded Sprints',desc:'6–8 × 10–15 m heavy sled push/pull, or steep-hill sprints — the load caps top speed (easier on the hamstrings) while building raw acceleration horsepower. Full recovery between reps.',icon:'🛷',mins:12,sprint:true},
-  {name:'Tempo Strides (Long)',desc:'4–6 × 60–80 m at 85–90% — smooth, tall, relaxed speed, never straining. Walk back fully between reps. This is where the longer unloaded speed work lives.',icon:'💨',mins:14,sprint:true},
-  {name:'Decel + Change of Direction',desc:'4 × sprint-to-stick (15 m sprint → dead stop within 3 steps) · 5-10-5 shuttle: 4 at 80% + 2 at full · 4 × 10 m lateral shuffle into forward sprint. Stay tall through the cuts — brake with the legs, not the hip at end range.',icon:'🔀',mins:12,sprint:true},
+  {name:'Acceleration Sprints (Short)',needsRunway:true,desc:'6–8 × 15–20 m from a 2-point stance — maximal intent, tall by the last steps, FULL walk-back recovery (~90s). Quality dies with fatigue: stop the session when you visibly slow down.',icon:'🏃',mins:12,sprint:true},
+  {name:'Loaded Sprints',needsRunway:true,desc:'6–8 × 10–15 m heavy sled push/pull, or steep-hill sprints — the load caps top speed (easier on the hamstrings) while building raw acceleration horsepower. Full recovery between reps.',icon:'🛷',mins:12,sprint:true},
+  {name:'Tempo Strides (Long)',needsRunway:true,desc:'4–6 × 60–80 m at 85–90% — smooth, tall, relaxed speed, never straining. Walk back fully between reps. This is where the longer unloaded speed work lives.',icon:'💨',mins:14,sprint:true},
+  {name:'Decel + Change of Direction',needsRunway:true,desc:'4 × sprint-to-stick (15 m sprint → dead stop within 3 steps) · 5-10-5 shuttle: 4 at 80% + 2 at full · 4 × 10 m lateral shuffle into forward sprint. Stay tall through the cuts — brake with the legs, not the hip at end range.',icon:'🔀',mins:12,sprint:true},
   // GH sprint repeats: the classic six-all-out-30s protocol that drives a large
   // acute growth-hormone spike. 3–4 min FULL recovery is the whole point — every
   // rep must be genuinely maximal, so this is anaerobic power, never a metcon.
@@ -1106,8 +1183,15 @@ const CONDITIONING_FINISHERS=[
   // is fine only fresh and fully primed, since 30s all-out foot sprints are far
   // more hamstring-aggressive than the app's short accel sprints.
   {name:'GH Sprint Repeats (6 × 30s)',desc:'6 × 30s ALL-OUT sprints, 3–4 min full recovery between each — the recovery is mandatory so every rep is genuinely maximal. Six max efforts drives a large temporary growth-hormone surge. Do it on a bike or rower (default — repeatable and easy on the hamstrings), a steep hill, or flat-out running only when fresh and fully primed. Warm up thoroughly first, then stop the moment a rep drops below all-out.',icon:'⚡',mins:22,sprint:true},
-  {name:'Row Intervals',desc:'6 × 250m hard row / 60s rest — anaerobic power, zero impact',icon:'🚣',mins:14},
-  {name:'Bike Sprint Intervals',desc:'8 × 20s hard / 100s easy spin — off-feet anaerobic repeats, zero impact',icon:'🚴',mins:16},
+  {name:'Row Intervals',needsEquip:'cardio_machine',desc:'6 × 250m hard row / 60s rest — anaerobic power, zero impact',icon:'🚣',mins:14},
+  {name:'Bike Sprint Intervals',needsEquip:'cardio_machine',desc:'8 × 20s hard / 100s easy spin — off-feet anaerobic repeats, zero impact',icon:'🚴',mins:16},
+  // Anti-boredom conditioning: Sam finds stationary bikes and treadmills
+  // miserable, and gating foot sprints to Westminster pushed the rotation
+  // further onto machines everywhere else. These two are hard, off-feet-ish
+  // and skill-based rather than staring at a console. needsEquip keeps them
+  // from being prescribed where the gear isn't.
+  {name:'Med Ball Complex',needsEquip:'medball',desc:'4 rounds, 60s rest: Slams × 8 · Rotational Throws × 6/side · Overhead-to-floor Slam × 6. Every rep maximal intent — this is power work that happens to spike the heart rate, not a metcon. Put the ball down between rounds.',icon:'\ud83c\udfaf',mins:12},
+  {name:'Carry & Crawl Medley',desc:'3 rounds, walk 60s between: Farmer Carry 40 m heavy · Suitcase Carry 20 m/side · Bear Crawl 15 m forward + 15 m backward. Grip, trunk and shoulders under continuous load — athletic conditioning with zero machine time.',icon:'\ud83e\uddf3',mins:12},
   {name:'Brace Circuit',desc:'2 quiet rounds: Suitcase Carry 40s/side · Pallof Press Hold 30s/side · Ab Rollout × 8 · Copenhagen Plank 25s/side. Resist rotation, extension, and lateral flexion — no sweat required.',icon:'🛡️',mins:8,lunchOK:true},
   // Bounce work in two tiers: the iso foundation is impact-free (always in
   // rotation); the reactive jump protocol carries plyo:true so getFinisher
@@ -1129,13 +1213,13 @@ const VO2_PROTOCOLS=[
    desc:w=>`${w} × 4 min hard (90–95% max HR) on run, bike, or rower · 3 min easy between`,
    mins:w=>w*7+10},
   {key:'zone2',name:'Zone 2 Base (Off-Feet)',icon:'🚴',base:35,maxW:50,
-   desc:w=>`${w} min steady bike, row, or ski erg — conversational pace, could nose-breathe throughout. The aerobic base everything else recovers on`,
+   desc:w=>`${w} min conversational pace — could nose-breathe throughout. Pick whatever you'll actually finish: a brisk hike or ruck, an easy OUTDOOR bike, rower, ski erg, or incline treadmill walk. Zone 2 is defined by intensity, not by the machine, so the least boring option is the correct one`,
    mins:w=>w+5},
   {key:'billat',name:'Billat 30/30s',icon:'⚡',base:12,maxW:20,
    desc:w=>`${w} × (30s @ ~vVO2max / 30s easy) · split into 2 blocks, 3 min between`,
    mins:()=>25},
   {key:'anaerobic',name:'Anaerobic Repeats (Off-Feet)',icon:'🔥',base:8,maxW:14,
-   desc:w=>`${w} × 30s hard / 90s easy on bike or rower — repeatable hard efforts, zero impact, not a death march`,
+   desc:w=>`${w} × 30s hard / 90s easy — repeatable efforts, zero impact, not a death march. Rower or ski erg first, then sled push, battle ropes, or hard KB swings; bike only if nothing else is free`,
    mins:w=>Math.round(w*2+6)},
 ];
 // 20-minute maximal row benchmark: every 8th engine session (~every 2–3
@@ -1651,6 +1735,48 @@ function centuryStats(){
 function centuryDraft(){
   if(!S.century||S.century.date!==todayStr())return{date:todayStr(),sets:[]};
   return S.century;
+}
+// A draft abandoned overnight — the reps WERE done, but the card's "log N reps
+// & stop here" button was never tapped — used to be dropped silently by the
+// date check above: no history entry, no back-MRV cost, and nothing for
+// centuryMins() to calibrate the time budget from. Flush it to a PARTIAL log
+// stamped to the day it actually happened, then clear it.
+//
+// It deliberately does NOT roll the remaining reps into today. The century is a
+// DENSITY challenge — 100 reps in one bout — so finishing yesterday's remainder
+// today is just two ordinary pull-up sessions, and stacking a remainder onto a
+// back that already did 70 the day before is how elbows and shoulders get
+// cranky. An unfinished century is that day's honest capacity; the next attempt
+// starts from zero, which is exactly what centuryDraft() already returns.
+//
+// Sync-safe: mergeStampedDraft() discards any draft not dated today, so a stale
+// draft can't ride back in from another device after this clears it, and the
+// already-logged guard keeps a second device from double-logging the same day.
+function flushStaleCentury(){
+  const c=S.century;
+  if(!c||c.date===todayStr())return;
+  const sets=Array.isArray(c.sets)?c.sets.filter(n=>n>0):[];
+  if(sets.length&&!centuryLogs().some(l=>logDay(l.date)===c.date)){
+    // Stamp to the draft's OWN day — last activity when known, else 18:00
+    // local, the same convention the backdated VO2 log uses.
+    const when=c.touchedAt||new Date(c.date+'T18:00:00').toISOString();
+    // Only claim an elapsed time when both ends are known. centuryMins()
+    // filters on timedMins>0, so 0 keeps a guess out of the time budget.
+    const timedMins=(c.startedAt&&c.touchedAt)
+      ?Math.max(1,Math.round((new Date(c.touchedAt).getTime()-new Date(c.startedAt).getTime())/60000)):0;
+    S.logs.push({
+      id:Date.now().toString(),date:when,
+      dayName:`Pull-up Century · ${sets.reduce((a,n)=>a+n,0)} reps`,
+      isCardio:true,century:true,
+      duration:timedMins||Math.max(10,Math.round(sets.length*2)),
+      timedMins,
+      exercises:[{id:'pullup_century',name:'Pull-up Century',muscle:'back',
+        sets:sets.map(n=>({weight:0,reps:n}))}],
+    });
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  }
+  S.century=null;
+  save();
 }
 // Total reps in a logged century — needed because a "century" log may be a
 // PARTIAL one (the card's own button offers "log N reps & stop here").
@@ -2391,6 +2517,23 @@ function genProgram(cfg,av,workoutHistoryLog){
   const strengthDates=(history||[]).filter(l=>!l.isCardio&&logDay(l.date)>=mon&&logDay(l.date)<weekEnd&&(l.exercises||[]).some(e=>e&&STRENGTH_IDS.has(e.id))).map(l=>logDay(l.date));
   const strengthBefore=(d)=>strengthDates.some(x=>x<d);
 
+  // Weekly hip-hinge guarantee. Same derived-from-logs shape as strengthBefore.
+  //
+  // Hinge coverage used to be PROBABILISTIC on evenings: the heavy 'strength'
+  // slot rotates a 4-movement pool of which only two (heavy trap bar, heavy
+  // RDL) are hinges, and once heavy work is banked the remaining leg slots take
+  // athletic accents or the 'hamstring' isolation slot — and leg curls are KNEE
+  // FLEXION, not a hip hinge. Measured over 8 simulated weeks on both of Sam's
+  // real schedule shapes: 88% of weeks got a hinge, i.e. roughly one week in
+  // eight trained legs all week with zero hip-hinge pattern. The lunch mandate
+  // can't cover it either — it alternates hinge/hamstring by parity, so a week
+  // can legitimately land all-hamstring.
+  const HINGE_IDS=new Set([...EX,...(S.customExercises||[])].filter(e=>(e.tags||[]).includes('hinge')).map(e=>e.id));
+  const hingeDates=(history||[]).filter(l=>!l.isCardio&&logDay(l.date)>=mon&&logDay(l.date)<weekEnd&&(l.exercises||[]).some(e=>e&&HINGE_IDS.has(e.id))).map(l=>logDay(l.date));
+  // Counts sessions already assigned earlier in THIS generation run too, so a
+  // single pass doesn't stack two hinge rescues into the same week.
+  const hingeBanked=(d)=>hingeDates.some(x=>x<=d)||Object.entries(assignedHinge).some(([x])=>x<=d);
+
   // Foundation Five weekly coverage (see FOUNDATION_FIVE). Seeded from what was
   // actually LOGGED this calendar week — and deliberately NOT extended by
   // merely-planned sessions.
@@ -2412,6 +2555,8 @@ function genProgram(cfg,av,workoutHistoryLog){
   // Muscles trained per date, accumulated as sessions are assigned this run —
   // lets getLockedMuscles see "preceding" days within the same generation pass.
   const assignedMuscles={};
+  // Dates in this generation run that already carry a hinge (see hingeBanked).
+  const assignedHinge={};
 
   // The actual logged session for a slot's date AND session type (lunch vs
   // evening) this week, if any — the source of truth for a completed day.
@@ -2571,6 +2716,28 @@ function genProgram(cfg,av,workoutHistoryLog){
         else slots[legSlotIdx[0]].tag='hinge';
       }else if(!strengthBefore(dateStr)){
         slots[legSlotIdx[0]].tag='strength';
+      }else if(!hingeBanked(dateStr)){
+        // HINGE RESCUE. Heavy work is banked but nothing this week has actually
+        // hinged — the strength slot rotated to box squat / split squat, and
+        // neither the athletic accents nor leg curls (knee flexion) hinge
+        // either. Spend this accent slot on the hinge so the week can't end
+        // without one.
+        //
+        // Fires at the FIRST such slot rather than waiting for late week: a
+        // thin schedule can put both of its leg days on Mon/Wed, so a Thursday
+        // threshold simply never got a turn there (measured: schedule A rose to
+        // 100% but 5-evening weeks stayed at 88%). Self-limiting — hingeBanked
+        // counts sessions assigned earlier in this same run, so at most one
+        // accent per week is ever converted.
+        slots[legSlotIdx[0]].tag='hinge';
+        // Protected from the Foundation Five's late-week escape valve below.
+        // Without this the stamp wins and the rescue silently evaporates: a
+        // 5-evening week has only ~2 leg slots, so pistol_squat (a Foundation
+        // movement) took the very slot the rescue had just claimed and the week
+        // still ended with zero hinges. Foundation coverage is robust here
+        // (pistol landed every other week in the same run), the hinge is the
+        // scarce one, and this fires at most once a week.
+        slots[legSlotIdx[0]].hingeRescue=true;
       }else{
         // One heavy session is already banked this week — later evening leg
         // slots rotate the athletic accents (produce → absorb) instead of
@@ -2761,7 +2928,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       // heavy weighted singles and 100 submaximal reps onto one day — but not
       // at the cost of never doing them at all.
       if(f.id==='weighted_pullups'&&centuryDowSet.has(domDow)&&!lateWeek)continue;
-      const cands=slots.filter(s=>s.muscle===f.muscle&&!HARD_MANDATE_TAGS.has(s.tag)&&!s.foundationId);
+      const cands=slots.filter(s=>s.muscle===f.muscle&&!HARD_MANDATE_TAGS.has(s.tag)&&!s.hingeRescue&&!s.foundationId);
       if(!cands.length)continue;
       // Preference order: an UNTAGGED slot first (costs no mandate at all), then
       // a slot whose tag the movement ALREADY satisfies (weighted pull-ups on a
@@ -2802,7 +2969,12 @@ function genProgram(cfg,av,workoutHistoryLog){
     // is covered the stamp disappears and the key reverts, so the churn is
     // bounded to the session that actually adopts it.
     const stamped=slots.find(s=>s.foundationId);
-    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')+(stamped?'+f:'+stamped.foundationId:'')};
+    // The hinge rescue depends on LOGS, not on domDay like the other leg
+    // mandates, so it must be part of tk — otherwise a day whose template
+    // changed only by the rescue matches the previous plan and takes the
+    // preserve-don't-rebuild path, and the rescue never lands.
+    const rescued=slots.some(s=>s.hingeRescue);
+    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')+(stamped?'+f:'+stamped.foundationId:'')+(rescued?'+hr':'')};
   }
 
   function buildSession(slot,tk,oldData){
@@ -2859,6 +3031,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
       (od.exercises||[]).forEach(e=>{if(e&&e.muscle&&countsForRecoveryEx(e))assignedMuscles[dateStr].add(e.muscle);});
       if((od.exercises||[]).some(e=>e&&STRENGTH_IDS.has(e.id)))strengthDates.push(dateStr);
+      if((od.exercises||[]).some(e=>e&&HINGE_IDS.has(e.id)))assignedHinge[dateStr]=1;
       return{tk:od.tk,name:od.name,desc:od.desc,isLunch:slot.isLunch,exercises:od.exercises,mins:slot.mins,loc:slot.loc,equipmentKey,preserved:true};
     }
     const used=[];
@@ -2956,6 +3129,7 @@ function genProgram(cfg,av,workoutHistoryLog){
     (assignedMuscles[dateStr]=assignedMuscles[dateStr]||new Set());
     exs.forEach(e=>{if(e.muscle&&countsForRecoveryEx(e))assignedMuscles[dateStr].add(e.muscle);});
     if(exs.some(e=>e&&STRENGTH_IDS.has(e.id)))strengthDates.push(dateStr);
+    if(exs.some(e=>e&&HINGE_IDS.has(e.id)))assignedHinge[dateStr]=1;
     // NOTE: coverage is deliberately NOT marked here. A planned session is not
     // a completed one, and marking it would let one provisional template spend
     // the week's only stamp (see foundationDone above).
@@ -3236,10 +3410,21 @@ function creditVolume(vol,ex,sets){
 // type can't fire without looking the movement back up. Falls back to the bare
 // entry (primary credit only) for custom/deleted movements, which is the safe
 // direction to be wrong in.
+//
+// SYNTHETIC LOG IDS (2026-08-05). A few log writers invent an id for a whole
+// protocol rather than naming a movement in EX, and those fell through to the
+// bare-entry fallback — silently, because primary credit still worked and only
+// the SECONDARY credit went missing. `pullup_century` is the case that mattered:
+// 100 pull-ups is the single biggest source of uncounted biceps work in the week
+// and is the motivating example in SECONDARY_CREDIT_RULES' own comment, yet a
+// century had never once credited biceps. Aliasing fixes historical logs too,
+// which changing the writers would not.
+const EX_ID_ALIASES={pullup_century:'pullups'};
 function exFull(e){
   if(!e||!e.id)return e;
   if(e.type)return e;
-  return [...EX,...(S.customExercises||[])].find(x=>x.id===e.id)||e;
+  const id=EX_ID_ALIASES[e.id]||e.id;
+  return [...EX,...(S.customExercises||[])].find(x=>x.id===id)||e;
 }
 
 // ─── MRV (Maximum Recoverable Volume) Tracking ───
@@ -4719,20 +4904,25 @@ function abandonWorkout(){
 // ─────────────────────────────────────────────
 // CONDITIONING FINISHER
 // ─────────────────────────────────────────────
-function getFinisher(dow,isLunch){
+function getFinisher(dow,isLunch,equipmentKey){
   // Hip caution drops jump-based finishers, mirroring the pickEx plyometric ban.
   // Lunch sessions only draw from the lunchOK (low-sweat) subset — sprints and
   // hard intervals live on evenings/weekends so the lunch time-box stays dry.
-  const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution)&&(!isLunch||f.lunchOK));
+  const hasRunway=SPRINT_LOCATIONS.has(equipmentKey);
+  // needsEquip: a finisher that names specific gear is dropped where that gear
+  // isn't. Unknown location => treat as unequipped, same conservative default
+  // as the runway check.
+  const equip=new Set(EQUIPMENT_PRESETS[equipmentKey]?.equipment||[]);
+  const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution)&&(!isLunch||f.lunchOK)&&!(f.needsRunway&&!hasRunway)&&!(f.needsEquip&&!equip.has(f.needsEquip)));
   return pool[dow%pool.length];
 }
-function finisherHTML(dow,compact,isLunch){
+function finisherHTML(dow,compact,isLunch,equipmentKey){
   // At lunch the finisher has to be AFFORDABLE, not just low-sweat. Its minutes
   // are now charged against the box like everything else (see LUNCH_LEDGER), so
   // if the ledger didn't leave room, no card is rendered — showing one anyway is
   // how a 40-minute lunch became a 43-minute one.
   if(isLunch&&!lunchBudget(dow).finisher)return'';
-  const f=getFinisher(dow,isLunch);
+  const f=getFinisher(dow,isLunch,equipmentKey);
   const primer=f.sprint?`<div style='margin-top:10px;padding:10px 12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:10px'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>🔑 ${SPRINT_PRIMER.title}</div>
       ${SPRINT_PRIMER.items.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• ${it}</div>`).join('')}
@@ -5825,7 +6015,7 @@ function renderDash(){
       }
       ${eveBlock}
       ${isActualToday&&dd?.isLunch?lunchBudgetHTML(displayDow):''}
-      ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession):''}
+      ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession,dd?.eveningSession?.equipmentKey||dd?.equipmentKey):''}
       ${isActualToday?centuryHTML():''}
       ${isActualToday?pyramidHTML(dd):''}
       ${isActualToday?dailySpineHTML():''}
@@ -6227,18 +6417,24 @@ function renderWorkout(){
     const setRep=isBackoffSet?`${backoffRepLo}–${backoffRepHi}`:repRange;
     const sugR=done?.reps||(isBackoffSet?backoffRepLo:ex.rMax);
     const setTag=(isNoWeight||isTimed||!useBackoff)?'':`<div style='font-size:9px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px'>${isBackoffSet?'back-off':'top set'}</div>`;
+    // Last working set only (see lastSetTechnique) — and only once every
+    // earlier set is logged, so it appears as the cue for the set being done
+    // rather than as clutter from the moment the card opens.
+    const techNote=(i===ex.sets-1&&!done&&ex.done.filter(Boolean).length>=ex.sets-1&&lastSetTechnique(ex))
+      ?`<div style='grid-column:1/-1;font-size:11.5px;color:var(--txt-dim);line-height:1.45;margin-top:6px;padding:6px 8px;background:rgba(251,191,36,.07);border-left:3px solid rgba(251,191,36,.5);border-radius:0 6px 6px 0'>🔥 ${lastSetTechnique(ex)}</div>`:'';
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
       <div class='st'>${setRep}${setTag}</div>
       ${hideWeight?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='${isDumbbellEx?'each':'lb'}' value='${done?done.weight:sugW||''}' min='0' step='5' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${(ex.isFirst||isGroupFirst)&&i===0?exIdx:''}'>`}
       <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' inputmode='numeric' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
+      ${techNote}
     </div>`;
   }).join('');
 
   const allDone=ex.done.filter(Boolean).length>=ex.sets;
   const isLast=exIdx===total-1;
-  const condBlock=isLast&&S.cfg.conditioning&&allDone?finisherHTML(S.active.dow,false,!!S.active.isLunch):'';
+  const condBlock=isLast&&S.cfg.conditioning&&allDone?finisherHTML(S.active.dow,false,!!S.active.isLunch,S.active.equipmentKey):'';
   // Post-session cool-down (~5 min, evening/weekend sessions only — lunch is
   // hard time-boxed): static relief for the desk-stiff areas (neck, lower
   // back) plus tibialis work for incline-walking shin stiffness. The tib
@@ -6944,6 +7140,9 @@ function updateModals(){
 
 function render(){
   const root=document.getElementById('root');
+  // Cheap no-op unless a century draft survived past its own day (see the
+  // function's note) — banks those reps before anything reads the tally.
+  flushStaleCentury();
   if(!S.program&&S.view!=='setup'){S.view='setup';}
   updateModals();
   if(S.view==='setup'){root.innerHTML=renderSetup();return;}

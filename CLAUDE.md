@@ -615,21 +615,38 @@ measurably makes things worse:
    from 300 pull-ups IS real elbow-flexor work and curls genuinely are redundant
    against it — that's what `SECONDARY_CREDIT_RULES` is for.
 
-Measured (6 weeks × 3 schedules, daily replan, centuries logged, baseline from
-`git show HEAD:index.html` through the same harness). **Programmed** = sets the
-generator prescribes, excluding century reps — the number Sam's request is
-actually about:
+A FOURTH bug fell out of this, pre-existing and silent: **a century had never
+credited biceps at all.** The century-finish handler logs its exercise as
+`id:'pullup_century'`, which is not in `EX`, so `exFull()` couldn't recover a
+`type` and `secondaryCredit()` returned null — the one case
+`SECONDARY_CREDIT_RULES`' own comment names as its motivating example. Primary
+credit still worked, which is why nothing looked broken. Fixed with
+`EX_ID_ALIASES` in `exFull` rather than by changing the writers, because an
+alias repairs historical logs too. **Any future synthetic log id needs an entry
+there** — the failure mode is silent by construction.
 
-- **lunch+3 evenings**: programmed biceps 5–6 → **0–3**; programmed back 6–8 →
-  6 (steady 2 back exercises/week instead of 2–3). Back MRV total 15 → 21 of
-  12–22, i.e. in band and honest instead of in band and wrong. `horizontal` held
-  at baseline 60%; **`rear_delt` never → 100% of weeks**. Legs, core, triceps,
-  chest all still in band.
-- **3 evenings only**: identical to baseline on every muscle and mandate —
-  the point of change 3 was to keep it that way.
-- **lunch-only**: back MRV 12 → 18 (in band), programmed biceps 2 → 0.
+Measured (6 weeks × 3 schedules, daily replan, centuries logged under their REAL
+log id, baseline = `git show 443a02a:index.html` through the same harness).
+**Programmed** = sets the generator prescribes, excluding century reps — the
+number Sam's request is actually about:
+
+- **lunch+3 evenings** (the main schedule): programmed biceps 5–6 → **0–3**;
+  programmed back 6–9 → 6, i.e. **2 back exercises/week instead of 3**. Back MRV
+  total 15–18 → 21 of 12–22 — in band and honest, where before it was in band
+  and wrong. Legs, core, chest, shoulders, triceps all still in band.
+- **3 evenings only**: programmed biceps 6 → 3, programmed legs 6 → **9**
+  (a bonus — freeing back slots let legs take the depth), everything else and
+  every mandate unchanged.
+- **lunch-only**: programmed biceps 2 → 0, triceps 2 → 3, back MRV 12 → 18.
 
 Accepted costs, measured not assumed:
+- **The two back accents now trade off instead of both landing.** On the full
+  schedule `horizontal` went 100% → 60% of weeks while `rear_delt` went 50% →
+  100%; total accent coverage is a shade better (150 → 160 accent-weeks) on a
+  third less programmed back volume. This is the structural limit already
+  documented below — three claimants for the back slots recovery debt allocates
+  — and cutting back from 3 exercises/week to 2 is the direct, requested cause.
+  Do NOT "fix" it by giving back a third slot; that undoes the whole change.
 - **Back can overshoot its ceiling on a heavy century week** — one week of five
   hit 27 of 22 on the full schedule, and the efficiency profile sits at 13 of
   10. That is `patternUnder` buying a row at the cost of a nominal overshoot.
