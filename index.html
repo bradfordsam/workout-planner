@@ -8194,6 +8194,10 @@ document.addEventListener('click',e=>{
     // only (the log's `date` is what positions it), but leaving the two
     // disagreeing makes History read as a different session from the card.
     log.duration=mins||Math.max(10,Math.round((log.exercises?.[0]?.sets||[]).length*2));
+    // Without this the cloud read-merge restores its stale copy over the
+    // correction — see pickNewerEdit. This was the reported symptom: the number
+    // changed, then came back on refresh.
+    stampLogEdit(log);
     S.editCenturyTime=null;
     // The lunch time-box is derived from these minutes, so the rest of the week
     // has to be re-planned around the corrected number — the same reason
@@ -8549,6 +8553,9 @@ document.addEventListener('click',e=>{
       const timingErr=logEditTimingError();
       if(timingErr){alert(timingErr);return;}
       syncLogEditInputs();
+      // Stamp the edit so the cloud merge keeps THIS copy rather than the stale
+      // one it already holds — see pickNewerEdit.
+      stampLogEdit(log);
       const idx=S.logs.findIndex(l=>l.id===log.id);
       if(idx!==-1)S.logs[idx]=log;
       // An edited finish time can move a session past its neighbours; progression
@@ -8747,7 +8754,12 @@ async function saveToCloud(){
       const doc=await ref.get();
       if(doc.exists){
         const cloud=doc.data();
-        const merged=unionById(S.logs,cloud.logs);
+        // pickNewerEdit here as well as in loadFromCloud — this is the copy that
+        // does the damage. save() calls saveToCloud immediately, so an edit made
+        // more than 60s after the last merge read is unioned against the cloud
+        // BEFORE it is written: without the resolver the stale cloud row wins,
+        // and the correction is gone before it ever leaves the device.
+        const merged=unionById(S.logs,cloud.logs,null,pickNewerEdit);
         merged.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
         S.deletedSessions=unionById(S.deletedSessions,cloud.deletedSessions,d=>d.log?.id).slice(-20);
         S.logs=filterTombstoned(merged).slice(-LOG_KEEP);
@@ -8778,11 +8790,48 @@ window.addEventListener('pagehide',()=>{if(cloudDirty)saveToCloud();});
 // Generic union-by-id: every row created on any device survives the merge.
 // Additive collections (logs, custom exercises, deleted sessions) must NEVER
 // be last-writer-wins — that's how one device's entries were getting dropped.
-function unionById(localArr,cloudArr,idOf){
+// Additive union of two id-bearing collections. `pick` decides what happens for
+// an id present on BOTH sides; without it the cloud copy stands, which is the
+// right default for collections that are only ever appended to.
+function unionById(localArr,cloudArr,idOf,pick){
   idOf=idOf||(x=>x.id);
   const out=[...(cloudArr||[])];
-  (localArr||[]).forEach(l=>{if(!out.find(c=>idOf(c)===idOf(l)))out.push(l);});
+  (localArr||[]).forEach(l=>{
+    const i=out.findIndex(c=>idOf(c)===idOf(l));
+    if(i===-1)out.push(l);
+    else if(pick)out[i]=pick(l,out[i]);
+  });
   return out;
+}
+// ── WHY LOGS NEED A `pick` AND THE OTHER COLLECTIONS DON'T (2026-08-05) ──
+// Reported: "the adjust pull up time is not saving when i refresh the page."
+// The local write was fine; the CLOUD read-merge was undoing it. A plain union
+// keeps the cloud copy for any id it already has, so a log that is EDITED rather
+// than appended loses every time — save() writes the correction to localStorage,
+// saveToCloud's read-merge restores the stale cloud copy over it, and the next
+// refresh shows the old number.
+//
+// This is the same shape as the bug documented on mergeStampedDraft — a rule
+// that can't express DELETION cannot merge a list with an undo button; a rule
+// that can't express MODIFICATION cannot merge a list with an edit button — and
+// it takes the same fix: an explicit stamp, newer wins whole.
+//
+// NOT century-specific. Every field of the Edit Workout screen was affected:
+// corrected weights, reps, added or removed exercises, retimed sessions. It only
+// surfaced now because the century's time is the first edited value that feeds
+// a visible downstream number (centuryMins → the lunch box).
+//
+// `editedAt` is absent on every log written before this and on any log that has
+// never been edited, which is exactly right: absent = never edited = loses to a
+// copy that was. When neither side carries one, the cloud still wins, so
+// ordinary appended logs behave exactly as before.
+const logEditedAt=(l)=>(l&&l.editedAt)||'';
+const pickNewerEdit=(local,cloud)=>logEditedAt(local)>logEditedAt(cloud)?local:cloud;
+// Call this from ANY path that mutates a log in place, or the edit will not
+// survive a sync. Appending a brand-new log doesn't need it (no id collision).
+function stampLogEdit(log){
+  if(log)log.editedAt=new Date().toISOString();
+  return log;
 }
 
 // In-progress SESSION DRAFTS (the Century tally, the Pyramid rung counter) fit
@@ -8868,8 +8917,10 @@ async function loadFromCloud(){
       const cloud=doc.data();
       // Additive collections: union by id on EVERY sync, regardless of which
       // side is newer. Logs stay sorted by workout DATE (not record id) so
-      // backdated entries keep progression chronology intact.
-      const merged=unionById(S.logs,cloud.logs);
+      // backdated entries keep progression chronology intact. Logs additionally
+      // resolve id collisions by edit stamp — see pickNewerEdit for why a plain
+      // union silently discarded every history edit.
+      const merged=unionById(S.logs,cloud.logs,null,pickNewerEdit);
       merged.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
       const customEx=unionById(S.customExercises,cloud.customExercises);
       const deleted=unionById(S.deletedSessions,cloud.deletedSessions,d=>d.log?.id);

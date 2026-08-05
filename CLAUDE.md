@@ -402,6 +402,28 @@ strip it before other debugging.
     COMPLETED rungs, matching how the session is actually run. Cloud-synced by
     the shared `mergeStampedDraft` (see the Century's note on why
     `SINGLETON_FIELDS` and `unionById` both fail for session drafts).
+- **Editing a log had to survive the cloud merge** (2026-08-05, `pickNewerEdit` /
+  `stampLogEdit`). `unionById` keeps the CLOUD copy for any id present on both
+  sides, which is right for collections that are only appended to and wrong for
+  logs, which have an edit screen. Symptom: "the adjust pull up time is not
+  saving when i refresh the page" — the localStorage write was fine, and the
+  merge put the stale row back over it. Same shape as the `mergeStampedDraft`
+  note (a rule that can't express DELETION can't merge a list with an undo
+  button; a rule that can't express MODIFICATION can't merge a list with an edit
+  button) and the same fix: an `editedAt` stamp, newer wins whole.
+  **This was never century-specific** — every field of Edit Workout was affected
+  (weights, reps, added/removed exercises, retimed sessions); the century's time
+  is just the first edited value that feeds a visible downstream number.
+  Two things to know before touching this:
+  - **Both unions need the resolver.** `loadFromCloud`'s is the obvious one;
+    `saveToCloud`'s read-merge is the one that does the damage, because `save()`
+    calls it immediately and the edit is clobbered before it ever leaves the
+    device. Fixing only one looks like it works until the 60s read throttle
+    lapses.
+  - **Any new path that mutates a log in place must call `stampLogEdit`**, or
+    the change silently reverts on the next sync. Appending a new log doesn't
+    need it (no id collision). Deletion is already covered separately, by
+    `filterTombstoned` against `deletedSessions`.
 - `SECONDARY_CREDIT_RULES` / `creditVolume` / `exFull` (2026-08-03): a set
   counts toward the muscles it trains INDIRECTLY, at an evidence-derived
   fraction — pulls → biceps 0.5, chest compounds → triceps 0.5 + shoulders
