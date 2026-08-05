@@ -1640,7 +1640,13 @@ function centuryEligibleDow(av,dow){
 // from; now that the card tells him sets of N with a fixed rest, the honest
 // budget is the arithmetic of that instruction. It also self-scales for free —
 // as his best set climbs, the plan gets shorter and so does the reservation.
-function centuryDefaultMins(){return centurySetPlan().mins;}
+// Capped at the same ceiling the MEASURED path uses. The derived plan can exceed
+// a whole lunch at a low `best`: half of 5 is a set of 3, which needs 33 sets and
+// prices at 47 minutes — more than the box, so the ledger would go negative and
+// report negative slack. The cap doesn't make the century shorter, it stops an
+// unmeasured ESTIMATE from claiming more than a lunch can contain; once there are
+// real timings, centuryMins() uses those instead.
+function centuryDefaultMins(){return Math.min(CENTURY_MAX_BUDGET_MINS,centurySetPlan().mins);}
 // A PARTIAL century must never make the budget SMALLER. The card deliberately
 // offers "log N reps & stop here", so a short session is a normal outcome —
 // and 26 reps in 18 minutes is evidence the century runs SLOWER than the
@@ -5337,6 +5343,39 @@ function prepPlan(o){
 // add a set, watch the bar fill, log it when you get to 100 — the number of
 // sets it took is recorded as a side effect rather than being something to
 // plan in advance.
+// ── FIXING A CENTURY'S RECORDED TIME (2026-08-05) ──
+// Sam: "I forgot to stop my century today can you make it so I can go back and
+// edit that time." The card sits on the dashboard all day, so the gap between
+// the last rep and remembering to tap Log is unbounded. The finish handler now
+// measures to the last SET rather than to the tap, which prevents the next one —
+// but a century already logged with a wrong number still needs fixing, and the
+// number matters: centuryMins() takes the median of the last 5 timed sessions
+// and that is what reserves minutes out of the 40-minute lunch. One bad reading
+// visibly moves how much lifting a lunch gets.
+//
+// Lives right on the Done card rather than only in History because that is where
+// he'll be standing when he notices. The same edit is available from Edit
+// Workout for older centuries (see renderLogEdit).
+//
+// Setting it to 0 is a real, useful answer — "I genuinely don't know" — because
+// centuryMins() filters on timedMins>0, so an untimed session is skipped rather
+// than poisoning the median with a guess. That is the whole point of keeping
+// timedMins separate from duration.
+function centuryTimeEditHTML(log){
+  if(!log)return'';
+  if(S.editCenturyTime!==log.id){
+    return`<button class='cue-btn' data-action='century-time-edit' data-id='${log.id}' style='margin-top:8px;margin-bottom:0'>⏱ ${log.timedMins?'Fix the time':'Add the time'}</button>`;
+  }
+  return`<div style='margin-top:10px;padding:10px 12px;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px'>
+    <div style='font-size:11px;color:var(--mut);margin-bottom:6px'>How many minutes did it actually take, first set to last?</div>
+    <div style='display:flex;gap:6px;align-items:center'>
+      <input type='number' id='century-time-input' class='ni' value='${log.timedMins||''}' placeholder='min' min='0' max='${MAX_LOGGED_MINS}' inputmode='numeric' style='width:84px'>
+      <button class='btn btn-s btn-sm' data-action='century-time-save' data-id='${log.id}' style='flex:1'>Save</button>
+      <button class='btn btn-g btn-sm' data-action='century-time-cancel' style='width:auto'>Cancel</button>
+    </div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>This is the number that reserves time for a century out of your 40-minute lunch — a wrong one costs you lifting on century days. Don't count the time between finishing and tapping Log. <strong style='color:var(--txt)'>Leave it blank or enter 0</strong> if you genuinely don't know; an untimed session is skipped rather than guessed at.</div>
+  </div>`;
+}
 function centuryHTML(){
   const isCenturyDay=centuryDows().includes(todayDow());
   const draft=centuryDraft();
@@ -5376,6 +5415,7 @@ function centuryHTML(){
       <div style='font-size:14px;font-weight:700'>✅ ${total} reps in ${sets.length} set${sets.length!==1?'s':''}${doneToday.timedMins?` · ${doneToday.timedMins} min`:''}</div>
       <div style='font-size:12px;color:var(--mut);margin-top:2px'>${sets.map(s=>s.reps).join(' · ')}</div>
       ${clock}
+      ${centuryTimeEditHTML(doneToday)}
       ${trend}
     </div>`;
   }
@@ -6845,6 +6885,7 @@ function renderLogEdit(){
       </div>
       <div id='el-dur-out' style='font-size:12px;margin-top:8px;color:var(--ok)'>Duration: ${fmtDur(log.duration||0)}</div>
       <div style='font-size:11px;color:var(--mut);margin-top:6px'>Duration is worked out from these two. The start time is the one the app recorded when you tapped Start — usually only the finish needs fixing. Moving the finish time also moves this session to that day in your week grid, recovery debt and MRV.</div>
+      ${log.century?`<div style='font-size:11px;color:var(--warn);margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);line-height:1.6'>⏱ For a century the duration edited here is ALSO the timed measurement that reserves minutes out of your 40-minute lunch, so get it close — first set to last set, not counting the time before you tapped Log. If you don't know, set the two times one minute apart and then clear the time on the century card instead; an untimed session is skipped rather than guessed at.</div>`:''}
     </div>
     ${exSections}
     <div class='card' style='margin-bottom:16px'>
@@ -6881,7 +6922,16 @@ function syncLogEditInputs(){
   const f=fromLocalInputValue(document.getElementById('el-finish')?.value||'');
   if(s&&f){
     const m=minsBetween(s,f);
-    if(m>=1&&m<=MAX_LOGGED_MINS){log.date=f;log.duration=m;}
+    if(m>=1&&m<=MAX_LOGGED_MINS){
+      log.date=f;log.duration=m;
+      // A century's `duration` and its `timedMins` are the same measurement seen
+      // twice, and only timedMins reaches centuryMins() → the lunch budget. If
+      // the editor moved one without the other, fixing a mis-timed century here
+      // would LOOK fixed in History and change nothing about the schedule.
+      // Only for an already-timed century: a deliberately untimed one (0) stays
+      // untimed, since editing the clock doesn't turn a guess into a measurement.
+      if(log.century&&log.timedMins>0)log.timedMins=m;
+    }
   }
   log.exercises.forEach((ex,ei)=>{
     const isNW=ex.noWeight||EX.find(e=>e.id===ex.id)?.noWeight;
@@ -8080,17 +8130,42 @@ document.addEventListener('click',e=>{
     // daily lifting slots. The exercises array IS populated, so the reps still
     // count toward weekly back volume — at the documented half weight, since
     // every set stopped short of failure.
-    // MEASURED duration, wall-clock from the first set to this tap. `duration`
-    // was previously a guess (2 min × set count); that guess is now only the
-    // fallback for a draft with no start time (one begun before timing existed).
-    // timedMins is stored SEPARATELY from duration so centuryMins() only ever
-    // averages real measurements — a fallback estimate must never feed back into
-    // the schedule as if it were evidence.
-    const timedMins=d.startedAt
-      ?Math.max(1,Math.round((Date.now()-new Date(d.startedAt).getTime())/60000))
+    // MEASURED duration: first set → LAST SET, not first set → this tap.
+    //
+    // Reported 2026-08-05, "I forgot to stop my century today": the card sits on
+    // the dashboard all day, so the gap between finishing the hundredth rep and
+    // remembering to tap Log is unbounded — and it was being recorded as though
+    // he'd been hanging off the bar for it. The century ENDS at the last set, and
+    // the draft already knows when that was (`touchedAt`, bumped by the add-set
+    // and undo-set handlers only). Using it makes this path agree with
+    // flushStaleCentury, which had it right, and makes the measurement immune to
+    // forgetting the button. Tapping Log straight away is unaffected —
+    // touchedAt is a few seconds old in that case.
+    //
+    // `duration` was previously a guess (2 min × set count); that guess is now
+    // only the fallback for a draft with no start time (one begun before timing
+    // existed). timedMins is stored SEPARATELY from duration so centuryMins()
+    // only ever averages real measurements — a fallback estimate must never feed
+    // back into the schedule as if it were evidence.
+    const endedAt=d.touchedAt?new Date(d.touchedAt).getTime():Date.now();
+    let timedMins=d.startedAt
+      ?Math.max(1,Math.round((endedAt-new Date(d.startedAt).getTime())/60000))
       :0;
+    // Belt and braces for the case touchedAt can't catch — a draft left open
+    // across a long break BETWEEN sets. finishWorkout has had this guard for
+    // ordinary sessions all along; the century never did, which is why a wrong
+    // number could reach centuryMins() and quietly reshape the lunch budget.
+    // A number he types IS a measurement (he read it off a clock), so it still
+    // counts as timed; only cancelling drops it to 0 = "no measurement".
+    if(timedMins>CENTURY_MAX_BUDGET_MINS){
+      const ans=prompt(`This century's clock has been running ${fmtDur(timedMins)} — looks like it wasn't logged when you finished.\n\nHow many minutes did it actually take? (Cancel to leave it untimed.)`,String(centuryDefaultMins()));
+      const parsed=parseInt(ans);
+      timedMins=(ans===null||isNaN(parsed))?0:Math.max(1,Math.min(MAX_LOGGED_MINS,parsed));
+    }
+    // Stamp the log at the last set, not at the tap — same reason as above, and
+    // it keeps a century logged late at night on the day it was actually done.
     S.logs.push({
-      id:Date.now().toString(),date:new Date().toISOString(),
+      id:Date.now().toString(),date:new Date(endedAt).toISOString(),
       dayName:`Pull-up Century · ${d.sets.reduce((a,n)=>a+n,0)} reps`,
       isCardio:true,century:true,
       duration:timedMins||Math.max(10,Math.round(d.sets.length*2)),
@@ -8100,6 +8175,30 @@ document.addEventListener('click',e=>{
     });
     S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     S.century=null;
+    save();render();return;
+  }
+  // Fix a century's recorded time after the fact — see centuryTimeEditHTML.
+  if(a==='century-time-edit'){S.editCenturyTime=btn.dataset.id;render();return;}
+  if(a==='century-time-cancel'){S.editCenturyTime=null;render();return;}
+  if(a==='century-time-save'){
+    const log=(S.logs||[]).find(l=>l.id===btn.dataset.id);
+    if(!log){S.editCenturyTime=null;render();return;}
+    const raw=document.getElementById('century-time-input')?.value;
+    const m=parseInt(raw);
+    // Blank or 0 = "I don't know", stored as 0 so centuryMins() skips it rather
+    // than averaging in a guess. Anything else is a real number he read off a
+    // clock, which finishWorkout's own comment establishes IS a measurement.
+    const mins=(raw===''||raw==null||isNaN(m)||m<=0)?0:Math.min(MAX_LOGGED_MINS,m);
+    log.timedMins=mins;
+    // Keep `duration` consistent with it — for a century that field is display
+    // only (the log's `date` is what positions it), but leaving the two
+    // disagreeing makes History read as a different session from the card.
+    log.duration=mins||Math.max(10,Math.round((log.exercises?.[0]?.sets||[]).length*2));
+    S.editCenturyTime=null;
+    // The lunch time-box is derived from these minutes, so the rest of the week
+    // has to be re-planned around the corrected number — the same reason
+    // finishWorkout calls it.
+    replanCurrentWeek();
     save();render();return;
   }
   // ── The Pyramid ladder (see PYRAMID_LADDER) ──

@@ -260,6 +260,25 @@ strip it before other debugging.
   absorbs the warm-up. `timedMins` is stored SEPARATELY from `duration` so the
   old set-count estimate can never feed back into scheduling as if it were a
   measurement. Target is fixed; the SET COUNT is the progress metric.
+  **Timing (2026-08-05, "I forgot to stop my century today")**: `timedMins` is
+  measured first set → **LAST SET** (`draft.touchedAt`), never to the Log tap.
+  The card sits on the dashboard all day, so the gap before you remember to tap
+  is unbounded and was being recorded as though he'd been on the bar for it —
+  and that number is the median that reserves lunch minutes, so one bad reading
+  visibly costs a day's lifting. This also makes the interactive path agree with
+  `flushStaleCentury`, which already measured to `touchedAt`. The log is stamped
+  at the last set for the same reason. On top: a `CENTURY_MAX_BUDGET_MINS`
+  plausibility prompt (the guard `finishWorkout` has always had and the century
+  never did) for a gap BETWEEN sets, which `touchedAt` can't catch; and the time
+  is EDITABLE afterwards from the Done card (`centuryTimeEditHTML`) and from Edit
+  Workout, where `syncLogEditInputs` keeps `timedMins` in step with the edited
+  duration — otherwise a fix would look right in History and change nothing about
+  the schedule. **Blank/0 means "untimed", which is a real answer**: `centuryMins`
+  filters on `timedMins>0`, so an unknown session is skipped rather than
+  poisoning the median with a guess. That is the whole reason `timedMins` is
+  separate from `duration`. `centuryDefaultMins()` is now capped at
+  `CENTURY_MAX_BUDGET_MINS` too — at a low `best` the derived plan reached 47 min
+  and drove the lunch ledger negative.
   **MRV pricing (revised 2026-08-05, `CENTURY_MRV_SETS` 3 → 5, priced by REPS
   via `centuryMrvSets`)** — see the Fourth pass section below for the measured
   effect and the two scheduler changes that had to land with it. A PARTIAL
