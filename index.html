@@ -342,10 +342,16 @@ const EX = [
   // the shoulders" cue reduces it but does not remove it.
   {id:'ezbar_upright_row',name:'EZ Bar Upright Rows',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:8,rMax:12,rest:120,shoulderRisk:true,cue:'Grip an EZ bar at about shoulder width on the angled sections. Pull the bar straight up the front of the body, leading with the elbows, to roughly mid-chest — stop before the elbows climb above the shoulders to keep the joint happy. Squeeze the side delts and traps at the top, lower under control. Keep it smooth — no heaving.',tags:['trap']},
   {id:'alt_front_raise',name:'Alternating Front Lateral Raises',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Stand tall with a dumbbell in each hand, palms facing your thighs. Raise one arm straight in front to about shoulder height with a slight elbow bend, pause, then lower under control as you raise the other — alternating each rep. No swinging or leaning back; the front delts do the work. Count per side.'},
-  {id:'db_curl',name:'DB Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Standing. Full supination at top (palm faces ceiling) — rotate the pinky side of your hand up and in at peak contraction for a harder squeeze. 2-count negative — lower slowly, don\'t drop it. Full ROM at bottom.'},
-  {id:'hammer_curl',name:'Hammer Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Standing, neutral grip. Trains brachialis and brachioradialis. Resist the descent — 2 counts down.'},
-  {id:'cable_curl',name:'Cable Curl',muscle:'biceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing at the low pulley. EZ-bar or straight bar. Constant tension throughout. Control the eccentric — cable should never go slack.'},
-  {id:'incline_curl',name:'Incline DB Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Set the bench to 45–60° incline (~100–173% grade) so your arms hang straight down from the shoulder. Long head fully stretched at bottom — key for peak development. Full supination at top, rotating the pinky upward at peak for maximum contraction. Slow negative. Very strict form.'},
+  // SIMULTANEOUS vs ALTERNATING is stated explicitly on every curl (2026-08-05,
+  // Sam asked). Default is SIMULTANEOUS: both arms move together, so the set is
+  // one continuous block of tension and takes half as long — which is what a
+  // 40-minute lunch and a rest timer that assumes one set per row both need.
+  // Alternating is the exception, not the default, and the reps are counted PER
+  // ARM either way so the log means the same thing regardless.
+  {id:'db_curl',name:'DB Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'SIMULTANEOUS — both dumbbells curl together, not one at a time. Standing. Full supination at top (palm faces ceiling) — rotate the pinky side of your hand up and in at peak contraction for a harder squeeze. 2-count negative — lower slowly, don\'t drop it. Full ROM at bottom. Alternate arms only if you want more load on one side than you can hold on both, or the elbow is grumbling; reps are counted per arm either way.'},
+  {id:'hammer_curl',name:'Hammer Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'SIMULTANEOUS — both dumbbells at once. Standing, neutral grip. Trains brachialis and brachioradialis. Resist the descent — 2 counts down. Alternating is the common gym default here and costs you nothing but time; if you do alternate, count reps per arm.'},
+  {id:'cable_curl',name:'Cable Curl',muscle:'biceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Both hands on one bar, so this one is simultaneous by construction. Standing at the low pulley. EZ-bar or straight bar. Constant tension throughout. Control the eccentric — cable should never go slack.'},
+  {id:'incline_curl',name:'Incline DB Curl',muscle:'biceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'SIMULTANEOUS — both arms together. Alternating here lets the resting arm drift up out of the stretch, which is the entire reason to do the movement. Set the bench to 45–60° incline (~100–173% grade) so your arms hang straight down from the shoulder. Long head fully stretched at bottom — key for peak development. Full supination at top, rotating the pinky upward at peak for maximum contraction. Slow negative. Very strict form.'},
   {id:'pushdown',name:'Tricep Pushdown',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Elbows pinned to sides. Full lockout every rep. Resist the stack on the way back up — slow eccentric builds the horseshoe.'},
   {id:'overhead_ext',name:'Cable Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing (or seated on a bench for extra back support), facing away from a low pulley with a rope attachment — hands together behind the head at the bottom. Long head fully stretched overhead — highest growth potential. Keep elbows forward and pointed at the ceiling, don\'t let them flare. 2-count descent, no swinging the cable. Full ROM.'},
   {id:'db_overhead_ext',name:'DB Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Standing (or seated on a bench for extra back support). Hold a single dumbbell with both hands, cupped under the top plate, arms straight overhead. Lower behind the head under control until you feel a full stretch in the long head of the tricep — keep elbows pointed at the ceiling and close to your ears, don\'t let them flare. Press back to full lockout. 2-count descent, full ROM.'},
@@ -762,6 +768,54 @@ const MUSCLE_FEELS={
   hips:'The small hip muscles working in isolation — the moment bigger muscles take over, reset.',
 };
 const feelFor=(ex)=>FEELS[ex.id]||MUSCLE_FEELS[ex.muscle]||'';
+
+// ─── CUES AS BULLETS ───
+// Sam, 2026-08-05: "Bullet points for feel cues rather than hard to read
+// paragraphs. This includes technique tips and feel tips that should be
+// compressed into one space." Both were true: the feel line sat in its own box
+// above the card while the technique cue hid behind a collapsible button below
+// it, so the two halves of one instruction lived in two places and the half you
+// read mid-set was a wall of prose.
+//
+// The split is done at RENDER time rather than by rewriting ~200 cue strings
+// into arrays. That is not laziness — the strings are the durable asset here
+// (several encode injury constraints and are referenced from CLAUDE.md), and a
+// format change should not be an excuse to retype them all and risk dropping a
+// clause. The trade-off is that the split has to be robust to real sentences.
+//
+// Split on sentence end + whitespace + a capital or digit. Requiring the
+// whitespace is what makes decimals safe ("1.5 sec" has no space after the dot);
+// requiring the capital/digit is what stops a mid-sentence abbreviation from
+// splitting. A missed split just yields a slightly longer bullet, which is the
+// harmless direction to fail in — a WRONG split would cut an instruction in half.
+function cueBullets(text){
+  if(!text)return[];
+  const parts=String(text).split(/(?<=[.!?])\s+(?=[A-Z0-9(])/).map(s=>s.trim()).filter(Boolean);
+  // Fold stubs back into the previous bullet: "2 counts down." on its own line
+  // reads as a lost fragment rather than a point.
+  const out=[];
+  parts.forEach(p=>{
+    if(out.length&&p.length<18)out[out.length-1]+=' '+p;
+    else out.push(p);
+  });
+  return out;
+}
+// The single combined block: how it should FEEL first (that's the one to hold in
+// your head during the set), then how to DO it. One place, one visual language.
+function cueBlockHTML(ex,color){
+  const feel=feelFor(ex);
+  const bullets=cueBullets(ex.cue);
+  if(!feel&&!bullets.length)return'';
+  const c=color||'var(--acc)';
+  const row=(txt,lead)=>`<div style='display:flex;gap:7px;align-items:flex-start;margin-top:5px'>
+    <span style='color:${c};flex-shrink:0;line-height:1.5'>${lead||'•'}</span>
+    <span style='flex:1;line-height:1.5'>${txt}</span>
+  </div>`;
+  return`<div style='font-size:12.5px;color:var(--txt-dim);margin:8px 0 12px;padding:10px 12px;background:${c}0d;border-left:3px solid ${c}66;border-radius:0 8px 8px 0'>
+    ${feel?row(`<strong style='color:${c}'>Feel it:</strong> ${feel}`,'🎯'):''}
+    ${bullets.map(b=>row(b)).join('')}
+  </div>`;
+}
 
 // ─── CABLE ATTACHMENT VERIFICATION ───
 // Which handle to clip on (and where to set the pulley) for every cable
@@ -1417,11 +1471,11 @@ function foundationCoveredThisWeek(){
 //  1) Every set ends 2+ reps SHORT of failure. Stimulus and fatigue both scale
 //     with proximity to failure, so submaximal accumulation buys a lot of reps
 //     cheaply — which is why this can run 3×/week for months instead of
-//     wrecking the elbows and shoulders. It's also why century sets are
-//     counted at HALF weight in getWeeklySetVolumes / getMRVBreakdown: 10
-//     easy sets do not cost what 10 hard sets cost, and counting them at face
-//     value would eat the week's entire back MRV and crowd out the mandated
-//     row / rear-delt work.
+//     wrecking the elbows and shoulders. It's also why century reps are
+//     DISCOUNTED in getWeeklySetVolumes / getMRVBreakdown rather than counted at
+//     face value: 10 easy sets do not cost what 10 hard sets cost, and billing
+//     them in full would eat the week's entire back MRV and crowd out the
+//     mandated row / rear-delt work. See CENTURY_MRV_SETS for the rate.
 //  2) Century days are spaced ≥48h apart and capped at 3/week (centuryDows).
 //
 // Logged as isCardio:true — the same "invisible to session bookkeeping" flag
@@ -1430,10 +1484,46 @@ function foundationCoveredThisWeek(){
 // lifting slots. Its `exercises` array is still populated, so it DOES count
 // toward weekly MRV volume (which is what protects recovery here).
 const PULLUP_CENTURY={target:100,maxDays:3,restCap:180};
-// What one century costs against weekly back MRV. Flat, because the WORK is
-// flat — see the note in getWeeklySetVolumes on why costing it by set count
-// made the same 100 reps progressively cheaper as the set count came down.
-const CENTURY_MRV_SETS=3;
+// ── WHAT A CENTURY COSTS AGAINST WEEKLY MRV (revised 2026-08-05) ──
+// Sam: "How does the century work into the MRV. I dont need to kill my back and
+// biceps as much bc im doing century now." That is the right instinct and the
+// number was not honouring it.
+//
+// The price is per COMPLETED REPS, not per set. Set count is the progress metric
+// and falls as he improves, so costing by sets made the identical 100 reps
+// progressively cheaper (a 12-set century billed 6, a later 4-set century billed
+// 2). Pricing the reps fixes that AND makes a partial century cost what it
+// actually was — see centuryMrvSets.
+//
+// The rate itself: a pull-up working set in EX runs 4–8 reps, so 100 reps is
+// ~16.7 nominal sets. They are deliberately submaximal (the pacing prescription
+// is sets of half his best, so most reps sit many short of failure), which is
+// why they don't bill at face value — but the discount was 3/16.7 ≈ 0.18, i.e.
+// a century set counted as under a fifth of a hard set. That is too steep for
+// work that produces real elbow, grip and lat fatigue and, three times a week,
+// 300 reps of it. Raised to 5, a discount of ~0.30: roughly one third of a hard
+// set, which is the conventional weighting for sets left well short of failure.
+//
+// Consequence, and the point of the change: three centuries now book 15 of the
+// 12–22 weekly back sets and 7.5 of the 6–16 biceps sets before the generator
+// programs anything, so it programs less rowing and far fewer curls on top —
+// which is exactly what Sam asked for. Measured effect is in the 2026-08-05
+// balance note in CLAUDE.md.
+//
+// Changing this number also re-prices the Pyramid, deliberately: pyramidMrvSets
+// derives its reps-per-recoverable-set from this constant, so the same 100
+// pull-ups keep costing the same whether they arrive as a century or a ladder.
+const CENTURY_MRV_SETS=5;
+// What a logged century actually costs — flat for a full one, pro-rata for a
+// partial. The card explicitly offers "log N reps & stop here", so a short
+// session is a normal outcome rather than an error, and billing 26 reps as if
+// they were 100 would suppress the rest of the week's back work on the strength
+// of work that never happened. Reconciles exactly with pyramidMrvSets, which
+// prices the ladder's pull rung off the same reps-per-set rate.
+function centuryMrvSets(reps){
+  const r=Math.max(0,Math.min(PULLUP_CENTURY.target,reps||0));
+  return Math.round(CENTURY_MRV_SETS*r/PULLUP_CENTURY.target*10)/10;
+}
 // Century days come from AVAILABILITY, never from the generated program:
 // dayTemplate consults this during generation, so reading S.program here would
 // be circular (the same trap documented on getMRVLimits). Walks the week in
@@ -1525,15 +1615,26 @@ function centuryLogs(){return (S.logs||[]).filter(l=>l&&l.century);}
 // Progress readout: the target is fixed, so the numbers worth showing are how
 // many sets it took and the best single set — exactly the two that moved over
 // Damon's 3 months (10 sets → 3, and 30 unbroken by the end).
+// `best` is deliberately a ROLLING window, not an all-time record. Everything
+// downstream sizes a prescription from it — centurySetPlan picks sets at half of
+// it, pyramidPeak sets the ladder's top rung two reps under it — and a
+// prescription has to track current form in BOTH directions. An all-time best
+// can only ever ratchet up, so after an illness or a layoff it would keep
+// prescribing sets he can't hold. Eight centuries is roughly three weeks at the
+// protocol's 3×/week cadence. `bestEver` stays available for the trend line,
+// where a record genuinely is the interesting number.
+const CENTURY_BEST_WINDOW=8;
 function centuryStats(){
   const logs=centuryLogs().slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
   const setsOf=(l)=>(l.exercises?.[0]?.sets||[]).filter(s=>s&&s.reps>0);
-  let best=0;logs.forEach(l=>setsOf(l).forEach(s=>{if(s.reps>best)best=s.reps;}));
+  const maxOf=(ls)=>{let b=0;ls.forEach(l=>setsOf(l).forEach(s=>{if(s.reps>b)b=s.reps;}));return b;};
+  const best=maxOf(logs.slice(-CENTURY_BEST_WINDOW));
   const last=logs[logs.length-1];
   const mon=thisMonday(),end=addDays(mon,7);
   return{
     total:logs.length,
     best,
+    bestEver:maxOf(logs),
     firstSets:logs.length?setsOf(logs[0]).length:0,
     lastSets:last?setsOf(last).length:0,
     lastReps:last?setsOf(last).reduce((a,s)=>a+s.reps,0):0,
@@ -1578,17 +1679,58 @@ function centuryRepsOf(l){
 // 100-rep target is (see the consistency-over-optimization note in CLAUDE.md):
 // as `best` climbs, the sets get bigger and the session gets shorter, and the
 // prescription itself never needs rewriting.
+//
+// ── WHERE THE PROGRESSION COMES FROM (2026-08-05) ──
+// Sam: "Is there natural progression for reps in a set for the century pull ups
+// or should my first set on those be to failure every time?"
+//
+// No — and the question exposed a hole. The answer to the second half is a flat
+// no: a first set to failure poisons the other 90 reps (grip and elbows are the
+// binding constraint here, not the lats), and taking the one set that matters
+// most to failure three times a week is how a protocol designed to run for
+// months turns into six weeks and a cranky elbow. Reps within a session stay
+// CONSTANT — sets of N, not a descending ladder. A ladder that falls away set
+// after set is not fatigue management, it is evidence set one was too close to
+// failure.
+//
+// But then nothing ever moved `best`. Every set is submaximal by design, so the
+// maximum set in the log could only creep up by accident — and the entire
+// prescription is sized off `best`. Self-scaling that has no input isn't
+// self-scaling. So the progression is an EXPLICIT, SCHEDULED test: on every
+// fourth century the first set is a genuine max-effort unbroken set, and that
+// one number re-anchors the set size, the session length and the Pyramid's peak
+// for the next three sessions. One near-max set every ~10 days is a dose the
+// elbows can absorb; one every session is not.
+//
+// Four was chosen over "every session" and over "monthly" for a concrete reason:
+// at 3 centuries a week it lands roughly every 10 days, which is fast enough
+// that a growing best is captured while it's still true, and slow enough that
+// the test itself never becomes the training.
 const CENTURY_REST_SECS=75;
 const CENTURY_SET_FRACTION=0.5; // of best unbroken set
+const CENTURY_TEST_EVERY=4;     // every Nth century opens with a max-effort set
+const CENTURY_TEST_REST_SECS=180; // after the max set only — see Schoenfeld 2016 above
+// Counting from the LOG rather than from a stored flag, so the schedule can't
+// drift out of sync with what was actually done — the first century (0 logs) is
+// itself a test, because there is no `best` to size anything from yet.
+function centuryIsTestDay(){return centuryLogs().length%CENTURY_TEST_EVERY===0;}
 function centurySetPlan(){
   const best=centuryStats().best;
   // No history yet: sets of 10 is the conventional opening and divides 100
   // evenly, which matters more than precision on day one.
   const setSize=best?Math.max(3,Math.round(best*CENTURY_SET_FRACTION)):10;
-  const sets=Math.ceil(PULLUP_CENTURY.target/setSize);
+  const test=centuryIsTestDay();
+  // The opener on a test day is one unbroken max set. Without a `best` to expect
+  // it's just the first ordinary set, so day one degrades to the old plan.
+  const opener=test?Math.max(setSize,best):0;
+  const remaining=Math.max(0,PULLUP_CENTURY.target-opener);
+  const sets=(opener?1:0)+Math.ceil(remaining/setSize);
   // ~3s/rep at the cued 3-count descent, plus the rest between (not after) sets.
-  const mins=Math.round((sets*setSize*3+(sets-1)*CENTURY_REST_SECS)/60);
-  return{setSize,sets,restSecs:CENTURY_REST_SECS,mins};
+  // The post-test rest is longer because that set genuinely WAS near failure —
+  // the 2–3 min literature above applies to it and to nothing else here.
+  const testRest=test?CENTURY_TEST_REST_SECS-CENTURY_REST_SECS:0;
+  const mins=Math.round((PULLUP_CENTURY.target*3+(sets-1)*CENTURY_REST_SECS+testRest)/60);
+  return{setSize,sets,restSecs:CENTURY_REST_SECS,mins,test,opener,testRestSecs:CENTURY_TEST_REST_SECS};
 }
 
 // ─────────────────────────────────────────────
@@ -1735,7 +1877,7 @@ function pyramidRepsAfter(sizes,rungsDone,mult){
 // What a pyramid costs against weekly MRV. The set count is meaningless here
 // (19 rungs × 5 movements = 95 "sets" of 1–10 reps), so this prices REPS, and it
 // prices them off the one anchor already in the file rather than a new invented
-// constant: a Century is 100 pull-up reps for CENTURY_MRV_SETS, i.e. ~33 reps
+// constant: a Century is 100 pull-up reps for CENTURY_MRV_SETS, i.e. ~20 reps
 // per recoverable set for a movement whose working range centres on 6. Scale
 // that rate by how many reps a working set of the movement in question actually
 // holds, and every rung is priced in the same currency.
@@ -1743,9 +1885,12 @@ function pyramidRepsAfter(sizes,rungsDone,mult){
 // Sanity check that falls out of it, and the reason to trust the model: the ×1
 // pull-up rung at peak 10 is 100 reps and prices at exactly CENTURY_MRV_SETS —
 // the same 100 pull-ups cost the same whether they arrive as a Century or as a
-// ladder. At peak 10 the whole session books roughly back 3 / triceps 3 /
-// chest 3 / core 4.5 / legs 3, plus secondary credit, which is a real dent in
-// the week rather than the fiction 95 sets would have been.
+// ladder. That identity is why the two must never be re-priced independently:
+// raising CENTURY_MRV_SETS (3 → 5 on 2026-08-05) re-prices the ladder by the
+// same factor automatically, which is correct, not a side effect to patch out.
+// At peak 10 the whole session books roughly back 5 / triceps 5 / chest 5 /
+// core 7.5 / legs 5, plus secondary credit — a real dent in the week rather
+// than the fiction 95 sets would have been.
 function pyramidMrvSets(ex,reps){
   if(!reps)return 0;
   const anchor=EX.find(x=>x.id==='pullups');
@@ -1844,8 +1989,24 @@ function pyramidCoversCentury(log){
 // practical consequence at 40 minutes is that a lunch finisher needs the day to
 // be both century-free AND short on lifts, which is honest — it is roughly
 // never, and the card claiming otherwise is what made lunches overrun.
+//
+// A THIRD invisible spender was found 2026-08-05: the pre-lift PREP block —
+// hip decompression, the PT hip program, mobility, the desk reversal. All of it
+// renders in front of exercise 1 and none of it was charged, so the ledger kept
+// promising three lifts and a century inside a box that was already ~6 minutes
+// spent. Sam's report: "the timing for duration for the first exercise is going
+// to be way longer every time bc the mobility movements and stretches are
+// grouped into it. Probably the main reason I wasnt able to finish my century
+// today." It is charged now (see prepPlan and PREP_BUDGET_MINS), which costs an
+// ordinary lunch one of its three lifts. That is the arithmetic being told the
+// truth rather than a change in policy.
+//
+// Both fixed doses are DERIVED from the item lists rather than restated as
+// constants — getters, because the pools are declared further down the file and
+// a plain property would hit the temporal dead zone at module-eval time.
 const LUNCH_LEDGER={
-  spineMins:5,   // DAILY_SPINE_MINIMUMS: 60s + 2min + 60s + 60s
+  get spineMins(){return prepBlockMins(DAILY_SPINE_MINIMUMS);},  // the four fixed holds
+  get prepMins(){return PREP_BUDGET_MINS.lunch;},                // a CAP, and prepPlan fills to it
   exMins:11,     // per exercise, DEFAULT ONLY — lunchExMins() measures the real one
   maxLifts:3,    // the 2026-07-14 time-box calibration; 4 ran ~7 min long
   minLifts:1,    // a century day never becomes a no-lifting day
@@ -1857,13 +2018,22 @@ const LUNCH_LEDGER={
 // set-count ESTIMATE when the timer was left running, and feeding an estimate
 // back in as if it were a measurement is the exact circularity the century's
 // timedMins/duration split exists to prevent.
+//
+// The per-exercise figure has to be a MARGINAL rate — what one more lift costs —
+// and the session's fixed overheads have to come off the top before dividing.
+// Prep was not being subtracted, so the ~6 minutes of mobility that happen once,
+// in front of exercise 1, were being smeared across every exercise as if each
+// lift carried a share of it. That inflates the rate on a 3-lift lunch and
+// inflates it much harder on a 1-lift century lunch, which is the one the clock
+// actually broke on.
 function lunchExMins(){
   const centuryDates=new Set(centuryLogs().map(l=>logDay(l.date)));
+  const fixed=LUNCH_LEDGER.spineMins+LUNCH_LEDGER.prepMins;
   const rates=(S.logs||[])
     .filter(l=>l&&l.isLunch&&!l.isCardio&&l.measured&&l.duration>0&&(l.exercises||[]).length)
     .filter(l=>!centuryDates.has(logDay(l.date)))
     .slice(-5)
-    .map(l=>(l.duration-LUNCH_LEDGER.spineMins)/l.exercises.length)
+    .map(l=>(l.duration-fixed)/l.exercises.length)
     .filter(m=>m>3&&m<30) // discard nonsense: an abandoned or mis-timed session
     .sort((a,b)=>a-b);
   if(!rates.length)return LUNCH_LEDGER.exMins;
@@ -1875,9 +2045,15 @@ function lunchExMins(){
 function lunchBudget(dow,av,boxMins){
   const box=boxMins||40;
   const spine=LUNCH_LEDGER.spineMins;
+  // Prep is reserved at its BUDGET CAP, not at the cost of the particular
+  // rotation that lands today. That is deliberate: which items come up depends
+  // on the date and on whether the session turns out to be a leg day, and the
+  // session doesn't exist yet when this runs — reserving the cap is the only
+  // non-circular answer, and prepPlan guarantees it never exceeds it.
+  const prep=LUNCH_LEDGER.prepMins;
   const century=centuryDows(av).includes(dow)?centuryMins():0;
   const per=lunchExMins();
-  let left=box-spine-century;
+  let left=box-spine-prep-century;
   const lifts=Math.max(LUNCH_LEDGER.minLifts,Math.min(LUNCH_LEDGER.maxLifts,Math.floor(left/per)));
   left-=lifts*per;
   // A finisher has to be affordable TWICE OVER before it's offered.
@@ -1898,7 +2074,7 @@ function lunchBudget(dow,av,boxMins){
   const f=(S.cfg?.conditioning&&!century)?getFinisher(dow,true):null;
   const finisher=(f&&left>=(f.mins||8)+FINISHER_MARGIN_MINS)?f:null;
   if(finisher)left-=(finisher.mins||8);
-  return{box,spine,century,per:Math.round(per*10)/10,lifts,finisher,left:Math.round(left)};
+  return{box,spine,prep,century,per:Math.round(per*10)/10,lifts,finisher,left:Math.round(left)};
 }
 
 // Dragon Flag progression track: Tier 1 (Lying Leg Lifts) is always offered;
@@ -1922,8 +2098,24 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
   const allExercises = [...EX, ...(S.customExercises||[])];
 
   // MRV headroom: would adding this exercise push the muscle past its weekly max?
+  //
+  // MANDATED slots are exempt, for the same reason the Foundation tier below is:
+  // a weekly PATTERN guarantee outranks a volume ceiling. Added 2026-08-05 and it
+  // is load-bearing — once the week's scheduled centuries are charged against
+  // back MRV (see getCommittedVolumes), 300 pull-up reps fill the back budget on
+  // their own, and the ceiling then blocked every row and rear-delt slot in the
+  // week: the horizontal mandate fell from 60% of weeks to 0%. That is the exact
+  // failure the 2026-08-03 audit recorded when all three training days became
+  // century days. The century is VERTICAL pulling; it cannot cover a row or a
+  // rear delt no matter how many reps it accumulates, so those slots must not be
+  // priced out by it. The exemption is narrow by construction: dayTemplate stamps
+  // at most a couple of mandate tags per session, so it can add a bounded
+  // handful of sets, not an unbounded amount.
+  const MANDATE_TAGS_MRV_EXEMPT = ['strength','hinge','hamstring','horizontal','rear_delt'];
+  const mandatedSlot = !!(slot && slot.tag && MANDATE_TAGS_MRV_EXEMPT.includes(slot.tag));
   const perEx = (budget && budget.perExercise) || 3;
   const fitsMRV = (e) => {
+    if(mandatedSlot) return true;
     if(!budget || !budget.limits || !budget.limits[e.muscle]) return true;
     return (budget.vol[e.muscle] || 0) + perEx <= budget.limits[e.muscle].max;
   };
@@ -2178,7 +2370,11 @@ function genProgram(cfg,av,workoutHistoryLog){
   // MRV budget: start from sets already committed this week (logged + planned
   // custom workouts) and consume headroom as we assign sessions, so the week
   // fills toward optimal without exceeding each muscle's recoverable max.
-  const budget = { vol: getCommittedVolumes(), limits: getMRVLimits(), perExercise: 3 };
+  // `centuryVol` records how much of that came from centuries. It is NOT
+  // subtracted from vol — the ceiling counts every rep — but dayTemplate needs to
+  // know which part of back's volume is vertical pulling. See the pattern-
+  // coverage note in dayTemplate's rows.
+  const budget = { vol: getCommittedVolumes(), limits: getMRVLimits(), perExercise: 3, centuryVol: centuryWeekVolumes(false) };
 
   // Weekly heavy-strength tracking (primary goal: 1–5 reps @ 85–95% at least
   // once/week). Seeded from this week's logs, then extended by buildSession as
@@ -2250,7 +2446,21 @@ function genProgram(cfg,av,workoutHistoryLog){
       const rested=m==='legs'
         ?legsRecovered(dateStr,history,assignedMuscles,strengthDates)
         :hrs>=(MUSCLE_LOCKOUT_HOURS[m]||48);
-      return{m,hrs,rested,headroom:max-vol,under:vol<min};
+      // PATTERN COVERAGE (2026-08-05). `under` drives slot PRIORITY — an
+      // under-range muscle outranks an in-range one — and for back it has to be
+      // measured on volume the centuries did NOT supply. A century is 100
+      // VERTICAL pulls; it can fill back's weekly minimum single-handed and then
+      // the day stops choosing back at all, which silently deletes the row and
+      // rear-delt mandates (measured: horizontal 60% of weeks → 0% the moment
+      // scheduled centuries entered the budget). Pull-ups cannot cover a row no
+      // matter how many of them there are. The CEILING below still counts every
+      // rep — headroom stays max−vol — so this buys pattern coverage without
+      // buying extra fatigue. Deliberately back-only: for BICEPS the secondary
+      // credit from 300 pull-ups is real elbow-flexor work and curls genuinely
+      // are redundant against it, which is the whole point of
+      // SECONDARY_CREDIT_RULES.
+      const patternVol=m==='back'?vol-((budget.centuryVol&&budget.centuryVol[m])||0):vol;
+      return{m,hrs,rested,headroom:max-vol,under:patternVol<min,patternUnder:patternVol<min&&patternVol<vol};
     });
     // Eligible = rested with weekly MRV headroom. Priority: under-range
     // ("yellow") muscles first — get every group to its weekly minimum before
@@ -2262,7 +2472,18 @@ function genProgram(cfg,av,workoutHistoryLog){
     // ("red") have no headroom and are never intentionally prescribed. If
     // headroom rules everything out, fall back to rested-only.
     const byDebt=(a,b)=>(b.under?1:0)-(a.under?1:0)||b.hrs-a.hrs||MUSCLES.indexOf(a.m)-MUSCLES.indexOf(b.m);
-    let elig=rows.filter(r=>r.rested&&r.headroom>=2).sort(byDebt);
+    // `patternUnder` overrides the headroom filter, and ONLY it can: it is true
+    // only for a muscle whose weekly minimum is unmet once century volume is set
+    // aside, i.e. back on a heavy century week. On an efficiency-mode week the
+    // band is 3–10 and two centuries fill it outright, so the headroom test alone
+    // removed back from every single day — measured: 3 programmed back sets/week
+    // → 0, and horizontal pulling disappeared from the program entirely. Letting
+    // it through costs a nominal overshoot of the ceiling; the ceiling counts
+    // recoverable HARD sets and most of what filled it was deliberately
+    // submaximal pull-up reps, so overshooting on paper is much the smaller
+    // error. pickEx's mandate exemption is the other half of this — without it
+    // the slot would be created and then refused.
+    let elig=rows.filter(r=>r.rested&&(r.headroom>=2||r.patternUnder)).sort(byDebt);
     if(!elig.length)elig=rows.filter(r=>r.rested).sort(byDebt);
     if(!elig.length)return null; // nothing adequately rested → rest/recovery day
     // Weekly heavy-strength guarantee, two halves (verified by simulation:
@@ -3035,19 +3256,17 @@ function getWeeklySetVolumes(){
 
   weekLogs.forEach(log => {
     if(log.century){
-      // A century costs a FLAT CENTURY_MRV_SETS, not a discount on its set
-      // count (see PULLUP_CENTURY). Set-count-based costing was backwards: the
-      // target is fixed at 100 reps and the SET COUNT is the progress metric, so
-      // it falls as he gets stronger — a 12-set century billed 6 sets and the
-      // very same 100 reps later billed 2. Identical work, one third the cost,
-      // purely because he improved. Charging the fixed work a fixed price is
-      // both correct and stable: 100 deliberately submaximal reps (every set
-      // 2+ short of failure) ≈ one hard back exercise's recoverable volume.
-      // Secondary credit rides along: 100 pull-ups is the single biggest source
-      // of uncounted biceps work in the week, and it is the case that motivated
-      // the whole SECONDARY_CREDIT_RULES table.
+      // Priced by REPS COMPLETED (see CENTURY_MRV_SETS): a full century costs the
+      // flat rate, a partial costs its share. Set-count-based costing was
+      // backwards — the set count is the PROGRESS metric and falls as he gets
+      // stronger, so a 12-set century billed 6 sets and the very same 100 reps
+      // later billed 2. Identical work, one third the cost, purely because he
+      // improved. Secondary credit rides along: 100 pull-ups is the single
+      // biggest source of uncounted biceps work in the week, and it is the case
+      // that motivated the whole SECONDARY_CREDIT_RULES table.
+      const cost=centuryMrvSets(centuryRepsOf(log));
       (log.exercises||[]).forEach(ex=>{
-        creditVolume(volumes,exFull(ex),CENTURY_MRV_SETS);
+        creditVolume(volumes,exFull(ex),cost);
       });
       return;
     }
@@ -3432,9 +3651,26 @@ function orderSplitByRecovery(split,history){
     .map(o=>o.tk);
 }
 
-// Sets already committed this week by muscle: completed/logged workouts PLUS any
-// not-yet-done planned custom workouts on the program. Used to budget remaining
-// sessions so the generator fills toward optimal without blowing past MRV max.
+// Sets already committed this week by muscle: completed/logged workouts, any
+// not-yet-done planned custom workouts on the program, AND the centuries still
+// to come. Used to budget remaining sessions so the generator fills toward
+// optimal without blowing past MRV max.
+//
+// ── WHY THE REMAINING CENTURIES ARE COUNTED HERE (2026-08-05) ──
+// Sam: "I dont need to kill my back and biceps as much bc im doing century now."
+// He was right, and raising the century's price alone would NOT have fixed it —
+// the budget only ever saw centuries AFTER they were logged. Generation runs on
+// Monday morning with zero centuries in the log, so the whole week's back and
+// biceps work was planned as though no pull-ups were coming, and then 300 reps
+// landed on top of it. Measured over 6 weeks on the lunch+3-evening schedule:
+// back finished at 24 sets against a 12–22 band, every week.
+//
+// Centuries are the one future session that can be projected without
+// circularity: centuryDows() reads AVAILABILITY, never the generated program
+// (the same property that lets dayTemplate consult it mid-generation). A missed
+// past century is NOT projected, matching the rule getMRVBreakdown uses for
+// scheduled sessions — a day that didn't happen shouldn't hold back the rest of
+// the week.
 function getCommittedVolumes(){
   const vol = getWeeklySetVolumes(); // logged (completed + custom-logged)
   if(S.program?.week){
@@ -3450,6 +3686,30 @@ function getCommittedVolumes(){
       }
     });
   }
+  const proj = centuryWeekVolumes(true);
+  Object.keys(proj).forEach(m => { vol[m] = (vol[m] || 0) + proj[m]; });
+  return vol;
+}
+// What share of this week's volume comes from pull-up centuries — logged so far
+// plus the ones still scheduled. Two callers want different halves of it:
+// getCommittedVolumes adds the PROJECTED half to the budget (the logged half is
+// already in getWeeklySetVolumes), and dayTemplate subtracts the WHOLE thing when
+// deciding whether back still needs a slot (see the pattern-coverage note there).
+function centuryWeekVolumes(projectedOnly){
+  const vol={};
+  const anchor=EX.find(e=>e.id==='pullups');
+  if(!anchor)return vol;
+  const mon=thisMonday(),end=addDays(mon,7),today=todayStr();
+  const doneDays=new Set();
+  centuryLogs().filter(l=>logDay(l.date)>=mon&&logDay(l.date)<end).forEach(l=>{
+    doneDays.add(logDay(l.date));
+    if(!projectedOnly)creditVolume(vol,anchor,centuryMrvSets(centuryRepsOf(l)));
+  });
+  centuryDows().forEach(dow=>{
+    const dayISO=addDays(mon,dow===0?6:dow-1);
+    if(dayISO<today||doneDays.has(dayISO))return;
+    creditVolume(vol,anchor,centuryMrvSets(PULLUP_CENTURY.target));
+  });
   return vol;
 }
 
@@ -3493,10 +3753,9 @@ function getMRVBreakdown(){
     if(!l.isCardio)completedDows.add(dow);
     (l.exercises||[]).forEach(ex=>{
       const raw=ex.sets?.filter(s=>s&&s.reps>0).length||0;
-      // Same FLAT century cost — and the same rep-priced pyramid cost — that
-      // getWeeklySetVolumes charges, so the breakdown always reconciles with the
-      // widget totals.
-      const sets=l.century?CENTURY_MRV_SETS
+      // The same rep-priced century and pyramid costs getWeeklySetVolumes
+      // charges, so the breakdown always reconciles with the widget totals.
+      const sets=l.century?centuryMrvSets(centuryRepsOf(l))
         :l.pyramid?pyramidMrvSets(exFull(ex),pyramidRepsOf(ex))
         :raw;
       addWithSecondary(ex,sets,{dow,dayLabel:DOW[dow],source:l.isCustom?'custom':'logged',sessionName:l.dayName});
@@ -3738,7 +3997,7 @@ function pickEveningExercises(day,sessionMins){
   const tmpl=TMPLS[day.tk];
   if(!tmpl)return day.exercises.slice(0,limit);
   const used=[];
-  const budget={ vol:getCommittedVolumes(), limits:getMRVLimits(), perExercise:3 };
+  const budget={ vol:getCommittedVolumes(), limits:getMRVLimits(), perExercise:3, centuryVol:centuryWeekVolumes(false) };
   const exs=tmpl.slots.slice(0,limit).map(sl=>{
     const e=pickEx(sl,equip,used,false,budget); // Evening sessions allow high-sweat exercises
     if(!e) return null;
@@ -4533,11 +4792,11 @@ const DAILY_SPINE_MINIMUMS=[
 //
 // NOT ADDED TO DAILY_SPINE_MINIMUMS, and deliberately NOT charged to
 // LUNCH_LEDGER.spineMins — this is a floor protocol that needs no gym, and the
-// lunch arithmetic makes the cost of pretending otherwise concrete: spine 5 → 11
-// min turns an ordinary lunch from floor((40−5)/11)=3 lifts into
-// floor((40−11)/11)=2. Paying a third of his lunch lifting for work he can do on
-// a rug at home would be a bad trade, so the card says morning or evening
-// instead. If it ever DOES move into the lunch box, spineMins must move with it.
+// lunch arithmetic makes the cost of pretending otherwise concrete: adding 6 min
+// of floor work to a box that already pays for the spine minimums and the prep
+// block costs another lift outright. Paying that for work he can do on a rug at
+// home would be a bad trade, so the card says morning or evening instead. If it
+// ever DOES move into the lunch box, spineMins must move with it.
 //
 // Also deliberately NOT in EX, following the plank's precedent in FOUNDATION_FIVE:
 // a fixed daily dose is a stronger guarantee than a weekly slot, and adding these
@@ -4560,6 +4819,7 @@ function lunchBudgetHTML(dow){
     [`${b.lifts} lift${b.lifts===1?'':'s'}`,Math.round(b.lifts*b.per)],
     b.century?['Pull-up century',b.century]:null,
     ['Daily spine minimums',b.spine],
+    ['Prep before rep one',b.prep],
     b.finisher?[`Finisher · ${b.finisher.name}`,b.finisher.mins]:null,
   ].filter(Boolean);
   const measured=lunchExMins()!==LUNCH_LEDGER.exMins;
@@ -4567,7 +4827,7 @@ function lunchBudgetHTML(dow){
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:6px'>⏱ The ${b.box}-minute lunch</div>
     ${rows.map(r=>`<div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9'><span style='color:var(--mut)'>${r[0]}</span><span style='font-weight:700'>${r[1]} min</span></div>`).join('')}
     <div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9;border-top:1px solid var(--bdr);margin-top:4px;padding-top:4px'><span style='color:var(--mut)'>Slack</span><span style='font-weight:700;color:${b.left<0?'var(--warn)':'var(--ok)'}'>${b.left} min</span></div>
-    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}.${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
   </div>`;
 }
 
@@ -4594,6 +4854,289 @@ function mcgillHTML(holds){
     ${MCGILL_BIG3.map(row).join('')}
     <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>The stability half of the spine work, done <strong style='color:var(--txt)'>daily</strong>. Endurance is the goal, not strength — that's why the holds are short and the reps come DOWN rather than up, and why you never take these near failure. Two rules that matter more than the reps: the <strong style='color:var(--txt)'>low back doesn't move</strong> in any of the three, and skip them in the first hour after waking (discs are at their most swollen overnight). Morning or evening on a rug — deliberately not part of the 40-minute lunch, which needs its minutes for lifting.</div>
   </div>`;
+}
+
+// ─────────────────────────────────────────────
+// PRE-LIFT PREP
+// ─────────────────────────────────────────────
+// Everything that happens between opening the workout and the first working
+// set: hip decompression, the PT hip program, mobility, the desk reversal.
+// It used to live inline in the workout renderer with hardcoded item counts
+// (4 hip + 3 lower + 2 upper + 2 desk), which had two consequences Sam hit on
+// the same day:
+//
+//   1) IT WAS FREE. The lunch ledger charged for the spine minimums, the
+//      century and the lifts, and nothing at all for the block that sits in
+//      front of exercise 1 — so the app kept promising 3 lifts and a century
+//      inside 40 minutes while ~7 minutes of the box was already spent. His
+//      report: "the duration for the first exercise is going to be way longer
+//      every time bc the mobility movements and stretches are grouped into it.
+//      Probably the main reason I wasnt able to finish my century today."
+//   2) IT WAS THE SAME EVERY DAY. Sam's rule (2026-08-05): non-leg days should
+//      be hip-and-spine specific because he arrives straight from a desk, and
+//      leg days should add hamstring / Achilles / adductor prep.
+//
+// So prep is now a BUDGETED PLAN rather than a fixed list, computed here at
+// module scope so lunchBudget() can charge for it, and assembled per session:
+// blocks are filled round-robin (every block gets its first item before any
+// gets a second, so no block can be starved) until the clock runs out.
+//
+// The clock is READ OFF THE PRESCRIPTION, not invented per item: every pool
+// entry already states its own dose in its description ("30 sec/side",
+// "8 reps/side", "15 swings"), so prepItemSecs parses that. Add a pool entry
+// and it prices itself — the same self-maintaining property the rest of the
+// file's derived numbers have.
+const PREP_REP_SECS=3;        // the 3-count tempo these are all cued at — same anchor centurySetPlan uses
+const PREP_TRANSITION_SECS=10;// getting into and out of position. The one estimated constant here.
+function prepItemSecs(it){
+  if(!it)return 0;
+  const d=String(it.d||'');
+  // "30 sec/side" is twice the work of "30 sec". "2 min total" is not.
+  let perSide=/\/\s*(side|leg)\b|each side|per side|per leg|each way/i.test(d)&&!/total/i.test(d);
+  let secs=0;
+  const tm=d.match(/(\d+)\s*(?:[–\-]\s*(\d+)\s*)?(sec|min)/i);
+  if(tm){
+    const lo=+tm[1],hi=tm[2]?+tm[2]:+tm[1];
+    secs=((lo+hi)/2)*(/min/i.test(tm[3])?60:1);
+  }else{
+    const rm=d.match(/(\d+)\s*(?:[–\-]\s*(\d+)\s*)?(?:\w+\s+)?(reps?|circles?|swings?|cycles?|steps?|walks?)/i);
+    if(rm){
+      const lo=+rm[1],hi=rm[2]?+rm[2]:+rm[1];
+      secs=((lo+hi)/2)*PREP_REP_SECS;
+    }
+  }
+  if(perSide)secs*=2;
+  return Math.round(secs)+PREP_TRANSITION_SECS;
+}
+function prepBlockMins(items){return Math.round((items||[]).reduce((a,it)=>a+prepItemSecs(it),0)/60);}
+
+// ── FOCUS TAGS ──
+// `f` says which tissue an entry serves, and it is what makes a leg day's prep
+// different from a desk day's. An entry with NO tag would never be selected by
+// either filter — the same silent-dead-code trap EX ordering has — so
+// prepFocus() defaults an untagged entry into the desk pool rather than
+// dropping it.
+const PREP_LEG_TISSUES=['hamstring','achilles','adductor'];
+const PREP_DESK_TISSUES=['hip','spine','glute'];
+const prepFocus=(it)=>(it&&it.f&&it.f.length)?it.f:['hip'];
+const prepIsLeg=(it)=>prepFocus(it).some(t=>PREP_LEG_TISSUES.includes(t));
+const prepIsDesk=(it)=>prepFocus(it).some(t=>PREP_DESK_TISSUES.includes(t));
+
+// ── THE PT HIP PROGRAM (2026-08-05) ──
+// Thirteen movements Sam's physio prescribed by name. They get their OWN block
+// rather than being scattered through HIP_POOL for two reasons: a 26-entry pool
+// showing 4 items a session would surface any given PT movement about once a
+// fortnight, which is not a rehab dose; and the provenance matters — this is
+// the physio's prescription, not the app's opinion, so it should be labelled as
+// such and not quietly reshuffled.
+//
+// NOT ADDED TO `EX`, following the DAILY_SPINE_MINIMUMS / FOUNDATION_FIVE plank
+// precedent: `hips` is not one of dayTemplate's MUSCLES, so an EX entry there
+// can never be slot-scheduled (see the hip_airplane note) — the pool is what
+// actually delivers hip work. A fixed per-session dose is also a stronger
+// guarantee than a slot that competes on merit.
+//
+// HIP-CAUTION REVIEW: all thirteen are bodyweight or light band, and every
+// range is SELF-SELECTED — the same reasoning that lets hip_airplane and
+// hip_cars run under hipCaution. The FAI constraint is no LOADED end-range
+// rotation and no hard-landing impact; none of these are either. The three that
+// work in the flexion+abduction quadrant (fire hydrants, seated spreads, the
+// quadruped work) carry an explicit stop-at-the-pinch cue, which is the same
+// safety mechanism tricep_dips' depth cap relies on.
+//
+// `band:true` marks the ones that need a mini/loop band. The last recorded
+// state of the kit was "no band" (2026-07-15, which is why band pull-aparts and
+// the banded distraction drills were removed), but a physio prescribing monster
+// walks and defensive slides implies one now — so they are in, labelled, with a
+// bandless fallback wherever the movement survives without it.
+const PT_HIP_POOL=[
+  {n:'Clamshells',d:'12 reps/side · side-lying, hips stacked and knees bent ~45°, heels together — open the top knee without letting the pelvis roll back. Pause 1s at the top. Band above the knees if you have one',f:['hip','glute'],band:false},
+  {n:'Fire Hydrants',d:'12 reps/side · quadruped, knee bent 90°, lift the knee out to the side keeping the hips square — stop the moment you feel a pinch at the front of the left hip; height is not the point, the glute is',f:['hip','glute']},
+  {n:'Donkey Kickbacks',d:'12 reps/side · quadruped, drive one heel straight back and up with the knee bent 90°, squeezing the glute at the top — ribs down, no lower-back arch. The range comes from the hip, not the spine',f:['glute','hip']},
+  {n:'Hip Thrust Kicks',d:'10 reps/side · shoulders on a bench or floor, drive to a full glute bridge and HOLD it there, then extend one knee out straight and back without letting that hip drop. The held bridge is the exercise; the kick is the test',f:['glute','hip']},
+  {n:'Seated Leg Spreads',d:'15 reps · seated tall, knees bent, band above the knees (or press your own hands against the outside of both knees) — spread the knees apart, pause 1s, return slowly. Sit UP; if the front of the left hip pinches, lean the torso back a few degrees',f:['hip','glute'],band:true},
+  {n:'Kinky Leg Spreads',d:'15 reps · the same seated spread with the torso HINGED FORWARD ~45° over the thighs — the forward lean shifts the work from glute med onto the upper glute max fibres. Keep a flat back and stop short of any hip pinch',f:['hip','glute'],band:true},
+  {n:'Medicine Ball Rollout (3 directions)',d:'5 reps per direction/side · stand on one leg with the other foot resting on a med ball, hands free. Roll the ball out and back — straight FORWARD, out at 45°, then straight OUT TO THE SIDE — while the stance hip stays level and the stance knee tracks over the toes. The reaching leg is light; the stance hip is doing all the work',f:['hip','glute']},
+  {n:'360 Lunges (circle stepping)',d:'1 circle/side · step out into a lunge and return to standing at each hour of a clock face — 12, 1:30, 3, 4:30, 6 — then reverse back around. Every step lands, sinks, and returns under control. This is the multi-directional hip loading in its cheapest form',f:['hip','adductor','glute']},
+  {n:'Wall Kicks',d:'12 reps/side · stand facing a wall, hands on it at chest height, weight on one leg. Drive the other knee up to hip height and snap the foot down again, fast but quiet — the stance glute holds the pelvis dead level the whole time',f:['hip','glute']},
+  {n:'Balance Lunges',d:'8 reps/side · reverse lunge, then stand back up WITHOUT the back foot touching down — drive through the front heel and pause 1s on one leg at the top before the next rep',f:['hip','glute']},
+  {n:'Balance Side Lunges',d:'8 reps/side · step out into a lateral lunge, sit into that hip with the other leg straight, then push back to a one-legged stand without the stepping foot touching down. Hold 1s at the top',f:['hip','adductor','glute']},
+  {n:'Monster Walks',d:'10 steps each way · band above the knees, sink to a quarter-squat and walk forward with wide, deliberate steps pushing the knees OUT against the band — then walk it back. Feet never come closer than shoulder width',f:['glute','hip'],band:true},
+  {n:'Banded Defensive Slides',d:'10 steps each way · band above the knees, athletic stance — chest up, hips back, hands ready — and shuffle sideways without the feet clicking together. Push off the trailing leg, land wide, stay low the whole way',f:['glute','hip','adductor'],band:true},
+];
+
+// ── HIP DECOMPRESSION ──
+// Left-hip anterior impingement (2026-07-16): flexion + rotation jams the
+// femoral head into the front of the socket. Stretching the CAPSULE doesn't fix
+// that; the joint needs DECOMPRESSING first — gently pulling the femoral head
+// away from the rim before working range.
+// Condensed 2026-07-18 (user: no band at the time + the 3-drill banded block ate
+// too much UI) from three banded distraction drills to one bandless self-traction
+// rockback. Self-traction pulls down the bone rather than truly laterally, so it
+// clears the rim less completely than a banded lateral distraction did — but it
+// still meaningfully unloads the joint before range work. Restore the banded
+// versions (git history) now that a band is back in the kit, if it helps.
+const HIP_DECOMPRESSION=[
+  {n:'Hip Flexor Rockback (self-traction)',d:'30–45 sec/side, left first · half-kneeling, both hands wrapped high around the FRONT thigh just under the hip crease. Gently pull the thigh bone down and away from the hip to unload the joint, and — holding that traction — rock the hips back into flexion through the range that normally pinches. No band needed; your hands do the distracting. Ease off the instant you feel the left-hip pinch — that\'s the joint\'s bony limit, not a stretch to push through.',hold:45,f:['hip']},
+];
+
+// ── DESK REVERSAL ──
+// The day's sitting leaves the deep neck flexors asleep and the lumbar spine
+// parked in flexion. These are FIXED (never rotated out) because they are the
+// most literal answer to "I'm coming from my desk" — the static relief work for
+// the same areas lives in the post-session cool-down.
+const DESK_REVERSAL=[
+  {n:'Chin Tucks',d:'10 reps · glide the head straight BACK (make a double chin), hold 2s — wakes the deep neck flexors before pressing',f:['spine']},
+  {n:'Standing Pelvic Tilts',d:'10 slow reps · rock the pelvis fully forward and back — unglues the lower back from its chair shape',f:['spine']},
+];
+
+// Mobilize → stabilize pool for the office-bound baseline: ankle/thoracic
+// mobility first (counters a desk block), then hip mobility, then hip
+// stability/activation work, all before the first working set.
+const HIP_POOL=[
+  {n:'Ankle Rocks',d:'10 reps/side · Achilles/calf mobility',f:['achilles']},
+  {n:'Cat-Cow',d:'8 slow reps · thoracic extension',f:['spine']},
+  {n:'90/90 Hip Stretch',d:'30 sec/side · breathe into it',f:['hip']},
+  {n:'Half-Kneeling Hip Flexor Stretch',d:'30 sec/side · tuck pelvis first',f:['hip']},
+  {n:'Figure 4 Stretch',d:'30 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch',f:['hip','glute']},
+  {n:'Hip CARs',d:'5 circles/side · slow, full range',f:['hip']},
+  // Sits next to Hip CARs on purpose — same active-rotation idea, one leg and
+  // loaded by bodyweight. Pool order is mobilize → activate and this is the
+  // activation end of rotation work, so it comes after the passive stretches.
+  {n:'Hip Airplanes',d:'5 cycles/side · hand on a wall, hinge until torso and free leg are one horizontal line, then rotate the pelvis over the stance hip — open UP toward the ceiling, pause, slowly back under. Torso stays still; only the stance hip moves. Slow enough to stop anywhere. Left hip: open up further than you rotate under, and back off at any pinch in the front',f:['hip']},
+  {n:'Butterfly Stretch',d:'30–45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch',f:['adductor']},
+  {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back',f:['hip','spine']},
+  {n:'Knee-to-Chest Lie',d:'45 sec · on your back, hug BOTH knees to your chest, gently rocking side to side if it feels good — decompresses the lower back and opens the hips',f:['spine','hip']},
+  {n:'Kneeling Diamond Sit',d:'45 sec · kneel with the knees wide and big toes touching behind you, sit back onto the heels with a tall spine — hips, inner thighs, and ankles together (hip-friendly, like wide-knee child\'s pose)',f:['hip','adductor']},
+  {n:'Z-Sit',d:'30 sec/side · sit with the front shin folded across in front and the other shin folded to the side behind you (a settled 90/90), tall spine, weight even on both sit bones — releases the hips; switch sides, and ease out if the left groin complains',f:['hip']},
+  // Pretzel Stretch removed 2026-07-15: cramps the user's left groin when that
+  // leg is bent — the seated cross-leg position drives deep hip flexion +
+  // rotation under pressure, exactly the pattern the FAI constraints ban.
+  // Figure 4 and 90/90 (both in this pool) cover the same glute/external-
+  // rotation territory from safer supine/seated positions.
+  // Clamshells moved 2026-08-05 into PT_HIP_POOL — it's on the physio's list, and
+  // keeping a copy here would double-program it.
+];
+
+// "Achy Shoulder" protocol: replaces the generic warm-up mindset with a
+// decompression + posture-correction pool when the user has flagged shoulder
+// discomfort or poor posture.
+const SHOULDER_POOL=[
+  {n:'Dead Hang',d:'30–60 sec · shoulder decompression',f:['shoulder']},
+  {n:'Face Pulls',d:'15 reps · rear-delt/rotator-cuff stability',f:['shoulder']},
+  // Band Pull-aparts removed 2026-07-15: no band at the time. Face Pulls above
+  // and the thoracic rotations below cover the same rear-delt/upper-back
+  // posture territory bandless.
+  {n:'Doorway Stretch',d:'30 sec/side · pec/anterior shoulder mobility',f:['shoulder']},
+  {n:'Kneeling Thoracic Rotation',d:'10 reps/side · tall-kneeling, hand behind head, rotate the elbow down and across then up toward the ceiling — hips stay square, the upper back does the rotating',f:['shoulder','spine']},
+  {n:'Standing Thoracic Rotation',d:'10 reps/side · feet planted hip-width, arms crossed at the chest, rotate the upper body side to side while the hips stay facing forward',f:['shoulder','spine']},
+  {n:'Behind-the-Back Shoulder Stretch',d:"30 sec · clasp your hands behind your back (hold a towel if they don't meet), straighten the arms, and gently lift them away from your body — opens the front of the shoulder through end-range extension",f:['shoulder']},
+  {n:'Overhead Reach Stretch',d:'30 sec · reach both arms straight overhead, interlace fingers, palms up, and reach tall — deepens overhead shoulder flexion range and stretches the lats',f:['shoulder']},
+  {n:'Crab Reach',d:'8 reps/side · seated crab position (hands planted behind you, feet flat), press the hips up and reach one arm up and over across the body — opens the front of the shoulders and extends the upper back',f:['shoulder','spine']},
+];
+
+// General movement prep. Every entry carries a focus tag, and THAT is what
+// splits a leg day's prep from a desk day's — see PREP_LEG_TISSUES.
+const LOWER_MOBILITY_POOL=[
+  {n:'Deep Squat Reach',d:'8 reps · sink into a deep squat, plant one hand down, reach the other arm to the sky rotating through the upper back — hold 1s at full reach, alternate sides',f:['hip','spine']},
+  {n:'Alt. Reverse Lunge + Reach',d:'8 reps/side · step back into a reverse lunge, reach both arms overhead and lean back slightly — hip flexor and lat stretch together',f:['hip']},
+  {n:'Shin Box Lunge',d:'6 reps/side · from a seated 90/90 position, drive up into a lunge over the front leg then sit back down — hip internal/external rotation under control',f:['hip']},
+  {n:'Low Cossack Squat',d:'8 reps/side · wide stance, sit deep into one hip while the other leg stays straight, heel down — adductor/hip mobility',f:['adductor','hip']},
+  {n:'Cross-Body High Kicks',d:'8 reps/side · walking or in place, kick one straight leg up toward the OPPOSITE hand — dynamic hamstring opener with a rotation element',f:['hamstring']},
+  {n:'Elephant Walks',d:'10 alternating reps · standing pike, hands toward the floor, alternately bend one knee while straightening the other — milking the hamstrings one side at a time',f:['hamstring','achilles']},
+  {n:'Pump Stretch',d:'10 alternating reps · in Down Dog, pedal the heels — pressing one heel toward the floor while the other knee bends — calves and hamstrings',f:['achilles','hamstring']},
+  {n:'Lizard Reaches',d:'6 reps/side · low lunge with both hands inside the front foot, sink the hips toward the floor then straighten the front leg back — deep hip opener',f:['hip','adductor']},
+  {n:'Squat Twists',d:'8 alternating reps · hold the bottom of a deep squat and rotate, reaching one arm to the ceiling then the other — hips stay low the whole time',f:['hip','spine']},
+  {n:'Pigeon Pulses',d:'8 reps/side · pigeon position (front shin across, back leg long), gently pulse the torso over the front leg — dynamic glute/piriformis',f:['hip','glute']},
+  {n:'Kneeling Hamstring Rockers',d:'8 reps/side · half-kneeling, front leg straight with heel down, rock the hips back over the rear knee reaching toward the front toes and return',f:['hamstring']},
+  // Cue capped 2026-07-16: knee-to-hip-height + rotation pinches the front of the
+  // LEFT hip (FAI anterior impingement — bony contact, not tightness). Work the
+  // range below the pinch; never push through it.
+  {n:'Standing Hip Rotations',d:'8 circles/side · lift the knee only to MID-THIGH height (below 90°) and draw a smooth circle — out, around, and back — standing tall near a wall for balance. Left side: keep the circle smaller and stop short of any front-of-hip pinch — the pinch is the joint\'s limit, not a stretch',f:['hip']},
+  {n:'Glute Bridge Pulses',d:'15 reps · glute bridge at the TOP of the range, small quick pulses squeezing the glutes — activation before loading',f:['glute']},
+  {n:'Glute Bridge Hold',d:'30 sec · drive to full hip extension and hold, glutes squeezed hard, ribs down — count a slow 30',f:['glute']},
+  {n:'Single-Leg Raises',d:'8 reps/side · flat on your back, one leg straight up then lower slow — press the lower back FLAT into the floor and only lower as far as you can hold it flat (bend the down-leg knee & plant that foot if needed). A faint pop just above the waistline on the way down means the back is arching and the hip flexor is snapping — shorten the range and brace harder, don\'t push through it',f:['spine','hip']},
+  {n:'Knee Hugs',d:'8 reps/side · standing, pull one knee to the chest with both hands, squeeze 1s, tall posture — alternate',f:['hip']},
+  {n:'Lymphatic Jumps',d:'30 sec · light relaxed bouncing on the toes, heels barely tapping, arms loose — wakes the ankles and gets blood moving',f:['achilles']},
+  {n:'Lunge Flow',d:'5 reps/side · flow lunge sequence: deep lunge → back-knee tap → straighten front leg for hamstrings → hands overhead — one smooth cycle per rep',f:['hip','hamstring']},
+  // Cue capped 2026-07-16: same left-hip anterior pinch as Standing Hip Rotations.
+  {n:'Open Gate',d:'8 reps/side · walking or standing, lift the knee only to MID-THIGH height then swing it OUT and around (opening the gate), then reverse (closing) — groin and hip rotation. Left side: smaller arc, stop short of any front-of-hip pinch',f:['hip','adductor']},
+  {n:'Horse Stance',d:'30 sec · wide stance, toes slightly out, sink until thighs near parallel with a tall torso and hold — hips, adductors, and quads together',f:['adductor','hip']},
+  {n:'Windshield Wipers',d:'8 reps/side · on your back, knees bent and feet wide, drop both knees side to side keeping the shoulders flat — hip internal/external rotation',f:['hip','spine']},
+  {n:'Pike Sit-Down',d:'6 reps · standing pike fold, walk hands out slightly, then sit the hips back and down toward the heels and return — hamstring-to-hip transition',f:['hamstring']},
+  {n:'Pike Rotations',d:'6 reps/side · in a standing pike with fingers to the floor, rotate the torso reaching one arm toward the ceiling — hamstrings plus spine rotation',f:['hamstring','spine']},
+  // ── Added 2026-08-05 for the leg-day block ──
+  // Sam named hamstrings, Achilles and adductors specifically. The pool was thin
+  // on the last two and what it did have was all STRETCHING — an Achilles wants
+  // LOADING before a heavy leg day, not lengthening, so these are loaded entries.
+  {n:'Calf Raise Ramp',d:'15 slow reps · standing on a step, heels dropped below the toes, up on a 1-count and down on a 3-count through the full range — then hold the top of the last rep for 15 sec. This is Achilles LOADING, not stretching; a tendon wants tension before it wants length',f:['achilles']},
+  {n:'Soleus Raises',d:'15 reps/side · seated (or standing with the knee bent ~30°) and up onto the ball of the foot — the bent knee takes the calf out of it and puts the soleus, the part that takes the most load when you sprint and decelerate, on the hook',f:['achilles']},
+  {n:'Adductor Rockbacks',d:'10 reps · quadruped with the knees as wide as they will comfortably go and the feet in line with them, rock the hips back toward the heels and return — the groin lengthens under control instead of being held in a passive stretch',f:['adductor']},
+  {n:'Copenhagen Side Plank (short)',d:'15 sec/side · side plank on one elbow with the TOP leg resting on a bench, and lift the hips using the top inner thigh. Knee on the bench first; straight leg once that\'s easy. The single best-evidenced groin-injury preventer there is, and 15 sec a side is a warm-up dose, not a training dose',f:['adductor']},
+  {n:'Single-Leg RDL Reach',d:'8 reps/side · hinge over one leg with the free leg reaching straight back, hands toward the floor, back flat — stop where the hamstring says stop and stand back up. Balance is part of the drill; touch a wall if you need it',f:['hamstring','glute']},
+  {n:'Heel & Toe Walks',d:'20 steps each · walk 20 steps on the heels with the toes pulled up, then 20 on the balls of the feet — tibialis one way, Achilles and calf the other, ankle joint both',f:['achilles']},
+];
+const UPPER_MOBILITY_POOL=[
+  {n:'Cobra to Down Dog Flow',d:'8 slow reps · from a prone press-up into Cobra (chest up, hips down), then push back into Down Dog (hips up, heels reaching) — full spine wave, opens shoulders and hamstrings',f:['spine']},
+  {n:'Standing Spine Rotations',d:'10 reps/side · feet planted, rotate the whole spine side to side letting the arms swing loosely — warms the entire spine, not just the upper back',f:['spine']},
+  {n:'Michael Phelps',d:'15 swings · swing both arms wide open then wrap them across the chest slapping the back (alternate which arm is on top) — the classic pre-race chest/shoulder opener',f:['shoulder']},
+];
+
+// The prep pools have grown well past what fits before a session, so each
+// workout shows a date-rotated subset instead of every item: the offset advances
+// daily, the picks keep their pool order (mobilize → activate), and the full
+// pool cycles across consecutive training days.
+function stretchRot(pool,n){
+  if(!pool||!pool.length)return[];
+  const off=Math.floor(Date.now()/864e5)%pool.length;
+  return Array.from({length:Math.min(n,pool.length)},(_,i)=>(off+i)%pool.length).sort((a,b)=>a-b).map(i=>pool[i]);
+}
+
+// How many minutes prep is ALLOWED. Lunch is a hard 40-minute box with a
+// century and up to three lifts also drawing on it, so prep there is a tight
+// 6 minutes; an evening can afford twice that. These are caps, not estimates —
+// prepPlan fills up to them and stops, which is what makes the figure safe for
+// lunchBudget to reserve without knowing which rotation lands on a given day.
+const PREP_BUDGET_MINS={lunch:6,evening:12};
+// Assemble the session's prep. Blocks are filled round-robin in priority order
+// so a later block can't be starved by an earlier one eating the whole budget,
+// and the leg block jumps the queue on a leg day — which is the entire point of
+// the split Sam asked for.
+function prepPlan(o){
+  o=o||{};
+  const isLunch=!!o.isLunch, isLegDay=!!o.isLegDay;
+  const cap=(isLunch?PREP_BUDGET_MINS.lunch:PREP_BUDGET_MINS.evening)*60;
+  const want=(evening,lunch)=>isLunch?lunch:evening;
+  const legPool=[...HIP_POOL,...LOWER_MOBILITY_POOL].filter(prepIsLeg);
+  const deskPool=[...HIP_POOL,...LOWER_MOBILITY_POOL].filter(prepIsDesk);
+  // Decompression and the desk reversal are FIXED — they are the two things that
+  // answer "my hip pinches" and "I came straight from a chair", so they are not
+  // subject to the rotation or the budget.
+  const fixed=[];
+  if(o.hipCaution)fixed.push({key:'decompress',title:'🦋 Decompress first',color:'#c084fc',items:HIP_DECOMPRESSION,note:'Unload the joint before you mobilise it. Left hip: back off at the pinch.'});
+  fixed.push({key:'desk',title:'🖥️ Desk Reversal',color:'var(--ok)',items:DESK_REVERSAL,note:'Fixed every session — the two most literal undo buttons for a day in a chair.'});
+  const rotating=[
+    isLegDay?{key:'legprep',title:'🦵 Leg Prep · hamstrings, Achilles, adductors',color:'var(--warn)',pool:legPool,n:want(4,2)}:null,
+    {key:'deskreset',title:'🧍 Hip &amp; Spine Reset',color:'var(--ok)',pool:deskPool,n:want(isLegDay?2:4,isLegDay?1:3)},
+    {key:'pthip',title:'🩺 PT Hip Program',color:'#c084fc',pool:PT_HIP_POOL,n:want(3,2)},
+    o.shoulderCaution?{key:'shoulder',title:'🩹 Achy Shoulder',color:'var(--acc)',pool:SHOULDER_POOL,n:want(2,1)}:null,
+    {key:'upper',title:'🔄 Upper Body',color:'var(--acc)',pool:UPPER_MOBILITY_POOL,n:want(2,1)},
+  ].filter(Boolean);
+  let secs=fixed.reduce((a,b)=>a+b.items.reduce((x,it)=>x+prepItemSecs(it),0),0);
+  // Pre-roll each pool's rotation, then deal one item at a time across the
+  // blocks until the budget is gone.
+  const queues=rotating.map(b=>({...b,queue:stretchRot(b.pool,b.n),items:[]}));
+  for(let round=0;round<Math.max(...queues.map(q=>q.n),0);round++){
+    for(const q of queues){
+      const it=q.queue[round];
+      if(!it)continue;
+      const c=prepItemSecs(it);
+      if(secs+c>cap)continue;
+      q.items.push(it);secs+=c;
+    }
+  }
+  const blocks=[...fixed,...queues.filter(q=>q.items.length).map(q=>({key:q.key,title:q.title,color:q.color,items:q.items,rotates:true}))];
+  return{blocks,secs,mins:Math.max(1,Math.round(secs/60)),cap:Math.round(cap/60),isLegDay};
 }
 
 // ─────────────────────────────────────────────
@@ -4632,8 +5175,8 @@ function centuryHTML(){
     ?`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Typically <strong style='color:var(--txt)'>${centuryMins()} min</strong> (median of ${st.timedCount} timed session${st.timedCount!==1?'s':''}${st.lastMins?` · last ${st.lastMins} min`:''}) — that's what gets reserved out of a 40-min lunch.</div>`
     :`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Timing starts on your first set. Until there's data, lunches budget ${centuryDefaultMins()} min for this — the pacing above is where that number comes from.</div>`;
   const trend=st.total>1&&st.firstSets&&st.lastSets
-    ?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>${st.total} centuries logged · first took <strong style='color:var(--txt)'>${st.firstSets} sets</strong>, last took <strong style='color:var(--ok)'>${st.lastSets}</strong>${st.best?` · best single set <strong style='color:var(--txt)'>${st.best}</strong>`:''}</div>`
-    :st.total===1?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First century logged — ${st.lastSets} sets${st.best?`, best single set ${st.best}`:''}. That set count is the number that comes down.</div>`
+    ?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>${st.total} centuries logged · first took <strong style='color:var(--txt)'>${st.firstSets} sets</strong>, last took <strong style='color:var(--ok)'>${st.lastSets}</strong>${st.best?` · best single set <strong style='color:var(--txt)'>${st.bestEver}</strong>`:''}</div>`
+    :st.total===1?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First century logged — ${st.lastSets} sets${st.bestEver?`, best single set ${st.bestEver}`:''}. That set count is the number that comes down.</div>`
     :`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First one is the ugly one — 10+ sets is completely normal. The target never changes; the set count is what drops.</div>`;
   if(doneToday){
     const sets=(doneToday.exercises?.[0]?.sets||[]).filter(s=>s&&s.reps>0);
@@ -4671,11 +5214,14 @@ function centuryHTML(){
     ${setChips}
     ${draft.sets.length?`<button class='btn ${total>=T?'btn-ok':'btn-g'} btn-sm' data-action='century-finish' style='width:100%;margin-top:8px'>${total>=T?`✓ Log Century — ${total} reps in ${draft.sets.length} sets`:`Log ${total} reps & stop here (${remaining} short)`}</button>`:''}
     <div style='margin-top:10px;padding:10px 12px;background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.25);border-radius:10px'>
-      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>⏱ Pacing</div>
-      <div style='font-size:13px;font-weight:700'>Sets of ${plan.setSize} · rest ${plan.restSecs}s</div>
-      <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>${plan.sets} sets at that size gets you to ${T} in about <strong style='color:var(--txt)'>${plan.mins} min</strong>${st.best?` — sized at half your best set of ${st.best}, so every set starts ~${Math.max(1,st.best-plan.setSize)} reps clear of failure`:''}. Half-max sets don't need long rests; the 2–3 min figure comes from research on sets taken NEAR failure, which this deliberately isn't. If you're resting much past ${plan.restSecs}s, cut the set size rather than the rest — that's what keeps this inside a lunch.</div>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>⏱ Pacing${plan.test?' · Test day':''}</div>
+      ${plan.test?`<div style='font-size:13px;font-weight:700'>Set 1 to failure · rest ${plan.testRestSecs/60} min · then sets of ${plan.setSize}</div>
+      <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>Every ${CENTURY_TEST_EVERY}th century opens with <strong style='color:var(--txt)'>one honest max set</strong> — the only set in this whole protocol that goes near failure. That number is what re-sizes every set for the next three sessions and sets the Pyramid's top rung, so it's worth the full ${plan.testRestSecs/60} minutes of rest afterwards (near-failure sets genuinely do need it). Then back to normal: sets of ${plan.setSize}, ${plan.restSecs}s, ${plan.sets} sets total, ~<strong style='color:var(--txt)'>${plan.mins} min</strong>.</div>`
+      :`<div style='font-size:13px;font-weight:700'>Sets of ${plan.setSize} · rest ${plan.restSecs}s</div>
+      <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>${plan.sets} sets at that size gets you to ${T} in about <strong style='color:var(--txt)'>${plan.mins} min</strong>${st.best?` — sized at half your best set of ${st.best}, so every set starts ~${Math.max(1,st.best-plan.setSize)} reps clear of failure`:''}. Half-max sets don't need long rests; the 2–3 min figure comes from research on sets taken NEAR failure, which this deliberately isn't. If you're resting much past ${plan.restSecs}s, cut the set size rather than the rest — that's what keeps this inside a lunch.</div>`}
     </div>
-    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>End every set <strong style='color:var(--txt)'>2+ reps short of failure</strong> — that's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Bands, feet on a box, or slow negatives all count too.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>${plan.test?'After the opener, end':'End'} every set <strong style='color:var(--txt)'>2+ reps short of failure</strong>, and keep them the SAME SIZE — a set count that falls away as you go means set one was too close to failure. Reps don't creep up within a session; they step up on test day. That's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Bands, feet on a box, or slow negatives all count too.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>📊 <strong style='color:var(--txt)'>This is booked against your week.</strong> A full century bills ${CENTURY_MRV_SETS} back sets and ${(CENTURY_MRV_SETS*0.5).toFixed(1)} biceps against weekly MRV (a partial bills its share), so the generator plans less rowing and fewer curls on the days around it — you don't have to hold back on purpose.</div>
     ${trend}
   </div>`;
 }
@@ -5499,137 +6045,24 @@ function renderWorkout(){
       ?`<span class='badge badge-lunch' style='margin-bottom:12px;display:inline-block'>YMCA Lunch · 35–40 min</span>`
       :`<span class='badge badge-eve' style='margin-bottom:12px;display:inline-block'>${locLabel} · ${S.active.sessionMins} min</span>`;
 
-  // The caution stretch pools have grown past what fits before a session, so
-  // each workout shows a date-rotated subset instead of every item: the offset
-  // advances daily, the picks keep their pool order (mobilize → activate), and
-  // the full pool cycles across consecutive training days.
-  const stretchRot=(pool,n)=>{
-    const off=Math.floor(Date.now()/864e5)%pool.length;
-    return Array.from({length:Math.min(n,pool.length)},(_,i)=>(off+i)%pool.length).sort((a,b)=>a-b).map(i=>pool[i]);
-  };
+  // Pre-lift prep. The pools, the per-tissue split and the time budget all live
+  // at module scope now (see prepPlan) — the renderer only draws what the plan
+  // hands it. `isLegDay` is read off the session that was actually built rather
+  // than asked of the generator, so a swap or a preserved session is covered too.
   const wuRow=(it,i)=>`<div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>${i+1}</span><span class='wu-val'>${it.n}</span><span style='color:var(--mut);font-size:12px'> · ${it.d}</span>${it.hold?`<button data-action='start-hold' data-secs='${it.hold}' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>${it.hold}s</button>`:''}</div>`;
-  const rotNote=`<div class='wu-note'>Rotates daily — a different subset each session so the warm-up stays short; the full list cycles across the week.</div>`;
-
-  // Mobilize -> Stabilize pool for the office-bound baseline: ankle/thoracic
-  // mobility first (counters a desk block), then hip mobility, then hip
-  // stability/activation work, all before the first working set.
-  const HIP_POOL=[
-    {n:'Ankle Rocks',d:'10 reps/side · Achilles/calf mobility'},
-    {n:'Cat-Cow',d:'8 slow reps · thoracic extension'},
-    {n:'90/90 Hip Stretch',d:'30 sec/side · breathe into it'},
-    {n:'Half-Kneeling Hip Flexor Stretch',d:'30 sec/side · tuck pelvis first'},
-    {n:'Figure 4 Stretch',d:'30 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch'},
-    {n:'Hip CARs',d:'5 circles/side · slow, full range'},
-    // Sits next to Hip CARs on purpose — same active-rotation idea, one leg and
-    // loaded by bodyweight. Pool order is mobilize → activate and this is the
-    // activation end of rotation work, so it comes after the passive stretches.
-    {n:'Hip Airplanes',d:'5 cycles/side · hand on a wall, hinge until torso and free leg are one horizontal line, then rotate the pelvis over the stance hip — open UP toward the ceiling, pause, slowly back under. Torso stays still; only the stance hip moves. Slow enough to stop anywhere. Left hip: open up further than you rotate under, and back off at any pinch in the front'},
-    {n:'Clamshells',d:'15 reps/side · hips stacked'},
-    {n:'Butterfly Stretch',d:'30–45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch'},
-    {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back'},
-    {n:'Knee-to-Chest Lie',d:'45 sec · on your back, hug BOTH knees to your chest, gently rocking side to side if it feels good — decompresses the lower back and opens the hips'},
-    {n:'Kneeling Diamond Sit',d:'45 sec · kneel with the knees wide and big toes touching behind you, sit back onto the heels with a tall spine — hips, inner thighs, and ankles together (hip-friendly, like wide-knee child\'s pose)'},
-    {n:'Z-Sit',d:'30 sec/side · sit with the front shin folded across in front and the other shin folded to the side behind you (a settled 90/90), tall spine, weight even on both sit bones — releases the hips; switch sides, and ease out if the left groin complains'},
-    // Pretzel Stretch removed 2026-07-15: cramps the user's left groin when
-    // that leg is bent — the seated cross-leg position drives deep hip flexion
-    // + rotation under pressure, exactly the pattern the FAI constraints ban.
-    // Figure 4 and 90/90 (both in this pool) cover the same glute/external-
-    // rotation territory from safer supine/seated positions.
-  ];
-  // Left-hip anterior impingement (2026-07-16): flexion + rotation jams the
-  // femoral head into the front of the socket (Standing Hip Rotations, Open
-  // Gate — both capped below the pinch). Stretching the CAPSULE doesn't fix
-  // that; the joint needs DECOMPRESSING first — gently pulling the femoral
-  // head away from the rim before working range.
-  // Condensed 2026-07-18 (user: no band right now + the 3-drill banded block
-  // ate too much UI) from three banded distraction drills to one compact
-  // BANDLESS self-traction rockback. Self-traction pulls straight down the
-  // bone rather than truly lateral, so it clears the rim less completely than
-  // a banded lateral distraction did — but it's the best bandless option and
-  // still meaningfully unloads the joint before range work. Restore the
-  // banded versions (git history) if a loop band comes back.
-  const HIP_DECOMPRESSION=[
-    {n:'Hip Flexor Rockback (self-traction)',d:'30–45 sec/side, left first · half-kneeling, both hands wrapped high around the FRONT thigh just under the hip crease. Gently pull the thigh bone down and away from the hip to unload the joint, and — holding that traction — rock the hips back into flexion through the range that normally pinches. No band needed; your hands do the distracting. Ease off the instant you feel the left-hip pinch — that\'s the joint\'s bony limit, not a stretch to push through.',hold:45},
-  ];
-  const hipDecompHTML=S.cfg.hipCaution?`<div style='margin-bottom:10px'>
-    ${HIP_DECOMPRESSION.map(wuRow).join('')}
-    <div class='wu-note'>Decompress first, then mobilize into the pool below. Left hip: back off at the pinch.</div>
-  </div>`:'';
-  const hipPrehabHTML=S.cfg.hipCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
-    <div class='wu-title' style='color:#c084fc'>🦋 Decompress &amp; Mobilize (do these before lifting)</div>
-    ${hipDecompHTML}
-    ${stretchRot(HIP_POOL,4).map(wuRow).join('')}
-    ${rotNote}
-  </div>`:'';
-
-  // "Achy Shoulder" protocol: replaces the generic warm-up mindset with a
-  // decompression + posture-correction pool when the user has flagged
-  // shoulder discomfort or poor posture, shown before the first exercise.
-  const SHOULDER_POOL=[
-    {n:'Dead Hang',d:'30–60 sec · shoulder decompression'},
-    {n:'Face Pulls',d:'15 reps · rear-delt/rotator-cuff stability'},
-    // Band Pull-aparts removed 2026-07-15: user has no band. Face Pulls above
-    // and the thoracic rotations below cover the same rear-delt/upper-back
-    // posture territory bandless. Re-add if a band comes back.
-    {n:'Doorway Stretch',d:'30 sec/side · pec/anterior shoulder mobility'},
-    {n:'Kneeling Thoracic Rotation',d:'10 reps/side · tall-kneeling, hand behind head, rotate the elbow down and across then up toward the ceiling — hips stay square, the upper back does the rotating'},
-    {n:'Standing Thoracic Rotation',d:'10 reps/side · feet planted hip-width, arms crossed at the chest, rotate the upper body side to side while the hips stay facing forward'},
-    {n:'Behind-the-Back Shoulder Stretch',d:"30 sec · clasp your hands behind your back (hold a towel if they don't meet), straighten the arms, and gently lift them away from your body — opens the front of the shoulder through end-range extension"},
-    {n:'Overhead Reach Stretch',d:'30 sec · reach both arms straight overhead, interlace fingers, palms up, and reach tall — deepens overhead shoulder flexion range and stretches the lats'},
-    {n:'Crab Reach',d:'8 reps/side · seated crab position (hands planted behind you, feet flat), press the hips up and reach one arm up and over across the body — opens the front of the shoulders and extends the upper back'},
-  ];
-  const achyShoulderHTML=S.cfg.shoulderCaution&&exIdx===0?`<div class='wu-box' style='border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04);margin-bottom:14px'>
-    <div class='wu-title' style='color:var(--acc)'>🩹 Achy Shoulder Warm-up (do this instead of a generic warm-up)</div>
-    ${stretchRot(SHOULDER_POOL,3).map(wuRow).join('')}
-    ${rotNote}
-  </div>`:'';
-
-  // Daily Mobility: general lower + upper body movement prep, shown EVERY
-  // session regardless of the hip/shoulder caution toggles above (those stay
-  // scoped to actual flagged issues). Rotates a fixed 2 lower + both upper
-  // items daily — lower and upper pools rotate independently so neither half
-  // is ever skipped, unlike a single shared pool that could land on an
-  // all-lower or all-upper day by chance.
-  const LOWER_MOBILITY_POOL=[
-    {n:'Deep Squat Reach',d:'8 reps · sink into a deep squat, plant one hand down, reach the other arm to the sky rotating through the upper back — hold 1s at full reach, alternate sides'},
-    {n:'Alt. Reverse Lunge + Reach',d:'8 reps/side · step back into a reverse lunge, reach both arms overhead and lean back slightly — hip flexor and lat stretch together'},
-    {n:'Shin Box Lunge',d:'6 reps/side · from a seated 90/90 position, drive up into a lunge over the front leg then sit back down — hip internal/external rotation under control'},
-    {n:'Low Cossack Squat',d:'8 reps/side · wide stance, sit deep into one hip while the other leg stays straight, heel down — adductor/hip mobility'},
-    {n:'Cross-Body High Kicks',d:'8 reps/side · walking or in place, kick one straight leg up toward the OPPOSITE hand — dynamic hamstring opener with a rotation element'},
-    {n:'Elephant Walks',d:'10 alternating reps · standing pike, hands toward the floor, alternately bend one knee while straightening the other — milking the hamstrings one side at a time'},
-    {n:'Pump Stretch',d:'10 alternating reps · in Down Dog, pedal the heels — pressing one heel toward the floor while the other knee bends — calves and hamstrings'},
-    {n:'Lizard Reaches',d:'6 reps/side · low lunge with both hands inside the front foot, sink the hips toward the floor then straighten the front leg back — deep hip opener'},
-    {n:'Squat Twists',d:'8 alternating reps · hold the bottom of a deep squat and rotate, reaching one arm to the ceiling then the other — hips stay low the whole time'},
-    {n:'Pigeon Pulses',d:'8 reps/side · pigeon position (front shin across, back leg long), gently pulse the torso over the front leg — dynamic glute/piriformis'},
-    {n:'Kneeling Hamstring Rockers',d:'8 reps/side · half-kneeling, front leg straight with heel down, rock the hips back over the rear knee reaching toward the front toes and return'},
-    {n:'Glute Kickbacks',d:'10 reps/side · quadruped, drive one heel straight back and up squeezing the glute, knee bent 90° — no lower-back arch'},
-    // Cue capped 2026-07-16: knee-to-hip-height + rotation pinches the front of
-    // the LEFT hip (FAI anterior impingement — bony contact, not tightness).
-    // Work the range below the pinch; never push through it.
-    {n:'Standing Hip Rotations',d:'8 circles/side · lift the knee only to MID-THIGH height (below 90°) and draw a smooth circle — out, around, and back — standing tall near a wall for balance. Left side: keep the circle smaller and stop short of any front-of-hip pinch — the pinch is the joint\'s limit, not a stretch'},
-    {n:'Glute Bridge Pulses',d:'15 reps · glute bridge at the TOP of the range, small quick pulses squeezing the glutes — activation before loading'},
-    {n:'Glute Bridge Hold',d:'30 sec · drive to full hip extension and hold, glutes squeezed hard, ribs down — count a slow 30'},
-    {n:'Single-Leg Raises',d:'8 reps/side · flat on your back, one leg straight up then lower slow — press the lower back FLAT into the floor and only lower as far as you can hold it flat (bend the down-leg knee & plant that foot if needed). A faint pop just above the waistline on the way down means the back is arching and the hip flexor is snapping — shorten the range and brace harder, don\'t push through it'},
-    {n:'Knee Hugs',d:'8 reps/side · standing, pull one knee to the chest with both hands, squeeze 1s, tall posture — alternate'},
-    {n:'Lymphatic Jumps',d:'30 sec · light relaxed bouncing on the toes, heels barely tapping, arms loose — wakes the ankles and gets blood moving'},
-    {n:'Lunge Flow',d:'5 reps/side · flow lunge sequence: deep lunge → back-knee tap → straighten front leg for hamstrings → hands overhead — one smooth cycle per rep'},
-    // Cue capped 2026-07-16: same left-hip anterior pinch as Standing Hip
-    // Rotations — keep the knee low and stay out of the pinch.
-    {n:'Open Gate',d:'8 reps/side · walking or standing, lift the knee only to MID-THIGH height then swing it OUT and around (opening the gate), then reverse (closing) — groin and hip rotation. Left side: smaller arc, stop short of any front-of-hip pinch'},
-    {n:'Horse Stance',d:'30 sec · wide stance, toes slightly out, sink until thighs near parallel with a tall torso and hold — hips, adductors, and quads together'},
-    {n:'Windshield Wipers',d:'8 reps/side · on your back, knees bent and feet wide, drop both knees side to side keeping the shoulders flat — hip internal/external rotation'},
-    {n:'Pike Sit-Down',d:'6 reps · standing pike fold, walk hands out slightly, then sit the hips back and down toward the heels and return — hamstring-to-hip transition'},
-    {n:'Pike Rotations',d:'6 reps/side · in a standing pike with fingers to the floor, rotate the torso reaching one arm toward the ceiling — hamstrings plus spine rotation'},
-  ];
-  const UPPER_MOBILITY_POOL=[
-    {n:'Cobra to Down Dog Flow',d:'8 slow reps · from a prone press-up into Cobra (chest up, hips down), then push back into Down Dog (hips up, heels reaching) — full spine wave, opens shoulders and hamstrings'},
-    {n:'Standing Spine Rotations',d:'10 reps/side · feet planted, rotate the whole spine side to side letting the arms swing loosely — warms the entire spine, not just the upper back'},
-    {n:'Michael Phelps',d:'15 swings · swing both arms wide open then wrap them across the chest slapping the back (alternate which arm is on top) — the classic pre-race chest/shoulder opener'},
-  ];
-  const dailyMobilityHTML=exIdx===0?`<div class='wu-box' style='border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.04);margin-bottom:14px'>
-    <div class='wu-title' style='color:var(--ok)'>🔄 Daily Mobility (lower + upper body)</div>
-    ${[...stretchRot(LOWER_MOBILITY_POOL,3),...stretchRot(UPPER_MOBILITY_POOL,2)].map(wuRow).join('')}
-    ${rotNote}
+  const isLegDay=exercises.some(e=>e.muscle==='legs');
+  const prep=prepPlan({isLunch:!!S.active.isLunch,isLegDay,hipCaution:!!S.cfg.hipCaution,shoulderCaution:!!S.cfg.shoulderCaution});
+  const prepHTML=exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
+    <div class='wu-title' style='color:#c084fc'>🔥 Prep · ~${prep.mins} min before rep one</div>
+    <div class='wu-note' style='margin-top:0;margin-bottom:8px'>${isLegDay
+      ? `Legs today, so the block leans into hamstrings, Achilles and adductors — the tissues that take the load first and complain last.`
+      : `No legs today, so this is all hip and spine — you came here straight from a chair and that's what the chair did.`} These minutes are ${S.active.isLunch?`<strong style='color:var(--txt)'>counted against your ${lunchBudget(S.active.dow).box} minutes</strong>, which is why the lift list is as short as it is`:`part of the session, not extra to it`}.</div>
+    ${prep.blocks.map(b=>`<div style='margin-bottom:8px'>
+      <div style='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:${b.color};margin-bottom:2px'>${b.title}</div>
+      ${b.items.map(wuRow).join('')}
+      ${b.note?`<div class='wu-note' style='margin-top:2px'>${b.note}</div>`:''}
+    </div>`).join('')}
+    <div class='wu-note'>Rotates daily — a different subset each session so prep stays inside its budget; the full pools cycle across the week. Anything marked with a band needs the mini/loop band; skip it if it isn't with you.</div>
   </div>`:'';
 
   // "Machine Mode" prehab: on a heavy, low-rep compound press (chest/shoulders/
@@ -5655,15 +6088,9 @@ function renderWorkout(){
     <div class='wu-note' style='margin-top:0'>Weekly volume is intentionally low (3–10 hard sets/muscle) — every set needs to count. Push each working set to 0–2 reps in reserve (RIR), not a comfortable stopping point. For side delts specifically: 1–3 crisp, perfect-technique sets per session beats spamming lateral-raise variations.</div>
   </div>`:'';
 
-  // Desk-reversal primer (~45s, evening sessions): the day's sitting leaves the
-  // deep neck flexors asleep and the lumbar spine parked in flexion — wake both
-  // BEFORE loading. Dynamic activation belongs pre-lift; the static relief work
-  // for the same areas lives in the post-session cool-down (cooldownHTML).
-  const deskReversalHTML=exIdx===0&&!S.active.isLunch?`<div class='wu-box' style='border-color:rgba(74,222,128,.25);background:rgba(74,222,128,.03);margin-bottom:14px'>
-    <div class='wu-title' style='color:var(--ok)'>🖥️ Desk Reversal (~45 sec, before lifting)</div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>1</span><span class='wu-val'>Chin Tucks</span><span style='color:var(--mut);font-size:12px'> · 10 reps · glide the head straight BACK (make a double chin), hold 2s — wakes the deep neck flexors before pressing</span></div>
-    <div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>2</span><span class='wu-val'>Standing Pelvic Tilts</span><span style='color:var(--mut);font-size:12px'> · 10 slow reps · rock the pelvis fully forward and back — unglues the lower back from its chair shape</span></div>
-  </div>`:'';
+  // The desk-reversal primer used to be its own evening-only box here. It's now
+  // a FIXED block inside prepPlan (DESK_REVERSAL) and shows at lunch too —
+  // arriving from a chair is if anything more true at 12:30 than at 18:00.
 
   const sugW0=prog?prog.suggest:(est?est.weight:null);
   const isDumbbellEx=!!(ex.eq?.includes('dumbbells')&&!ex.eq?.includes('barbell'));
@@ -5884,24 +6311,19 @@ function renderWorkout(){
       ${S.active.autoRegNotes.map(n=>`<div class='wu-row'>${n}</div>`).join('')}
       <div class='wu-note'>Volume adjusted from what you actually logged earlier today (60% rule).</div>
     </div>`:''}
-    ${hipPrehabHTML}
-    ${achyShoulderHTML}
-    ${dailyMobilityHTML}
+    ${prepHTML}
     ${machineModeHTML}
     ${efficiencyModeHTML}
-    ${deskReversalHTML}
     <div class='ex-card'>
       ${sessionTag}
       <div class='ex-name'>${ex.name}</div>
       <span class='m-tag' style='background:${mcolor}22;color:${mcolor}'>${MNAME[ex.muscle]||ex.muscle} · ${ex.type}</span>
-      ${feelFor(ex)?`<div style='font-size:12.5px;color:var(--txt-dim);line-height:1.5;margin:8px 0 10px;padding:8px 10px;background:${mcolor}0d;border-left:3px solid ${mcolor}66;border-radius:0 8px 8px 0'>🎯 <strong style='color:${mcolor}'>Feel it:</strong> ${feelFor(ex)}</div>`:''}
+      ${cueBlockHTML(ex,mcolor)}
       ${SETUP_ROW(ex)}
       ${handleFor(ex)&&(EQUIPMENT_PRESETS[S.active.equipmentKey||'ymca']?.equipment||[]).includes('cables')?`<div style='font-size:12px;color:var(--txt-dim);line-height:1.5;margin:0 0 10px;padding:6px 10px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:8px'>🔗 <strong style='color:var(--acc)'>Attachment:</strong> ${handleFor(ex)}</div>`:''}
       <div style='display:flex;gap:8px;align-items:center;margin-bottom:10px'>
-        <button class='cue-btn' data-action='toggle-cue' data-id='cue-${exIdx}' style='margin-bottom:0'>💡 Technique tip</button>
         <button class='cue-btn' data-action='toggle-swap' style='margin-bottom:0;margin-left:auto;color:var(--mut)'>↕ Swap</button>
       </div>
-      <div class='cue-txt' id='cue-${exIdx}'>${ex.cue||''}</div>
       ${ex.isoHoldSecs?`<button class='btn btn-g btn-sm' data-action='start-iso-hold' data-secs='${ex.isoHoldSecs}' style='margin-bottom:10px;width:100%'>⏱ Start ${ex.isoHoldSecs}s mid-position hold</button>`:''}
       ${swapPanel}
       ${warmupHTML}
@@ -5926,8 +6348,8 @@ function renderWorkout(){
         <strong style='font-size:14px'>${exercises[exIdx+1].name}</strong>
         <span style='font-size:11px;color:var(--mut);margin-left:auto'>${exercises[exIdx+1].sets} × ${exercises[exIdx+1].rMin}–${exercises[exIdx+1].rMax}${exercises[exIdx+1].isTimed?'s':''}</span>
       </div>
-      <button class='cue-btn' data-action='toggle-cue' data-id='next-cue-${exIdx+1}' style='margin-bottom:6px'>💡 Preview technique tip</button>
-      <div class='cue-txt' id='next-cue-${exIdx+1}' style='font-size:12px;margin-bottom:0'>${exercises[exIdx+1].cue||'No technique notes available.'}</div>
+      <button class='cue-btn' data-action='toggle-cue' data-id='next-cue-${exIdx+1}' style='margin-bottom:6px'>💡 Preview cues</button>
+      <div class='cue-txt' id='next-cue-${exIdx+1}' style='font-size:12px;margin-bottom:0;padding:0;background:none'>${cueBlockHTML(exercises[exIdx+1],MCOL[exercises[exIdx+1].muscle]||'var(--acc)')||'No technique notes available.'}</div>
     </div>`:''}
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
     <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s rest between sets (lunch time-box)':smartRestLabel(ex)} · slow eccentric</div>
@@ -5980,8 +6402,8 @@ function renderReviewWorkout(){
       </div>
       <div class='ex-name'>${ex.name}</div>
       <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>${ex.sets} sets × ${ex.rMin}–${ex.rMax} ${ex.isTimed?'seconds':'reps'}</div>
-      <button class='cue-btn' data-action='toggle-cue' data-id='review-cue-${idx}'>💡 Technique tip</button>
-      <div class='cue-txt' id='review-cue-${idx}'>${ex.cue || 'No technique notes available.'}${setupFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🏗️ <strong>Set up on:</strong> ${setupFor(ex)}</div>`:''}${handleFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🔗 <strong>Attachment:</strong> ${handleFor(ex)}</div>`:''}${feelFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🎯 <strong>Feel it:</strong> ${feelFor(ex)}</div>`:''}</div>
+      <button class='cue-btn' data-action='toggle-cue' data-id='review-cue-${idx}'>💡 Cues</button>
+      <div class='cue-txt' id='review-cue-${idx}' style='padding:0;background:none'>${cueBlockHTML(ex,mcolor)||'No technique notes available.'}${setupFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🏗️ <strong>Set up on:</strong> ${setupFor(ex)}</div>`:''}${handleFor(ex)?`<div style='color:var(--acc);margin-top:8px'>🔗 <strong>Attachment:</strong> ${handleFor(ex)}</div>`:''}</div>
     </div>`;
   }).join('');
 

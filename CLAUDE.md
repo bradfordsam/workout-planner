@@ -14,18 +14,34 @@ Run these gates in order; stop and report at the first failure.
    ```
    node -e "const html=require('fs').readFileSync('index.html','utf8'); [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].forEach((m,i)=>{try{new Function(m[1]);console.log(i,'OK')}catch(e){console.log(i,'ERR',e.message);process.exitCode=1}})"
    ```
-   **Node is NOT installed on this machine** (and `python` is only the Store
-   stub) — that command and `analysis/case-study.js` can't run here. Fallback
-   that works and is strictly stronger, using installed Chrome: build a harness
-   page that inlines the script block (sliced at the `// INIT` sentinel, same as
-   the case-study harness) behind a `SimDate` clock shim, drive it with a test
-   script that writes results into a `<pre>`, and read them back with
-   `chrome.exe --headless=new --dump-dom` (via `Start-Process
-   -RedirectStandardOutput`, since PowerShell 5.1 mangles native stderr). This
-   parses AND executes the real generator, so it catches "the mandate never
-   fires" bugs a syntax check can't. Assert coverage over several simulated
-   weeks under BOTH a lunch-only and a lunch+evening availability profile —
-   every foundation/mandate bug so far only showed up in one of the two.
+   **Node IS installed as of 2026-08-05** (v24; it was not before, and this file
+   used to describe a headless-Chrome workaround — that's obsolete, use Node).
+   `python` is still only the Store stub, so don't reach for it; use `node` for
+   scripted file edits.
+   A syntax check is NOT sufficient on its own. Also run:
+   - `node analysis/case-study.js` — the committed harness. `--smoke` for a fast
+     load check. **`git checkout -- analysis/case-study-data.json
+     analysis/case-study-report.md` afterwards** unless the new numbers are
+     meant to be committed; a full run rewrites both.
+   - A **render smoke test**: load the script block into a `vm` sandbox (slice at
+     the `// INIT` sentinel, mock `document`/`localStorage`, shim `Date` with a
+     `SimDate`), fabricate an `S.active`, and call `renderWorkout()`,
+     `centuryHTML()`, `lunchBudgetHTML()`, `renderDash()`, `renderPlan()`.
+     Assert the output contains the strings the change was supposed to add and
+     contains no `undefined` / `[object Object]` / `NaN`. **A ReferenceError
+     inside a template literal is invisible to the syntax check** and this is
+     the only thing that catches it. (`renderReviewWorkout` writes to
+     `innerHTML` and always throws in the sandbox — that's expected, not a
+     regression.)
+   - A **balance sim** whenever `dayTemplate`, MRV pricing, or the lunch ledger
+     is touched: re-plan every simulated day the way the live app does after
+     `finishWorkout`, log centuries on `centuryDows`, and read volume back out
+     of `getWeeklySetVolumes()` so secondary credit and century pricing are
+     included exactly as the dashboard sees them. Take a BASELINE from
+     `git show HEAD:index.html` through the same harness — several apparent
+     regressions turn out to be pre-existing. Measure over BOTH a lunch-only and
+     a lunch+evening profile, plus the 3-evening efficiency profile: every
+     foundation/mandate bug so far showed up in only one of the three.
 2. **Git preflight** — this repo belongs to the PERSONAL account:
    - Remote: `https://github.com/bradfordsam/workout-planner`
    - `gh auth status` must show **bradfordsam** active (NOT the work account
@@ -44,6 +60,19 @@ strip it before other debugging.
 
 ## Architecture notes
 
+- Cue presentation (2026-08-05): the "Feel it" line and the collapsible
+  "Technique tip" were merged into ONE always-visible bulleted block
+  (`cueBlockHTML` / `cueBullets`), per Sam — "bullet points for feel cues rather
+  than hard to read paragraphs… compressed into one space". The split is done at
+  RENDER time by sentence-splitting `ex.cue`, deliberately **not** by rewriting
+  ~175 cue strings into arrays: several encode injury constraints referenced
+  from this file, and a formatting change is a bad reason to retype them all.
+  The regex requires whitespace after the sentence end (which makes decimals
+  safe) and a capital/digit next (which stops abbreviations splitting); stubs
+  under 18 chars fold back into the previous bullet. **A missed split gives a
+  longer bullet; a wrong split cuts an instruction in half** — swept over every
+  cue in `EX` and verified lossless before shipping. Re-run that sweep after
+  bulk cue edits.
 - Exercise pool: `EX` array (~line 250+), objects with
   `id/name/muscle/type/eq/rMin/rMax/rest/cue/tags`.
   **EX ORDER IS LOAD-BEARING for thinly-populated slots.** `pickEx`'s
@@ -115,8 +144,43 @@ strip it before other debugging.
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
   Westminster and Mom and Dad's, neither of which has a stack.
-- Stretch pools (`HIP_POOL`, `SHOULDER_POOL`, `LOWER/UPPER_MOBILITY_POOL`,
-  `COOLDOWN_POOL`) live inline in the workout render fn and rotate by date.
+- **Pre-lift prep** (`prepPlan` + the pools, 2026-08-05): everything between
+  opening a workout and the first working set. Moved OUT of the workout render
+  fn to module scope so `lunchBudget` can charge for it. `COOLDOWN_POOL` is
+  still inline in the renderer (post-session, nothing budgets against it).
+  - **Prep is a BUDGET, not a list.** Blocks are filled round-robin — every block
+    gets its first item before any gets a second, so none can be starved — until
+    `PREP_BUDGET_MINS` (lunch 6 / evening 12) runs out. `prepPlan` guarantees it
+    never exceeds the cap, which is what makes the figure safe for `lunchBudget`
+    to reserve without knowing which rotation lands today.
+  - **Item durations are PARSED from the description** (`prepItemSecs`): every
+    entry already states its own dose ("30 sec/side", "8 reps/side", "15
+    swings"), so a new pool entry prices itself. `/side` doubles; "total" (as in
+    cobra's "2 min total") suppresses that. `LUNCH_LEDGER.spineMins` is derived
+    the same way instead of being a restated constant — both fixed doses are
+    **getters** on LUNCH_LEDGER because the pools are declared later in the file
+    and a plain property would hit the TDZ at module-eval time.
+  - **Leg days differ from desk days.** Every pool entry carries a focus tag
+    `f:['hamstring'|'achilles'|'adductor'|'hip'|'spine'|'glute'|'shoulder']`,
+    and that tag is the whole mechanism: a leg day gets a `Leg Prep` block
+    filtered to the first three, a non-leg day gets hip/spine only (Sam's rule —
+    he arrives straight from a desk). **An untagged entry would be invisible to
+    both filters** — the same silent-dead-code trap EX ordering has — so
+    `prepFocus()` defaults it into the desk pool rather than dropping it.
+    `isLegDay` is read off the built session (`exercises.some(muscle==='legs')`),
+    never asked of the generator, so swaps and preserved sessions are covered.
+  - **`PT_HIP_POOL`** — thirteen movements Sam's physio named. Its own block, not
+    scattered through `HIP_POOL`: a 26-entry pool showing 4 a session surfaces
+    any one movement about once a fortnight, which is not a rehab dose, and the
+    provenance is worth labelling. NOT in `EX`, following the
+    `DAILY_SPINE_MINIMUMS`/plank precedent — `hips` isn't in `dayTemplate`'s
+    `MUSCLES` so an EX entry there can never be slot-scheduled anyway.
+    `band:true` marks the four needing a mini band. **`Kinky Leg Spreads` is a
+    guessed interpretation** (seated spread with the torso hinged forward) —
+    flagged to Sam, correct it if the physio meant something else.
+  - `DESK_REVERSAL` (chin tucks + pelvic tilts) and `HIP_DECOMPRESSION` are
+    FIXED blocks — never rotated, never budget-trimmed. Desk reversal now shows
+    at lunch too; it used to be evening-only, which had it backwards.
 - `MCGILL_BIG3` + `mcgillHTML()` (2026-08-03, Sam asked for it by name): McGill's
   modified curl-up / side bridge / bird dog, rendered in the same three places as
   `DAILY_SPINE_MINIMUMS` (dashboard, rest card, evening cool-down). That pairing
@@ -196,6 +260,24 @@ strip it before other debugging.
   absorbs the warm-up. `timedMins` is stored SEPARATELY from `duration` so the
   old set-count estimate can never feed back into scheduling as if it were a
   measurement. Target is fixed; the SET COUNT is the progress metric.
+  **MRV pricing (revised 2026-08-05, `CENTURY_MRV_SETS` 3 → 5, priced by REPS
+  via `centuryMrvSets`)** — see the Fourth pass section below for the measured
+  effect and the two scheduler changes that had to land with it. A PARTIAL
+  century now bills its share rather than the full flat rate; the card
+  explicitly offers "log N reps & stop here", so billing 26 reps as 100 would
+  suppress the rest of the week's back work on the strength of work that never
+  happened. `pyramidMrvSets` derives its rate from `CENTURY_MRV_SETS`, so
+  changing it re-prices the ladder by the same factor — that identity (the same
+  100 pull-ups cost the same either way) is deliberate, not a side effect.
+  **Progression (2026-08-05, Sam asked whether set 1 should be to failure)**:
+  no. Reps stay CONSTANT within a session — a set count that falls away means
+  set 1 was too close to failure — and progression comes from a SCHEDULED test:
+  every `CENTURY_TEST_EVERY`(=4)th century opens with one true max set, and that
+  is the only near-failure set in the protocol. Without it nothing ever moved
+  `best`, which the whole prescription is sized from — self-scaling with no
+  input isn't self-scaling. `centuryStats().best` is a ROLLING window
+  (`CENTURY_BEST_WINDOW`=8) so the prescription tracks form in both directions;
+  `bestEver` is kept for the trend line only.
   Tally lives in `S.century`, cloud-synced via its OWN merge (`mergeCentury` on
   the shared `mergeStampedDraft`, 2026-08-03) rather than `SINGLETON_FIELDS`: the draft carries a `touchedAt`
   stamp bumped by the add-set/undo-set handlers only, and the newer-touched
@@ -317,9 +399,20 @@ strip it before other debugging.
   because the generator stops spending slots on curls it no longer thinks are
   needed. It also closed the documented `pistol_squat` gap on efficiency weeks
   (0% → 100%).
-- `LUNCH_LEDGER` / `lunchBudget` / `lunchExMins` (2026-08-03): the 40-min lunch
-  is a real ledger — box − spine − century − lifts, and a finisher only if what
-  remains covers it. It replaced a flat "3 exercises, minus some on a century
+- `LUNCH_LEDGER` / `lunchBudget` / `lunchExMins` (2026-08-03, extended
+  2026-08-05): the 40-min lunch is a real ledger — box − spine − **prep** −
+  century − lifts, and a finisher only if what remains covers it.
+  **`prep` was the third invisible spender**, found 2026-08-05 from Sam's report:
+  *"the timing for duration for the first exercise is going to be way longer
+  every time bc the mobility movements and stretches are grouped into it.
+  Probably the main reason I wasnt able to finish my century today."* The whole
+  warm-up block renders in front of exercise 1 and none of it was charged, so
+  the ledger promised three lifts and a century inside a box already ~6 minutes
+  spent. Consequence, accepted: **an ordinary lunch is now 2 lifts, not 3.**
+  `lunchExMins()` also had to subtract prep before dividing — it must be a
+  MARGINAL rate ("what does one more lift cost"), and smearing a once-per-session
+  overhead across every exercise inflates it worst on the 1-lift century day,
+  which is the one the clock actually broke on. It replaced a flat "3 exercises, minus some on a century
   day" that charged for the lifting and the century and nothing else, so the
   ~5 min of `DAILY_SPINE_MINIMUMS` and the finisher's own declared `mins` were
   both invisible. Reported symptom: a lunch that ran 43 minutes for the workout,
@@ -485,6 +578,67 @@ Accepted cost, measured not assumed:
   by reordering the core slot ahead of the muscle slot — read the TRIED AND
   REVERTED block on the core slot first.
 - lunch-only still under-fills nearly every band. Unchanged, still by design.
+
+## Fourth pass (2026-08-05) — the century vs the MRV ledger
+
+Sam: *"How does the century work into the MRV. I dont need to kill my back and
+biceps as much bc im doing century now."* He was right, and the cause was not
+the price — it was that **the budget never saw a century until it was logged**.
+Generation runs Monday morning with zero centuries in the log, so the whole
+week's back and biceps work was planned as though 300 pull-ups weren't coming,
+and then they landed on top. Measured, 6 weeks, lunch+3-evening: back finished
+at 24 sets against a 12–22 band, **every week**.
+
+Three changes, and all three are load-bearing together — shipping any one alone
+measurably makes things worse:
+
+1. **`getCommittedVolumes` projects the week's remaining centuries**
+   (`centuryWeekVolumes`). Not circular: `centuryDows()` reads AVAILABILITY, not
+   the program — the same property that lets `dayTemplate` consult it
+   mid-generation. Missed past centuries are NOT projected, matching
+   `getMRVBreakdown`'s rule for scheduled sessions.
+2. **`CENTURY_MRV_SETS` 3 → 5.** A pull-up working set is 4–8 reps, so 100 reps
+   is ~16.7 nominal sets; at 3 the discount was 0.18, i.e. a century set counted
+   as under a fifth of a hard set. 5 makes it ~0.30 — about a third, the
+   conventional weighting for sets left well short of failure.
+3. **Pattern coverage** (`patternUnder` in `dayTemplate`'s rows + the mandate
+   exemption in `pickEx`'s `fitsMRV`). **This is the non-obvious one.** With 1+2
+   alone the century fills back's weekly MINIMUM single-handed, back stops
+   ranking as "under range", the day stops choosing it — and the horizontal and
+   rear-delt mandates vanish silently: measured **60% of weeks → 0%**, and on
+   the 3-evening profile programmed back work went to **literally zero**. A
+   century is 100 VERTICAL pulls and cannot cover a row no matter how many of
+   them there are. So back's `under` test measures volume the centuries did NOT
+   supply, and `patternUnder` additionally overrides the `headroom>=2`
+   eligibility filter, because on an efficiency week two centuries fill the 3–10
+   band outright. Deliberately **back-only**: for BICEPS the secondary credit
+   from 300 pull-ups IS real elbow-flexor work and curls genuinely are redundant
+   against it — that's what `SECONDARY_CREDIT_RULES` is for.
+
+Measured (6 weeks × 3 schedules, daily replan, centuries logged, baseline from
+`git show HEAD:index.html` through the same harness). **Programmed** = sets the
+generator prescribes, excluding century reps — the number Sam's request is
+actually about:
+
+- **lunch+3 evenings**: programmed biceps 5–6 → **0–3**; programmed back 6–8 →
+  6 (steady 2 back exercises/week instead of 2–3). Back MRV total 15 → 21 of
+  12–22, i.e. in band and honest instead of in band and wrong. `horizontal` held
+  at baseline 60%; **`rear_delt` never → 100% of weeks**. Legs, core, triceps,
+  chest all still in band.
+- **3 evenings only**: identical to baseline on every muscle and mandate —
+  the point of change 3 was to keep it that way.
+- **lunch-only**: back MRV 12 → 18 (in band), programmed biceps 2 → 0.
+
+Accepted costs, measured not assumed:
+- **Back can overshoot its ceiling on a heavy century week** — one week of five
+  hit 27 of 22 on the full schedule, and the efficiency profile sits at 13 of
+  10. That is `patternUnder` buying a row at the cost of a nominal overshoot.
+  The band counts recoverable HARD sets and most of what filled it was
+  deliberately submaximal pull-up reps, so overshooting on paper is much the
+  smaller error against deleting horizontal pulling from the program.
+- **An ordinary lunch drops from 3 lifts to 2** (century lunch stays at 1), from
+  charging prep to the ledger. Knock-on: lunch-only weeks lose ~3 programmed leg
+  sets. Lunch-only weeks were already documented as structurally under-band.
 
 ## Training constraints (why the code is shaped this way)
 
