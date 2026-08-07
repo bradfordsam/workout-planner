@@ -1339,6 +1339,9 @@ let S={
   pyramid:null,
   // Card expansion only — deliberately NOT persisted or synced, like viewDay.
   pyramidOpen:false,
+  // In-progress Cindy tally {date,rounds,startedAt,touchedAt}; same stamped-draft
+  // sync as century/pyramid (see mergeStampedDraft).
+  cindy:null,cindyOpen:false,
 };
 let timerIv=null;
 
@@ -1378,7 +1381,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1386,7 +1389,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -2096,6 +2099,68 @@ function pyramidPrescription(){
 function pyramidCoversCentury(log){
   const pull=(log?.exercises||[]).find(e=>e&&e.muscle==='back');
   return !!pull&&pyramidRepsOf(pull)>=PULLUP_CENTURY.target;
+}
+
+// ─────────────────────────────────────────────
+// CINDY (CrossFit benchmark)
+// ─────────────────────────────────────────────
+// 20-minute AMRAP of 5 pull-ups / 10 push-ups / 15 air squats. Score is rounds.
+//
+// Filed as a BENCHMARK, not a weekly session — the same role the 20-minute row
+// test plays for the engine. Its value is repeating a fixed, unambiguous test
+// every few weeks and watching the score move; run weekly it stops being a
+// measurement and just becomes a lot of sloppy volume. Hence CINDY_EVERY_DAYS
+// rather than a slot in the rotation.
+//
+// It is self-scaling the same way the Century is: the prescription NEVER
+// changes, so it never needs rewriting as he gets fitter — the rounds move.
+//
+// Movement definitions are lifted verbatim from PYRAMID_LADDER (same plain
+// bodyweight push-up and squat, same pull-up), so the two benchmarks log
+// identical ids and their volume reconciles against the same century anchor.
+const CINDY_MINS=20;
+const CINDY_EVERY_DAYS=28;
+const CINDY_ROUND=[
+  {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',rMin:4,rMax:8,reps:5},
+  {id:'bw_pushups',name:'Push-ups',muscle:'chest',type:'compound',rMin:12,rMax:25,reps:10},
+  {id:'bw_squat',name:'Air Squats',muscle:'legs',type:'compound',rMin:20,rMax:40,reps:15},
+];
+const CINDY_REPS_PER_ROUND=CINDY_ROUND.reduce((a,m)=>a+m.reps,0);
+function cindyLogs(){return (S.logs||[]).filter(l=>l&&l.cindy);}
+function cindyDraft(){
+  if(!S.cindy||S.cindy.date!==todayStr())return{date:todayStr(),rounds:0,startedAt:null,touchedAt:null};
+  return S.cindy;
+}
+function cindyDoneToday(){return cindyLogs().find(l=>logDay(l.date)===todayStr())||null;}
+function cindyStats(){
+  const logs=cindyLogs();
+  const best=logs.reduce((a,l)=>Math.max(a,l.cindyRounds||0),0);
+  return{count:logs.length,best,last:logs.length?logs[logs.length-1]:null};
+}
+function cindyDaysSince(){
+  const l=cindyLogs();
+  return l.length?daysBetween(logDay(l[l.length-1].date),todayStr()):Infinity;
+}
+function cindyDue(){return cindyDaysSince()>=CINDY_EVERY_DAYS;}
+// PRESCRIBED only when it can be run honestly: a bar to hang from, an evening
+// with room for it, and no competing benchmark. Deliberately never on a Century
+// day — a 15-round Cindy is 75 pull-ups, and stacking that on 100 submaximal
+// reps is how elbows get cranky — and never alongside the Pyramid, since one
+// big bodyweight session per evening is the point.
+function cindyPrescription(){
+  if(cindyDoneToday())return null;
+  if(!cindyDue())return null;
+  const eve=pyramidEveSlot();
+  if(!eve.on)return null;
+  const gym=pyramidGymKey();
+  if(!(EQUIPMENT_PRESETS[gym]?.equipment||[]).includes('pullup_bar'))return null;
+  if(centuryDows().includes(todayDow()))return null;
+  if(pyramidPrescription())return null;
+  const mins=getEveningMins();
+  // Warm-up + the 20-minute clock + the daily spine work still has to fit.
+  const needed=CINDY_MINS+10+LUNCH_LEDGER.spineMins;
+  if(mins<needed)return null;
+  return{gym,gymName:EQUIPMENT_PRESETS[gym].name,mins,needed};
 }
 
 // ─────────────────────────────────────────────
@@ -3461,7 +3526,7 @@ function getWeeklySetVolumes(){
       });
       return;
     }
-    if(log.pyramid){
+    if(log.cindy||log.pyramid){
       // Same problem the century had, one order of magnitude worse: a peak-10
       // ladder is 19 rungs × 5 movements, so a set count would bill 95 sets of
       // 1–10 reps. Priced by REPS off the century anchor instead — see
@@ -3947,7 +4012,7 @@ function getMRVBreakdown(){
       // The same rep-priced century and pyramid costs getWeeklySetVolumes
       // charges, so the breakdown always reconciles with the widget totals.
       const sets=l.century?centuryMrvSets(centuryRepsOf(l))
-        :l.pyramid?pyramidMrvSets(exFull(ex),pyramidRepsOf(ex))
+        :(l.pyramid||l.cindy)?pyramidMrvSets(exFull(ex),pyramidRepsOf(ex))
         :raw;
       addWithSecondary(ex,sets,{dow,dayLabel:DOW[dow],source:l.isCustom?'custom':'logged',sessionName:l.dayName});
     });
@@ -5462,6 +5527,62 @@ function centuryHTML(){
 // The Pyramid card. Collapsed to a single line until tapped, because this is an
 // ALTERNATIVE to the day's session and nagging about it every day is exactly how
 // "it just clearly works" turns into another thing to ignore.
+function cindyHTML(dd){
+  const done=cindyDoneToday();
+  const draft=cindyDraft();
+  const started=draft.rounds>0;
+  const st=cindyStats();
+  const rx=cindyPrescription();
+  if(done){
+    const pr=st.best&&done.cindyRounds>=st.best;
+    return`<div style='margin-top:12px;padding:14px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.25);border-radius:12px;text-align:left'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ok);margin-bottom:4px'>⏱️ Cindy · Done</div>
+      <div style='font-size:14px;font-weight:700'>✅ ${done.cindyRounds} rounds${pr?' · 🏆 best yet':''}</div>
+      <div style='font-size:12px;color:var(--mut);margin-top:4px;line-height:1.6'>${done.cindyRounds*5} pull-ups · ${done.cindyRounds*10} push-ups · ${done.cindyRounds*15} air squats</div>
+    </div>`;
+  }
+  // Collapsed to one line unless it's actually due tonight or already underway —
+  // a benchmark you only run monthly shouldn't occupy the dashboard the rest of
+  // the time.
+  if(!S.cindyOpen&&!started&&!rx){
+    const since=cindyDaysSince();
+    const sub=st.count?`Best ${st.best} rounds · last done ${since===Infinity?'—':since+'d ago'}`:'20-min AMRAP benchmark — never done';
+    return`<div style='margin-top:12px;padding:12px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;text-align:left'>
+      <div style='display:flex;align-items:center;gap:8px'>
+        <span style='font-size:16px'>⏱️</span>
+        <div style='flex:1;min-width:0'>
+          <div style='font-size:13px;font-weight:700'>Cindy — 5 pull-ups · 10 push-ups · 15 air squats</div>
+          <div style='font-size:11px;color:var(--mut);margin-top:2px'>${sub}</div>
+        </div>
+        <button class='btn btn-g btn-sm' data-action='cindy-toggle' style='width:auto;flex-shrink:0'>Open</button>
+      </div>
+    </div>`;
+  }
+  const reps=draft.rounds*CINDY_REPS_PER_ROUND;
+  const lunchOnly=dd&&dd.isLunch&&!dd.eveningSession;
+  const lunchWarn=lunchOnly?`<div style='font-size:11px;color:var(--bad);margin-top:8px;line-height:1.6'>⚠ Lunch-only day — this is 20 minutes of hard, sweaty work and won't fit the box. Save it for an evening.</div>`:'';
+  const rxNote=rx?`<div style='font-size:11px;color:var(--acc);margin-top:8px;line-height:1.6'>⭐ <strong>Tonight's benchmark.</strong> ${cindyDaysSince()===Infinity?'You have never tested it':`It has been ${cindyDaysSince()} days`} — due every ${CINDY_EVERY_DAYS}. ${rx.gymName} has a bar and the evening has the ${rx.needed} min it needs.</div>`:'';
+  const pace=st.best?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>Best ${st.best} rounds${st.best?` — that's a round every ${Math.round(CINDY_MINS*60/st.best)}s`:''}. Beat it by pacing the FIRST five rounds slower than feels right; Cindy is won at minute 15, not minute 2.</div>`:`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First time: pick a pace you could hold for 20 minutes and start slower than that. Break the push-ups before you have to, not after.</div>`;
+  return`<div style='margin-top:12px;padding:14px;background:${rx?'rgba(96,165,250,.07)':'var(--surf2)'};border:1px solid ${rx?'rgba(96,165,250,.45)':'var(--bdr)'};border-radius:12px;text-align:left'>
+    <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
+      <div style='flex:1'>
+        <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc)'>⏱️ Cindy · 20-min AMRAP</div>
+        <div style='font-size:13px;font-weight:700;margin-top:2px'>5 pull-ups · 10 push-ups · 15 air squats</div>
+      </div>
+      ${started?'':`<button class='btn btn-g btn-sm' data-action='cindy-toggle' style='width:auto;flex-shrink:0'>Hide</button>`}
+    </div>
+    <div style='display:flex;align-items:center;gap:10px;margin-top:10px'>
+      <div style='flex:1'>
+        <div style='font-size:26px;font-weight:800;line-height:1'>${draft.rounds}<span style='font-size:13px;font-weight:600;color:var(--mut)'> rounds</span></div>
+        <div style='font-size:11px;color:var(--mut);margin-top:2px'>${reps} reps total</div>
+      </div>
+      ${started?`<button class='btn btn-g btn-sm' data-action='cindy-undo-round' style='width:auto'>−1</button>`:''}
+      <button class='btn btn-p btn-sm' data-action='cindy-round' style='width:auto'>+1 round</button>
+    </div>
+    ${started?`<button class='btn btn-ok btn-sm' data-action='cindy-finish' style='margin-top:10px;width:100%'>🏁 Log ${draft.rounds} rounds</button>`:''}
+    ${pace}${rxNote}${lunchWarn}
+  </div>`;
+}
 function pyramidHTML(dd){
   const done=pyramidDoneToday();
   const draft=pyramidDraft();
@@ -6061,6 +6182,7 @@ function renderDash(){
       ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession,dd?.eveningSession?.equipmentKey||dd?.equipmentKey):''}
       ${isActualToday?centuryHTML():''}
       ${isActualToday?pyramidHTML(dd):''}
+      ${isActualToday?cindyHTML(dd):''}
       ${isActualToday?dailySpineHTML():''}
     </div>`;
   }
@@ -8213,6 +8335,45 @@ document.addEventListener('click',e=>{
   }
   // ── The Pyramid ladder (see PYRAMID_LADDER) ──
   if(a==='pyramid-toggle'){S.pyramidOpen=!S.pyramidOpen;render();return;}
+  if(a==='cindy-toggle'){S.cindyOpen=!S.cindyOpen;render();return;}
+  if(a==='cindy-round'){
+    const d=cindyDraft();
+    // Clock starts on the FIRST completed round, not at render — the card sits
+    // on the dashboard all day (same reasoning as the century's startedAt).
+    S.cindy={date:d.date,rounds:d.rounds+1,startedAt:d.startedAt||new Date().toISOString(),touchedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='cindy-undo-round'){
+    const d=cindyDraft();
+    const rounds=Math.max(0,d.rounds-1);
+    S.cindy={date:d.date,rounds,startedAt:rounds?d.startedAt:null,touchedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='cindy-finish'){
+    const d=cindyDraft();
+    if(!d.rounds)return;
+    // Measured first round -> last round, never to the Log tap: the card sits
+    // on the dashboard, so the gap before you remember to tap is unbounded.
+    const timedMins=(d.startedAt&&d.touchedAt)
+      ?Math.max(1,Math.round((new Date(d.touchedAt).getTime()-new Date(d.startedAt).getTime())/60000)):0;
+    // A REAL session (no isCardio), like the Pyramid: 20 minutes of continuous
+    // work IS the day's training, so it marks the day complete, feeds recovery
+    // and locks the template. One set entry per movement holding total reps —
+    // a per-round breakdown would be read as N working sets by anything that
+    // didn't know about the cindy flag.
+    S.logs.push({
+      id:Date.now().toString(),date:new Date().toISOString(),
+      dayName:`Cindy · ${d.rounds} rounds`,
+      cindy:true,cindyRounds:d.rounds,
+      duration:timedMins||CINDY_MINS,timedMins,measured:!!timedMins,
+      exercises:CINDY_ROUND.map(m=>({id:m.id,name:m.name,muscle:m.muscle,type:m.type,
+        rMin:m.rMin,rMax:m.rMax,sets:[{weight:0,reps:m.reps*d.rounds}]})),
+    });
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    S.cindy=null;S.cindyOpen=false;
+    replanCurrentWeek();
+    save();render();return;
+  }
   if(a==='pyramid-complete-rung'){
     const d=pyramidDraft();
     const plan=pyramidPlan();
@@ -8777,10 +8938,11 @@ async function saveToCloud(){
         // arrived from the other device in this very read.
         S.century=mergeCentury(S.century,cloud.century);
         S.pyramid=mergePyramid(S.pyramid,cloud.pyramid);
+        S.cindy=mergeCindy(S.cindy,cloud.cindy);
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -8889,6 +9051,10 @@ function mergeCentury(local,cloud){
     centuryLogs().some(l=>logDay(l.date)===todayStr()),
     c=>Array.isArray(c.sets));
 }
+function mergeCindy(local,cloud){
+  return mergeStampedDraft(local,cloud,!!cindyDoneToday(),
+    c=>typeof c.rounds==='number'&&c.rounds>=0);
+}
 function mergePyramid(local,cloud){
   return mergeStampedDraft(local,cloud,!!pyramidDoneToday(),
     c=>typeof c.rung==='number'&&c.rung>=0);
@@ -8968,6 +9134,7 @@ async function loadFromCloud(){
       // than resurrect the session that was just completed.
       S.century=mergeCentury(S.century,cloud.century);
       S.pyramid=mergePyramid(S.pyramid,cloud.pyramid);
+        S.cindy=mergeCindy(S.cindy,cloud.cindy);
       reconcileProgramWithLogs();
       recalcLastWeights();
       lastCloudMergeRead=Date.now();// this WAS a full merge — saveToCloud can skip its read
