@@ -314,7 +314,7 @@ const EX = [
   // in any week that has one, so loaded rowing still happens.
   // eq deliberately omits plain 'bodyweight' — this needs a waist-height bar or
   // rings, which the grassy-field preset doesn't have.
-  {id:'inverted_row',name:'Inverted Row',muscle:'back',type:'compound',eq:['barbell','cables','machine','pullup_bar'],rMin:8,rMax:10,rest:120,noWeight:true,cue:'Bar in a rack at roughly waist height (or rings/straps). Hang underneath, hands just outside shoulder width, body in ONE straight line from heels to head. Squeeze the glutes hard to drive the pelvis neutral and keep the abs braced the whole set — the plank IS the exercise, and letting it go is the main thing that kills this movement. Squeeze the shoulder blades down and together first to set the shoulders back, then pull, imagining you\'re pulling the BAR DOWN to your chest rather than hauling yourself up. Go as high as you can and stop there — do NOT arch the back to cheat the chest into the bar. No rushing: control both directions. 3 sets of 8–10 with clean form. Scale by angle, not weight: regress by raising the bar toward vertical or bending the knees to shorten the lever; progress by lowering the bar, then feet on a bench, then feet elevated + vest, then one arm.',tags:['horizontal']},
+  {id:'inverted_row',name:'Inverted Row',muscle:'back',type:'compound',eq:['barbell','cables','machine','pullup_bar'],rMin:8,rMax:10,rest:120,scale:{unit:'notch',label:'Notch',lowerIsHarder:true,min:1,max:20},cue:'SCALED BY BAR HEIGHT, not weight — log the Smith machine notch you used (count from the floor). A LOWER notch means a more horizontal body and a harder row, so progress by dropping a notch once you own the rep range at your current one. Bar in a rack at roughly waist height (or rings/straps). Hang underneath, hands just outside shoulder width, body in ONE straight line from heels to head. Squeeze the glutes hard to drive the pelvis neutral and keep the abs braced the whole set — the plank IS the exercise, and letting it go is the main thing that kills this movement. Squeeze the shoulder blades down and together first to set the shoulders back, then pull, imagining you\'re pulling the BAR DOWN to your chest rather than hauling yourself up. Go as high as you can and stop there — do NOT arch the back to cheat the chest into the bar. No rushing: control both directions. 3 sets of 8–10 with clean form. Scale by angle, not weight: regress by raising the bar toward vertical or bending the knees to shorten the lever; progress by lowering the bar, then feet on a bench, then feet elevated + vest, then one arm.',tags:['horizontal']},
   {id:'bb_row',name:'Barbell Row',muscle:'back',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Hip hinge, chest up. Bar to lower sternum. Drive elbows back and up. Control the negative — don\'t drop the bar.',tags:['horizontal']},
   {id:'db_row',name:'Dumbbell Row',muscle:'back',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Brace hand on bench. Drive elbow to hip — not to the ceiling. Full stretch at bottom, full row.',tags:['horizontal']},
   {id:'cable_row',name:'Seated Cable Row',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Sit tall, slight forward lean to stretch. Drive elbows back past your sides. No momentum.',tags:['horizontal']},
@@ -805,6 +805,15 @@ const MUSCLE_FEELS={
   hips:'The small hip muscles working in isolation — the moment bigger muscles take over, reset.',
 };
 const feelFor=(ex)=>FEELS[ex.id]||MUSCLE_FEELS[ex.muscle]||'';
+
+// ─── POSITION SCALING (geometry, not load) ───
+// Some movements are scaled by GEOMETRY rather than weight — an inverted row
+// gets harder as the bar drops. The number logged is a position (a Smith
+// machine notch), and the part that inverts every assumption in progression()
+// is that SMALLER IS HARDER. Percent warm-up ramps, back-off sets at 85%,
+// cross-exercise anchor estimates and +4% jumps are all meaningless on a notch
+// index, so each is suppressed for scaled movements rather than fudged.
+const exScale=(ex)=>(ex&&ex.scale)||null;
 
 // ─── CUES AS BULLETS ───
 // Sam, 2026-08-05: "Bullet points for feel cues rather than hard to read
@@ -4384,8 +4393,32 @@ function progression(exId,rMax){
   if(!sets)return null;
   const minR=Math.min(...sets.map(s=>s.reps));
   const maxR=Math.max(...sets.map(s=>s.reps));
+  const allExP=[...EX,...(S.customExercises||[])];
+  const scaleDef=exScale(allExP.find(e=>e.id===exId));
   const wMin=Math.min(...sets.map(s=>s.weight||0));
   const wMax=Math.max(...sets.map(s=>s.weight||0));
+  // Position-scaled movements: the HARDEST set is the LOWEST number, so the
+  // "top set" and the ready-to-progress test both flip direction.
+  if(scaleDef&&scaleDef.lowerIsHarder){
+    const vals=sets.map(s=>s.weight||0).filter(v=>v>0);
+    if(!vals.length)return null;
+    const ceil=sets.filter(s=>s.reps>=rMax&&s.weight>0);
+    const hardest=ceil.length?Math.min(...ceil.map(s=>s.weight)):null;
+    let base=hardest!=null?hardest:Math.min(...vals);
+    let rdy=hardest!=null&&sets.filter(s=>s.weight>0&&s.weight<=hardest).every(s=>s.reps>=rMax);
+    let sug=rdy?Math.max(scaleDef.min||1,base-1):base;
+    // A layoff makes you WEAKER, which on this scale means going back UP a
+    // notch or two — the opposite direction from a percentage cut.
+    let lw=0;
+    if(lastDate){
+      const days=Math.floor((Date.now()-new Date(lastDate).getTime())/86400000);
+      const up=days>=56?2:days>=28?1:0;
+      if(up){lw=Math.floor(days/7);base=Math.min(scaleDef.max||99,base+up);sug=base;rdy=false;}
+    }
+    const lbl=`${scaleDef.label.toLowerCase()} ${wMin===wMax?wMax:wMax+'→'+wMin}`;
+    return{weight:base,minR,maxR,suggest:sug,ready:rdy,layoffWeeks:lw,scale:scaleDef,
+      summary:`${lbl} × ${minR===maxR?minR:minR+'–'+maxR}`,isDb:false};
+  }
   // Highest weight at which the rep ceiling was actually hit this session
   const ceilSets=sets.filter(s=>s.reps>=rMax);
   const topW=ceilSets.length?Math.max(...ceilSets.map(s=>s.weight||0)):null;
@@ -6464,7 +6497,8 @@ function renderWorkout(){
   // 0) — the progression record exists but has no usable load, so the estimate
   // still applies.
   const progHasW=!!prog&&prog.weight>0;
-  let est=(!ex.noWeight&&(!ex.isTimed||timedLoaded(ex))&&(!prog||(timedLoaded(ex)&&!progHasW)))?(ex.estW||estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS)):null;
+  const scaleDef=exScale(ex); // position-scaled (notch), not loaded
+  let est=(!ex.noWeight&&!scaleDef&&(!ex.isTimed||timedLoaded(ex))&&(!prog||(timedLoaded(ex)&&!progHasW)))?(ex.estW||estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS)):null;
   const estLbl=estBasisLabel(est);
 
   // Per-equipment dumbbell rack (e.g. apartment gym: 5/10/15/20/25/40/45/50 —
@@ -6522,7 +6556,7 @@ function renderWorkout(){
   // %-scalable = actually loadable in fine increments; med balls, bodyweight,
   // and timed holds are excluded — "heavy compound ahead" and 50/75/90%
   // acclimation percentages make no sense for a 10 lb ball or a plank.
-  const pctScalable=!ex.noWeight&&!ex.isTimed&&(ex.eq||[]).some(q=>q!=='bodyweight'&&q!=='medball'&&q!=='medball_wall');
+  const pctScalable=!ex.noWeight&&!ex.isTimed&&!scaleDef&&(ex.eq||[]).some(q=>q!=='bodyweight'&&q!=='medball'&&q!=='medball_wall');
   const isHeavyPressFirst=ex.isFirst&&pctScalable&&ex.type==='compound'&&ex.rMax<=8&&['chest','shoulders','back'].includes(ex.muscle);
   const machineModeHTML=isHeavyPressFirst?`<div class='wu-box' style='border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:var(--warn)'>🔧 Machine Mode Prehab (heavy compound ahead — lock in the shoulder first)</div>
@@ -6545,7 +6579,7 @@ function renderWorkout(){
 
   const sugW0=prog?prog.suggest:(est?est.weight:null);
   const isDumbbellEx=!!(ex.eq?.includes('dumbbells')&&!ex.eq?.includes('barbell'));
-  const wUnit=isDumbbellEx?'lb ea':'lb';
+  const wUnit=scaleDef?scaleDef.unit:isDumbbellEx?'lb ea':'lb';
   const wu1Lbl=sugW0?`${r5(sugW0*0.5)} ${wUnit}`:'~50%';
   const wu2Lbl=sugW0?`${r5(sugW0*0.75)} ${wUnit}`:'~75%';
   const wu3Lbl=sugW0?`${r5(sugW0*0.9)} ${wUnit}`:'~90%';
@@ -6593,7 +6627,7 @@ function renderWorkout(){
   const isTimed=ex.isTimed===true;
   // Loaded timed movements (Suitcase Carry) show BOTH a weight box and seconds.
   const isLoadedTimed=timedLoaded(ex);
-  const hideWeight=isNoWeight||(isTimed&&!isLoadedTimed);
+  const hideWeight=(isNoWeight&&!scaleDef)||(isTimed&&!isLoadedTimed);
   // Power/ballistic/plyometric work is trained by SPEED, not proximity to
   // failure — near-failure sets and back-off sets are wrong prescriptions for
   // it, so those instruction strings switch to intent/velocity language.
@@ -6606,7 +6640,7 @@ function renderWorkout(){
   // shy of failure); the remaining sets are "back-off" sets at ~15% less weight
   // for higher reps. Straight sets for bodyweight, timed, single-set, circuit,
   // and power work (every power set is the same quality — no fatigued sets).
-  const useBackoff=!isNoWeight&&!isTimed&&!ex.circuitStyle&&!isPowerEx&&ex.sets>1;
+  const useBackoff=!isNoWeight&&!isTimed&&!scaleDef&&!ex.circuitStyle&&!isPowerEx&&ex.sets>1;
   const backoffW=(useBackoff&&sugW0)?r5(sugW0*0.85):null;
   const backoffRepLo=ex.rMax, backoffRepHi=ex.rMax+5;
   let progHTML;
@@ -6635,14 +6669,17 @@ function renderWorkout(){
       progHTML=`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">${isPowerEx?'First time — max intent on every rep, land soft, and end the set the moment output drops.':'First time — strict form, full range of motion, 3-count descent on every rep.'}</div>`;
     }
   } else {
-    const topTarget=isPowerEx
+    const topTarget=scaleDef
+      ?`${scaleDef.label.toLowerCase()} ${prog?prog.suggest:''} × ${ex.rMin}–${ex.rMax} to 1–2 reps shy of failure`
+      :isPowerEx
       ?`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} explosive reps — max intent, stop the set when speed visibly drops`
       :`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} to 1–2 reps shy of failure`;
     const backoffTarget=useBackoff&&(backoffW||(est&&r5(est.weight*0.85)))?` · then back-off ${backoffW||r5(est.weight*0.85)} ${wUnit} × ${backoffRepLo}–${backoffRepHi}`:'';
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
-      ${prog.layoffWeeks?`<div class='prog-hint' style='color:var(--warn)'>⏸ ~${prog.layoffWeeks} weeks since you last did this — suggesting ${prog.layoffWeeks>=8?'80%':'90%'} of your old weight to ramp back in safely.</div>`:''}
-      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! ${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget}</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget}</div>`}`
+      ${prog.layoffWeeks?`<div class='prog-hint' style='color:var(--warn)'>⏸ ~${prog.layoffWeeks} weeks since you last did this — ${scaleDef?`raising the ${scaleDef.label.toLowerCase()} to ramp back in safely.`:`suggesting ${prog.layoffWeeks>=8?'80%':'90%'} of your old weight to ramp back in safely.`}</div>`:''}
+      ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! ${scaleDef?`Drop to ${scaleDef.label.toLowerCase()} ${prog.suggest} — one notch lower is a flatter body and a harder row.`:`${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget}`}</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget}</div>`}`
       :est?`<div class='prog-hint'>🧮 Estimated start ~${est.weight} ${wUnit} · ${est.confidence} confidence (${estLbl}). ${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget} — adjust from there.</div>`
+      :scaleDef?`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">First time — pick a ${scaleDef.label.toLowerCase()} where ${ex.rMin}–${ex.rMax} reps is genuinely hard, and log which one you used. Progress by dropping a ${scaleDef.label.toLowerCase()}, never by adding weight.</div>`
       :`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">${isPowerEx?`First time — start light. ${ex.rMin}–${ex.rMax} explosive reps per set, judged by speed, not fatigue.`:`First time — start conservative. Top set ${ex.rMin}–${ex.rMax} to 1–2 reps shy${useBackoff?`, then a back-off set ~15% lighter for ${backoffRepLo}–${backoffRepHi}`:''}.`}</div>`;
   }
 
@@ -6686,7 +6723,7 @@ function renderWorkout(){
     return`<div class='set-row${done?' done':''}' id='sr-${exIdx}-${i}' style='${rowGrid}'>
       <div class='sn'>${i+1}</div>
       <div class='st'>${setRep}${setTag}</div>
-      ${hideWeight?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='${isDumbbellEx?'each':'lb'}' value='${done?done.weight:sugW||''}' min='0' step='5' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${(ex.isFirst||isGroupFirst)&&i===0?exIdx:''}'>`}
+      ${hideWeight?'':`<input class='ni' type='number' id='w-${exIdx}-${i}' placeholder='${scaleDef?scaleDef.unit:isDumbbellEx?'each':'lb'}' value='${done?done.weight:sugW||''}' min='${scaleDef?(scaleDef.min||1):0}' step='${scaleDef?1:5}' inputmode='decimal' ${done?'disabled':''} data-warmup-src='${(ex.isFirst||isGroupFirst)&&i===0?exIdx:''}'>`}
       <input class='ni' type='number' id='r-${exIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:sugR}' min='0' max='${isTimed?300:50}' inputmode='numeric' ${done?'disabled':''}>
       <button class='done-btn' id='db-${exIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${exIdx}' data-set='${i}'>${done?'↩':'→'}</button>
       ${techNote}
