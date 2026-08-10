@@ -509,6 +509,7 @@ const EX = [
   {id:'hip_90_90',name:'90/90 Hip Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Sit with both knees at 90°. Front leg externally rotated, back leg internally rotated. Lean forward over your front shin to the max comfortable stretch (PAILS/RAILS): hold, then gently push the front knee into the floor for 5s (contract the stretched muscle), relax, then use the back leg to pull yourself deeper for 5s (assisted by the antagonist) — repeat 2-3x per side. This targets hip internal rotation, which is often restricted with impingement. Count seconds per side.',tags:['mobility','internal_rotation']},
   {id:'hip_flexor_half_kneel',name:'Half-Kneeling Hip Flexor Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Down knee on pad, front foot forward. FIRST: posteriorly tilt your pelvis (tuck tailbone). THEN drive hips forward. That pelvic tilt is the key — without it you compress the hip instead of stretching the flexor. Hold, breathe. Count seconds per side.',tags:['mobility','hip_flexor']},
   {id:'hip_cars',name:'Hip CARs',muscle:'hips',type:'mobility',eq:['bodyweight'],noWeight:true,rMin:5,rMax:8,rest:30,cue:'Stand near wall for balance. Lift one knee high, then rotate it OUT and sweep the full circle (Controlled Articular Rotation). Goal is to find and explore your full active range. Go slow — speed defeats the purpose. Squeeze glute at the back. Count full circles per side.',tags:['mobility','rotation']},
+  {id:'kb_weight_shift',name:'Kettlebell Weight Shift',muscle:'hips',type:'mobility',eq:['dumbbells'],noWeight:true,rMin:6,rMax:10,rest:45,cue:'Hold a kettlebell (or a single dumbbell) goblet-style at the chest and stand wide, toes turned slightly out. Sink into a deep squat and shift your weight fully over ONE hip, letting that knee bend and the opposite leg straighten with the foot flat — then travel smoothly across to the other side, staying low the whole way rather than standing up between sides. The weight at the chest is a counterweight: it lets you sit deeper and stay upright instead of folding forward, which is exactly why this opens the hips and adductors better than an unloaded version. Move slowly and own each end position. LEFT HIP: shift only as far as stays smooth and stop short of any pinch at the front of the hip — depth here is negotiable, the pinch is not. Count one shift per side.',tags:['mobility','adductor','hip_opener']},
   // Hip Airplanes (2026-08-03, Sam asked for these by name). The standing
   // single-leg sibling of Hip CARs: same FRC premise of owning rotation actively
   // rather than stretching into it, but on ONE leg and hinged, so the stance hip
@@ -754,6 +755,7 @@ const FEELS={
   hip_90_90:'A stretch deep in the side and back of the front hip — breathe into it, no forcing.',
   hip_flexor_half_kneel:'A stretch down the front of the rear hip and thigh — tuck the pelvis to find it.',
   hip_cars:'The hip rotating through its full range — explore the edges of your control.',
+  kb_weight_shift:'A deep stretch through the inner thigh and groin of the straight leg while the bent hip carries the load — sinking, not folding forward.',
   straight_leg_raise:'The front of the hip and quad lifting — a burn near the hip crease is correct.',
   hip_flexor_rock_back:'The front of the hip lengthening under control as you rock back.',
   hip_flexor_90_90:'The hip flexor above the thigh firing hard to keep the foot up.',
@@ -1329,7 +1331,7 @@ let S={
     // edited from the Plan screen.)
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,lastWeights:{},sleepLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
   // Today's in-progress Pull-up Century tally, {date,sets:[reps,...]} — see
   // PULLUP_CENTURY. Cloud-synced, but NOT via SINGLETON_FIELDS — it has its own
@@ -1382,7 +1384,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1390,7 +1392,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -3839,6 +3841,32 @@ function sleepShieldActive(){
   const hrs=S.sleepLog?.[todayStr()];
   return hrs!=null&&hrs>=7&&hrs<=9;
 }
+// Morning push-up check-off. One tap logs the target for today; tapping again
+// undoes it. Only ticked mornings count toward MRV (see dailyPushupWeekReps) —
+// declared-but-missed mornings used to over-credit, which defeats the point of
+// booking the habit at all.
+function renderPushupCard(){
+  const target=S.cfg?.dailyPushups||0;
+  if(target<=0)return'';
+  const today=todayStr();
+  const doneToday=(S.pushupLog||{})[today]>0;
+  const weekReps=dailyPushupWeekReps();
+  const mon=thisMonday();
+  const ticks=[0,1,2,3,4,5,6].map(i=>{
+    const d=addDays(mon,i);
+    const on=(S.pushupLog||{})[d]>0;
+    const future=d>today;
+    return`<div style='flex:1;text-align:center'>
+      <div style='font-size:9px;color:var(--mut);margin-bottom:3px'>${DOW[new Date(d+'T12:00:00').getDay()].slice(0,1)}</div>
+      <div style='height:6px;border-radius:3px;background:${on?'var(--ok)':future?'var(--surf2)':'var(--bdr)'}'></div>
+    </div>`;}).join('');
+  return`<div class='card' style='margin-bottom:14px'>
+    <div class='sec-lbl' style='margin-bottom:8px'>💪 Morning Push-ups · ${target}/day</div>
+    <div style='display:flex;gap:4px;margin-bottom:10px'>${ticks}</div>
+    <button class='btn btn-sm ${doneToday?'btn-ok':'btn-p'}' data-action='toggle-pushups' style='width:100%'>${doneToday?`✓ Done today — ${target} logged`:`Log today's ${target}`}</button>
+    ${weekReps>0?`<div class='prog-hint' style='margin-top:8px'>${weekReps} reps this week · booked as ${pyramidMrvSets(DAILY_PUSHUP_DEF,weekReps)} chest sets toward your limits.</div>`:''}
+  </div>`;
+}
 function renderSleepCard(){
   const today=todayStr();
   const logged=S.sleepLog?.[today];
@@ -3973,14 +4001,20 @@ function getCommittedVolumes(){
 // a morning habit shouldn't need a checkbox. Set cfg.dailyPushups to 0 when
 // it stops being a habit.
 const DAILY_PUSHUP_DEF={id:'bw_pushups',name:'Push-ups',muscle:'chest',type:'compound',rMin:12,rMax:25};
+// Sums the mornings actually TICKED this week, not days elapsed. An assumed
+// habit over-credits every morning you miss, and the whole point of booking
+// this against MRV is that the number be honest.
+function dailyPushupWeekReps(){
+  const mon=thisMonday(),end=addDays(mon,7);
+  return Object.entries(S.pushupLog||{})
+    .filter(([d])=>d>=mon&&d<end)
+    .reduce((a,[,n])=>a+(n>0?n:0),0);
+}
 function dailyPushupWeekVolumes(){
   const vol={};
-  const reps=S.cfg?.dailyPushups||0;
+  const reps=dailyPushupWeekReps();
   if(reps<=0)return vol;
-  const mon=thisMonday();
-  const days=Math.min(7,Math.max(0,daysBetween(mon,todayStr())+1));
-  if(!days)return vol;
-  creditVolume(vol,DAILY_PUSHUP_DEF,pyramidMrvSets(DAILY_PUSHUP_DEF,reps*days));
+  creditVolume(vol,DAILY_PUSHUP_DEF,pyramidMrvSets(DAILY_PUSHUP_DEF,reps));
   return vol;
 }
 function centuryWeekVolumes(projectedOnly){
@@ -4052,11 +4086,12 @@ function getMRVBreakdown(){
 
   // 1b) The declared morning push-up habit
   {
-    const reps=S.cfg?.dailyPushups||0;
-    const days=Math.min(7,Math.max(0,daysBetween(mondayStr,todayStr())+1));
-    if(reps>0&&days>0){
-      addWithSecondary(DAILY_PUSHUP_DEF,pyramidMrvSets(DAILY_PUSHUP_DEF,reps*days),
-        {dow:null,dayLabel:'Daily',source:'logged',sessionName:`Morning habit · ${reps}/day × ${days}d`});
+    const mon2=thisMonday(),end2=addDays(mon2,7);
+    const ticked=Object.entries(S.pushupLog||{}).filter(([d,n])=>d>=mon2&&d<end2&&n>0);
+    const reps=ticked.reduce((a,[,n])=>a+n,0);
+    if(reps>0){
+      addWithSecondary(DAILY_PUSHUP_DEF,pyramidMrvSets(DAILY_PUSHUP_DEF,reps),
+        {dow:null,dayLabel:'Daily',source:'logged',sessionName:`Morning push-ups · ${reps} reps over ${ticked.length} day${ticked.length>1?'s':''}`});
     }
   }
 
@@ -5345,6 +5380,7 @@ const LOWER_MOBILITY_POOL=[
   {n:'Alt. Reverse Lunge + Reach',d:'8 reps/side · step back into a reverse lunge, reach both arms overhead and lean back slightly — hip flexor and lat stretch together',f:['hip']},
   {n:'Shin Box Lunge',d:'6 reps/side · from a seated 90/90 position, drive up into a lunge over the front leg then sit back down — hip internal/external rotation under control',f:['hip']},
   {n:'Low Cossack Squat',d:'8 reps/side · wide stance, sit deep into one hip while the other leg stays straight, heel down — adductor/hip mobility',f:['adductor','hip']},
+  {n:'Kettlebell Weight Shift',d:'8 shifts/side · hold a KB or single DB goblet-style at the chest, stand wide, sink into a deep squat and travel side to side staying LOW the whole way — the counterweight lets you sit deeper and stay upright. Left hip: stop short of any front-of-hip pinch'},
   {n:'Cross-Body High Kicks',d:'8 reps/side · walking or in place, kick one straight leg up toward the OPPOSITE hand — dynamic hamstring opener with a rotation element',f:['hamstring']},
   {n:'Elephant Walks',d:'10 alternating reps · standing pike, hands toward the floor, alternately bend one knee while straightening the other — milking the hamstrings one side at a time',f:['hamstring','achilles']},
   {n:'Pump Stretch',d:'10 alternating reps · in Down Dog, pedal the heels — pressing one heel toward the floor while the other knee bends — calves and hamstrings',f:['achilles','hamstring']},
@@ -5961,7 +5997,7 @@ function renderPlan(){
       return`<div class='sec-lbl' style='margin-top:16px'>Daily Push-up Habit</div>
       <div class='card' style='margin-bottom:16px'>
         <div style='font-size:12px;color:var(--mut);line-height:1.5;margin-bottom:8px'>${reps>0
-          ?`<strong style='color:var(--txt)'>${reps} every morning</strong> — ${reps*7}/week, booked as <strong style='color:var(--txt)'>${wk}</strong> chest sets plus secondary triceps and shoulders. Counted at a discount because a fresh submaximal set doesn't cost what a hard working set costs.`
+          ?`Target <strong style='color:var(--txt)'>${reps} every morning</strong> — tick it off on the dashboard each day. A full 7-day week books <strong style='color:var(--txt)'>${wk}</strong> chest sets plus secondary triceps and shoulders; only the mornings you actually tick are counted. Discounted because a fresh submaximal set doesn't cost what a hard working set costs.`
           :'Off. Set this if you do push-ups outside your sessions — otherwise the program keeps prescribing a full week of pressing on top of them.'}</div>
         <div style='display:flex;gap:6px;flex-wrap:wrap'>
           ${[0,20,30,40,50].map(n=>`<button class='btn btn-sm ${reps===n?'btn-p':'btn-g'}' data-action='set-daily-pushups' data-val='${n}' style='flex:1;min-width:54px'>${n===0?'Off':n}</button>`).join('')}
@@ -6340,6 +6376,7 @@ function renderDash(){
     <div class='sec-lbl'>This Week</div>
     <div class='wk-grid'>${wkGrid}</div>
     ${renderSleepCard()}
+    ${renderPushupCard()}
     <button class='btn btn-g btn-sm' data-action='open-log-cardio' style='width:100%;margin-bottom:14px'>🏃 Log Cardio Activity</button>
     ${renderRecoveryBanner()}
     ${todayHTML}
@@ -7963,6 +8000,13 @@ document.addEventListener('click',e=>{
   if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
   if(a==='toggle-knee-caution'){S.cfg.kneeCaution=!S.cfg.kneeCaution;save();render();return;}
   if(a==='toggle-shoulder-caution'){S.cfg.shoulderCaution=!S.cfg.shoulderCaution;save();render();return;}
+  if(a==='toggle-pushups'){
+    S.pushupLog=S.pushupLog||{};
+    const t=todayStr();
+    if(S.pushupLog[t]>0)delete S.pushupLog[t];
+    else S.pushupLog[t]=S.cfg?.dailyPushups||0;
+    save();render();return;
+  }
   if(a==='log-sleep'){
     S.sleepLog=S.sleepLog||{};
     S.sleepLog[todayStr()]=parseFloat(btn.dataset.hours);
@@ -8993,6 +9037,7 @@ async function saveToCloud(){
         S.customExercises=unionById(S.customExercises,cloud.customExercises);
         S.lastWeights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
         S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
+        S.pushupLog={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
         // AFTER the log merge above: the draft merges ask whether today's
         // session is already finished, and the log that says so may have
         // arrived from the other device in this very read.
@@ -9002,7 +9047,7 @@ async function saveToCloud(){
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -9160,6 +9205,7 @@ async function loadFromCloud(){
       const weights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
       // Merge sleepLog the same way: additive per-date map, local wins on conflict
       const sleep={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
+      const pushl={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
       // Singleton state (cfg/program/weekPlan/...) adopted PER FIELD, by each
       // field's own change stamp. The old comparison used one global
       // updatedAt, so any unrelated save on this device (a sleep log, a
@@ -9185,7 +9231,7 @@ async function loadFromCloud(){
         const fu={...lf};Object.keys(cf).forEach(k=>{if(!fu[k]||cf[k]>fu[k])fu[k]=cf[k];});
         S.fieldUpdated=fu;
       }
-      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,customExercises:customEx});
+      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,customExercises:customEx});
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
       // device must not ride back in through this device's stale copy.
       S.logs=filterTombstoned(merged).slice(-LOG_KEEP);
