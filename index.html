@@ -1309,7 +1309,7 @@ const MNAME={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',tri
 let S={
   view:'setup',step:1,
   cfg:{days:5,mins:60,goal:'lean',bodyLbs:199,hipCaution:true,conditioning:true,
-    dailyPushups:0, // reps done every morning outside sessions; 0 = habit off
+    dailyPushups:30,pushupSeeded:true, // reps done every morning outside sessions; 0 = habit off
     // ohp/push_press/db_push_press/thrusters: ANY standing overhead press
     // aggravates the lower back (2026-07-27) — pressing overhead from a
     // standing brace loads lumbar extension. Seated overhead pressing
@@ -1422,6 +1422,13 @@ function load(){
       // Migrate: add conditioning default if missing
       if(S.cfg.conditioning===undefined)S.cfg.conditioning=false;
       if(S.cfg.dailyPushups===undefined)S.cfg.dailyPushups=0;
+      // Seed the stated habit (30 every morning) ON. A plain ===undefined check
+      // can't do it: the migration above already wrote 0 on every existing
+      // device, so the habit shipped switched off and its dashboard card — which
+      // only renders when a target is set — was invisible with no hint that a
+      // setting existed. Same one-time-marker shape as shoulderSeeded, so
+      // turning it back off later sticks.
+      if(!S.cfg.pushupSeeded){if(!S.cfg.dailyPushups)S.cfg.dailyPushups=30;S.cfg.pushupSeeded=true;}
       // Migrate: personal exercise exclusions (movements that hurt regardless
       // of the broader hip/knee/shoulder caution flags — e.g. Push Press
       // aggravating the lower back). Seeded once; the user's own edits (if
