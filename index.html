@@ -3868,19 +3868,27 @@ function renderPushupCard(){
   const doneToday=(S.pushupLog||{})[today]>0;
   const weekReps=dailyPushupWeekReps();
   const mon=thisMonday();
+  // Every past day (and today) is TAPPABLE, so a morning you forgot to tick
+  // can be filled in later — a habit tracker that can only record the present
+  // quietly under-counts every time you remember late. Future days are inert.
   const ticks=[0,1,2,3,4,5,6].map(i=>{
     const d=addDays(mon,i);
     const on=(S.pushupLog||{})[d]>0;
     const future=d>today;
-    return`<div style='flex:1;text-align:center'>
-      <div style='font-size:9px;color:var(--mut);margin-bottom:3px'>${DOW[new Date(d+'T12:00:00').getDay()].slice(0,1)}</div>
-      <div style='height:6px;border-radius:3px;background:${on?'var(--ok)':future?'var(--surf2)':'var(--bdr)'}'></div>
-    </div>`;}).join('');
+    const isToday=d===today;
+    const letter=DOW[new Date(d+'T12:00:00').getDay()].slice(0,1);
+    const bar=`<div style='height:8px;border-radius:4px;background:${on?'var(--ok)':future?'var(--surf2)':'var(--bdr)'}'></div>`;
+    const lbl=`<div style='font-size:9px;color:${isToday?'var(--txt)':'var(--mut)'};font-weight:${isToday?'700':'400'};margin-bottom:3px'>${letter}</div>`;
+    return future
+      ?`<div style='flex:1;text-align:center;opacity:.5'>${lbl}${bar}</div>`
+      :`<div style='flex:1;text-align:center;cursor:pointer' data-action='toggle-pushup-day' data-date='${d}'>${lbl}${bar}</div>`;
+  }).join('');
   return`<div class='card' style='margin-bottom:14px'>
     <div class='sec-lbl' style='margin-bottom:8px'>💪 Morning Push-ups · ${target}/day</div>
     <div style='display:flex;gap:4px;margin-bottom:10px'>${ticks}</div>
     <button class='btn btn-sm ${doneToday?'btn-ok':'btn-p'}' data-action='toggle-pushups' style='width:100%'>${doneToday?`✓ Done today — ${target} logged`:`Log today's ${target}`}</button>
     ${weekReps>0?`<div class='prog-hint' style='margin-top:8px'>${weekReps} reps this week · booked as ${pyramidMrvSets(DAILY_PUSHUP_DEF,weekReps)} chest sets toward your limits.</div>`:''}
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Forgot a morning? Tap any past day above to fill it in.</div>
   </div>`;
 }
 function renderSleepCard(){
@@ -8044,6 +8052,14 @@ document.addEventListener('click',e=>{
   if(a==='toggle-conditioning'){S.cfg.conditioning=!S.cfg.conditioning;save();render();return;}
   if(a==='toggle-knee-caution'){S.cfg.kneeCaution=!S.cfg.kneeCaution;save();render();return;}
   if(a==='toggle-shoulder-caution'){S.cfg.shoulderCaution=!S.cfg.shoulderCaution;save();render();return;}
+  if(a==='toggle-pushup-day'){
+    const d=btn.dataset.date;
+    if(!d||d>todayStr())return;// never backfill the future
+    S.pushupLog=S.pushupLog||{};
+    if(S.pushupLog[d]>0)delete S.pushupLog[d];
+    else S.pushupLog[d]=S.cfg?.dailyPushups||0;
+    save();render();return;
+  }
   if(a==='toggle-pushups'){
     S.pushupLog=S.pushupLog||{};
     const t=todayStr();
