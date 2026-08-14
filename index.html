@@ -1336,7 +1336,7 @@ let S={
     // Muscle already sits above the normal range — the score gap is pure fat, so
     // the program is tuned to strip fat while preserving muscle. (The dashboard
     // card that used to present this was removed 2026-08-03; the scan now only
-    // feeds the protein target in fundamentalHabits and cfg.bodyLbs, and is
+    // feeds the protein target shown on the Plan screen and cfg.bodyLbs, and is
     // edited from the Plan screen.)
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
@@ -5808,59 +5808,6 @@ function pyramidHTML(dd){
 // plunge, no wearable-driven readiness score. Every line below is something
 // with a real effect size, that costs nothing, and that survives a workday —
 // which is the whole reason they get repeated long enough to work.
-function fundamentalHabits(){
-  const b=S.cfg?.bodyScore;
-  // Protein anchored to TARGET bodyweight, not current — the goal is to keep
-  // the ~88 lb of skeletal muscle while the fat comes off, and target-weight
-  // protein is the dose that does that without scaling down as you lean out.
-  const proteinG=Math.round(b?.target||S.cfg?.bodyLbs||175);
-  return[
-    {icon:'🥩',n:`Protein: ~${proteinG} g/day`,d:`About 1 g per lb of your ${b?.target?`${Math.round(b.target)} lb target`:'target'} weight, spread over 3–4 meals. In a calorie deficit this is the single biggest lever on whether the weight you lose is fat or muscle — protein plus lifting is the combination that protects lean mass, and nothing else substitutes for it.`},
-    {icon:'😴',n:'Sleep: 7–9 h, same wake time',d:'Consistency matters as much as duration. Short sleep raises hunger signalling, lowers training quality, and blunts recovery from exactly the sessions you just did — it is the cheapest performance and fat-loss intervention that exists. Log it on the sleep card above.'},
-    {icon:'🚶',n:'Walk ~1 hour a day',d:'Roughly 8–10k steps, broken up however fits around meetings. For a desk job this is the biggest swing factor in daily energy expenditure, and it costs almost nothing in recovery — it is additive to lifting rather than competing with it.'},
-    {icon:'☕',n:'Last caffeine ~8 h before bed · alcohol rare',d:"Caffeine's half-life is ~5–6 hours, so an afternoon coffee is still measurably in your system at bedtime and fragments deep sleep even when you fall asleep fine. Alcohol does the same more bluntly. Both quietly tax the recovery that everything else here depends on."},
-  ];
-}
-// The DAILY HABITS card. Stripped back from the old "Fundamentals" card
-// (2026-08-03, Sam: "I do not need the fundamentals box as long as they are
-// incorporated into the algorithm — you can leave in the daily habits part since
-// those aren't a part of the program planning"). That's the dividing line now:
-// anything the scheduler already enforces doesn't get dashboard space to report
-// on itself, and what's left is the stuff no algorithm can do for him.
-//
-// So the Foundation Five coverage rows and the Pull-up Century schedule block
-// both went. Neither was load-bearing for the behaviour — FOUNDATION_FIVE is
-// enforced by dayTemplate stamping slot.foundationId and pickEx honouring it
-// (seeded from foundationCoveredThisWeek, which is still what the generator
-// reads), and centuryDows still schedules centuries whether or not anything
-// prints the day list. What was lost is REPORTING, deliberately.
-//
-// One consequence worth knowing, since it was the accepted mitigation for two
-// documented coverage gaps: those rows were the only place the app explained IN
-// WORDS why `pushups_w` can't be covered on an all-YMCA week (the vest doesn't
-// travel) and why `bear_crawl` can't be covered on a lunch-only week (highSweat
-// vs a no-shower slot). The gaps still exist and are still by design; they are
-// now simply silent. If that ever needs surfacing again, the logic is in git —
-// see the placementNote() helper in this function's history.
-function dailyHabitsHTML(){
-  const habits=fundamentalHabits();
-  // Spelled-out count, derived rather than written into the prose — the list has
-  // been edited before and a hardcoded "Six habits" silently went stale.
-  const habitCount=['No','One','Two','Three','Four','Five','Six','Seven','Eight'][habits.length]||habits.length;
-  const habitRows=habits.map(h=>`<div style='padding:8px 0;border-top:1px solid var(--bdr)'>
-    <div style='font-size:13px;font-weight:700'>${h.icon} ${h.n}</div>
-    <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-top:3px'>${h.d}</div>
-  </div>`).join('');
-  return`<div class='card' style='margin-bottom:14px'>
-    <div class='sec-lbl' style='margin-bottom:2px'>Daily Habits</div>
-    <div style='font-size:11px;color:var(--mut);line-height:1.6;margin-bottom:4px'>${habitCount} habits, no biohacks — no supplement stack, no fasting window, no cold plunge, no readiness score. Each one has a real effect size, costs nothing, and survives a workday, which is why they're the ones that actually get repeated long enough to work. The training itself is handled by the scheduler; these are the parts it can't do for you.</div>
-    ${habitRows}
-    <div style='margin-top:12px;padding:10px 12px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.25);border-radius:10px;font-size:11px;color:var(--mut);line-height:1.6'>
-      <strong style='color:#c084fc'>Removing obstacles beats adding tricks.</strong> Most of what this app does for you is subtraction: standing overhead presses off the list so your lower back stays quiet, hard-landing plyos off it so the hip stays quiet, seated pressing and hip-friendly squat variants swapped in, sessions dropped when a muscle isn't recovered. That's the part that keeps twelve weeks in a row possible — and twelve weeks in a row is the thing that actually works.
-    </div>
-  </div>`;
-}
-
 // ─────────────────────────────────────────────
 // OFF-DAY ACTIVE RECOVERY
 // ─────────────────────────────────────────────
@@ -6021,8 +5968,8 @@ function renderPlan(){
 
     ${(()=>{
       // The Body Score card was removed from the dashboard (2026-08-03, not
-      // wanted there) — but the scan is still the SOURCE of the protein target in
-      // fundamentalHabits() and of cfg.bodyLbs. Deleting the card took away the
+      // wanted there) — but the scan is still the SOURCE of the protein target
+      // and of cfg.bodyLbs. Deleting the card took away the
       // only button that opened renderScanModal, which would have quietly frozen
       // a measured input forever, so the trigger moved here instead of vanishing.
       // One line, on the screen where settings already live.
@@ -6030,8 +5977,8 @@ function renderPlan(){
       return`<div class='sec-lbl' style='margin-top:16px'>Body Scan</div>
       <div class='card' style='margin-bottom:16px;display:flex;align-items:center;gap:10px'>
         <div style='flex:1;min-width:0;font-size:12px;color:var(--mut);line-height:1.5'>${b
-          ?`${b.weight} lb → <strong style='color:var(--txt)'>${b.target} lb</strong> target${b.testDate?` · scanned ${b.testDate}`:''}. Sets the protein target on the dashboard.`
-          :'No scan on record. Sets the protein target on the dashboard.'}</div>
+          ?`${b.weight} lb → <strong style='color:var(--txt)'>${b.target} lb</strong> target${b.testDate?` · scanned ${b.testDate}`:''}. Protein <strong style='color:var(--txt)'>~${Math.round(b.target||S.cfg?.bodyLbs||175)} g/day</strong> (1 g per lb of target weight).`
+          :'No scan on record — it sets the daily protein target.'}</div>
         <button class='btn btn-g btn-sm' data-action='edit-body-score' style='width:auto;flex-shrink:0'>Update</button>
       </div>`;
     })()}
@@ -6428,7 +6375,6 @@ function renderDash(){
     <button class='btn btn-g btn-sm' data-action='open-log-cardio' style='width:100%;margin-bottom:14px'>🏃 Log Cardio Activity</button>
     ${renderRecoveryBanner()}
     ${todayHTML}
-    ${dailyHabitsHTML()}
     ${planCard}
     ${renderMRVWidget()}
     ${recentLogs?`<div class='sec-lbl mt16'>Recent</div>${recentLogs}`:''}
