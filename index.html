@@ -1186,14 +1186,15 @@ const SPRINT_PRIMER={
 // (row/bike) covers anaerobic conditioning with zero impact. lunchOK marks
 // the low-sweat subset: lunch sessions only ever draw from that pool, so
 // sprints and hard intervals land on evenings/weekends by construction.
-// Foot sprints need somewhere to actually run. Sam has open ground only at
-// Westminster (turf/track) and on bodyweight/field days — the apartment gym,
+// Foot sprints need somewhere to actually run. Sam has usable open ground only
+// at Westminster (2026-08-14: bodyweight/field days dropped too — a field is
+// not reliably somewhere he can run repeats) — the apartment gym,
 // hotel gym, YMCA and Mom & Dad's have no usable runway, so the four
 // needsRunway finishers are filtered out there and the rotation falls to the
 // off-feet and circuit work instead. GH Sprint Repeats is deliberately NOT
 // flagged: its own prescription makes a bike or rower the default modality.
 // An unknown location is treated as having no runway (conservative).
-const SPRINT_LOCATIONS=new Set(['westminster_gym','bodyweight']);
+const SPRINT_LOCATIONS=new Set(['westminster_gym']);
 const CONDITIONING_FINISHERS=[
   {name:'Acceleration Sprints (Short)',needsRunway:true,desc:'6–8 × 15–20 m from a 2-point stance — maximal intent, tall by the last steps, FULL walk-back recovery (~90s). Quality dies with fatigue: stop the session when you visibly slow down.',icon:'🏃',mins:12,sprint:true},
   {name:'Loaded Sprints',needsRunway:true,desc:'6–8 × 10–15 m heavy sled push/pull, or steep-hill sprints — the load caps top speed (easier on the hamstrings) while building raw acceleration horsepower. Full recovery between reps.',icon:'🛷',mins:12,sprint:true},
@@ -1876,6 +1877,14 @@ function centuryRepsOf(l){
 // that a growing best is captured while it's still true, and slow enough that
 // the test itself never becomes the training.
 const CENTURY_REST_SECS=75;
+// Per-set overhead the prescription arithmetic doesn't model: getting back to
+// the bar, chalking, the extra breath you actually take before the next set,
+// waiting out someone else using it. Reps x 3s plus the prescribed rest put a
+// 10-set century at ~16 min; Sam's real sessions run closer to 30, and the
+// budget was under-reserving lunch minutes by that whole difference. Charged
+// per SET rather than as a flat pad so it keeps self-scaling — as his best set
+// climbs the set count falls and the overhead falls with it.
+const CENTURY_SET_OVERHEAD_SECS=85;
 const CENTURY_SET_FRACTION=0.5; // of best unbroken set
 const CENTURY_TEST_EVERY=4;     // every Nth century opens with a max-effort set
 const CENTURY_TEST_REST_SECS=180; // after the max set only — see Schoenfeld 2016 above
@@ -1898,7 +1907,7 @@ function centurySetPlan(){
   // The post-test rest is longer because that set genuinely WAS near failure —
   // the 2–3 min literature above applies to it and to nothing else here.
   const testRest=test?CENTURY_TEST_REST_SECS-CENTURY_REST_SECS:0;
-  const mins=Math.round((PULLUP_CENTURY.target*3+(sets-1)*CENTURY_REST_SECS+testRest)/60);
+  const mins=Math.round((PULLUP_CENTURY.target*3+(sets-1)*CENTURY_REST_SECS+testRest+sets*CENTURY_SET_OVERHEAD_SECS)/60);
   return{setSize,sets,restSecs:CENTURY_REST_SECS,mins,test,opener,testRestSecs:CENTURY_TEST_REST_SECS};
 }
 
@@ -2333,7 +2342,11 @@ function lunchBudget(dow,av,boxMins){
   //  2) Leave a real margin. `left` is a flooring remainder, not free time —
   //     spending it to the last minute is how a 40-minute lunch becomes 43.
   const FINISHER_MARGIN_MINS=2;
-  const f=(S.cfg?.conditioning&&!century)?getFinisher(dow,true):null;
+  // Equipment matters to WHICH finisher lands (see needsEquip/needsRunway), and
+  // the finisher's minutes are what the ledger reserves — so price it for the
+  // location this lunch actually happens at.
+  const lunchEquip=(av&&(av[dow]?.lunchEquipment||av[dow]?.equipment))||S.active?.equipmentKey||'ymca';
+  const f=(S.cfg?.conditioning&&!century)?getFinisher(dow,true,lunchEquip):null;
   const finisher=(f&&left>=(f.mins||8)+FINISHER_MARGIN_MINS)?f:null;
   if(finisher)left-=(finisher.mins||8);
   return{box,spine,prep,century,per:Math.round(per*10)/10,lifts,finisher,left:Math.round(left)};
