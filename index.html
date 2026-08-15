@@ -5811,6 +5811,23 @@ function pyramidHTML(dd){
       <span style='color:var(--mut)'>${m.name}</span>
       <strong style='color:var(--txt)'>${cur*m.mult}</strong>
     </div>`).join('');
+  // Rest guidance for the rung you're on. The time estimate uses a flat
+  // PYRAMID_REST_SECS average, but that is a MODELLING convenience and a bad
+  // prescription: rung 2 is 2 pull-ups and 10 squats, rung 10 is 10 and 50. So
+  // the advice scales with the rung instead — walk through the small ones, take
+  // real rest at the top, and compress again on the way down as they shrink.
+  // The pull-up is the limiter (it's the x1 movement but by far the hardest),
+  // so its quality is the signal to rest on rather than a clock.
+  const restNote=cur===null?'':(()=>{
+    const frac=plan.peak?cur/plan.peak:0;
+    const advice=frac<=0.4
+      ?'Little or none — flow straight into the next rung. These small rungs are the ramp-up.'
+      :frac<0.85
+        ?'~30–60s, or just long enough that the pull-ups stay unbroken.'
+        :'~60–90s. This is the expensive part of the ladder; earn the top rungs rather than surviving them.';
+    return`<div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'><strong style='color:var(--txt)'>Rest after this rung:</strong> ${advice}${climbing?'':' Coming down, shorten it again as the rungs shrink.'}</div>
+      <div style='font-size:11px;color:var(--mut);margin-top:2px;line-height:1.6'>Rest on the PULL-UPS, not the clock — the moment they start breaking into singles you waited too long to rest, not too little.</div>`;
+  })();
   // Whole-ladder view, so the shape is visible and you can see what's left.
   const ladder=plan.sizes.map((n,i)=>{
     const state=i<rungsDone?'done':i===rungsDone?'now':'todo';
@@ -5843,7 +5860,7 @@ function pyramidHTML(dd){
     <div style='display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px'>${ladder}</div>
     ${cur!==null?`<div style='padding:10px 12px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:10px'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#f97316;margin-bottom:4px'>Rung ${rungsDone+1} of ${totalRungs} · ${climbing?'climbing':'descending'}</div>
-      ${curRows}
+      ${curRows}${restNote}
     </div>
     <div style='display:flex;gap:6px;align-items:center;margin-top:8px'>
       <button class='btn btn-s btn-sm' data-action='pyramid-complete-rung' style='flex:1'>✓ Rung of ${cur} done</button>
