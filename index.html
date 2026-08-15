@@ -2273,6 +2273,37 @@ function lunchExMins(){
 // Everything that spends the lunch box, in priority order. `av` is passed
 // explicitly during generation for the same reason centuryDows takes it —
 // reading S.program mid-generation would be circular.
+// ── EVENING / WEEKEND TIME LEDGER ──
+// Evenings used to take the plain EX_LIMIT cap on the stated session length,
+// on the reasoning that they have a shower and a flexible finish time and "no
+// century contending for the same minutes". Two of those stopped being true:
+// centuryDows draws from AVAILABILITY, so any training day can be a century
+// day including a Saturday, and the conditioning finisher is an evening
+// feature by construction (sprints and hard intervals are kept out of lunch).
+//
+// So a stated 75-minute Saturday could be handed the full 5-lift template PLUS
+// a ~20 min century PLUS a ~12 min finisher — about 107 minutes of work billed
+// as 75. Same failure the lunch ledger was built to fix, just with more slack
+// to hide in.
+//
+// Charge them the same way: subtract what's already prescribed, then read the
+// lift count off the largest EX_LIMIT tier the REMAINING time can afford. The
+// tiers already allow for prep and the cool-down (they were recalibrated for
+// exactly that), so the remainder is compared against the same scale.
+function eveningLifts(mins,dow,av,equipmentKey){
+  const tiers=Object.keys(EX_LIMIT).map(Number).sort((a,b)=>a-b);
+  let left=mins||60;
+  if(centuryDows(av).includes(dow))left-=centuryMins();
+  if(S.cfg?.conditioning){
+    const f=getFinisher(dow,false,equipmentKey);
+    if(f)left-=(f.mins||8);
+  }
+  // Largest tier that still fits; never fewer than one lift, since a session
+  // that can only afford the century and a finisher is still a session.
+  let lifts=1;
+  tiers.forEach(t=>{if(left>=t)lifts=EX_LIMIT[t];});
+  return Math.max(1,lifts);
+}
 function lunchBudget(dow,av,boxMins){
   const box=boxMins||40;
   const spine=LUNCH_LEDGER.spineMins;
@@ -3109,11 +3140,12 @@ function genProgram(cfg,av,workoutHistoryLog){
     // Charged as a real ledger now (see LUNCH_LEDGER): the box pays for the
     // daily spine minimums and any century BEFORE it pays for lifting, and the
     // per-exercise rate is measured from Sam's own logged lunches rather than
-    // assumed. Evenings keep the plain EX_LIMIT cap — they have a shower, a
-    // flexible finish time, and no century contending for the same minutes.
+    // assumed. Evenings and weekends get the same treatment via eveningLifts:
+    // a century or a conditioning finisher prescribed that day is charged
+    // against the stated session length before the lifting is sized.
     const limit=slot.isLunch
       ?lunchBudget(slot.dow,av,slot.mins).lifts
-      :(EX_LIMIT[slot.mins]||5);
+      :eveningLifts(slot.mins,slot.dow,av,equip);
     // Plan this day on demand from recovery debt (most-overdue rested muscles).
     const tmpl=dayTemplate(dateStr,limit,slot.isLunch,equip);
     if(!tmpl)return null; // nothing adequately rested → this day stays a rest day
