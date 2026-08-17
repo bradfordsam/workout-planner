@@ -140,6 +140,44 @@ strip it before other debugging.
   all-YMCA week cannot cover the push-up Foundation movement. This used to be
   explained in words on the dashboard; that card was removed 2026-08-03, so the
   gap is now SILENT (see the Fundamentals-card note below).
+- **`VOLLEYBALL` (2026-08-17)** — `S.cfg.volleyball={dows,mins,jumps}`, off until days
+  are ticked on the Plan screen. A league night is a FIXTURE, not a session the app
+  designs, so the model is small and does exactly four things:
+  1. **Not a lifting slot.** A volleyball dow's evening is withheld everywhere
+     availability is read — `genProgram`'s slot builder, `trainingDayCount`,
+     `weeklySetCapacity`, `centuryEligibleDow`. Those four `isVolleyballDow` call
+     sites must stay in sync; planning a lift he can't do manufactures a missed
+     day and drags the recovery ordering with it. The LUNCH is untouched.
+  2. **Books MRV**, priced through `pyramidMrvSets` → the century anchor, so there
+     is no new invented constant. `jumps` is the ONE dial (same shape as
+     `pyramidPeak`): at 60 it's ~3 leg sets + ~1.1 shoulder sets a night. Legs are
+     `chair_jumps`, shoulders `seated_db_press` × `VB_SWINGS_PER_JUMP` (0.5 — the
+     one estimated ratio in the whole model, flagged as such in the code).
+  3. **Resets the LEG clock as an ACCENT day** (48h, never the 72h heavy window —
+     bodyweight jumping isn't 1–5 @ 85–95%). One injection into `genProgram`'s
+     `assignedMuscles` covers `legsRecovered`, `dayTemplate`'s `lastDate` AND
+     `getLockedMuscles`, because all three already read that map and all three
+     only look strictly backwards. Never reaches `strengthDates`, which is what
+     keeps it light. `volleyballRecoveryDates()` includes LAST week so a Sunday
+     game is visible when Monday is planned.
+  4. **Is the day's conditioning** — no finisher (`finisherHTML` + the
+     `lunchBudget` gate), no VO2 protocol (`renderDash`'s `eveningFree`).
+  - **SCHEDULED COUNTS AS DONE, and there is deliberately no "log volleyball"
+    button** — the opposite of the century's "a missed one is never projected"
+    rule. Effect (3) has to assume he played, or the app programs heavy legs the
+    morning after a game; so (2) must assume the same or the two halves of the
+    model contradict each other. Cancelled night → untick the day.
+  - Booked in **`getWeeklySetVolumes`**, not `getCommittedVolumes` — it's the only
+    volume with no log behind it, and splitting it would put the dashboard bars
+    and the generator's budget on different numbers.
+  - Measured cost of turning it on (6 sim weeks, lunch+3-evening, Tue+Thu):
+    8 sessions → 6, legs 14–15 → 12 MRV (6 programmed + 6 volleyball) against a
+    14–24 band, **hamstring mandate 100% → 0%** and hinge 100% → 60%. Structural,
+    not a bug: two leg slots survive and the mandate order is strength → hinge →
+    hamstring, so hamstring can never be reached. The plan-screen
+    `weeklySetCapacity` warning fires on that profile. Worth revisiting if he
+    actually plays twice a week — a jumping athlete is the one who most wants
+    the Nordic curl.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
@@ -284,6 +322,45 @@ strip it before other debugging.
   separate from `duration`. `centuryDefaultMins()` is now capped at
   `CENTURY_MAX_BUDGET_MINS` too — at a low `best` the derived plan reached 47 min
   and drove the lunch ledger negative.
+  **Which session pays for it (2026-08-17, `centuryHostSession` /
+  `centuryChargeFor`)** — Sam: *"century should only effect exercises in one
+  session because i am not doing it for both just one that day you know."* The
+  **two ledgers each billed it independently** — `lunchBudget` charged every
+  century dow AND `eveningLifts` charged every century dow — so on a
+  lunch+evening day the same hundred pull-ups was paid for twice: the lunch
+  dropped to one lift *and* the evening lost an exercise, for one session's work.
+  Now `centuryChargeFor` is the single place that answers "does THIS session pay",
+  and `centuryHostSession` picks the one host: the evening by default on a
+  both-sessions day (`S.cfg.centuryWhen` flips it; Plan-screen toggle, rendered
+  only when such a day exists), otherwise whichever session exists. The evening
+  is chosen by default because it's the side with slack — it loses one slot off a
+  4–5 template, where the lunch's hard 40 minutes lose half the session.
+  Measured (6 wks vs `origin/main`): on lunch+3-evening the **horizontal mandate
+  goes 20% → 60% of weeks**, shoulders 0% → 40% in band, biceps +2 and core +1,
+  with legs/back/hinge/strength/hamstring unchanged. Lunch-only and 3-evening are
+  byte-identical (no evening to move it to / no lunch to charge).
+  **`exLimitFor(mins)`** replaces both the inline tier loop in `eveningLifts` and
+  `EX_LIMIT[mins]||5`. Note the floor: it starts at **0**, not at the lowest
+  tier's value — below the smallest tier no tier has been afforded, so the answer
+  is one lift, not two. Seeding it with `EX_LIMIT[30]` handed 2 lifts to an
+  evening with 14 minutes left after a century and a finisher, which showed up in
+  the sim as +3 core sets a week on the efficiency profile.
+  **Scaling an incomplete century (2026-08-17, `centuryMins` rewrite)** — Sam:
+  *"scaling timing for incomplete centuries for scheduling purposes."* Every timed
+  session now feeds the median with partials scaled pro-rata to a full-century
+  equivalent FIRST, instead of partials being discarded the moment one completed
+  session exists — and a partial is the common case on exactly the days the budget
+  matters. Two guards, both conservative: `CENTURY_PARTIAL_MIN_REPS`(=30) below
+  which an extrapolation is noise, and a scaled partial can never come in under
+  `centuryDefaultMins()` (pro-rata systematically UNDERSTATES — the reps he got
+  through are the fast early ones). The median is now a TRUE median (`median()`);
+  `arr[floor(n/2)]` took the upper of two middle values, which was a small bias on
+  a completed-only pool and a real one once bad-day extrapolations join it.
+  `centuryBudgetToday()` additionally scales the reservation by reps ALREADY
+  BANKED today — but a century already LOGGED today is charged its measured
+  `timedMins`, **deliberately not zero**: the app can't tell 100 reps at 8am
+  (whose minutes really are free) from 100 reps at 12:05 (whose minutes came out
+  of the lunch it's about to hand two extra lifts to).
   **MRV pricing (revised 2026-08-05, `CENTURY_MRV_SETS` 3 → 5, priced by REPS
   via `centuryMrvSets`)** — see the Fourth pass section below for the measured
   effect and the two scheduler changes that had to land with it. A PARTIAL
@@ -703,6 +780,40 @@ Accepted costs, measured not assumed:
   charging prep to the ledger. Knock-on: lunch-only weeks lose ~3 programmed leg
   sets. Lunch-only weeks were already documented as structurally under-band.
 
+## The recovery monitor must use the engine's own predicates (2026-08-17)
+
+`getRecoveryAdvisories` is the read-only banner on the dashboard, and it was
+firing on plans the generator had deliberately and correctly made: *"Legs is set
+for Fri & Sat — under the 72h it needs to recover"*, standing there **24 days out
+of 42** on the main schedule and **every one a false alarm**. Two disagreements
+with the scheduler, both in that one function:
+
+1. It ignored the **weighted-only legs rule**. Friday's leg work was
+   `pistol_squat` — bodyweight, `noWeight` — which by design does not reset the
+   leg clock (`countsForRecoveryLog`). It counted it anyway.
+2. It quoted the flat 72h from `MUSCLE_LOCKOUT_HOURS` while the scheduler has run
+   **split leg windows** since 2026-08-03 (72h heavy / 48h accent, `legsRecovered`
+   + `LEG_LIGHT_LOCKOUT`). The number in the warning wasn't the rule the plan was
+   built on.
+
+Both predicates are shared with the engine now, so a future change to the leg
+windows follows automatically. Leg advisories 24 → 0 on lunch+3-evening and 7 → 0
+on lunch-only; only the (pre-existing) 6-days-in-a-row streak notice remains.
+**A monitor that fires on correct plans is worse than no monitor** — it trains you
+to scroll past the banner, and the banner is the only thing that will ever report
+a real collision.
+
+**KNOWN GAP, left in deliberately:** this function has never looked at planned
+EVENING sessions (`day.eveningSession`), so on a lunch+evening schedule it sees
+half the week. Adding them was tried and measured — ~20 more advisory-days over 6
+weeks, and every one checked was a TRUE positive (`arnold_press` Tue evening then
+`seated_db_press` Wed lunch, ~18h; `weighted_pullups` Thu evening then again
+Friday lunch). They are collisions the generator makes ON PURPOSE:
+`getLockedMuscles` pins a locked muscle's MRV ceiling rather than banning it, and
+the Foundation Five guarantee bypasses the caps outright. Warning daily about
+something "space them out" can't fix is the same failure this pass just removed
+for legs, so it stays off until the underlying scheduling question is settled.
+
 ## Training constraints (why the code is shaped this way)
 
 - Left hip has FAI history (`hipCaution`): no HARD-landing/impact plyos, no
@@ -728,7 +839,17 @@ Accepted costs, measured not assumed:
   be ignored under fatigue), the DB/machine variants carry a "SHOULDER STOP:
   stop at the torso line" cue, and the fly family lost its "full stretch at the
   bottom" cueing for the same reason. Don't add new pressing that fixes the
-  hands to one bar or cues a deep bottom stretch. **This has never been
+  hands to one bar or cues a deep bottom stretch.
+  **`floor_press` is DUMBBELL-ONLY as of 2026-08-17** (Sam: "barbell plates will
+  hit ground before my arms"). That mechanical stop is the entire reason it leads
+  the block, and with a barbell the plates land first — the bar halts several
+  inches high, the triceps never touch down, and the one guarantee the movement
+  exists to provide silently stops being enforced. Dropping `'barbell'` from `eq`
+  costs nothing in availability (every preset carrying a barbell also carries
+  dumbbells) and fixes the weight unit for free: the estimator and the weight
+  inputs read `eq.includes('dumbbells')&&!eq.includes('barbell')` to choose
+  between "lb" and "lb ea", and it had been showing a total. Renamed to
+  **DB Floor Press** so the prescription can't be misread on the bar. **This has never been
   assessed** — the pattern (a pop under a violent swing, still symptomatic
   years later on two specific loaded positions) is worth a physio's opinion,
   and the app changes are load management, not treatment.

@@ -247,7 +247,17 @@ const EX = [
   // fatigue and a cue does not. Barbell bench sits on avoidExercises for the
   // opposite reason: the hands are fixed to one bar, so the arms cannot pick
   // their own path and the bottom position is not negotiable.
-  {id:'floor_press',name:'Floor Press',muscle:'chest',type:'compound',eq:['dumbbells','barbell'],rMin:5,rMax:10,rest:180,cue:'Lie flat on the floor, knees bent, feet planted. Press from the chest with elbows tucked to ~45°, forearms vertical. Lower under control until the BACKS OF THE UPPER ARMS touch the floor — that\'s the stop, and it is the whole point: the shoulder never travels past the torso line, so the front of the joint stays out of its end range. Pause a beat on the floor to kill the bounce, then press. Dumbbells let each arm find its own path; a barbell works too.'},
+  // DUMBBELLS ONLY (2026-08-17, from Sam: "barbell plates will hit ground before
+  // my arms"). The whole reason this movement leads the chest block is that the
+  // floor is a MECHANICAL stop at the torso line — a cue the left shoulder can't
+  // ignore under fatigue. With a barbell the plates land first, so the bar stops
+  // several inches high, the triceps never touch down, and the one guarantee the
+  // movement exists to provide silently stops being enforced. Dropping 'barbell'
+  // from eq costs nothing in availability (every preset carrying a barbell also
+  // carries dumbbells) and it fixes the weight unit for free: the estimator and
+  // the weight inputs read `eq.includes('dumbbells')&&!eq.includes('barbell')` to
+  // decide between "lb" and "lb ea", and this was showing a total.
+  {id:'floor_press',name:'DB Floor Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:5,rMax:10,rest:180,cue:'Lie flat on the floor, knees bent, feet planted. Press from the chest with elbows tucked to ~45°, forearms vertical. Lower under control until the BACKS OF THE UPPER ARMS touch the floor — that\'s the stop, and it is the whole point: the shoulder never travels past the torso line, so the front of the joint stays out of its end range. Pause a beat on the floor to kill the bounce, then press. Dumbbells only here — a barbell\'s plates hit the ground before your arms do, so the stop lands in the wrong place and the ROM cap stops working. Dumbbells also let each arm find its own path.'},
   {id:'bench',name:'Barbell Bench Press',muscle:'chest',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Retract shoulder blades, slight arch. Tuck elbows to ~45° from your torso (not flared to 90°) to protect the shoulders and load the chest. Keep forearms vertical through the press so tension stays on the chest, not the triceps. Lower bar to mid-chest with control (2 counts), press through the bar. Push the last working set to 1–2 reps shy of failure — the last rep should look ugly.'},
   {id:'incline_db',name:'Incline DB Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'30–45° incline (~58–100% grade on a bench that reads in percent). Tuck elbows to ~45° from your torso (don\'t flare to 90°) and keep forearms vertical so the chest does the work, not the triceps. At the top, drive your biceps toward each other rather than clanking the dumbbells together — that maximizes the contraction. Control the descent (2 counts) — push the last set to 1–2 reps shy of failure. SHOULDER STOP: end the descent when the upper arms reach the torso line — do not let the elbows travel behind the body chasing a deeper stretch.'},
   {id:'flat_db_press',name:'Flat Dumbbell Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'Lie flat on a bench, dumbbells at chest level. Retract the shoulder blades. Tuck elbows to ~45° from the torso (don\'t flare to 90°) and keep forearms vertical so tension stays on the chest, not the triceps. Press up and slightly in, driving the dumbbells toward each other at the top for a harder squeeze without clanking them. Control the descent (2 counts) — push the last set to 1–2 reps shy of failure. SHOULDER STOP: stop when the upper arms reach the torso line, NOT at a full stretch. Chasing depth here is what makes the front of the shoulder hurt; if you can\'t feel the line, use the Floor Press instead and let the floor find it for you.'},
@@ -1167,6 +1177,22 @@ const TMPLS = {
 // overhead; 30 is unreachable via the UI (evening/weekend picker only offers
 // 45/60/75/90) and left alone.
 const EX_LIMIT={30:2,45:3,60:4,75:5,90:6};
+// Same scale, read at an ARBITRARY number of minutes rather than at one of the
+// five tier keys: take the largest tier the session still affords. The old
+// `EX_LIMIT[mins]||5` fell through to FIVE exercises for any value not in the
+// map — so an unrecognised length became the LONGEST session on the scale, which
+// is backwards. Never returns 0: a session that exists gets at least one lift,
+// the same floor LUNCH_LEDGER.minLifts holds at lunch.
+const EX_LIMIT_TIERS=Object.keys(EX_LIMIT).map(Number).sort((a,b)=>a-b);
+function exLimitFor(mins){
+  // Starts at 0, NOT at the lowest tier's value: below the smallest tier no tier
+  // has been afforded and the answer is the floor of one, not two. Seeding it
+  // with EX_LIMIT[30] instead handed 2 lifts to a session with 14 minutes left
+  // after a century and a finisher.
+  let out=0;
+  EX_LIMIT_TIERS.forEach(k=>{if(mins>=k)out=EX_LIMIT[k];});
+  return Math.max(1,out);
+}
 // Sprint priming: rendered with every sprint-flagged finisher. Sprinting cold
 // is how hamstrings and hip flexors get hurt — the primer is non-negotiable
 // and doubles as the day's hip/ankle prep.
@@ -1346,6 +1372,13 @@ let S={
     // their own path there and a barbell's fixed hands cannot. See also the
     // shoulderRisk flag, which hides the BALLISTIC pressing that no cue fixes.
     shoulderCaution:true,
+    // Which session pays for a pull-up century on a day that has both a lunch
+    // and an evening — see centuryHostSession. 'eve' is the default because the
+    // evening is the side with slack.
+    centuryWhen:'eve',
+    // Volleyball nights, off until the days are ticked on the Plan screen. See
+    // the VOLLEYBALL block: `jumps` is the one dial that sets the whole dose.
+    volleyball:{dows:[],mins:90,jumps:60},
     avoidExercises:['ohp','push_press','db_push_press','thrusters','woodchop','plank_outside_climbers','ezbar_upright_row','bench'],
     // Seeded from the InBody-style body-composition scan (Starfit, 2026-05-24).
     // Muscle already sits above the normal range — the score gap is pure fat, so
@@ -1484,6 +1517,12 @@ function load(){
         S.cfg.bodyScore={score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'};
         S.cfg.goal='lean';S.cfg.conditioning=true;S.cfg.bodyLbs=199;
       }
+      // Migrate: volleyball (2026-08-17). Seeded EMPTY on purpose — which nights
+      // he plays is his input, and guessing it would silently delete evening
+      // sessions. Everything downstream is a no-op until a day is ticked.
+      if(!S.cfg.volleyball)S.cfg.volleyball={dows:[],mins:90,jumps:60};
+      // Migrate: which session pays for a century on a both-sessions day.
+      if(!S.cfg.centuryWhen)S.cfg.centuryWhen='eve';
       // Clear mid-week planStartDow if the stored week plan is from a previous week
       if(S.cfg?.planStartDow&&(!S.weekPlan||S.weekPlan.weekOf<thisMonday())){
         delete S.cfg.planStartDow;
@@ -1662,9 +1701,13 @@ function centuryMrvSets(reps){
 // handle that. (The Fundamentals card used to say so in words; it was removed
 // 2026-08-03, so there is no longer a caller that prints the day list — but the
 // empty case is still real for any future one.)
+// A volleyball night is not an evening that can host a century — he's on a court,
+// not under a bar. The day still qualifies if the LUNCH is on, which is why this
+// tests the two halves separately rather than dropping the dow outright.
 function centuryEligibleDow(av,dow){
   const d=av[dow]||{};
-  return(dow===0||dow===6)?!!d.on:(d.lunch!==false||!!d.eve?.on);
+  if(dow===0||dow===6)return !!d.on&&!isVolleyballDow(dow);
+  return d.lunch!==false||(!!d.eve?.on&&!isVolleyballDow(dow));
 }
 // Measured minutes a century actually takes — the whole point of timing it.
 // The prescription (100 reps) never moves, so the two things that DO move are
@@ -1694,17 +1737,110 @@ function centuryDefaultMins(){return Math.min(CENTURY_MAX_BUDGET_MINS,centurySet
 // already overrun. Completed sessions calibrate directly; partials are only
 // used pro-rata and only ever push the number up.
 const CENTURY_MAX_BUDGET_MINS=40; // a full lunch — past this it simply doesn't fit
+// Below this many reps a pro-rata extrapolation is noise, not evidence: 8 reps in
+// 2 minutes "proves" a 25-minute century on one set's worth of data, and the
+// early sets are the least representative part of the session. Such a session is
+// skipped entirely, the same way an untimed one is.
+const CENTURY_PARTIAL_MIN_REPS=30;
+// A TRUE median of an already-sorted list. The old `arr[Math.floor(n/2)]` takes
+// the UPPER of the two middle values on an even-length list, which was a small
+// bias when the pool was completed sessions only and a real one now that scaled
+// partials join it: an even pool of one clean session and one bad-day
+// extrapolation returned the bad day outright, and the bad days are precisely
+// the ones that scale up.
+function median(sorted){
+  if(!sorted.length)return 0;
+  const mid=Math.floor(sorted.length/2);
+  return sorted.length%2?sorted[mid]:(sorted[mid-1]+sorted[mid])/2;
+}
+// SCALING A PARTIAL (revised 2026-08-17, Sam: "scaling timing for incomplete
+// centuries for scheduling purposes"). Every timed session now feeds the median,
+// with the incomplete ones scaled to a full-century equivalent first, instead of
+// partials being thrown away the moment a single completed session exists. That
+// discard was the bug: 26 reps in 18 minutes is the strongest possible evidence
+// that a century runs long, and it was being ignored in favour of one clean
+// session logged weeks earlier. A partial is the common case on the days the
+// budget matters most — the ones where the clock ran out.
+//
+// Two guards keep the scaling honest, both in the conservative direction:
+//   · reps below CENTURY_PARTIAL_MIN_REPS don't extrapolate at all;
+//   · a scaled partial can never come in UNDER the default reservation. Pro-rata
+//     systematically UNDERSTATES the total, because the reps he got through are
+//     the fast early ones and the sets that never happened are the slow late
+//     ones. Left uncorrected that hands the lunch more lifting on exactly the day
+//     it already overran.
 function centuryMins(){
-  const timed=centuryLogs().filter(l=>l.timedMins>0);
-  const done=timed.filter(l=>centuryRepsOf(l)>=PULLUP_CENTURY.target)
-    .slice(-5).map(l=>l.timedMins).sort((a,b)=>a-b);
-  if(done.length)return done[Math.floor(done.length/2)];
-  const partial=timed.slice(-5)
-    .map(l=>{const r=centuryRepsOf(l);return r>0?l.timedMins*PULLUP_CENTURY.target/r:0;})
+  const scaled=centuryLogs().filter(l=>l.timedMins>0).slice(-5)
+    .map(l=>{
+      const r=centuryRepsOf(l);
+      if(r>=PULLUP_CENTURY.target)return l.timedMins;               // measured outright
+      if(r<CENTURY_PARTIAL_MIN_REPS)return 0;                        // too little to scale from
+      return Math.max(centuryDefaultMins(),l.timedMins*PULLUP_CENTURY.target/r);
+    })
     .filter(m=>m>0).sort((a,b)=>a-b);
-  if(!partial.length)return centuryDefaultMins();
-  const est=Math.round(partial[Math.floor(partial.length/2)]);
-  return Math.min(CENTURY_MAX_BUDGET_MINS,Math.max(centuryDefaultMins(),est));
+  if(!scaled.length)return centuryDefaultMins();
+  return Math.min(CENTURY_MAX_BUDGET_MINS,Math.max(1,Math.round(median(scaled))));
+}
+// What a century costs TODAY, scaled to the reps that haven't happened yet.
+// centuryMins() answers "what does a century cost from zero", which is the right
+// question for any other day of the week and the wrong one for this afternoon: if
+// 60 reps went up before work, the session only has to buy the remaining 40, and
+// reserving the full figure spends minutes that are already banked.
+//
+// A century already LOGGED today is charged its MEASURED time, deliberately NOT
+// zero. Zero looks obviously right and is the one branch that can over-promise:
+// the app can't tell 100 reps done at 8am (whose minutes really are free) from
+// 100 reps done at 12:05 (whose minutes came straight out of the lunch it is now
+// about to hand two extra lifts to). Charging what it took is honest in the first
+// case and correct in the second, and over-reserving is the safe direction — an
+// under-reserved lunch is the 43-minute lunch this ledger exists to stop.
+function centuryBudgetToday(){
+  const doneLog=centuryLogs().find(l=>logDay(l.date)===todayStr());
+  if(doneLog)return Math.min(CENTURY_MAX_BUDGET_MINS,doneLog.timedMins>0?doneLog.timedMins:centuryMins());
+  const done=Math.min(PULLUP_CENTURY.target,(centuryDraft().sets||[]).reduce((a,n)=>a+n,0));
+  return Math.round(centuryMins()*(1-done/PULLUP_CENTURY.target));
+}
+// The figure to reserve for a century on `dow`. Today reads the live tally; every
+// other day of the week has to be budgeted from zero, since there is no draft to
+// read and the whole hundred is still ahead of it.
+function centuryTimeFor(dow){
+  return dow===todayDow()?centuryBudgetToday():centuryMins();
+}
+// ── WHICH SESSION PAYS FOR THE CENTURY (2026-08-17) ──
+// Sam: "century should only effect exercises in one session because i am not
+// doing it for both just one that day you know."
+//
+// He does the hundred ONCE. The ledger charged it unconditionally to the lunch,
+// which on a lunch+evening day taxed the 40-minute box — cutting it from 2 lifts
+// to 1 — for work he was doing at 6pm, while the evening that actually hosted it
+// was priced as though nothing else were happening. One session, one charge, and
+// it lands on the session that actually holds the reps.
+//
+// The default on a both-sessions day is the EVENING, because that is the side
+// with slack: an evening loses an exercise off a 4–5 slot template, whereas the
+// lunch is a hard wall where the same minutes cost half the session. S.cfg.
+// centuryWhen flips it for someone who genuinely does it at lunch — the Plan
+// screen carries the toggle, since getting this backwards means either an
+// over-long lunch or an evening that quietly overruns.
+function centuryHostSession(dow,av){
+  av=av||(S.weekPlan?.availability)||defaultAvailability();
+  if(!centuryDows(av).includes(dow))return null;
+  const d=av[dow]||{};
+  const hasLunch=dow>=1&&dow<=5&&d.lunch!==false;
+  const hasEve=(dow===0||dow===6)?!!d.on:(!!d.eve?.on&&!isVolleyballDow(dow));
+  if(hasLunch&&hasEve)return S.cfg?.centuryWhen==='lunch'?'lunch':'eve';
+  if(hasLunch)return'lunch';
+  if(hasEve)return'eve';
+  return null;
+}
+// Minutes a century takes out of `slot`'s own session — 0 unless this is the
+// session hosting it. Both the lunch ledger and eveningLifts read this, so the
+// "charged exactly once a day" rule lives in exactly one place. Before it, both
+// ledgers independently billed every century dow, so a lunch+evening day paid
+// for the same hundred pull-ups twice: the lunch dropped to one lift AND the
+// evening lost an exercise, for one session's worth of work.
+function centuryChargeFor(dow,isLunch,av){
+  return centuryHostSession(dow,av)===(isLunch?'lunch':'eve')?centuryTimeFor(dow):0;
 }
 function centuryDows(av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
@@ -1986,7 +2122,15 @@ const PYRAMID_LADDER=[
   ]},
 ];
 // Today's evening slot, which is the only slot this session fits.
-function pyramidEveSlot(){return ((S.weekPlan?.availability||{})[todayDow()]||{}).eve||{};}
+// Tonight's evening availability slot. A volleyball night returns an EMPTY slot,
+// which is what stops both big bodyweight prescriptions — the Pyramid and Cindy,
+// the two callers that gate on `.on` — from being offered on a night he's already
+// on a court. One guard here rather than one in each prescription, and it fails
+// closed for any prescription added later.
+function pyramidEveSlot(){
+  if(isVolleyballDow(todayDow()))return{};
+  return ((S.weekPlan?.availability||{})[todayDow()]||{}).eve||{};
+}
 // Equipment key for tonight. Falls back to the apartment gym (his home base, and
 // it has a bar) rather than the YMCA, since the whole appeal of this session is
 // that it runs without a gym.
@@ -2207,6 +2351,114 @@ function cindyPrescription(){
 }
 
 // ─────────────────────────────────────────────
+// VOLLEYBALL
+// ─────────────────────────────────────────────
+// Sam plays volleyball, and until now the program didn't know: it planned every
+// week as though the jumping wasn't coming and then the jumping landed on top.
+// That is the same failure the pull-up century had before 2026-08-05 (see
+// getCommittedVolumes), and it costs more here, because the tissue volleyball
+// loads is the one already carrying a 72h heavy window and an FAI hip.
+//
+// The model is deliberately small — a league night is a FIXTURE, not a session
+// the app gets to design — and it does exactly four things:
+//
+//   1) It is not a lifting slot. A volleyball dow's evening stops being offered
+//      as an evening workout, everywhere availability is read (see the four
+//      call sites of isVolleyballDow). Planning a lift he can't do just
+//      manufactures a missed day and drags the recovery ordering with it.
+//   2) It books LEG volume against weekly MRV, priced from the jumps (below),
+//      so the generator stops adding jump/power accents on top of ~60 real
+//      landings. Shoulders take a smaller charge for the swings.
+//   3) It resets the LEG recovery clock as an accent day (48h, never the 72h
+//      heavy window — this is bodyweight jumping, not 1–5 @ 85–95%). Injected
+//      into genProgram's assignedMuscles, so legsRecovered, dayTemplate and
+//      getLockedMuscles all see it through the paths they already use, and
+//      cannot disagree with each other.
+//   4) It IS the day's conditioning. No finisher, no VO2 protocol, no sprint
+//      work on a volleyball night.
+//
+// SCHEDULED COUNTS AS DONE, and there is deliberately no "log volleyball"
+// button. The century's rule is the opposite (a missed century is never
+// projected) because a century is discretionary work inside a training session;
+// a league night either is on the calendar or isn't. More to the point, effect
+// (3) has to assume he played — if it didn't, the app would program heavy legs
+// the morning after a game — so (2) has to assume the same thing, or the two
+// halves of the model contradict each other. If a night gets cancelled, untick
+// the day.
+const VOLLEYBALL_DEFAULTS={dows:[],mins:90,jumps:60};
+// Attack and block jumps that carry an arm swing. Serves and blocks don't, and
+// this is the ONE estimated ratio in the volleyball model — everything else is
+// either Sam's own input (dows, jumps) or derived from the century anchor.
+const VB_SWINGS_PER_JUMP=0.5;
+function volleyballCfg(){
+  const c=S.cfg?.volleyball||{};
+  return{
+    dows:Array.isArray(c.dows)?c.dows:VOLLEYBALL_DEFAULTS.dows,
+    mins:c.mins||VOLLEYBALL_DEFAULTS.mins,
+    jumps:c.jumps>0?c.jumps:VOLLEYBALL_DEFAULTS.jumps,
+  };
+}
+function volleyballDows(){return volleyballCfg().dows;}
+function isVolleyballDow(dow){return volleyballDows().includes(dow);}
+function volleyballOn(){return volleyballDows().length>0;}
+// What a volleyball night costs against weekly MRV. Priced through the SAME
+// machinery as the Pyramid (pyramidMrvSets), which prices through the century
+// anchor — so a jump costs what the file already says a submaximal rep costs,
+// and there is no new invented constant to drift. At the default 60 jumps that
+// is ~3 leg sets and ~1 shoulder set: a real dent in the week, and nowhere near
+// the fiction "60 sets" would have been.
+//
+// Legs are chair_jumps (a dead-stop maximal countermovement jump — the closest
+// thing in the pool to a block jump) and shoulders are the seated press, which
+// is the only overhead compound Sam's back tolerates and therefore the movement
+// whose volume this is competing with. Booking through creditVolume means the
+// swing charge also carries the press's secondary triceps credit (~0.5 sets a
+// night) — correct rather than incidental: a spike is elbow extension under
+// speed, which is what that rule prices.
+function volleyballMrvSets(){
+  const jumps=volleyballCfg().jumps;
+  const jumpEx=EX.find(e=>e.id==='chair_jumps');
+  const pressEx=EX.find(e=>e.id==='seated_db_press');
+  return{
+    legs:jumpEx?pyramidMrvSets(jumpEx,jumps):0,
+    shoulders:pressEx?pyramidMrvSets(pressEx,Math.round(jumps*VB_SWINGS_PER_JUMP)):0,
+  };
+}
+// Calendar dates carrying a volleyball night, for the week starting `monISO`
+// (defaults to this one). Past and future alike: see the "scheduled counts as
+// done" note above.
+function volleyballDates(monISO){
+  const mon=monISO||thisMonday();
+  return volleyballDows().map(dow=>addDays(mon,dow===0?6:dow-1));
+}
+// The dates the recovery clock has to see. LAST week's are included because the
+// week starts on Monday and a Sunday night lands on its last day — planning
+// Monday morning without it would put heavy legs twelve hours after a game.
+// Every consumer (legsRecovered, dayTemplate's lastDate, getLockedMuscles)
+// only ever looks strictly backwards from the date it is planning, so handing
+// them future dates as well is safe and keeps this to one list.
+function volleyballRecoveryDates(){
+  const mon=thisMonday();
+  return[...volleyballDates(addDays(mon,-7)),...volleyballDates(mon)];
+}
+// Mirrors centuryWeekVolumes: what share of this week's committed volume comes
+// from volleyball. Booked through creditVolume like every other volume write, so
+// the secondary-credit rules apply and getMRVBreakdown can never drift from
+// getWeeklySetVolumes.
+function volleyballWeekVolumes(){
+  const vol={};
+  if(!volleyballOn())return vol;
+  const sets=volleyballMrvSets();
+  const jumpEx=EX.find(e=>e.id==='chair_jumps');
+  const pressEx=EX.find(e=>e.id==='seated_db_press');
+  volleyballDates().forEach(()=>{
+    if(jumpEx)creditVolume(vol,jumpEx,sets.legs);
+    if(pressEx)creditVolume(vol,pressEx,sets.shoulders);
+  });
+  return vol;
+}
+
+// ─────────────────────────────────────────────
 // THE LUNCH TIME LEDGER
 // ─────────────────────────────────────────────
 // A lunch is a hard 40 minutes with no shower. The old model was a flat
@@ -2300,18 +2552,19 @@ function lunchExMins(){
 // tiers already allow for prep and the cool-down (they were recalibrated for
 // exactly that), so the remainder is compared against the same scale.
 function eveningLifts(mins,dow,av,equipmentKey){
-  const tiers=Object.keys(EX_LIMIT).map(Number).sort((a,b)=>a-b);
   let left=mins||60;
-  if(centuryDows(av).includes(dow))left-=centuryMins();
+  // Charged only when this evening is the session actually HOSTING the century
+  // (see centuryChargeFor). It used to bill every century dow, which on a
+  // lunch+evening day meant the same hundred pull-ups was taken out of the lunch
+  // box AND out of the evening — the double-charge Sam reported on 2026-08-17.
+  left-=centuryChargeFor(dow,false,av);
   if(S.cfg?.conditioning){
     const f=getFinisher(dow,false,equipmentKey);
     if(f)left-=(f.mins||8);
   }
   // Largest tier that still fits; never fewer than one lift, since a session
   // that can only afford the century and a finisher is still a session.
-  let lifts=1;
-  tiers.forEach(t=>{if(left>=t)lifts=EX_LIMIT[t];});
-  return Math.max(1,lifts);
+  return exLimitFor(left);
 }
 function lunchBudget(dow,av,boxMins){
   const box=boxMins||40;
@@ -2322,7 +2575,11 @@ function lunchBudget(dow,av,boxMins){
   // session doesn't exist yet when this runs — reserving the cap is the only
   // non-circular answer, and prepPlan guarantees it never exceeds it.
   const prep=LUNCH_LEDGER.prepMins;
-  const century=centuryDows(av).includes(dow)?centuryMins():0;
+  // 0 unless the lunch is the session actually hosting the century, and scaled
+  // to the reps still outstanding when it's today (see centuryChargeFor). On a
+  // lunch+evening day the default host is the evening, so the box keeps its
+  // full lift count instead of paying for work happening after six.
+  const century=centuryChargeFor(dow,true,av);
   const per=lunchExMins();
   let left=box-spine-prep-century;
   const lifts=Math.max(LUNCH_LEDGER.minLifts,Math.min(LUNCH_LEDGER.maxLifts,Math.floor(left/per)));
@@ -2346,7 +2603,13 @@ function lunchBudget(dow,av,boxMins){
   // the finisher's minutes are what the ledger reserves — so price it for the
   // location this lunch actually happens at.
   const lunchEquip=(av&&(av[dow]?.lunchEquipment||av[dow]?.equipment))||S.active?.equipmentKey||'ymca';
-  const f=(S.cfg?.conditioning&&!century)?getFinisher(dow,true,lunchEquip):null;
+  // Gate (1) is a property of the DAY, not of this session's charge: since
+  // 2026-08-17 the century's minutes can be billed to the evening instead, and
+  // reading `century` here would have let a finisher back into the lunch of a
+  // day that still ends in 100 pull-ups. A volleyball night is the same
+  // argument — the sport already is the conditioning.
+  const conditioningCovered=centuryDows(av).includes(dow)||isVolleyballDow(dow);
+  const f=(S.cfg?.conditioning&&!conditioningCovered)?getFinisher(dow,true,lunchEquip):null;
   const finisher=(f&&left>=(f.mins||8)+FINISHER_MARGIN_MINS)?f:null;
   if(finisher)left-=(finisher.mins||8);
   return{box,spine,prep,century,per:Math.round(per*10)/10,lifts,finisher,left:Math.round(left)};
@@ -2611,15 +2874,17 @@ function genProgram(cfg,av,workoutHistoryLog){
   });
 
   // Collect lunch slots and available evening slots separately
+  // A volleyball night takes the evening — no lifting slot is built for it. The
+  // lunch is untouched: playing at 7pm doesn't stop him training at 12.
   const lunchSlots=[];const eveSlots=[];
   [1,2,3,4,5].forEach(dow=>{
     const d=av[dow]||{};
     if(d.lunch!==false)lunchSlots.push({dow,isLunch:true,mins:40,loc:'ymca',key:`${dow}-lunch`,equipmentKey:d.lunchEquipment||'ymca'});
-    if(d.eve?.on)eveSlots.push({dow,isLunch:false,mins:d.eve.mins||60,loc:d.eve.loc||'ymca',key:`${dow}-eve`,equipmentKey:d.eve.equipment||'ymca'});
+    if(d.eve?.on&&!isVolleyballDow(dow))eveSlots.push({dow,isLunch:false,mins:d.eve.mins||60,loc:d.eve.loc||'ymca',key:`${dow}-eve`,equipmentKey:d.eve.equipment||'ymca'});
   });
   [6,0].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.on)eveSlots.push({dow,isLunch:false,mins:d.mins||60,loc:d.loc||'ymca',key:`${dow}-wknd`,equipmentKey:d.equipment||'ymca'});
+    if(d.on&&!isVolleyballDow(dow))eveSlots.push({dow,isLunch:false,mins:d.mins||60,loc:d.loc||'ymca',key:`${dow}-wknd`,equipmentKey:d.equipment||'ymca'});
   });
   if(!lunchSlots.length&&!eveSlots.length){
     const ps=S.cfg?.planStartDow??1;
@@ -2704,6 +2969,17 @@ function genProgram(cfg,av,workoutHistoryLog){
   // Muscles trained per date, accumulated as sessions are assigned this run —
   // lets getLockedMuscles see "preceding" days within the same generation pass.
   const assignedMuscles={};
+  // Volleyball nights are seeded in before anything is planned. This ONE
+  // injection is what makes the three recovery consumers agree: legsRecovered
+  // bumps its "any leg work" clock off `assigned`, dayTemplate's lastDate reads
+  // it for the debt race, and getLockedMuscles pins the MRV ceiling from it —
+  // all through paths that already exist. Note what is deliberately NOT seeded:
+  // the date never reaches strengthDates, so a game counts as an ACCENT leg day
+  // (48h, LEG_LIGHT_LOCKOUT) and never triggers the 72h heavy window. It is
+  // bodyweight jumping, not 1–5 @ 85–95%.
+  volleyballRecoveryDates().forEach(d=>{
+    (assignedMuscles[d]=assignedMuscles[d]||new Set()).add('legs');
+  });
   // Dates in this generation run that already carry a hinge (see hingeBanked).
   const assignedHinge={};
 
@@ -3155,7 +3431,9 @@ function genProgram(cfg,av,workoutHistoryLog){
     // per-exercise rate is measured from Sam's own logged lunches rather than
     // assumed. Evenings and weekends get the same treatment via eveningLifts:
     // a century or a conditioning finisher prescribed that day is charged
-    // against the stated session length before the lifting is sized.
+    // against the stated session length before the lifting is sized — and the
+    // century half of that now goes through centuryChargeFor, so it lands on
+    // exactly ONE of the day's sessions rather than on both.
     const limit=slot.isLunch
       ?lunchBudget(slot.dow,av,slot.mins).lifts
       :eveningLifts(slot.mins,slot.dow,av,equip);
@@ -3626,6 +3904,15 @@ function getWeeklySetVolumes(){
       creditVolume(volumes, exFull(ex), completedSets);
     });
   });
+  // Volleyball is booked HERE rather than in getCommittedVolumes, even though it
+  // is the only entry with no log behind it. The dashboard bars read this
+  // function and the generator's budget reads getCommittedVolumes; splitting the
+  // two would put the widget and the scheduler on different numbers, so legs
+  // would read yellow on the very week the generator had already decided they
+  // were covered. See the "scheduled counts as done" note in the VOLLEYBALL
+  // block for why a fixture is counted for the whole week, past nights included.
+  const vb=volleyballWeekVolumes();
+  Object.keys(vb).forEach(m => { volumes[m] = (volumes[m] || 0) + vb[m]; });
   // Century discounts and fractional secondary credit both land on halves —
   // keep the reported volumes whole.
   Object.keys(volumes).forEach(m => { volumes[m] = Math.round(volumes[m]); });
@@ -3642,17 +3929,21 @@ function getWeeklySetVolumes(){
 // computed from availability directly (not the generated program) — reading
 // S.program here would be circular, since getMRVLimits() feeds the very
 // generation that decides which days end up training.
+// Days that host LIFTING. A volleyball night doesn't — it replaces the evening
+// slot (see the VOLLEYBALL block), so it can't be counted here or a two-lift
+// week with three league nights would read as a five-day schedule and lose the
+// efficiency-mode bands that a genuinely thin week needs.
 function trainingDayCount(av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
   const dows=new Set();
   [1,2,3,4,5].forEach(dow=>{
     const d=av[dow]||{};
     if(d.lunch!==false)dows.add(dow);
-    if(d.eve?.on)dows.add(dow);
+    if(d.eve?.on&&!isVolleyballDow(dow))dows.add(dow);
   });
   [6,0].forEach(dow=>{
     const d=av[dow]||{};
-    if(d.on)dows.add(dow);
+    if(d.on&&!isVolleyballDow(dow))dows.add(dow);
   });
   return dows.size;
 }
@@ -3674,12 +3965,16 @@ function weeklySetCapacity(av){
   // drives the plan-screen shortfall warning, drift here silently understates
   // exactly the weeks that need the warning most.
   const lunchSets=(dow)=>{const n=lunchBudget(dow,av).lifts;return n>0?3+(n-1)*2:0;};
+  // Evenings go through exLimitFor rather than `EX_LIMIT[mins]||5` so a length
+  // that isn't one of the five tier keys degrades to the tier below instead of
+  // falling through to the LONGEST session on the scale.
+  const eveSets=(dow,mins)=>3*exLimitFor(mins||60);
   [1,2,3,4,5].forEach(dow=>{const d=av[dow]||{};
     if(d.lunch!==false)sets+=lunchSets(dow);
-    if(d.eve?.on)sets+=3*(EX_LIMIT[d.eve.mins||60]||5);
+    if(d.eve?.on&&!isVolleyballDow(dow))sets+=eveSets(dow,d.eve.mins);
   });
   [6,0].forEach(dow=>{const d=av[dow]||{};
-    if(d.on)sets+=3*(EX_LIMIT[d.mins||60]||5);
+    if(d.on&&!isVolleyballDow(dow))sets+=eveSets(dow,d.mins);
   });
   return sets;
 }
@@ -3860,14 +4155,45 @@ function getRecoveryAdvisories(){
   const dateFor=(dow)=>dow===0?addDays(thisMon,6):dow===6?addDays(thisMon,5):addDays(thisMon,dow-1);
   const dlabel=(d)=>DOW[new Date(d+'T12:00:00').getDay()];
 
-  // Muscles trained per calendar date: recent logs (last 10 days) + planned week.
+  // ── THE MONITOR HAS TO USE THE ENGINE'S OWN RULES (fixed 2026-08-17) ──
+  // Sam reported the home screen complaining about leg scheduling. It was:
+  // "Legs is set for Fri & Sat — under the 72h it needs to recover", standing on
+  // the dashboard 24 days out of 42 on his main schedule. Every one of them was
+  // a false alarm, and this function was generating them against plans the
+  // generator had deliberately and correctly made. Two distinct disagreements
+  // with the scheduler, both here:
+  //
+  //   1) It ignored the WEIGHTED-ONLY LEGS RULE. Friday's leg work was pistol
+  //      squats — bodyweight, noWeight — which by design does not reset the leg
+  //      clock (see countsForRecoveryLog), so Saturday is legitimately free.
+  //      This counted it anyway.
+  //   2) It used the flat 72h from MUSCLE_LOCKOUT_HOURS, while the scheduler has
+  //      run SPLIT leg windows since 2026-08-03: 72h after heavy 1–5 @ 85–95%
+  //      work, 48h after an accent day (see legsRecovered / LEG_LIGHT_LOCKOUT).
+  //      The 72h figure it was quoting is not the rule the plan was built on.
+  //
+  // A monitor that fires on correct plans is worse than no monitor: it trains
+  // you to scroll past the banner, and the banner is the only thing that will
+  // ever tell you about a real collision. So both predicates are shared with the
+  // engine now — if the leg windows change again, this follows automatically.
   const dateMuscles={};
-  const add=(d,muscles)=>{if(!d)return;(dateMuscles[d]=dateMuscles[d]||new Set());muscles.forEach(m=>m&&dateMuscles[d].add(m));};
+  const heavyLegDates=new Set();
+  const heavyLegIds=heavyLegIdSet();
+  const add=(d,exs,fromLog)=>{
+    if(!d)return;
+    (dateMuscles[d]=dateMuscles[d]||new Set());
+    (exs||[]).forEach(e=>{
+      if(!e||!e.muscle)return;
+      if(!(fromLog?countsForRecoveryLog(e):countsForRecoveryEx(e)))return;
+      dateMuscles[d].add(e.muscle);
+      if(e.muscle==='legs'&&heavyLegIds.has(e.id))heavyLegDates.add(d);
+    });
+  };
   (S.logs||[]).forEach(l=>{
     if(l.isCardio)return;
     const d=logDay(l.date);
     if(daysBetween(d,today)<0||daysBetween(d,today)>10)return;
-    add(d,(l.exercises||[]).map(e=>e&&e.muscle));
+    add(d,l.exercises,true);
   });
   S.program.week.forEach((day,dow)=>{
     if(!day||day.rest)return;
@@ -3875,7 +4201,27 @@ function getRecoveryAdvisories(){
     if(d<today)return; // past planned days are already covered by logs above
     const log=day.customLog||day.plannedCustomLog;
     const exs=log?log.exercises:day.exercises;
-    add(d,(exs||[]).map(e=>e&&e.muscle));
+    add(d,exs,!!log);
+    // NOT day.eveningSession — deliberately, and it is a KNOWN GAP, not an
+    // oversight. This function has never looked at planned evening sessions, so
+    // on a lunch+evening schedule it sees half the week. Adding them was tried
+    // and measured (2026-08-17): it surfaces ~20 more advisory-days over 6 weeks
+    // and every one checked was a TRUE positive — e.g. arnold_press Tue evening
+    // then seated_db_press Wed lunch, ~18h apart, and weighted_pullups Thu
+    // evening then again Friday lunch. But they are collisions the generator
+    // creates ON PURPOSE: getLockedMuscles pins a locked muscle's MRV ceiling
+    // rather than banning it, and the Foundation Five guarantee bypasses the
+    // caps outright. Warning daily about something "space them out" cannot fix
+    // is how a banner gets scrolled past, which is the failure this same commit
+    // fixed for legs. Left off until the underlying scheduling question is
+    // decided.
+  });
+  // Volleyball nights count as accent leg days here for the same reason they do
+  // in the generator — 60-odd landings is real leg load, and the monitor and the
+  // scheduler have to be looking at the same week.
+  volleyballRecoveryDates().forEach(d=>{
+    if(daysBetween(d,today)<-7||daysBetween(d,today)>10)return;
+    (dateMuscles[d]=dateMuscles[d]||new Set()).add('legs');
   });
 
   const advisories=[];
@@ -3887,8 +4233,10 @@ function getRecoveryAdvisories(){
     const days=Object.keys(dateMuscles).filter(d=>dateMuscles[d].has(muscle)).sort();
     for(let i=1;i<days.length;i++){
       if(days[i]<today)continue; // only warn about upcoming conflicts
-      if(hoursBetweenDates(days[i-1],days[i])<hrs)
-        advisories.push(`${MNAME[muscle]||muscle} is set for ${dlabel(days[i-1])} & ${dlabel(days[i])} — under the ${hrs}h it needs to recover. Consider spacing them out.`);
+      // Legs: the window depends on what the EARLIER day actually was.
+      const need=muscle==='legs'&&!heavyLegDates.has(days[i-1])?LEG_LIGHT_LOCKOUT:hrs;
+      if(hoursBetweenDates(days[i-1],days[i])<need)
+        advisories.push(`${MNAME[muscle]||muscle} is set for ${dlabel(days[i-1])} & ${dlabel(days[i])} — under the ${need}h${muscle==='legs'&&need===LEG_LIGHT_LOCKOUT?' an accent leg day needs':' it needs'} to recover. Consider spacing them out.`);
     }
   });
 
@@ -4061,6 +4409,9 @@ function getCommittedVolumes(){
   }
   const proj = centuryWeekVolumes(true);
   Object.keys(proj).forEach(m => { vol[m] = (vol[m] || 0) + proj[m]; });
+  // Volleyball is already inside getWeeklySetVolumes above — deliberately, so
+  // the dashboard bars and this budget can never show different numbers. Don't
+  // add it again here.
   return vol;
 }
 // What share of this week's volume comes from pull-up centuries — logged so far
@@ -4176,6 +4527,20 @@ function getMRVBreakdown(){
       addWithSecondary(DAILY_PUSHUP_DEF,pyramidMrvSets(DAILY_PUSHUP_DEF,reps),
         {dow:null,dayLabel:'Daily',source:'logged',sessionName:`Morning push-ups · ${reps} reps over ${ticked.length} day${ticked.length>1?'s':''}`});
     }
+  }
+
+  // 1c) Volleyball nights. Counted in the widget totals (getWeeklySetVolumes
+  // books them), so they are 'logged'-side entries rather than 'scheduled' ones
+  // — otherwise the breakdown would come up short against the bars it explains.
+  if(volleyballOn()){
+    const vbSets=volleyballMrvSets();
+    const jumpEx=EX.find(e=>e.id==='chair_jumps');
+    const pressEx=EX.find(e=>e.id==='seated_db_press');
+    volleyballDows().forEach(dow=>{
+      const entry={dow,dayLabel:DOW[dow],source:'volleyball',sessionName:'Volleyball'};
+      if(jumpEx)addWithSecondary({...jumpEx,name:`Volleyball · ~${volleyballCfg().jumps} jumps`},vbSets.legs,entry);
+      if(pressEx)addWithSecondary({...pressEx,name:'Volleyball · hitting & serving'},vbSets.shoulders,entry);
+    });
   }
 
   // 2) Planned custom workouts not yet logged (counted in MRV widget)
@@ -5177,6 +5542,10 @@ function finisherHTML(dow,compact,isLunch,equipmentKey){
   // if the ledger didn't leave room, no card is rendered — showing one anyway is
   // how a 40-minute lunch became a 43-minute one.
   if(isLunch&&!lunchBudget(dow).finisher)return'';
+  // A volleyball night IS the conditioning — two hours of jumping and cutting is
+  // not a day that needs a sprint circuit bolted onto it, and stacking one on
+  // top is the recovery hole the century's spacing rules exist to avoid.
+  if(isVolleyballDow(dow))return'';
   const f=getFinisher(dow,isLunch,equipmentKey);
   const primer=f.sprint?`<div style='margin-top:10px;padding:10px 12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:10px'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>🔑 ${SPRINT_PRIMER.title}</div>
@@ -5268,11 +5637,14 @@ function lunchBudgetHTML(dow){
     b.finisher?[`Finisher · ${b.finisher.name}`,b.finisher.mins]:null,
   ].filter(Boolean);
   const measured=lunchExMins()!==LUNCH_LEDGER.exMins;
+  // A century day whose century is billed to the evening shows NO century line
+  // above — which without a word looks like the app forgot about it.
+  const eveHosts=!b.century&&centuryHostSession(dow)==='eve';
   return`<div style='margin-top:10px;padding:12px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:6px'>⏱ The ${b.box}-minute lunch</div>
     ${rows.map(r=>`<div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9'><span style='color:var(--mut)'>${r[0]}</span><span style='font-weight:700'>${r[1]} min</span></div>`).join('')}
     <div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9;border-top:1px solid var(--bdr);margin-top:4px;padding-top:4px'><span style='color:var(--mut)'>Slack</span><span style='font-weight:700;color:${b.left<0?'var(--warn)':'var(--ok)'}'>${b.left} min</span></div>
-    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${eveHosts?` Today's century isn't on this ledger — it's charged to tonight's session instead, since that's where you do it. Change that on the Plan screen.`:''}${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
   </div>`;
 }
 
@@ -5653,9 +6025,15 @@ function centuryHTML(){
   // Damon over 3 months: sets-to-100 and best unbroken set.
   // Clock line: the measured minutes are what buy the lunch time-box its budget
   // (centuryMins → buildSession), so show what's actually being used.
+  // WHERE those minutes are reserved from matters now that it can be either
+  // session (see centuryHostSession) — and the honest number for today is the
+  // one scaled to the reps still outstanding, not the cost from zero.
+  const host=centuryHostSession(todayDow());
+  const hostLbl=host==='eve'?'tonight’s session':host==='lunch'?'your 40-min lunch':'the day';
+  const remain=centuryBudgetToday();
   const clock=st.timedCount
-    ?`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Typically <strong style='color:var(--txt)'>${centuryMins()} min</strong> (median of ${st.timedCount} timed session${st.timedCount!==1?'s':''}${st.lastMins?` · last ${st.lastMins} min`:''}) — that's what gets reserved out of a 40-min lunch.</div>`
-    :`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Timing starts on your first set. Until there's data, lunches budget ${centuryDefaultMins()} min for this — the pacing above is where that number comes from.</div>`;
+    ?`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Typically <strong style='color:var(--txt)'>${centuryMins()} min</strong> (median of ${st.timedCount} timed session${st.timedCount!==1?'s':''}${st.lastMins?` · last ${st.lastMins} min`:''}, incomplete ones scaled to a full hundred) — reserved out of ${hostLbl}${remain<centuryMins()?`, and down to <strong style='color:var(--txt)'>${remain} min</strong> today with what you've already banked`:''}.</div>`
+    :`<div style='font-size:11px;color:var(--mut);margin-top:4px'>⏱ Timing starts on your first set. Until there's data, ${hostLbl} budgets ${centuryDefaultMins()} min for this — the pacing above is where that number comes from.</div>`;
   const trend=st.total>1&&st.firstSets&&st.lastSets
     ?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>${st.total} centuries logged · first took <strong style='color:var(--txt)'>${st.firstSets} sets</strong>, last took <strong style='color:var(--ok)'>${st.lastSets}</strong>${st.best?` · best single set <strong style='color:var(--txt)'>${st.bestEver}</strong>`:''}</div>`
     :st.total===1?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First century logged — ${st.lastSets} sets${st.bestEver?`, best single set ${st.bestEver}`:''}. That set count is the number that comes down.</div>`
@@ -5706,6 +6084,23 @@ function centuryHTML(){
     <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>${plan.test?'After the opener, end':'End'} every set <strong style='color:var(--txt)'>2+ reps short of failure</strong>, and keep them the SAME SIZE — a set count that falls away as you go means set one was too close to failure. Reps don't creep up within a session; they step up on test day. That's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Bands, feet on a box, or slow negatives all count too.</div>
     <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>📊 <strong style='color:var(--txt)'>This is booked against your week.</strong> A full century bills ${CENTURY_MRV_SETS} back sets and ${(CENTURY_MRV_SETS*0.5).toFixed(1)} biceps against weekly MRV (a partial bills its share), so the generator plans less rowing and fewer curls on the days around it — you don't have to hold back on purpose.</div>
     ${trend}
+  </div>`;
+}
+
+// The volleyball card. Shown only on a night he actually plays, and its job is
+// to say what the app has already DONE about it — a night that silently deleted
+// the evening session and quietly booked leg volume would just look like the
+// program had lost a day.
+function volleyballHTML(dow){
+  if(!isVolleyballDow(dow))return'';
+  const vb=volleyballCfg();
+  const sets=volleyballMrvSets();
+  return`<div style='margin-top:12px;padding:14px;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.3);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#f97316;margin-bottom:4px'>🏐 Volleyball · ${DOW[dow]}</div>
+    <div style='font-size:15px;font-weight:800'>Tonight is the session.</div>
+    <div style='font-size:12px;color:var(--mut);margin-top:6px;line-height:1.6'>No lifting is programmed for this evening and no finisher or engine protocol is offered — ~${vb.jumps} jumps and a couple of hours of cutting is the day's conditioning, and stacking a circuit on top is how a good week turns into a sore hip.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>📊 <strong style='color:var(--txt)'>Booked against your week</strong> — ${sets.legs} leg sets and ${sets.shoulders} shoulder sets, so the generator programs less jump and press work around it. Legs start their 48-hour accent window tonight; nothing heavy will be planned for tomorrow morning.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>Landing is the part that costs — knees tracking over the toes, hips back, and absorb it rather than sticking it flat-footed. Change the nights or the jump count on the Plan screen.</div>
   </div>`;
 }
 
@@ -5998,6 +6393,57 @@ function renderCustomExercises(){
     </div>`;
 }
 
+// Volleyball nights, on the screen where the rest of the week is decided. Ticking
+// a day takes that evening out of the lifting rotation and puts the night into
+// the recovery and MRV books — see the VOLLEYBALL block for what each effect is.
+// The jump count is the ONE dial that sets the dose, deliberately (same shape as
+// the Pyramid's peak): everything the model charges is derived from it.
+function volleyballPlanHTML(){
+  const vb=volleyballCfg();
+  const sets=volleyballMrvSets();
+  const dayBtn=(dow)=>`<button class='btn btn-sm ${vb.dows.includes(dow)?'btn-p':'btn-g'}' data-action='toggle-volleyball-dow' data-dow='${dow}' style='flex:1;min-width:42px;padding:8px 2px;font-size:11px'>${DOW[dow]}</button>`;
+  return`<div class='sec-lbl' style='margin-top:16px'>🏐 Volleyball</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>Which nights do you play? A volleyball night replaces that evening's lifting session — it doesn't stack on top of one.</div>
+      <div style='display:flex;gap:4px;margin-bottom:10px'>${[1,2,3,4,5,6,0].map(dayBtn).join('')}</div>
+      ${vb.dows.length?`
+        <div style='display:flex;gap:8px;align-items:center;margin-bottom:8px'>
+          <span style='font-size:12px;color:var(--mut);white-space:nowrap'>Roughly</span>
+          <input type='number' class='ni' id='vb-jumps' value='${vb.jumps}' min='10' max='300' step='10' inputmode='numeric' style='width:80px'>
+          <span style='font-size:12px;color:var(--mut)'>jumps a night</span>
+          <button class='btn btn-s btn-sm' data-action='save-volleyball-jumps' style='width:auto'>Save</button>
+        </div>
+        <div style='font-size:11px;color:var(--mut);line-height:1.6'>That's the only number this needs — everything else is derived from it. At ${vb.jumps} jumps each night books <strong style='color:var(--txt)'>${sets.legs} leg sets</strong> and <strong style='color:var(--txt)'>${sets.shoulders} shoulder sets</strong> against the week, priced at the same rate a submaximal pull-up rep costs in the century. Legs also start their 48-hour accent recovery window from the game, so nothing heavy gets programmed the next morning, and the night's conditioning finisher and engine protocol both come off — the sport is the conditioning.</div>`
+      :`<div style='font-size:11px;color:var(--mut);line-height:1.6'>Off. Nothing changes until a night is ticked.</div>`}
+    </div>`;
+}
+// Which session pays for a century on a day that has BOTH a lunch and an evening.
+// Only ever visible when that combination exists, since otherwise there is no
+// choice to make and a toggle would just be a thing to get wrong.
+function centuryWhenPlanHTML(){
+  const av=S.weekPlan?.availability||defaultAvailability();
+  const both=centuryDows(av).some(dow=>dow>=1&&dow<=5&&(av[dow]||{}).lunch!==false&&!!(av[dow]||{}).eve?.on&&!isVolleyballDow(dow));
+  if(!both)return'';
+  const when=S.cfg?.centuryWhen==='lunch'?'lunch':'eve';
+  return`<div class='sec-lbl' style='margin-top:16px'>🎯 When do you do the century?</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:13px;color:var(--mut);margin-bottom:10px'>On days you train twice, the 100 pull-ups get charged to <strong style='color:var(--txt)'>one</strong> session's clock — the one you actually do them in.</div>
+      <div style='display:grid;grid-template-columns:1fr 1fr;gap:8px'>
+        <div class='opt${when==='eve'?' on':''}' data-action='set-century-when' data-val='eve'>
+          <div class='opt-v' style='font-size:16px'>🌙 Evening</div>
+          <div class='opt-l'>Lunch keeps its lifts</div>
+        </div>
+        <div class='opt${when==='lunch'?' on':''}' data-action='set-century-when' data-val='lunch'>
+          <div class='opt-v' style='font-size:16px'>🥪 Lunch</div>
+          <div class='opt-l'>Evening keeps its lifts</div>
+        </div>
+      </div>
+      <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>${when==='eve'
+        ?`Reserving ~${centuryMins()} min out of an evening costs it one exercise off the template. Taking the same minutes out of the 40-minute lunch costs half the session, which is why this is the default.`
+        :`Reserving ~${centuryMins()} min out of the 40-minute lunch cuts it to ${lunchBudget(centuryDows()[0]??1).lifts} lift${lunchBudget(centuryDows()[0]??1).lifts===1?'':'s'}. Only pick this if you genuinely do the hundred at midday.`}</div>
+    </div>`;
+}
+
 // ─────────────────────────────────────────────
 // RENDER – PLAN SCREEN
 // ─────────────────────────────────────────────
@@ -6039,6 +6485,9 @@ function renderPlan(){
 
     ${capacityWarnHTML}
     ${renderAvailGrid(av,false)}
+
+    ${volleyballPlanHTML()}
+    ${centuryWhenPlanHTML()}
 
     ${renderCustomExercises()}
 
@@ -6266,7 +6715,10 @@ function renderDash(){
     const loggedSess=isCompleted?getLoggedSessionForDow(displayDow):null;
 
     if((!d||d.rest)&&!loggedSess){
-      const label=isActualToday?(isSunday?'Sunday · Plan Your Week':'Rest Day 😴'):(DOW[displayDow]+' · Rest');
+      // A volleyball night has no lifting session by design, so it arrives here
+      // looking exactly like a rest day. Say what it actually is.
+      const label=isVolleyballDow(displayDow)?'🏐 Volleyball Night'
+        :isActualToday?(isSunday?'Sunday · Plan Your Week':'Rest Day 😴'):(DOW[displayDow]+' · Rest');
       return isActualToday&&isSunday
         ?`<div class='today' style='border-color:rgba(251,191,36,.35);background:linear-gradient(135deg,var(--surf2) 0%,rgba(251,191,36,.04) 100%)'>
             <div class='t-lbl' style='color:var(--warn)'>Sunday · Plan Your Week</div>
@@ -6275,7 +6727,7 @@ function renderDash(){
             ${centuryHTML()}
             ${recoveryHTML(displayDow)}
           </div>`
-        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div>${isActualToday?centuryHTML():''}${isActualToday?recoveryHTML(displayDow):''}</div>`;
+        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isVolleyballDow(displayDow)?'':(isActualToday?'Recovery is where the growth happens.':'')}</div>${volleyballHTML(displayDow)}${isActualToday?centuryHTML():''}${isActualToday&&!isVolleyballDow(displayDow)?recoveryHTML(displayDow):''}</div>`;
     }
     // The plan's own view of this dow — null when the (possibly regenerated)
     // program disagrees with what was actually logged (marks it rest, or is
@@ -6322,8 +6774,15 @@ function renderDash(){
       const rxNote=isActualToday&&pyramidPrescription()
         ?`<div style='margin-top:8px;padding:8px 10px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.35);border-radius:8px;font-size:11px;color:var(--mut);line-height:1.6'>⭐ <strong style='color:#f97316'>The Pyramid is tonight's call</strong> — no barbell here and ${getEveningMins()} min to work with. See the card below; this lifting session is the alternative, not both.</div>`
         :'';
+      // An evening hosting the century isn't charged an exercise for it (see
+      // centuryChargeFor — it absorbs the minutes by running long instead), so
+      // say out loud that tonight is longer than the number on the label.
+      const centuryNote=isActualToday&&centuryHostSession(displayDow)==='eve'&&centuryBudgetToday()>0
+        ?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>🎯 The century is booked into tonight — allow about <strong style='color:var(--txt)'>${centuryBudgetToday()} min</strong> on top of the ${dd.eveningSession.mins}. Your lunch keeps its full lift count because of it.</div>`
+        :'';
       eveBlock=`<div style='margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)'>
         <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:6px'>After Work · ${dd.eveningSession.mins} min</div>
+        ${centuryNote}
         <div style='font-size:14px;font-weight:700;margin-bottom:4px'>${dd.eveningSession.name}</div>
         <div class='t-exlist'>${eveExs}</div>
         ${rxNote}
@@ -6344,6 +6803,7 @@ function renderDash(){
         `<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 ${isActualToday?'Log Custom Workout Instead':'Log Custom Workout'}</button>`
       }
       ${eveBlock}
+      ${volleyballHTML(displayDow)}
       ${isActualToday&&dd?.isLunch?lunchBudgetHTML(displayDow):''}
       ${isActualToday&&S.cfg.conditioning?finisherHTML(displayDow,true,!!dd?.isLunch&&!dd?.eveningSession,dd?.eveningSession?.equipmentKey||dd?.equipmentKey):''}
       ${isActualToday?centuryHTML():''}
@@ -6393,7 +6853,11 @@ function renderDash(){
     const isPastDay=viewDow2<dow; // week grid covers the current Sun–Sat only
     if(!isBackdate||isPastDay){
       const todayD=todayDay();
-      const eveningFree=!todayD||todayD.rest||!todayD.eveningSession;
+      // A volleyball night reads as "evening free" to the test below — the
+      // generator built no lifting session for it — but the evening is spoken
+      // for, and an interval protocol on top of a match is exactly the kind of
+      // stacking the schedule is spaced to avoid.
+      const eveningFree=(!todayD||todayD.rest||!todayD.eveningSession)&&!isVolleyballDow(viewDow2);
       // Backdating skips the evening-free gate: it records what actually
       // happened, even on a day that also had a lifting session.
       if(isBackdate||eveningFree){
@@ -8207,6 +8671,32 @@ document.addEventListener('click',e=>{
     const dv=parseInt(btn.dataset.dow);ensureAv(dv);
     S.weekPlan.availability[dv].loc=btn.dataset.val;
     save();render();return;
+  }
+  // Volleyball + century-host both change what the generator will build, so they
+  // replan immediately rather than waiting for Save — the same reasoning that put
+  // replanCurrentWeek() behind save-log-edit: an input that reshapes recovery
+  // debt, weekly MRV and the time box shouldn't leave the program running on the
+  // old numbers until some unrelated event happens to trigger a rebuild.
+  if(a==='toggle-volleyball-dow'){
+    const dv=parseInt(btn.dataset.dow);
+    if(!S.cfg.volleyball)S.cfg.volleyball={dows:[],mins:90,jumps:60};
+    const dows=S.cfg.volleyball.dows||[];
+    S.cfg.volleyball.dows=dows.includes(dv)?dows.filter(d=>d!==dv):dows.concat(dv).sort();
+    replanCurrentWeek();save();render();return;
+  }
+  if(a==='save-volleyball-jumps'){
+    const el=document.getElementById('vb-jumps');
+    const n=parseInt(el&&el.value);
+    if(!isNaN(n)&&n>0){
+      if(!S.cfg.volleyball)S.cfg.volleyball={dows:[],mins:90,jumps:60};
+      S.cfg.volleyball.jumps=Math.max(10,Math.min(300,n));
+      replanCurrentWeek();save();
+    }
+    render();return;
+  }
+  if(a==='set-century-when'){
+    S.cfg.centuryWhen=btn.dataset.val==='lunch'?'lunch':'eve';
+    replanCurrentWeek();save();render();return;
   }
   if(a==='toggle-avail-weekend'){
     const dv=parseInt(btn.dataset.dow);ensureAv(dv);
