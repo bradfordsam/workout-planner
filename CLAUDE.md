@@ -522,6 +522,55 @@ strip it before other debugging.
   because the generator stops spending slots on curls it no longer thinks are
   needed. It also closed the documented `pistol_squat` gap on efficiency weeks
   (0% → 100%).
+- `sessionPlan` / `TRANSITION_BUFFER_SECS` / `mcgillMins` (2026-08-18): Sam asked
+  for the WHOLE routine — century, Big 3, stretching, spine holds, finisher —
+  scheduled inside the one session that starts when he opens it, with the century
+  and Big 3 timed from his own medians and a fixed buffer between movements. So
+  the session is now itemised by ONE function that both the ledgers and the
+  workout screen read: `sessionPlan` returns `{items,deferred,total,over,spare}`
+  and renders as the "This session · N min of M" card above exercise 1.
+  - **The ledgers size the lifting FROM it, so `lifts` is an input, not an
+    output** — computing it inside would be circular. `eveningLifts` and
+    `lunchBudget` decide the count, then hand it back in for display.
+  - **`mcgillMins()` is the median of the last 5 TIMED Big 3 logs**, exactly like
+    `centuryMins()`, falling back to `prepBlockMins(MCGILL_BIG3)` when there is
+    no history — an unmeasured session must never poison the median, which is
+    why `mcgill-done` writes `timedMins` separately from `duration` and
+    `mcgillLogs()` filters on `timedMins>0`. The Big 3 log carries
+    `isCardio:true` with an empty `exercises` array, so it is invisible to
+    session bookkeeping the way the century log is.
+  - **SHED_ORDER is the priority contract, and `eveningLifts` must agree with
+    it.** Order is cool-down → Big 3 → spine holds → century, i.e. LIFTING
+    OUTRANKS all the floor work, because that work needs no gym and a lift does.
+    So `eveningLifts` charges only the pieces that can never be shed — prep, the
+    century when this evening hosts it, the finisher, and the transition buffer.
+    Charging the sheddable three as well was the two halves disagreeing with each
+    other, and it showed: a 60-minute evening was billed 16 minutes for blocks
+    the plan then deferred anyway and came out at ONE lift with six minutes
+    spare.
+  - **The century is the exception in SHED_ORDER**: it is last, and when it does
+    reach the front the card says the day is TOO SHORT for it rather than
+    pretending it was skipped — a ~30 min century cannot fit a 45-min evening
+    alongside prep and a lift, and that is a scheduling answer, not a trim.
+  - **The Big 3 still is NOT on the lunch ledger.** Same arithmetic MCGILL_BIG3
+    already records: six minutes is a whole lift out of a 40-minute box. It is
+    listed on a lunch plan as `deferred` with `byDesign:true` so the card says
+    "morning or evening" instead of "didn't fit today". If it ever DOES move into
+    the box, `LUNCH_LEDGER.spineMins` moves with it.
+  - **The transition buffer is charged at two different counts on purpose.**
+    `sessionPlan` bills `transitionMins(kept.length)` — what the session actually
+    costs. `eveningLifts` bills `transitionMins(4)`, the pieces guaranteed to be
+    there; reserving for all six cost a lift at 75 and 90 minutes, for buffer
+    between blocks that get shed anyway.
+  - Measured against `git show d42d3e2:index.html` on lunch+3-evening
+    availability: **a 45-min evening goes 2 lifts → 1 and a 60-min evening 3 →
+    2**; 75 and 90 are unchanged, century evenings gain one at 75/90, and lunch
+    is unchanged at 2. That drop is the point, not a regression — prep (12) plus
+    a finisher (~10) plus 12 min/lift genuinely does not leave room for a third
+    lift in an hour, and the old tier lookup was promising one.
+  - The in-session Century card and the plan's century line are both gated on
+    `centuryHostSession`, not on `centuryDows` — one session a day pays for the
+    hundred and one session a day shows it.
 - `LUNCH_LEDGER` / `lunchBudget` / `lunchExMins` (2026-08-03, extended
   2026-08-05): the 40-min lunch is a real ledger — box − spine − **prep** −
   century − lifts, and a finisher only if what remains covers it.
