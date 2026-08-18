@@ -162,14 +162,23 @@ strip it before other debugging.
        continuous submaximal jumps is a finisher-shaped dose. Carving it a leg
        slot was tried and measured at **20% of weeks** — and it cost
        `pistol_squat` 100% → 0%, a straight swap of one leg guarantee for
-       another. So the existing `Block Jump Capacity` finisher gets the **first
-       evening of every week** outright (`firstEveningDow`, read from
-       AVAILABILITY — `eveningLifts` prices the finisher during generation, so
-       program-derived would be circular). It was already in the pool and
-       reachable, but only by dow arithmetic: `pool[dow%pool.length]` surfaced it
-       on Saturdays at the YMCA and **never at Westminster**, where the sprint
-       entries make the pool longer. A block he is actively trying to start
-       cannot depend on which index a location's pool lands on.
+       another. So the existing `Block Jump Capacity` finisher is guaranteed on
+       the week's **first evening SESSION**, and the coverage test is
+       `eveningTrainedThisWeek()` — log-based, exactly like
+       `foundationCoveredThisWeek`. It was already in the pool and reachable, but
+       only by dow arithmetic: `pool[dow%pool.length]` surfaced it on Saturdays
+       at the YMCA and **never at Westminster**, where the sprint entries make
+       the pool longer. A block he is actively trying to start cannot depend on
+       which index a location's pool lands on.
+       **Keyed to the evening actually TRAINED, not to a fixed dow** (Sam: *"the
+       jumps can be done on the evenings not just saturdays, right?"*). The first
+       version pinned it to the first evening on the SCHEDULE, i.e. Tuesday — so
+       a skipped Tuesday cost the whole week's jump work at any gym whose
+       rotation doesn't happen to surface it again. Same failure the Foundation
+       Five's log-only seeding exists to prevent: a guarantee keyed to a calendar
+       day evaporates when that day is skipped. It converges instead — before the
+       week's first evening EVERY remaining evening offers it, and the moment one
+       is logged the rotation takes back over.
     2. **Soleus work IS a normal set** — not sweaty, lunch-compatible — so it
        rides the weekly Foundation stamp, TRAILING the Foundation Five so it
        yields while any of them are outstanding.

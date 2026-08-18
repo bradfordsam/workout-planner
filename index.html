@@ -5571,30 +5571,41 @@ function abandonWorkout(){
 // ─────────────────────────────────────────────
 // CONDITIONING FINISHER
 // ─────────────────────────────────────────────
-// The first non-lunch training day of the week, in calendar order. Read from
-// AVAILABILITY, never from the generated program — getFinisher is consulted
-// during generation (eveningLifts prices the finisher before the session is
-// built), so anything program-derived would be circular.
-function firstEveningDow(av){
-  av=av||(S.weekPlan?.availability)||defaultAvailability();
-  const ORDER=[1,2,3,4,5,6,0];
-  return ORDER.find(dow=>(dow===0||dow===6)?!!(av[dow]||{}).on:!!(av[dow]||{}).eve?.on);
+// Has an EVENING (non-lunch) lifting session already been logged this calendar
+// week? This is the jump-durability guarantee's coverage test, and it is
+// log-based for the same reason foundationCoveredThisWeek is: a guarantee keyed
+// to a fixed CALENDAR DAY evaporates when that day gets skipped. Pinned to "the
+// first evening on the schedule" it sat on Tuesday, so a missed Tuesday cost the
+// whole week's jump work at any gym whose rotation doesn't happen to surface it
+// again. Keyed to what was actually trained, it simply moves to Thursday.
+//
+// It converges rather than nagging: before the week's first evening every
+// remaining evening offers it (they are all still the next opportunity), and the
+// moment one is logged the rotation takes over again.
+function eveningTrainedThisWeek(){
+  const mon=thisMonday(),end=addDays(mon,7);
+  return (S.logs||[]).some(l=>l&&!l.isCardio&&!l.isLunch
+    &&logDay(l.date)>=mon&&logDay(l.date)<end);
 }
 function getFinisher(dow,isLunch,equipmentKey){
-  // JUMP DURABILITY GETS THE FIRST EVENING OF THE WEEK (2026-08-17).
+  // JUMP DURABILITY GETS THE WEEK'S FIRST EVENING SESSION (2026-08-17).
   // Sam: "i get gassed and cant jump that high in volleyball right now" — repeat
   // block-jump capacity is the direct answer, and it is CONDITIONING, not a
   // lifting slot: 6 sets of continuous submaximal jumps is a finisher-shaped
   // dose, and trying to carve it a leg slot instead was measured at 20% of weeks
   // (legs only get ~2 slots and both are mandated).
   //
-  // But the plain rotation below is `pool[dow%pool.length]`, which is pure dow
-  // arithmetic — it happened to surface this on Saturdays at the YMCA and NEVER
-  // at Westminster, where the sprint entries make the pool longer. A block he is
-  // actively trying to start can't depend on which index a location's pool
-  // lands on, so it takes the first evening of the week outright. Deterministic,
-  // exactly once a week, and it costs the rotation one slot rather than costing
-  // the lifting any.
+  // The plain rotation below is `pool[dow%pool.length]` — pure dow arithmetic,
+  // which surfaced this on Saturdays at the YMCA and NEVER at Westminster, where
+  // the sprint entries make the pool longer. A block he is actively trying to
+  // start can't depend on which index a location's pool lands on.
+  //
+  // Keyed to the first evening actually TRAINED, not to a fixed dow. Sam asked
+  // "the jumps can be done on the evenings not just saturdays, right?", and the
+  // fixed-day version answered that badly: it pinned the guarantee to Tuesday,
+  // so a skipped Tuesday cost the whole week's jump work at any gym whose
+  // rotation doesn't happen to surface it again. Any evening will do, and the
+  // guarantee follows him to whichever one he takes.
   //
   // Lunch is excluded on purpose and not by accident of `lunchOK`: this is a
   // sweaty set and lunches have no shower. A lunch-only week therefore gets no
@@ -5608,10 +5619,7 @@ function getFinisher(dow,isLunch,equipmentKey){
   // as the runway check.
   const equip=new Set(EQUIPMENT_PRESETS[equipmentKey]?.equipment||[]);
   const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution)&&(!isLunch||f.lunchOK)&&!(f.needsRunway&&!hasRunway)&&!(f.needsEquip&&!equip.has(f.needsEquip)));
-  // firstEveningDow() is undefined on a week with no evening at all, and
-  // undefined===undefined would then match every dow — hence the explicit test.
-  const firstEve=firstEveningDow();
-  if(!isLunch&&jumpDurabilityOn()&&firstEve!==undefined&&dow===firstEve){
+  if(!isLunch&&jumpDurabilityOn()&&!eveningTrainedThisWeek()){
     const jd=pool.find(f=>f.jumpDurability);
     if(jd)return jd;
   }
