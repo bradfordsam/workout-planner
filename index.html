@@ -1402,6 +1402,8 @@ let S={
   // In-progress Cindy tally {date,rounds,startedAt,touchedAt}; same stamped-draft
   // sync as century/pyramid (see mergeStampedDraft).
   cindy:null,cindyOpen:false,
+  // Big 3 timer {date,startedAt}; measured so mcgillMins() has a real median.
+  mcgill:null,
 };
 let timerIv=null;
 
@@ -1441,7 +1443,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1449,7 +1451,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -2496,6 +2498,45 @@ function volleyballWeekVolumes(){
 // Both fixed doses are DERIVED from the item lists rather than restated as
 // constants — getters, because the pools are declared further down the file and
 // a plain property would hit the temporal dead zone at module-eval time.
+// ─── SESSION TIME MODEL ───
+// Everything prescribed for a day belongs to ONE session that starts when the
+// workout is opened — the century, the McGill Big 3, the daily spine holds, the
+// stretching and any finisher included, not as separate cards to find later.
+// That only works if each piece is actually costed, so the lifting can shrink
+// to fit rather than the session quietly running long.
+//
+// Transitions are the piece every estimate forgets: walking to the rig, waiting
+// for a bench, re-racking, setting up the next thing. Charged as a FIXED buffer
+// per movement (rather than folded into the movement's own estimate) because it
+// scales with the NUMBER of pieces, which is exactly what changes when the
+// session grows or shrinks.
+const TRANSITION_BUFFER_SECS=45;
+// The post-session block: tibialis raises plus three rotated static holds.
+// Matches the '~5 min' the cool-down box itself advertises.
+const COOLDOWN_MINS=5;
+// Minutes an evening lift actually costs — warm-up ramp, working sets and the
+// rest between them. The lunch equivalent is MEASURED from logs (lunchExMins);
+// evenings have no comparable clean signal yet, so this stays an estimate.
+const EVENING_EX_MINS=12;
+const transitionMins=(pieces)=>Math.round(pieces*TRANSITION_BUFFER_SECS/60);
+// Derived, not invented: the Big 3's own prescribed holds priced the same way
+// every other fixed block is (prepItemSecs parses each entry's stated dose).
+function mcgillDefaultMins(){return Math.max(4,prepBlockMins(MCGILL_BIG3));}
+function mcgillLogs(){return (S.logs||[]).filter(l=>l&&l.mcgill&&l.timedMins>0);}
+// Median of the last 5 MEASURED Big 3 sessions, same rule as centuryMins():
+// median rather than mean so one interrupted session can't skew the budget,
+// and only genuinely timed sessions count — an estimate fed back in as if it
+// were a measurement is the circularity the century's timing note warns about.
+function mcgillMins(){
+  const t=mcgillLogs().slice(-5).map(l=>l.timedMins).sort((a,b)=>a-b);
+  return t.length?t[Math.floor(t.length/2)]:mcgillDefaultMins();
+}
+function mcgillDraft(){
+  if(!S.mcgill||S.mcgill.date!==todayStr())return{date:todayStr(),startedAt:null};
+  return S.mcgill;
+}
+function mcgillDoneToday(){return (S.logs||[]).find(l=>l&&l.mcgill&&logDay(l.date)===todayStr())||null;}
+
 const LUNCH_LEDGER={
   get spineMins(){return prepBlockMins(DAILY_SPINE_MINIMUMS);},  // the four fixed holds
   get prepMins(){return PREP_BUDGET_MINS.lunch;},                // a CAP, and prepPlan fills to it
@@ -2531,9 +2572,69 @@ function lunchExMins(){
   if(!rates.length)return LUNCH_LEDGER.exMins;
   return rates[Math.floor(rates.length/2)];
 }
-// Everything that spends the lunch box, in priority order. `av` is passed
-// explicitly during generation for the same reason centuryDows takes it —
-// reading S.program mid-generation would be circular.
+// The whole session, itemised, in the order it's actually performed. One source
+// of truth: the ledgers size the lifting from it and the workout screen renders
+// it, so what the plan promises and what the session costs cannot drift apart.
+// `lifts` is passed in because the ledgers call this to DECIDE the lift count —
+// computing it here too would be circular.
+// 'a', 'a and b', 'a, b and c' — the deferred list reads as a sentence.
+const listWords=(a)=>a.length<2?(a[0]||''):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
+  const items=[];
+  const push=(key,label,m,note)=>{if(m>0)items.push({key,label,mins:m,note});};
+  push('prep','Prep & mobility',isLunch?PREP_BUDGET_MINS.lunch:PREP_BUDGET_MINS.evening);
+  const per=perLiftMins||(isLunch?lunchExMins():EVENING_EX_MINS);
+  if(lifts>0)push('lifts',`${lifts} lift${lifts>1?'s':''}`,Math.round(lifts*per));
+  // 0 unless THIS session is the one hosting the century (see centuryChargeFor):
+  // he does the hundred once, so on a lunch+evening day only one of the two
+  // shows it and only one of the two pays for it.
+  const centuryChg=centuryChargeFor(dow,!!isLunch,av);
+  if(centuryChg>0)push('century','Pull-up Century',centuryChg,'median of your timed sessions');
+  // Covered-ness is a property of the DAY, not of this session's charge — a
+  // lunch on a day that still ends in 100 pull-ups has its conditioning too.
+  const conditioningCovered=centuryDows(av).includes(dow)||isVolleyballDow(dow);
+  if(S.cfg?.conditioning&&!conditioningCovered){
+    const f=getFinisher(dow,!!isLunch,equipmentKey);
+    const afford=isLunch?!!lunchBudget(dow,av,mins).finisher:true;
+    if(f&&afford)push('finisher',f.name,f.mins||8);
+  }
+  push('spine','Daily spine minimums',prepBlockMins(DAILY_SPINE_MINIMUMS));
+  const mcgillNote=mcgillLogs().length?'median of your timed sessions':'from its prescribed holds';
+  if(isLunch){
+    // Listed but never charged, and never performed here — see the lunch
+    // ledger. Showing it deferred is the honest version of a rule the box has
+    // always had: at 40 minutes the Big 3 costs a lift.
+    items.push({key:'mcgill',label:'McGill Big 3',mins:mcgillMins(),note:'morning or evening — the 40-min box buys it with a lift',deferred:true,byDesign:true});
+  }else push('mcgill','McGill Big 3',mcgillMins(),mcgillNote);
+  if(!isLunch)push('cooldown','Cool-down stretching',COOLDOWN_MINS);
+  // If it doesn't all fit, SHED rather than silently overrun — the whole point
+  // is a routine that fits the duration actually stated. Order is cheapest-to-
+  // lose first, and every one of these is a block that genuinely can happen
+  // away from the gym later:
+  //   cool-down stretching -> the Big 3 -> the spine holds.
+  // Prep is never shed (it's the injury-prevention half), the lifts are already
+  // floored at one by the ledgers, and the century isn't dropped because on a
+  // century day it IS the session's headline prescription.
+  // 'century' is last and is a different kind of answer: at ~30 min it simply
+  // cannot fit a 40-min lunch or a 45-min evening alongside prep and a lift, so
+  // when it reaches the front of this queue the honest message is that this
+  // session is too short for it — not that it was quietly skipped.
+  const SHED_ORDER=['cooldown','mcgill','spine','century'];
+  const cost=()=>items.filter(i=>!i.deferred).reduce((a,i)=>a+i.mins,0)
+    +transitionMins(items.filter(i=>!i.deferred).length);
+  for(const key of SHED_ORDER){
+    if(cost()<=mins)break;
+    const it=items.find(i=>i.key===key&&!i.deferred);
+    if(it)it.deferred=true;
+  }
+  const kept=items.filter(i=>!i.deferred);
+  const transitions=transitionMins(kept.length);
+  if(transitions>0)items.push({key:'transitions',label:`Transitions (${kept.length} × ${TRANSITION_BUFFER_SECS}s)`,mins:transitions});
+  const total=kept.reduce((a,i)=>a+i.mins,0)+transitions;
+  const deferred=items.filter(i=>i.deferred);
+  return{items,deferred,total,over:Math.max(0,total-mins),spare:Math.max(0,mins-total)};
+}
+
 // ── EVENING / WEEKEND TIME LEDGER ──
 // Evenings used to take the plain EX_LIMIT cap on the stated session length,
 // on the reasoning that they have a shower and a flexible finish time and "no
@@ -2547,25 +2648,55 @@ function lunchExMins(){
 // as 75. Same failure the lunch ledger was built to fix, just with more slack
 // to hide in.
 //
-// Charge them the same way: subtract what's already prescribed, then read the
-// lift count off the largest EX_LIMIT tier the REMAINING time can afford. The
-// tiers already allow for prep and the cool-down (they were recalibrated for
-// exactly that), so the remainder is compared against the same scale.
+// Charge them the same way the lunch box is charged: every fixed block the
+// session actually contains comes out first, and the lift count is what the
+// REMAINING minutes buy at the per-lift rate.
 function eveningLifts(mins,dow,av,equipmentKey){
-  let left=mins||60;
-  // Charged only when this evening is the session actually HOSTING the century
-  // (see centuryChargeFor). It used to bill every century dow, which on a
-  // lunch+evening day meant the same hundred pull-ups was taken out of the lunch
-  // box AND out of the evening — the double-charge Sam reported on 2026-08-17.
-  left-=centuryChargeFor(dow,false,av);
-  if(S.cfg?.conditioning){
+  // Cost the fixed pieces explicitly and divide what's LEFT by the per-lift
+  // rate. The earlier version subtracted the century and the finisher and then
+  // read the remainder off the EX_LIMIT tiers — but those tiers already allow
+  // for prep and the cool-down, so charging them here as well billed them twice
+  // and a 75-min evening collapsed to a single lift. exLimitFor still supplies
+  // the CEILING off the stated length (a long evening shouldn't sprawl into
+  // eight exercises); it just no longer does the arithmetic.
+  const box=mins||60;
+  // 0 unless this evening is the session actually HOSTING the century (see
+  // centuryChargeFor). It used to bill every century dow, which on a
+  // lunch+evening day meant the same hundred pull-ups came out of the lunch box
+  // AND out of the evening — the double-charge Sam reported on 2026-08-17.
+  const century=centuryChargeFor(dow,false,av);
+  // Same rule the lunch ledger enforces, and keyed on the DAY for the same
+  // reason: 100 pull-ups (or a night of volleyball) already IS the day's
+  // conditioning, and stacking a circuit on top is the recovery hole the
+  // century's spacing exists to avoid. It was also the only way a 75-minute
+  // evening could end up 15 minutes over.
+  const conditioningCovered=centuryDows(av).includes(dow)||isVolleyballDow(dow);
+  let finisher=0;
+  if(S.cfg?.conditioning&&!conditioningCovered){
     const f=getFinisher(dow,false,equipmentKey);
-    if(f)left-=(f.mins||8);
+    if(f)finisher=f.mins||8;
   }
-  // Largest tier that still fits; never fewer than one lift, since a session
-  // that can only afford the century and a finisher is still a session.
-  return exLimitFor(left);
+  // Only the blocks that CANNOT be shed are charged here. sessionPlan drops the
+  // cool-down, then the Big 3, then the spine holds before it would touch the
+  // lifting (see SHED_ORDER), so charging those three against the lift count is
+  // the two halves disagreeing with each other — and it showed: a 60-minute
+  // evening was billed for 16 minutes of work the plan then deferred anyway and
+  // came out at ONE lift with six minutes spare. All three are floor work that
+  // genuinely can happen at home; a lift can't.
+  // Four pieces, matching what's actually guaranteed to be in the session:
+  // prep, the lifting, the century if this evening hosts it, and the finisher.
+  // Charging six (the full itemised plan) reserved buffer for blocks that get
+  // shed anyway and quietly cost a lift at 75 and 90 minutes.
+  const fixed=PREP_BUDGET_MINS.evening+century+finisher+transitionMins(4);
+  // EX_LIMIT is the ceiling only. The tiers are calibrated as prep plus N lifts
+  // at EVENING_EX_MINS (60 → 12 + 4×12), so the two agree on an empty evening
+  // and diverge only by what's actually prescribed on top.
+  return Math.max(1,Math.min(exLimitFor(box),Math.floor((box-fixed)/EVENING_EX_MINS)));
 }
+
+// Everything that spends the lunch box, in priority order. `av` is passed
+// explicitly during generation for the same reason centuryDows takes it —
+// reading S.program mid-generation would be circular.
 function lunchBudget(dow,av,boxMins){
   const box=boxMins||40;
   const spine=LUNCH_LEDGER.spineMins;
@@ -2581,7 +2712,18 @@ function lunchBudget(dow,av,boxMins){
   // full lift count instead of paying for work happening after six.
   const century=centuryChargeFor(dow,true,av);
   const per=lunchExMins();
-  let left=box-spine-prep-century;
+  // The transition buffer joins the box for the same reason the spine holds and
+  // prep already had: it happens inside this session, so pretending it's free is
+  // how a 40-minute lunch became a 43-minute one.
+  //
+  // The Big 3 deliberately does NOT join it. That is the decision MCGILL_BIG3
+  // already records and the arithmetic hasn't changed: six minutes is a whole
+  // lift out of a 40-minute box, so half his lunch lifting would be paying for
+  // floor work that needs no gym and can be done at home. It stays a
+  // morning-or-evening job — sessionPlan lists it on a lunch as deferred, with
+  // that reason, rather than dropping it silently. If it ever DOES move into
+  // the box, LUNCH_LEDGER.spineMins has to move with it.
+  let left=box-spine-prep-century-transitionMins(5);
   const lifts=Math.max(LUNCH_LEDGER.minLifts,Math.min(LUNCH_LEDGER.maxLifts,Math.floor(left/per)));
   left-=lifts*per;
   // A finisher has to be affordable TWICE OVER before it's offered.
@@ -7279,8 +7421,18 @@ function renderWorkout(){
     <div class='wu-title' style='color:#c084fc;margin-top:14px'>🧘 Daily Spine Minimums · ~5 min · these never rotate</div>
     ${DAILY_SPINE_MINIMUMS.map(wuRow).join('')}
     <div class='wu-note'>Fixed daily doses, every day: 60s child's pose (knees wide — hip-friendly), 2 min of cobra split into a few holds, 60s plank, 60s down dog. Knocking them out here checks off today's minimums, so there's nothing left to do at home.</div>
-    <div class='wu-title' style='color:var(--acc);margin-top:14px'>🦴 McGill Big 3 · ~6 min · the stability half</div>
+    <div class='wu-title' style='color:var(--acc);margin-top:14px'>🦴 McGill Big 3 · ~${mcgillMins()} min · the stability half</div>
     ${MCGILL_BIG3.map(wuRow).join('')}
+    ${(()=>{
+      // Timing it is what gives mcgillMins() a real median to budget from —
+      // otherwise the session plan is forever guessing at its own prescription.
+      const done=mcgillDoneToday();
+      if(done)return`<div class='prog-hint' style='margin-top:6px'>✅ Logged${done.timedMins?` — ${done.timedMins} min`:''}</div>`;
+      const d=mcgillDraft();
+      return d.startedAt
+        ?`<button class='btn btn-ok btn-sm' data-action='mcgill-done' style='margin-top:8px;width:100%'>✓ Done — log the time</button>`
+        :`<button class='btn btn-g btn-sm' data-action='mcgill-start' style='margin-top:8px;width:100%'>▶ Start Big 3 (times it)</button>`;
+    })()}
     <div class='wu-note'>Braced holds, ~10s each, reps descending 6 → 4 → 2. Endurance is the target, not strength, so none of these go near failure. In all three the LOW BACK DOESN'T MOVE — if it's moving, the exercise has turned into the thing it exists to replace. Doing them here means they're done for the day.</div>
   </div>`:'';
   const nextBtn=allDone
@@ -7309,6 +7461,36 @@ function renderWorkout(){
       ${S.active.autoRegNotes.map(n=>`<div class='wu-row'>${n}</div>`).join('')}
       <div class='wu-note'>Volume adjusted from what you actually logged earlier today (60% rule).</div>
     </div>`:''}
+    ${(()=>{
+      // The whole session, itemised, shown once at the top. The clock is
+      // already running (S.active.startTime is stamped on open), so this is
+      // what that clock is buying — century, spine work, Big 3, stretching and
+      // finisher included, not a lifting-only estimate with the rest bolted on
+      // afterwards.
+      if(exIdx!==0)return'';
+      const plan=sessionPlan({mins:S.active.sessionMins,dow:S.active.dow,av:S.weekPlan?.availability,
+        equipmentKey:S.active.equipmentKey,isLunch:!!S.active.isLunch,lifts:exercises.length,
+        perLiftMins:S.active.isLunch?lunchExMins():EVENING_EX_MINS});
+      const rows=plan.items.filter(i=>!i.deferred).map(i=>`<div style='display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:12px'>
+        <span style='color:var(--mut)'>${i.label}${i.note?` <span style='opacity:.7'>· ${i.note}</span>`:''}</span>
+        <strong style='color:var(--txt);flex-shrink:0'>${i.mins}m</strong></div>`).join('')
+        +plan.deferred.map(i=>`<div style='display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:12px;opacity:.55'>
+        <span style='color:var(--mut);text-decoration:line-through'>${i.label}</span>
+        <span style='flex-shrink:0;color:var(--mut)'>${i.key==='century'?'needs a longer day':(i.note||'at home')}</span></div>`).join('');
+      return`<div class='wu-box' style='margin-bottom:14px'>
+        <div class='wu-title'>⏱️ This session · ${plan.total} min of ${S.active.sessionMins}</div>
+        ${rows}
+        <div class='wu-note'>${plan.deferred.some(i=>i.key==='century')
+          ?`⚠ ${S.active.sessionMins} min isn't enough for the Century (${centuryMins()} min) on top of prep and a lift — move it to a longer day, or plan to run over. ${plan.deferred.filter(i=>i.key!=='century').length?'Spine work and the Big 3 need no gym — do those at home.':''}`
+          :plan.deferred.filter(i=>!i.byDesign).length
+          ?`Doesn't all fit today — ${listWords(plan.deferred.filter(i=>!i.byDesign).map(i=>i.label.toLowerCase()))} moved out of the session. No gym needed for those, so do them at home tonight.`
+          :plan.deferred.length
+          ?`Everything below is inside this one session, in this order. ${listWords(plan.deferred.map(i=>i.label))} stays out of the box by design — it needs no gym, and buying it here would cost you a lift.`
+          :plan.over>0
+            ?`Running ~${plan.over} min over the ${S.active.sessionMins} you picked — trim a lift if you're tight.`
+            :`Everything below is inside this one session, in this order. ~${plan.spare} min spare.`}</div>
+      </div>`;
+    })()}
     ${prepHTML}
     ${machineModeHTML}
     ${efficiencyModeHTML}
@@ -7333,6 +7515,7 @@ function renderWorkout(){
       </div>
       ${setsRows}
       ${condBlock}
+      ${isLast&&allDone&&centuryHostSession(S.active.dow)===(S.active.isLunch?'lunch':'eve')&&!centuryLogs().some(l=>logDay(l.date)===todayStr())?centuryHTML():''}
       ${cooldownHTML}
       ${nextBtn}
       ${skipBtn}
@@ -9011,6 +9194,22 @@ document.addEventListener('click',e=>{
   }
   // ── The Pyramid ladder (see PYRAMID_LADDER) ──
   if(a==='pyramid-toggle'){S.pyramidOpen=!S.pyramidOpen;render();return;}
+  if(a==='mcgill-start'){
+    S.mcgill={date:todayStr(),startedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='mcgill-done'){
+    const d=mcgillDraft();
+    // Measured start -> finish. Without a start stamp we log nothing timed
+    // rather than guess: mcgillMins() filters on timedMins>0, so an unmeasured
+    // session is skipped instead of poisoning the median (same rule as the
+    // century's timing).
+    const timedMins=d.startedAt?Math.max(1,Math.round((Date.now()-new Date(d.startedAt).getTime())/60000)):0;
+    S.logs.push({id:Date.now().toString(),date:new Date().toISOString(),dayName:'McGill Big 3',
+      isCardio:true,mcgill:true,duration:timedMins||mcgillDefaultMins(),timedMins,exercises:[]});
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    S.mcgill=null;save();render();return;
+  }
   if(a==='cindy-toggle'){S.cindyOpen=!S.cindyOpen;render();return;}
   if(a==='cindy-round'){
     const d=cindyDraft();
@@ -9619,7 +9818,7 @@ async function saveToCloud(){
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
