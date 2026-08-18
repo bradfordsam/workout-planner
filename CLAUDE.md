@@ -140,44 +140,53 @@ strip it before other debugging.
   all-YMCA week cannot cover the push-up Foundation movement. This used to be
   explained in words on the dashboard; that card was removed 2026-08-03, so the
   gap is now SILENT (see the Fundamentals-card note below).
-- **`VOLLEYBALL` (2026-08-17)** — `S.cfg.volleyball={dows,mins,jumps}`, off until days
-  are ticked on the Plan screen. A league night is a FIXTURE, not a session the app
-  designs, so the model is small and does exactly four things:
-  1. **Not a lifting slot.** A volleyball dow's evening is withheld everywhere
-     availability is read — `genProgram`'s slot builder, `trainingDayCount`,
-     `weeklySetCapacity`, `centuryEligibleDow`. Those four `isVolleyballDow` call
-     sites must stay in sync; planning a lift he can't do manufactures a missed
-     day and drags the recovery ordering with it. The LUNCH is untouched.
-  2. **Books MRV**, priced through `pyramidMrvSets` → the century anchor, so there
-     is no new invented constant. `jumps` is the ONE dial (same shape as
-     `pyramidPeak`): at 60 it's ~3 leg sets + ~1.1 shoulder sets a night. Legs are
-     `chair_jumps`, shoulders `seated_db_press` × `VB_SWINGS_PER_JUMP` (0.5 — the
-     one estimated ratio in the whole model, flagged as such in the code).
-  3. **Resets the LEG clock as an ACCENT day** (48h, never the 72h heavy window —
-     bodyweight jumping isn't 1–5 @ 85–95%). One injection into `genProgram`'s
-     `assignedMuscles` covers `legsRecovered`, `dayTemplate`'s `lastDate` AND
-     `getLockedMuscles`, because all three already read that map and all three
-     only look strictly backwards. Never reaches `strengthDates`, which is what
-     keeps it light. `volleyballRecoveryDates()` includes LAST week so a Sunday
-     game is visible when Monday is planned.
-  4. **Is the day's conditioning** — no finisher (`finisherHTML` + the
-     `lunchBudget` gate), no VO2 protocol (`renderDash`'s `eveningFree`).
-  - **SCHEDULED COUNTS AS DONE, and there is deliberately no "log volleyball"
-    button** — the opposite of the century's "a missed one is never projected"
-    rule. Effect (3) has to assume he played, or the app programs heavy legs the
-    morning after a game; so (2) must assume the same or the two halves of the
-    model contradict each other. Cancelled night → untick the day.
-  - Booked in **`getWeeklySetVolumes`**, not `getCommittedVolumes` — it's the only
-    volume with no log behind it, and splitting it would put the dashboard bars
-    and the generator's budget on different numbers.
-  - Measured cost of turning it on (6 sim weeks, lunch+3-evening, Tue+Thu):
-    8 sessions → 6, legs 14–15 → 12 MRV (6 programmed + 6 volleyball) against a
-    14–24 band, **hamstring mandate 100% → 0%** and hinge 100% → 60%. Structural,
-    not a bug: two leg slots survive and the mandate order is strength → hinge →
-    hamstring, so hamstring can never be reached. The plan-screen
-    `weeklySetCapacity` warning fires on that profile. Worth revisiting if he
-    actually plays twice a week — a jumping athlete is the one who most wants
-    the Nordic curl.
+- **`JUMP_DURABILITY` (2026-08-17)** — Sam: *"the workouts i wanted to start doing
+  to increase my durability playing volleyball (repeated vertical jumping as a
+  blocker on sand)"*, and *"i get gassed and cant jump that high right now"*.
+  **He does NOT play on a schedule.** A first pass modelled volleyball as a league
+  NIGHT that consumed an evening, booked MRV and reset the leg clock; that was
+  exactly backwards and is fully reverted (a `load()` migration deletes
+  `cfg.volleyball` so it can't ride back in from a device that saw it). This is
+  TRAINING FOR a demand, so it is programmed work and costs the week what any
+  other programmed work costs. It touches no recovery window and no availability.
+  - **Both target movements were DEAD CODE**, which is the real finding here:
+    `repeat_block_jumps` and `soleus_raises` (added upstream 2026-08-14) took
+    **zero picks in 6 simulated weeks on all three schedules** — as did every
+    other jump and calf movement. Structural: legs get ~2 slots/week and both are
+    mandated (evening `strength`, lunch `hinge`/`hamstring`), and the athletic
+    accent branch that would ask for jump work only fires on a THIRD leg slot
+    those schedules never produce. The exact silent-dead-code trap the EX-ordering
+    note warns about — a never-picked entry looks identical to a working one.
+  - **Two paths, because the two pieces are different shapes of work:**
+    1. **Repeat-jump capacity is CONDITIONING, not a lifting slot.** Six sets of
+       continuous submaximal jumps is a finisher-shaped dose. Carving it a leg
+       slot was tried and measured at **20% of weeks** — and it cost
+       `pistol_squat` 100% → 0%, a straight swap of one leg guarantee for
+       another. So the existing `Block Jump Capacity` finisher gets the **first
+       evening of every week** outright (`firstEveningDow`, read from
+       AVAILABILITY — `eveningLifts` prices the finisher during generation, so
+       program-derived would be circular). It was already in the pool and
+       reachable, but only by dow arithmetic: `pool[dow%pool.length]` surfaced it
+       on Saturdays at the YMCA and **never at Westminster**, where the sprint
+       entries make the pool longer. A block he is actively trying to start
+       cannot depend on which index a location's pool lands on.
+    2. **Soleus work IS a normal set** — not sweaty, lunch-compatible — so it
+       rides the weekly Foundation stamp, TRAILING the Foundation Five so it
+       yields while any of them are outstanding.
+  - **`repeat_block_jumps` was missing `highSweat`** and that was a live bug, not
+    a nicety: 15–30 continuous jumps is unambiguously sweaty, comparable entries
+    (`jump_squats`, `lateral_bounds`, `burpees`) all carry it, and without it the
+    weekly stamp put it on no-shower YMCA lunches. Symptom in the sim was a week
+    with **zero leg sets** on the lunch-only profile — the slot was stamped with
+    a movement `pickEx` then refused, and dropped. Consequence, accepted: a
+    lunch-only week gets no jump work at all, the same structural gap
+    `bear_crawl` has.
+  - Measured vs `origin/main` (6 wks): lunch+3-evening and 3-evening are
+    **identical** on every muscle, mandate and leg-set count; lunch-only gains
+    soleus 0% → 20% and loses hinge 80% → 60%. The jump capacity arrives on top,
+    in the finisher budget, costing the lifting nothing.
+  - `S.cfg.jumpDurability` toggles it (Plan screen). Defaults ON via
+    `!==false`, so it is live without a migration.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
@@ -345,6 +354,30 @@ strip it before other debugging.
   is one lift, not two. Seeding it with `EX_LIMIT[30]` handed 2 lifts to an
   evening with 14 minutes left after a century and a finisher, which showed up in
   the sim as +3 core sets a week on the efficiency profile.
+  **Saying it's already done (2026-08-17, `century-already-done`)** — Sam: *"how
+  can I say I have already done the century, don't include it in the schedule."*
+  There was no way to; the only path to a logged century was tapping it out set by
+  set. One button now logs a full hundred with three flags, each stopping a
+  specific lie entering the numbers:
+  - **`offSession:true`** — those minutes did not come out of a session this app
+    budgets (done before work, at another gym), so `centuryBudgetToday()` reserves
+    **0** and today's lunch keeps its full lift count. This flag is the ONLY thing
+    that can zero the reservation, and it has to be an explicit statement from him
+    because the app genuinely cannot tell 100 reps at 8am (minutes really free)
+    from 100 reps at 12:05 (minutes that came out of the lunch it would then hand
+    two extra lifts to). Any other logged century is still charged what it
+    measured.
+  - **`estimated:true`** — the rep TOTAL is known, the set breakdown isn't, so it
+    stores an even split at the prescribed set size. `centuryStats()` excludes
+    estimated logs from `best`, which matters more than it looks: an even split of
+    100 would otherwise register as a monstrous unbroken set, and `best` sizes
+    `centurySetPlan`'s set size AND `pyramidPeak` — one fake would prescribe sets
+    of 50 and a peak-10 ladder off a number he never hit.
+  - **`timedMins:0`** — "don't know how long", which `centuryMins()` already skips
+    rather than averaging.
+  MRV is unaffected and correct: 100 reps is 100 reps wherever they happened. The
+  handler calls `replanCurrentWeek()`, since both the week's back budget and
+  today's time box just moved.
   **Scaling an incomplete century (2026-08-17, `centuryMins` rewrite)** — Sam:
   *"scaling timing for incomplete centuries for scheduling purposes."* Every timed
   session now feeds the median with partials scaled pro-rata to a full-century
