@@ -191,11 +191,104 @@ strip it before other debugging.
     lunch-only week gets no jump work at all, the same structural gap
     `bear_crawl` has.
   - Measured vs `origin/main` (6 wks): lunch+3-evening and 3-evening are
-    **identical** on every muscle, mandate and leg-set count; lunch-only gains
-    soleus 0% → 20% and loses hinge 80% → 60%. The jump capacity arrives on top,
-    in the finisher budget, costing the lifting nothing.
+    **identical** on every muscle, mandate and leg-set count; lunch-only loses
+    hinge 80% → 60%. The jump capacity arrives on top, in the finisher budget,
+    costing the lifting nothing. (The soleus-gains-20%-of-weeks figure this
+    line originally reported is now moot — see `CALF_WEEKLY_TARGET_SETS`
+    below: measured again on 2026-08-19, the soleus stamp actually landed 0 of
+    10 simulated weeks, and that mechanism is retired in favor of the one
+    described there.)
   - `S.cfg.jumpDurability` toggles it (Plan screen). Defaults ON via
     `!==false`, so it is live without a migration.
+- **`CALF_WEEKLY_TARGET_SETS` (2026-08-19)** — Sam: *"make sure I get at least 2
+  sets of calves a week in programming."* Measured first, same method as every
+  other feature in this file: **0 of 10 simulated weeks on all three schedules**
+  had ANY calf-tagged set land, including lunch+3-evening. The JUMP_DURABILITY
+  stamp above (`soleus_raises`, riding the Foundation Five's weekly-guarantee
+  queue) was the only existing mechanism, and it was dead code for a structural
+  reason: legs produces only ONE slot a week that queue can even contest — the
+  accent slot, once heavy strength is already banked; every other leg slot
+  carries a hard mandate — and `pistol_squat` sits ahead of it in that SAME
+  single-stamp-per-session queue, so it won that one slot every time (measured
+  10/10 weeks on the full schedule, 0/10 for soleus). **That queue is the wrong
+  mechanism for this** — `JUMP_DURABILITY` is now `[]` rather than left to lose
+  forever (the note above it explains why; the stale "soleus 0%→20%" line in
+  the note above that no longer applies now that this replaces it).
+  - **Doesn't compete for a leg slot at all.** `needsCalfTopUp()` (log-seeded,
+    same convergence rule as Foundation Five — a PLANNED top-up doesn't retire
+    it, only a LOGGED one does) gates a small, independently-priced append in
+    `buildSession`: 2 quick sets from `CALF_TOPUP_POOL`, tacked onto whichever
+    session finishes building first this week, outside the muscle-slot system
+    entirely. `pickCalfTopUp` applies the same safety gates
+    `canPlaceFoundation` does (equipment, hip/shoulder caution, plyo, avoid
+    list, knee caution) via the same helper functions.
+  - **Priced like a small McGill block, not a full lift**
+    (`CALF_TOPUP_MINS=2`), charged into `eveningLifts`/`lunchBudget`'s fixed
+    cost BEFORE the lift count is sized — same reasoning as the century/
+    finisher, and the reason it must NOT be counted in `sessionPlan`'s "N
+    lifts" line (that would double-charge it at the full ~11–12 min per-lift
+    rate). The render call site excludes `calfTopUp`-flagged exercises from
+    the count it hands to `sessionPlan`; `sessionPlan` re-derives
+    `needsCalfTopUp()` independently and prices it as its own line, exactly
+    the pattern century/finisher already use for "does THIS session pay."
+    Skipped entirely on a lunch hosting the century — that box has no room for
+    anything past the hundred, same as the spine holds.
+  - **Two real regressions found and fixed before this could ship**, both
+    from the SAME root cause and both caught by the mandatory 3-schedule
+    balance sim, not by inspection:
+    1. Appending the top-up credited 2 sets to `budget.vol.legs` at
+       GENERATION TIME, on whatever session happened to build first — which
+       could be a chest day, a back day, anything. `budget.vol` also drives
+       THIS WEEK's remaining anchor-priority ranking (which muscle is "under"
+       and gets picked next), so a phantom 2 sets of legs credit early in the
+       week made legs look caught up and the recovery-debt engine kept
+       skipping it as an anchor. Measured: hinge and hamstring mandate slots
+       collapsed to **0/week on the full schedule** (were 5 and 4). Fixed by
+       NOT crediting `budget.vol` for the top-up — `getWeeklySetVolumes()`
+       (the dashboard's real number) re-derives everything from LOGS once it's
+       actually performed, which is a completely separate computation, so the
+       true volume is never lost; only this run's remaining slot decisions
+       don't see it early.
+    2. Once landing on non-leg days (any session, by design — see above), the
+       top-up made `weightedLegEx`/`weightedLegLog` (the **weighted-only legs
+       rule**, `countsForRecoveryEx`/`Log`) see a `legs`-muscle exercise and
+       mark that date as legs-trained, because `calf_raise`'s `eq` includes
+       `'machine'` (non-bodyweight) — the SAME rule that already exists to
+       keep bodyweight pistol-squat-style work from resetting the 72h heavy
+       clock never anticipated a genuinely LOADED-by-`eq` movement that still
+       shouldn't count. This is the ROOT-CAUSE fix, not a special case for
+       this feature: `weightedLegEx`/`weightedLegLog` now exclude any
+       `tags.includes('calf')` movement outright, regardless of load — a calf
+       raise never touches the squat/hinge pattern the 72h window exists for,
+       however heavy it's loaded. `weightedLegLog`'s calf check has to run
+       BEFORE the logged-weight check, not just live in the DB-entry fallback,
+       because a genuinely loaded calf raise still logs `weight>0` and would
+       otherwise sail through the first branch. This is general — it also
+       correctly covers Sam manually swapping a calf exercise into any slot,
+       not just this top-up.
+  - Both bugs were invisible to a single-day snapshot and only showed up
+    across a **daily-replan** simulation, exactly the trap this file's Deploy
+    Workflow section warns about — the first fix (removing the volume credit)
+    looked complete in isolation and only the second sim run surfaced that
+    `mandates`/`goal.legAllowlistBreaches` were still wrong.
+  - **`analysis/case-study.js` needed two of its own updates**, both
+    documented inline there: `legAllow` (the harness's own replica of
+    `LEG_EMPHASIS_TAGS`) now includes `'calf'` as a narrow, deliberate
+    exception — plain calf raises are excluded from AUTO-GENERATED leg
+    programming everywhere else by design (`LEG_EMPHASIS_TAGS`'s own comment:
+    "pure hypertrophy/strength... excluded from auto-generation everywhere");
+    this is the one guaranteed carve-out, the same shape Foundation Five
+    already has for `pistol_squat`. And the harness's own lockout-gap replica
+    of the weighted-only legs rule needed the same `'calf'` exclusion the real
+    `weightedLegEx` got, or it flagged false lockout violations the real app's
+    scheduler was never actually making.
+  - Measured after both fixes, `git show 62d462a:index.html` baseline (10 sim
+    weeks, daily replan, all three schedules): **calf sets/week 0/10 → 10/10
+    on every schedule**; `mandates`, `goal`, and `lockout.legs.violations`
+    (0 everywhere) are **byte-identical** to baseline; legs weekly volume +2
+    (still under band on the two schedules already documented as
+    structurally under-band — a welcome, not a regression); `pistol_squat`
+    coverage untouched at 10/10 on the full schedule.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

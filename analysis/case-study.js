@@ -302,7 +302,9 @@ function computeMetrics(app, sc, run) {
   MUSCLES.forEach((m) => {
     // Weighted-only legs rule (index.html countsForRecovery*): bodyweight leg
     // work doesn't reset the legs clock, so it doesn't define a legs gap either.
-    const counts = (e) => e.muscle === m && (m !== 'legs' || !e.noWeight);
+    // 'calf' is excluded too (2026-08-19, weightedLegEx) — a calf raise never
+    // loads the squat/hinge pattern the 72h window exists for, however heavy.
+    const counts = (e) => e.muscle === m && (m !== 'legs' || (!e.noWeight && !(e.tags || []).includes('calf')));
     const dates = [...new Set(sessions.filter((s) => s.exercises.some(counts)).map((s) => s.dateStr))].sort();
     const gaps = [];
     for (let i = 1; i < dates.length; i++) gaps.push(daysBetweenHost(dates[i - 1], dates[i]) * 24);
@@ -384,7 +386,13 @@ function computeMetrics(app, sc, run) {
   // 6. Goal-alignment checklist.
   const lunchSessions = sessions.filter((s) => s.isLunch);
   const avoid = new Set(app.S.cfg.avoidExercises || []);
-  const legAllow = new Set([...app.LEG_EMPHASIS_TAGS, 'hinge', 'hamstring']);
+  // 'calf' is a narrow, deliberate exception (2026-08-19, CALF_WEEKLY_TARGET_SETS):
+  // Sam asked for a guaranteed 2 calf sets/week. Plain calf raises are pure
+  // hypertrophy and excluded from the emphasis allowlist by design (see
+  // LEG_EMPHASIS_TAGS's comment) everywhere EXCEPT this one fixed, tiny,
+  // outside-the-slot-system top-up — the same shape of carve-out Foundation
+  // Five already has for pistol_squat.
+  const legAllow = new Set([...app.LEG_EMPHASIS_TAGS, 'hinge', 'hamstring', 'calf']);
   const weeksWithStrength = new Set(sessions.filter((s) => s.exercises.some((e) => e.muscle === 'legs' && e.tags.includes('strength'))).map((s) => s.week));
   const goal = {
     heavyStrengthWeeks: [weeksWithStrength.size, weeks],

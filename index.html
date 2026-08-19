@@ -1652,13 +1652,19 @@ const FOUNDATION_SLOTTED=FOUNDATION_FIVE.filter(f=>!f.daily);
 //     of every week outright. Carving it a lifting slot was tried and measured
 //     at 20% of weeks: legs only get about two slots and both are mandated,
 //     and it cannot go at lunch because it is highSweat.
-//   · The soleus work IS a normal set, is not sweaty, and can take a lunch
-//     slot — so it rides the weekly stamp here, trailing the Foundation Five.
+//   · The soleus work USED TO ride this same weekly-stamp mechanism, trailing
+//     the Foundation Five — and measured (2026-08-19) it never landed: 0 of 10
+//     simulated weeks on all three schedules, including lunch+3-evening. Root
+//     cause: legs produces only ONE slot a week this queue can even contest —
+//     the accent slot, once heavy strength is already banked; every other leg
+//     slot carries a hard mandate — and pistol_squat sits ahead of soleus in
+//     this SAME single-stamp-per-session queue, so it won that one slot every
+//     time. Calf coverage now has its own mechanism (see
+//     CALF_WEEKLY_TARGET_SETS) that doesn't compete for a slot at all, so it's
+//     removed from here rather than left to lose forever.
 // Toggleable, because it is a training block aimed at one sport and there
 // should be a way to stop without editing code.
-const JUMP_DURABILITY=[
-  {id:'soleus_raises',name:'Bent-Knee Calf Raise',muscle:'legs',why:'The soleus is the first thing to fail in repeated jumping and the barbell never reaches it — bending the knee is what takes the gastroc out and loads it. Not sweaty, so unlike the jump work it can take a lunch slot.'},
-];
+const JUMP_DURABILITY=[];
 function jumpDurabilityOn(){return S.cfg?.jumpDurability!==false;}
 function jumpDurabilitySlotted(){return jumpDurabilityOn()?JUMP_DURABILITY:[];}
 // The single list dayTemplate stamps from, and the single set of ids
@@ -1680,6 +1686,56 @@ function foundationCoveredThisWeek(){
     (l.exercises||[]).forEach(e=>{if(e&&FOUNDATION_IDS.has(e.id))out.add(e.id);});
   });
   return out;
+}
+
+// ─── CALF WEEKLY COVERAGE (2026-08-19) ───
+// Sam: "make sure I get at least 2 sets of calves a week in programming."
+//
+// Doesn't compete for a leg slot — see the note above JUMP_DURABILITY for why
+// that queue is the wrong mechanism (measured dead code, 0/10 weeks). Instead
+// this is a small, independently-priced TOP-UP — 2 quick sets, ~2 min — that
+// buildSession appends to whichever session it finishes assembling first this
+// week, outside the muscle-slot system entirely. Same convergence rule as
+// Foundation Five: log-seeded, so a session PLANNED with the top-up doesn't
+// retire it — only one actually LOGGED does — and a daily replan keeps
+// offering it on every session until it's really been done.
+const CALF_WEEKLY_TARGET_SETS=2;
+// Priced like a small McGill/spine block, not a full lift: 2 sets at ~90s
+// rest is a couple of minutes, nowhere near EVENING_EX_MINS/lunchExMins()'s
+// per-lift rate — charging the full rate for it would be the exact "prep
+// smeared across every exercise" mistake the lunch ledger was built to fix.
+const CALF_TOPUP_MINS=2;
+const CALF_TOPUP_POOL=['calf_raise','single_leg_calf_raise','soleus_raises','tempo_calf','iso_calf'];
+function calfSetsThisWeek(){
+  const mon=thisMonday(),end=addDays(mon,7);
+  let sets=0;
+  (S.logs||[]).forEach(l=>{
+    if(!l||logDay(l.date)<mon||logDay(l.date)>=end)return;
+    (l.exercises||[]).forEach(e=>{
+      if(!e)return;
+      const full=exFull(e);
+      if(!(full.tags||[]).includes('calf'))return;
+      sets+=(e.sets||[]).filter(st=>st&&st.reps>0).length;
+    });
+  });
+  return sets;
+}
+function needsCalfTopUp(){return calfSetsThisWeek()<CALF_WEEKLY_TARGET_SETS;}
+// Pick the least-used still-eligible calf movement — same safety gates
+// Foundation Five's canPlaceFoundation uses (equipment, hip/shoulder caution,
+// plyo, avoid list, knee caution, dragon-flag gate); calf isolation work trips
+// none of these in practice, but a custom avoid-list entry should still work.
+function pickCalfTopUp(equip,used,freq){
+  const eqSet=new Set([...(equip||[]),'bodyweight']);
+  const f=freq||{};
+  const cands=CALF_TOPUP_POOL
+    .map(id=>EX.find(e=>e.id===id))
+    .filter(e=>e&&!used.includes(e.id)
+      &&(e.eq||[]).some(q=>eqSet.has(q))
+      &&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.shoulderCaution&&e.shoulderRisk)
+      &&!plyoHidden(e)&&!userAvoids(e)&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id));
+  if(!cands.length)return null;
+  return cands.reduce((best,e)=>(f[e.id]||0)<(f[best.id]||0)?e:best);
 }
 
 // ─────────────────────────────────────────────
@@ -2587,6 +2643,10 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   push('prep','Prep & mobility',isLunch?(centuryLunch?PREP_BUDGET_MINS.centuryLunch:PREP_BUDGET_MINS.lunch):PREP_BUDGET_MINS.evening);
   const per=perLiftMins||(isLunch?lunchExMins():EVENING_EX_MINS);
   if(lifts>0)push('lifts',`${lifts} lift${lifts>1?'s':''}`,Math.round(lifts*per));
+  // Priced separately from the lifts above — 2 quick sets at CALF_TOPUP_MINS,
+  // not a full per-lift charge. Skipped on a century lunch, matching the
+  // ledger and the actual buildSession append.
+  if(!centuryLunch&&needsCalfTopUp())push('calf','Calf raises (weekly top-up)',CALF_TOPUP_MINS,`${calfSetsThisWeek()}/${CALF_WEEKLY_TARGET_SETS} sets so far this week`);
   if(centuryChg>0)push('century','Pull-up Century',centuryChg,centuryLunch?'this is the session':'median of your timed sessions');
   // Covered-ness is a property of the DAY, not of this session's charge — a
   // lunch on a day that still ends in 100 pull-ups has its conditioning too.
@@ -2683,11 +2743,16 @@ function eveningLifts(mins,dow,av,equipmentKey){
   // evening was billed for 16 minutes of work the plan then deferred anyway and
   // came out at ONE lift with six minutes spare. All three are floor work that
   // genuinely can happen at home; a lift can't.
-  // Four pieces, matching what's actually guaranteed to be in the session:
-  // prep, the lifting, the century if this evening hosts it, and the finisher.
-  // Charging six (the full itemised plan) reserved buffer for blocks that get
-  // shed anyway and quietly cost a lift at 75 and 90 minutes.
-  const fixed=PREP_BUDGET_MINS.evening+century+finisher+transitionMins(4);
+  // Whichever session buildSession finishes assembling first this week gets
+  // the calf top-up appended (see CALF_WEEKLY_TARGET_SETS) — not knowable in
+  // advance which one that'll be, so every evening reserves for it until the
+  // week's 2 sets are actually banked, same as the century/finisher above.
+  const calfTopUp=needsCalfTopUp()?CALF_TOPUP_MINS:0;
+  // Five pieces, matching what's actually guaranteed to be in the session:
+  // prep, the lifting, the century if this evening hosts it, the finisher, and
+  // the calf top-up. Charging six (the full itemised plan) reserved buffer for
+  // blocks that get shed anyway and quietly cost a lift at 75 and 90 minutes.
+  const fixed=PREP_BUDGET_MINS.evening+century+finisher+calfTopUp+transitionMins(4);
   // EX_LIMIT is the ceiling only. The tiers are calibrated as prep plus N lifts
   // at EVENING_EX_MINS (60 → 12 + 4×12), so the two agree on an empty evening
   // and diverge only by what's actually prescribed on top.
@@ -2735,7 +2800,12 @@ function lunchBudget(dow,av,boxMins,centuryOverride){
   // morning-or-evening job — sessionPlan lists it on a lunch as deferred, with
   // that reason, rather than dropping it silently. If it ever DOES move into
   // the box, LUNCH_LEDGER.spineMins has to move with it.
-  let left=box-spine-prep-century-transitionMins(hostsCentury?2:5);
+  //
+  // The calf top-up (see CALF_WEEKLY_TARGET_SETS) is skipped on a century
+  // lunch for the same reason the spine holds are: that box has no room for
+  // anything past the hundred itself.
+  const calfTopUp=(!hostsCentury&&needsCalfTopUp())?CALF_TOPUP_MINS:0;
+  let left=box-spine-prep-century-calfTopUp-transitionMins(hostsCentury?2:5);
   // minLifts is waived on a century lunch. Its comment used to read "a century
   // day never becomes a no-lifting day", written when a century was budgeted at
   // 16–20 min; at the MEASURED ~30 that sentence is arithmetically false, and
@@ -3694,6 +3764,40 @@ function genProgram(cfg,av,workoutHistoryLog){
       });
     }
 
+    // ── Calf weekly top-up (see CALF_WEEKLY_TARGET_SETS) ──
+    // Outside the muscle-slot system on purpose (that queue is exactly what
+    // left calf work at 0 covered weeks — see the note above JUMP_DURABILITY).
+    // Appended AFTER flagFirstWorkingSet-adjacent trimming so it never competes
+    // to lead the session, and skipped if this exact session already contains a
+    // calf-tagged exercise (e.g. a lunch's own isolation slot happened to pick
+    // one) so it can never double up in one session.
+    // Skipped on a lunch hosting the century for the same reason the ledger
+    // skips it there — that box has no room for anything past the hundred.
+    const calfBlocked=slot.isLunch&&centuryChargeFor(slot.dow,true,av)>0;
+    // Can land on ANY session, not just a leg day — see the note below on why
+    // it's excluded from the recovery-debt marking pass, which is what makes
+    // that safe.
+    if(!calfBlocked&&needsCalfTopUp()&&!exs.some(e=>(e.tags||[]).includes('calf'))){
+      const topUp=pickCalfTopUp(equip,used,exFreq);
+      if(topUp){
+        used.push(topUp.id);
+        exFreq[topUp.id]=(exFreq[topUp.id]||0)+1;
+        const modifiedTopUp={...topUp,sets:CALF_WEEKLY_TARGET_SETS,sessionMins:slot.mins,calfTopUp:true};
+        // Deliberately NOT credited to budget.vol. That scratch object also
+        // drives the SAME week's remaining anchor-priority ranking (which
+        // muscle is "under" and gets picked next) — crediting it here, on a
+        // session that could be ANY muscle, made legs look caught up on volume
+        // and starved the recovery-debt engine of real leg-anchor days:
+        // measured, the hinge and hamstring mandates collapsed to 0 slots/week
+        // on the full schedule. getWeeklySetVolumes() re-derives the dashboard's
+        // real weekly volume from LOGS once this is actually performed, which
+        // is entirely separate from this in-run scratch object, so the true
+        // volume is never lost — only THIS run's remaining slot decisions don't
+        // see it early.
+        exs.push(modifiedTopUp);
+      }
+    }
+
     // Adjust session name for circuit training
     let sessionName = isCircuitStyle && !slot.isLunch ? tmpl.name.replace('Day', 'Circuit') : tmpl.name;
     let sessionDesc = tmpl.desc;
@@ -4241,14 +4345,28 @@ function legsRecovered(dateStr,history,assigned,heavyDates){
 // Weekly MRV set volume still counts either way — sets are sets.
 // Planned/EX-shaped exercise: loadable = not noWeight and has non-bodyweight
 // equipment (same idea as flagFirstWorkingSet's `scalable`).
-function weightedLegEx(e){return !e.noWeight&&(e.eq||[]).some(q=>q!=='bodyweight');}
+//
+// 'calf' is excluded regardless of load (2026-08-19, found while wiring the
+// weekly calf top-up — see CALF_WEEKLY_TARGET_SETS). A calf raise never
+// touches the squat/hinge musculature the 72h window exists for, however much
+// weight is on it, so treating a loaded one as "heavy leg day" is the same
+// mistake this whole function was written to fix for bodyweight tendon work —
+// it kept legs looking "recently trained" on days that never really loaded
+// the pattern, and measured, that starved the SAME heavy-strength and
+// hinge/hamstring mandates the original bug did (0 slots/week on two
+// schedules) once the top-up started actually landing on real sessions.
+function weightedLegEx(e){return !e.noWeight&&!(e.tags||[]).includes('calf')&&(e.eq||[]).some(q=>q!=='bodyweight');}
 // Logged exercise: trust the actual logged sets first (any working set with
 // weight on the bar), fall back to the movement's DB entry, and assume loaded
-// for unknown custom movements (conservative: keeps the 72h window).
+// for unknown custom movements (conservative: keeps the 72h window). The calf
+// exemption has to come BEFORE the logged-weight check, not just live in the
+// DB-entry fallback — a real loaded calf raise still logs weight>0 and would
+// otherwise pass the first branch straight through.
 function weightedLegLog(exLog){
+  const full=[...EX,...(S.customExercises||[])].find(x=>x.id===exLog.id);
+  if(full&&(full.tags||[]).includes('calf'))return false;
   const sets=(exLog.sets||[]).filter(s=>s&&s.reps>0);
   if(sets.length)return sets.some(s=>(s.weight||0)>0);
-  const full=[...EX,...(S.customExercises||[])].find(x=>x.id===exLog.id);
   return full?weightedLegEx(full):true;
 }
 // "This exercise counts as training its muscle" for recovery purposes.
@@ -7511,8 +7629,12 @@ function renderWorkout(){
       // finisher included, not a lifting-only estimate with the rest bolted on
       // afterwards.
       if(exIdx!==0)return'';
+      // Exclude the calf top-up from the "N lifts" count — it's priced as its
+      // own small line inside sessionPlan (see CALF_TOPUP_MINS), not at the
+      // full per-lift rate; counting it here would double it into "lifts" too.
+      const countedLifts=exercises.filter(e=>!e.calfTopUp).length;
       const plan=sessionPlan({mins:S.active.sessionMins,dow:S.active.dow,av:S.weekPlan?.availability,
-        equipmentKey:S.active.equipmentKey,isLunch:!!S.active.isLunch,lifts:exercises.length,
+        equipmentKey:S.active.equipmentKey,isLunch:!!S.active.isLunch,lifts:countedLifts,
         perLiftMins:S.active.isLunch?lunchExMins():EVENING_EX_MINS});
       const rows=plan.items.filter(i=>!i.deferred).map(i=>`<div style='display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:12px'>
         <span style='color:var(--mut)'>${i.label}${i.note?` <span style='opacity:.7'>· ${i.note}</span>`:''}</span>
