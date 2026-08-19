@@ -1891,9 +1891,12 @@ function centuryTimeFor(dow){
 // centuryWhen flips it for someone who genuinely does it at lunch — the Plan
 // screen carries the toggle, since getting this backwards means either an
 // over-long lunch or an evening that quietly overruns.
-function centuryHostSession(dow,av){
+// Which session WOULD hold the hundred on this day, asked purely of availability.
+// Split out of centuryHostSession because centuryDows now needs the answer while
+// it is still deciding which days are century days — going through the guarded
+// version there would recurse.
+function centuryHostFor(dow,av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
-  if(!centuryDows(av).includes(dow))return null;
   const d=av[dow]||{};
   const hasLunch=dow>=1&&dow<=5&&d.lunch!==false;
   const hasEve=(dow===0||dow===6)?!!d.on:!!d.eve?.on;
@@ -1901,6 +1904,21 @@ function centuryHostSession(dow,av){
   if(hasLunch)return'lunch';
   if(hasEve)return'eve';
   return null;
+}
+function centuryHostSession(dow,av){
+  av=av||(S.weekPlan?.availability)||defaultAvailability();
+  if(!centuryDows(av).includes(dow))return null;
+  return centuryHostFor(dow,av);
+}
+// Would a century on this day leave its host session with NO lifting at all?
+// True only for a 40-minute lunch with no evening behind it: at a measured ~30
+// min the hundred fills that box on its own. Asked through lunchBudget with the
+// century minutes passed in EXPLICITLY, so the answer comes from the one ledger
+// rather than a second copy of its arithmetic — and so the call doesn't recurse
+// back into centuryDows through centuryChargeFor.
+function centuryCrowdsOutLifting(dow,av){
+  if(centuryHostFor(dow,av)!=='lunch')return false;
+  return lunchBudget(dow,av,null,centuryMins()).lifts<=0;
 }
 // Minutes a century takes out of `slot`'s own session — 0 unless this is the
 // session hosting it. Both the lunch ledger and eveningLifts read this, so the
@@ -1923,13 +1941,26 @@ function centuryDows(av){
   const cap=Math.max(1,Math.min(PULLUP_CENTURY.maxDays,trainingDayCount(av)-1));
   const ORDER=[1,2,3,4,5,6,0];
   const posOf=(dow)=>ORDER.indexOf(dow);
-  // Greedy fill in a given day order, keeping the ≥48h spacing the protocol
-  // needs (positions at least 2 apart in calendar order).
+  // SECOND cap, on the days where a century costs the WHOLE session. The rule
+  // above only guarantees one century-free day, which was enough while a century
+  // was budgeted at 16–20 min and a lunch still fitted a lift around it. At the
+  // measured ~30 a lunch-only day hosting one has no lifting at all, and the flat
+  // cap of 3 then turned a five-day lunch week into 300 pull-ups plus TWO lifting
+  // sessions (measured: 50 sessions → 20 over 10 weeks). The protocol's own range
+  // is "2–3× a week", so the low end is available and costs nothing structural —
+  // spend it here and keep CENTURY_KEEP_LIFTING_DAYS days that still lift.
+  // Days whose host is an EVENING don't count against this: those keep their
+  // lifting, just one exercise lighter.
+  const trainDays=trainingDayCount(av);
   const fill=(order,seed)=>{
     const out=seed?seed.slice():[];
+    let crowded=(out.filter(d=>centuryCrowdsOutLifting(d,av))).length;
     order.forEach(dow=>{
       if(out.length>=cap||!centuryEligibleDow(av,dow))return;
       if(out.some(d=>Math.abs(posOf(d)-posOf(dow))<2))return;
+      const eatsSession=centuryCrowdsOutLifting(dow,av);
+      if(eatsSession&&trainDays-(crowded+1)<CENTURY_KEEP_LIFTING_DAYS)return;
+      if(eatsSession)crowded++;
       out.push(dow);
     });
     return out;
@@ -1956,6 +1987,12 @@ function centuryLogs(){return (S.logs||[]).filter(l=>l&&l.century);}
 // prescribing sets he can't hold. Eight centuries is roughly three weeks at the
 // protocol's 3×/week cadence. `bestEver` stays available for the trend line,
 // where a record genuinely is the interesting number.
+// How many training days a week must still LIFT once the centuries are placed.
+// Three is the number the protocol's own "2–3× a week" range makes free: on a
+// five-day lunch week it buys back a third lifting session for the price of the
+// third century, and on any schedule whose centuries ride an evening it never
+// binds at all.
+const CENTURY_KEEP_LIFTING_DAYS=3;
 const CENTURY_BEST_WINDOW=8;
 function centuryStats(){
   const logs=centuryLogs().slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
@@ -2540,14 +2577,17 @@ const listWords=(a)=>a.length<2?(a[0]||''):a.slice(0,-1).join(', ')+' and '+a[a.
 function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   const items=[];
   const push=(key,label,m,note)=>{if(m>0)items.push({key,label,mins:m,note});};
-  push('prep','Prep & mobility',isLunch?PREP_BUDGET_MINS.lunch:PREP_BUDGET_MINS.evening);
-  const per=perLiftMins||(isLunch?lunchExMins():EVENING_EX_MINS);
-  if(lifts>0)push('lifts',`${lifts} lift${lifts>1?'s':''}`,Math.round(lifts*per));
   // 0 unless THIS session is the one hosting the century (see centuryChargeFor):
   // he does the hundred once, so on a lunch+evening day only one of the two
   // shows it and only one of the two pays for it.
   const centuryChg=centuryChargeFor(dow,!!isLunch,av);
-  if(centuryChg>0)push('century','Pull-up Century',centuryChg,'median of your timed sessions');
+  // A lunch that hosts the century gets the abbreviated prep, same figure the
+  // ledger reserves — the two must agree or the card contradicts the lift count.
+  const centuryLunch=!!isLunch&&centuryChg>0;
+  push('prep','Prep & mobility',isLunch?(centuryLunch?PREP_BUDGET_MINS.centuryLunch:PREP_BUDGET_MINS.lunch):PREP_BUDGET_MINS.evening);
+  const per=perLiftMins||(isLunch?lunchExMins():EVENING_EX_MINS);
+  if(lifts>0)push('lifts',`${lifts} lift${lifts>1?'s':''}`,Math.round(lifts*per));
+  if(centuryChg>0)push('century','Pull-up Century',centuryChg,centuryLunch?'this is the session':'median of your timed sessions');
   // Covered-ness is a property of the DAY, not of this session's charge — a
   // lunch on a day that still ends in 100 pull-ups has its conditioning too.
   const conditioningCovered=centuryDows(av).includes(dow);
@@ -2556,7 +2596,10 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
     const afford=isLunch?!!lunchBudget(dow,av,mins).finisher:true;
     if(f&&afford)push('finisher',f.name,f.mins||8);
   }
-  push('spine','Daily spine minimums',prepBlockMins(DAILY_SPINE_MINIMUMS));
+  // On a century lunch the spine holds are off the box BY DESIGN, not because
+  // today happened to run long — the ledger already stopped charging for them.
+  if(centuryLunch)items.push({key:'spine',label:'Daily spine minimums',mins:prepBlockMins(DAILY_SPINE_MINIMUMS),note:'morning or evening — the hundred is the whole box',deferred:true,byDesign:true});
+  else push('spine','Daily spine minimums',prepBlockMins(DAILY_SPINE_MINIMUMS));
   const mcgillNote=mcgillLogs().length?'median of your timed sessions':'from its prescribed holds';
   if(isLunch){
     // Listed but never charged, and never performed here — see the lunch
@@ -2654,20 +2697,32 @@ function eveningLifts(mins,dow,av,equipmentKey){
 // Everything that spends the lunch box, in priority order. `av` is passed
 // explicitly during generation for the same reason centuryDows takes it —
 // reading S.program mid-generation would be circular.
-function lunchBudget(dow,av,boxMins){
+// centuryOverride answers "what would this lunch afford IF it hosted the
+// hundred" — the question centuryDows has to ask before it knows the answer.
+// Without it that call would recurse (centuryDows → centuryChargeFor →
+// centuryHostSession → centuryDows).
+function lunchBudget(dow,av,boxMins,centuryOverride){
   const box=boxMins||40;
-  const spine=LUNCH_LEDGER.spineMins;
+  // 0 unless the lunch is the session actually hosting the century, and scaled
+  // to the reps still outstanding when it's today (see centuryChargeFor). On a
+  // lunch+evening day the default host is the evening, so the box keeps its
+  // full lift count instead of paying for work happening after six.
+  const hypothetical=centuryOverride!==undefined;
+  const century=hypothetical?centuryOverride:centuryChargeFor(dow,true,av);
+  // A century lunch is a DIFFERENT session, not a shorter one: at ~30 measured
+  // minutes the hundred IS the 40-minute box, so prep is abbreviated, the spine
+  // holds move out, and the lift floor is waived below.
+  const hostsCentury=century>0;
   // Prep is reserved at its BUDGET CAP, not at the cost of the particular
   // rotation that lands today. That is deliberate: which items come up depends
   // on the date and on whether the session turns out to be a leg day, and the
   // session doesn't exist yet when this runs — reserving the cap is the only
   // non-circular answer, and prepPlan guarantees it never exceeds it.
-  const prep=LUNCH_LEDGER.prepMins;
-  // 0 unless the lunch is the session actually hosting the century, and scaled
-  // to the reps still outstanding when it's today (see centuryChargeFor). On a
-  // lunch+evening day the default host is the evening, so the box keeps its
-  // full lift count instead of paying for work happening after six.
-  const century=centuryChargeFor(dow,true,av);
+  const prep=hostsCentury?PREP_BUDGET_MINS.centuryLunch:LUNCH_LEDGER.prepMins;
+  // The spine holds come off a century lunch for the same reason the Big 3 never
+  // went on it: six minutes of floor work that needs no gym, against a box that
+  // can no longer even afford one lift. sessionPlan lists them as deferred.
+  const spine=hostsCentury?0:LUNCH_LEDGER.spineMins;
   const per=lunchExMins();
   // The transition buffer joins the box for the same reason the spine holds and
   // prep already had: it happens inside this session, so pretending it's free is
@@ -2680,8 +2735,16 @@ function lunchBudget(dow,av,boxMins){
   // morning-or-evening job — sessionPlan lists it on a lunch as deferred, with
   // that reason, rather than dropping it silently. If it ever DOES move into
   // the box, LUNCH_LEDGER.spineMins has to move with it.
-  let left=box-spine-prep-century-transitionMins(5);
-  const lifts=Math.max(LUNCH_LEDGER.minLifts,Math.min(LUNCH_LEDGER.maxLifts,Math.floor(left/per)));
+  let left=box-spine-prep-century-transitionMins(hostsCentury?2:5);
+  // minLifts is waived on a century lunch. Its comment used to read "a century
+  // day never becomes a no-lifting day", written when a century was budgeted at
+  // 16–20 min; at the MEASURED ~30 that sentence is arithmetically false, and
+  // forcing the floor made the ledger lie in the worst possible way — the plan
+  // came out at one lift and then SHED THE CENTURY to fit it, i.e. dropped the
+  // only thing the day exists for and left 21 of 40 minutes unused. Sam, seeing
+  // it: "looks like we just have to get rid of all exercises and do abbreviated
+  // stretching to fit it in 40 min." Correct, so that is now what it says.
+  const lifts=Math.max(hostsCentury?0:LUNCH_LEDGER.minLifts,Math.min(LUNCH_LEDGER.maxLifts,Math.floor(left/per)));
   left-=lifts*per;
   // A finisher has to be affordable TWICE OVER before it's offered.
   //  1) Never on a century day. 100 pull-ups already IS the conditioning, and
@@ -2706,11 +2769,15 @@ function lunchBudget(dow,av,boxMins){
   // 2026-08-17 the century's minutes can be billed to the evening instead, and
   // reading `century` here would have let a finisher back into the lunch of a
   // day that still ends in 100 pull-ups.
-  const conditioningCovered=centuryDows(av).includes(dow);
+  // The hypothetical call is asking "if this day hosted the hundred, would any
+  // lifting survive" — so by construction it IS a century day. Short-circuiting
+  // here is what keeps that question out of centuryDows, which is the function
+  // asking it (see centuryCrowdsOutLifting).
+  const conditioningCovered=hypothetical||centuryDows(av).includes(dow);
   const f=(S.cfg?.conditioning&&!conditioningCovered)?getFinisher(dow,true,lunchEquip):null;
   const finisher=(f&&left>=(f.mins||8)+FINISHER_MARGIN_MINS)?f:null;
   if(finisher)left-=(finisher.mins||8);
-  return{box,spine,prep,century,per:Math.round(per*10)/10,lifts,finisher,left:Math.round(left)};
+  return{box,spine,prep,century,hostsCentury,per:Math.round(per*10)/10,lifts,finisher,left:Math.round(left)};
 }
 
 // Dragon Flag progression track: Tier 1 (Lying Leg Lifts) is always offered;
@@ -3523,6 +3590,11 @@ function genProgram(cfg,av,workoutHistoryLog){
       ?lunchBudget(slot.dow,av,slot.mins).lifts
       :eveningLifts(slot.mins,slot.dow,av,equip);
     // Plan this day on demand from recovery debt (most-overdue rested muscles).
+    // The ledger can now answer ZERO — a 40-minute lunch that hosts a ~30 min
+    // century has no room for lifting at all. Build nothing rather than an empty
+    // session: the century card is what that day is, and it lives on the
+    // dashboard independently of any workout (see centuryOnlyDow).
+    if(limit<=0)return null;
     const tmpl=dayTemplate(dateStr,limit,slot.isLunch,equip);
     if(!tmpl)return null; // nothing adequately rested → this day stays a rest day
     if(oldData===undefined)oldData=oldWeek?.[slot.dow];
@@ -3661,7 +3733,12 @@ function genProgram(cfg,av,workoutHistoryLog){
   lunchSlots.forEach(slot=>{const s=assignSlot(slot);if(s)slotMap[slot.key]=s;});
   // Pass 2: evening lifting on days WITHOUT a lunch session (e.g. weekends).
   eveSlots.forEach(slot=>{
-    if(lunchDows.has(slot.dow))return; // a lunch+evening day is handled in Pass 3
+    // Keyed on whether a lunch session was actually BUILT, not on whether the
+    // day has lunch availability. A lunch that came back empty — nothing rested,
+    // or a century that ate the whole box — leaves the evening as the day's
+    // PRIMARY session; Pass 3 would otherwise refuse it as a "bonus" and the day
+    // would lose its lifting entirely.
+    if(slotMap[`${slot.dow}-lunch`])return; // a lunch+evening day is handled in Pass 3
     const s=assignSlot(slot);if(s)slotMap[slot.key]=s;
   });
   // Pass 3: double-lifting days — a day with both lunch and evening available
@@ -5715,9 +5792,9 @@ const MCGILL_BIG3=[
 function lunchBudgetHTML(dow){
   const b=lunchBudget(dow);
   const rows=[
-    [`${b.lifts} lift${b.lifts===1?'':'s'}`,Math.round(b.lifts*b.per)],
+    b.lifts?[`${b.lifts} lift${b.lifts===1?'':'s'}`,Math.round(b.lifts*b.per)]:null,
     b.century?['Pull-up century',b.century]:null,
-    ['Daily spine minimums',b.spine],
+    b.spine?['Daily spine minimums',b.spine]:null,
     ['Prep before rep one',b.prep],
     b.finisher?[`Finisher · ${b.finisher.name}`,b.finisher.mins]:null,
   ].filter(Boolean);
@@ -5729,7 +5806,7 @@ function lunchBudgetHTML(dow){
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:6px'>⏱ The ${b.box}-minute lunch</div>
     ${rows.map(r=>`<div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9'><span style='color:var(--mut)'>${r[0]}</span><span style='font-weight:700'>${r[1]} min</span></div>`).join('')}
     <div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9;border-top:1px solid var(--bdr);margin-top:4px;padding-top:4px'><span style='color:var(--mut)'>Slack</span><span style='font-weight:700;color:${b.left<0?'var(--warn)':'var(--ok)'}'>${b.left} min</span></div>
-    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${eveHosts?` Today's century isn't on this ledger — it's charged to tonight's session instead, since that's where you do it. Change that on the Plan screen.`:''}${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${b.hostsCentury&&!b.lifts?` Today the century is the session — it leaves no room for a lift, so none is programmed, and the spine holds and Big 3 move to this morning or tonight.`:''}${eveHosts?` Today's century isn't on this ledger — it's charged to tonight's session instead, since that's where you do it. Change that on the Plan screen.`:''}${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
   </div>`;
 }
 
@@ -6003,7 +6080,13 @@ function stretchRot(pool,n){
 // 6 minutes; an evening can afford twice that. These are caps, not estimates —
 // prepPlan fills up to them and stops, which is what makes the figure safe for
 // lunchBudget to reserve without knowing which rotation lands on a given day.
-const PREP_BUDGET_MINS={lunch:6,evening:12};
+// centuryLunch is the abbreviated cap for a lunch whose whole session is the
+// hundred: at a measured ~30 min century there is no 40-minute box left to buy
+// the ordinary 6 minutes AND the spine holds AND a lift, so the prep is cut to
+// the fixed decompression/desk-reversal blocks plus about a minute of rotation.
+// It is deliberately not zero — 100 pull-ups on a cold shoulder is the one thing
+// in this app worth spending scarce minutes on.
+const PREP_BUDGET_MINS={lunch:6,evening:12,centuryLunch:4};
 // Assemble the session's prep. Blocks are filled round-robin in priority order
 // so a later block can't be starved by an earlier one eating the whole budget,
 // and the leg block jumps the queue on a leg day — which is the entire point of
@@ -6011,7 +6094,7 @@ const PREP_BUDGET_MINS={lunch:6,evening:12};
 function prepPlan(o){
   o=o||{};
   const isLunch=!!o.isLunch, isLegDay=!!o.isLegDay;
-  const cap=(isLunch?PREP_BUDGET_MINS.lunch:PREP_BUDGET_MINS.evening)*60;
+  const cap=(o.capMins||(isLunch?PREP_BUDGET_MINS.lunch:PREP_BUDGET_MINS.evening))*60;
   const want=(evening,lunch)=>isLunch?lunch:evening;
   const legPool=[...HIP_POOL,...LOWER_MOBILITY_POOL].filter(prepIsLeg);
   const deskPool=[...HIP_POOL,...LOWER_MOBILITY_POOL].filter(prepIsDesk);
@@ -6028,6 +6111,13 @@ function prepPlan(o){
     o.shoulderCaution?{key:'shoulder',title:'🩹 Achy Shoulder',color:'var(--acc)',pool:SHOULDER_POOL,n:want(2,1)}:null,
     {key:'upper',title:'🔄 Upper Body',color:'var(--acc)',pool:UPPER_MOBILITY_POOL,n:want(2,1)},
   ].filter(Boolean);
+  // Blocks are dealt round-robin, so at the abbreviated cap only the first round
+  // or two lands and ORDER decides what he actually gets. A century is 100
+  // pull-ups and nothing else, so the shoulder and upper-back blocks go first.
+  if(o.upperFirst){
+    const isUpper=(b)=>b.key==='shoulder'||b.key==='upper';
+    rotating.sort((a,b)=>(isUpper(b)?1:0)-(isUpper(a)?1:0));
+  }
   let secs=fixed.reduce((a,b)=>a+b.items.reduce((x,it)=>x+prepItemSecs(it),0),0);
   // Pre-roll each pool's rotation, then deal one item at a time across the
   // blocks until the budget is gone.
@@ -6145,6 +6235,7 @@ function centuryHTML(){
   return`<div style='margin-top:12px;padding:14px;background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.3);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>🎯 Pull-up Century · ${DOW[todayDow()]}</div>
     <div style='font-size:15px;font-weight:800'>${T} pull-ups. However many sets it takes.</div>
+    ${centuryOnlyDow(todayDow())?`<div style='font-size:12px;color:var(--mut);margin-top:4px;line-height:1.6'><strong style='color:var(--txt)'>Today's lunch is this and nothing else.</strong> At ~${centuryMins()} min the hundred fills the 40-minute box on its own — there is no room for lifts, so none are programmed rather than promised and dropped.</div>`+centuryPrepHTML():''}
     <div style='display:flex;align-items:baseline;gap:8px;margin-top:8px'>
       <div style='font-size:24px;font-weight:800;color:${total>=T?'var(--ok)':'var(--txt)'}'>${total}</div>
       <div style='font-size:13px;color:var(--mut)'>/ ${T} · ${draft.sets.length} set${draft.sets.length!==1?'s':''}${bestToday?` · best ${bestToday}`:''}${draft.startedAt?` · ${Math.max(1,Math.round((Date.now()-new Date(draft.startedAt).getTime())/60000))} min`:''}</div>
@@ -6170,6 +6261,35 @@ function centuryHTML(){
     <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>${plan.test?'After the opener, end':'End'} every set <strong style='color:var(--txt)'>2+ reps short of failure</strong>, and keep them the SAME SIZE — a set count that falls away as you go means set one was too close to failure. Reps don't creep up within a session; they step up on test day. That's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Bands, feet on a box, or slow negatives all count too.</div>
     <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>📊 <strong style='color:var(--txt)'>This is booked against your week.</strong> A full century bills ${CENTURY_MRV_SETS} back sets and ${(CENTURY_MRV_SETS*0.5).toFixed(1)} biceps against weekly MRV (a partial bills its share), so the generator plans less rowing and fewer curls on the days around it — you don't have to hold back on purpose.</div>
     ${trend}
+  </div>`;
+}
+
+// A day whose whole lunch is the hundred. At a MEASURED ~30 min century the
+// 40-minute box affords no lifts at all, so genProgram builds no session and the
+// day reaches the dashboard looking exactly like a rest day. It isn't one, so
+// it says what it actually is.
+// Read off the built program rather than re-deriving the ledger, so a session
+// that was preserved or hand-edited into that day still counts as lifting.
+function centuryOnlyDow(dow){
+  if(centuryHostSession(dow)!=='lunch')return false;
+  const d=S.program?.week?.[dow];
+  return !d||d.rest||!((d.exercises||[]).length||d.eveningSession?.exercises?.length);
+}
+// The warm-up for a session that is nothing but pull-ups. Same pools and same
+// budgeting as the pre-lift prep, at PREP_BUDGET_MINS.centuryLunch and with the
+// shoulder/upper blocks dealt first — this is 100 reps of one overhead pull, so
+// that is what needs to be warm. Rendered on the century card because on this
+// kind of day there is no workout screen to put it on.
+function centuryPrepHTML(){
+  const p=prepPlan({isLunch:true,capMins:PREP_BUDGET_MINS.centuryLunch,upperFirst:true,
+    hipCaution:!!S.cfg?.hipCaution,shoulderCaution:!!S.cfg?.shoulderCaution});
+  return`<div style='margin-top:10px;padding:10px 12px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.25);border-radius:10px'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:4px'>🔥 Before rep one · ~${p.mins} min</div>
+    ${p.blocks.map(b=>`<div style='margin-bottom:4px'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:${b.color}'>${b.title}</div>
+      ${b.items.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.6'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
+    </div>`).join('')}
+    <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>Abbreviated on purpose — the hundred takes ~${centuryMins()} min of a 40-minute lunch, so this is the short version rather than the usual ${PREP_BUDGET_MINS.lunch}. Spine holds and the Big 3 move to this morning or tonight; they need no gym.</div>
   </div>`;
 }
 
@@ -6507,7 +6627,9 @@ function centuryWhenPlanHTML(){
       </div>
       <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>${when==='eve'
         ?`Reserving ~${centuryMins()} min out of an evening costs it one exercise off the template. Taking the same minutes out of the 40-minute lunch costs half the session, which is why this is the default.`
-        :`Reserving ~${centuryMins()} min out of the 40-minute lunch cuts it to ${lunchBudget(centuryDows()[0]??1).lifts} lift${lunchBudget(centuryDows()[0]??1).lifts===1?'':'s'}. Only pick this if you genuinely do the hundred at midday.`}</div>
+        :(()=>{const n=lunchBudget(centuryDows()[0]??1).lifts;return n>0
+          ?`Reserving ~${centuryMins()} min out of the 40-minute lunch cuts it to ${n} lift${n===1?'':'s'}. Only pick this if you genuinely do the hundred at midday.`
+          :`At ~${centuryMins()} min the hundred fills the 40-minute lunch on its own — that day gets NO lifting session, just an abbreviated warm-up and the century. Only pick this if you genuinely do the hundred at midday.`;})()}</div>
     </div>`;
 }
 
@@ -6782,7 +6904,11 @@ function renderDash(){
     const loggedSess=isCompleted?getLoggedSessionForDow(displayDow):null;
 
     if((!d||d.rest)&&!loggedSess){
-      const label=isActualToday?(isSunday?'Sunday · Plan Your Week':'Rest Day 😴'):(DOW[displayDow]+' · Rest');
+      // A century-only lunch has no lifting session by design, so it arrives
+      // here looking exactly like a rest day. Say what it actually is.
+      const centuryOnly=centuryOnlyDow(displayDow);
+      const label=centuryOnly?'🎯 Century Day'
+        :isActualToday?(isSunday?'Sunday · Plan Your Week':'Rest Day 😴'):(DOW[displayDow]+' · Rest');
       return isActualToday&&isSunday
         ?`<div class='today' style='border-color:rgba(251,191,36,.35);background:linear-gradient(135deg,var(--surf2) 0%,rgba(251,191,36,.04) 100%)'>
             <div class='t-lbl' style='color:var(--warn)'>Sunday · Plan Your Week</div>
@@ -6791,7 +6917,7 @@ function renderDash(){
             ${centuryHTML()}
             ${recoveryHTML(displayDow)}
           </div>`
-        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div>${isActualToday?centuryHTML():''}${isActualToday?recoveryHTML(displayDow):''}</div>`;
+        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${centuryOnly?'No lifting programmed — 100 pull-ups fills the 40-minute lunch on its own.':(isActualToday?'Recovery is where the growth happens.':'')}</div>${isActualToday?centuryHTML():''}${isActualToday?recoveryHTML(displayDow):''}</div>`;
     }
     // The plan's own view of this dow — null when the (possibly regenerated)
     // program disagrees with what was actually logged (marks it rest, or is

@@ -564,6 +564,57 @@ strip it before other debugging.
   because the generator stops spending slots on curls it no longer thinks are
   needed. It also closed the documented `pistol_squat` gap on efficiency weeks
   (0% → 100%).
+- **A century lunch is a DIFFERENT session, not a shorter one** (2026-08-19). Sam,
+  looking at the plan: *"on pull up century lunch days, looks like we just have to
+  get rid of all exercises and do abbreviated stretching to fit it in 40 min."*
+  Correct, and the app was doing something worse than that. `LUNCH_LEDGER.minLifts`
+  forced one lift onto every lunch — its comment read "a century day never becomes
+  a no-lifting day", written when a century was budgeted at 16–20 min. At the
+  MEASURED ~30 that sentence is arithmetically false: the ledger came back with one
+  lift, `sessionPlan` then couldn't fit it, and SHED_ORDER dropped **the century** —
+  the only thing the day exists for — leaving 21 of 40 minutes unused.
+  - **`minLifts` is waived when the lunch hosts the century** (`hostsCentury`), so
+    the answer can be ZERO. Prep drops to `PREP_BUDGET_MINS.centuryLunch`(=4) and
+    the spine holds come off the box entirely, listed `deferred` with
+    `byDesign:true` the way the Big 3 already was. Result: 4 prep + ~30 century +
+    2 transitions = 36 of 40, and the century is never shed.
+  - **`buildSession` returns null on `limit<=0`.** An empty session object would
+    reach the dashboard and `startWorkout` with no exercise 0. `centuryOnlyDow()`
+    then labels that day **🎯 Century Day** instead of "Rest Day 😴", so a day the
+    app deliberately left unprogrammed doesn't read as one it forgot.
+  - **The abbreviated warm-up lives on the century card** (`centuryPrepHTML`),
+    because on that kind of day there is no workout screen to put it on. Same pools
+    and same budgeting as the pre-lift prep, at the reduced cap and with
+    `upperFirst` — blocks are dealt round-robin, so at 4 minutes ORDER decides what
+    he actually gets, and 100 pull-ups means the shoulder and upper-back blocks go
+    first. Never zero: a cold shoulder under 100 overhead pulls is the one thing
+    worth spending scarce minutes on.
+  - **`genProgram`'s Pass 2 now keys on whether a lunch session was BUILT**, not on
+    lunch availability. A lunch that came back empty leaves the evening as the day's
+    PRIMARY session; Pass 3 would have refused it as a "bonus" and the day would
+    have lost its lifting entirely. This is what makes `centuryWhen:'lunch'` on a
+    lunch+evening day work: lunch = the hundred, evening = the session.
+  - **`CENTURY_KEEP_LIFTING_DAYS`(=3) is the second cap on `centuryDows`.** The
+    existing rule only guaranteed ONE century-free day, which was enough while a
+    century left room for a lift. Once it doesn't, the flat cap of 3 turned a
+    five-day lunch week into 300 pull-ups plus **two** lifting sessions (measured:
+    50 sessions → 20 over 10 weeks). The protocol's own range is "2–3× a week", so
+    the low end is free: spend it and keep three days that lift. Measured after:
+    lunch-only goes to 2 centuries (Tue/Thu, his preferred days) + 3 lifting days.
+    Days whose host is an EVENING never count against it — those keep their
+    lifting, one exercise lighter — so **S2, the full schedule, is byte-identical.**
+  - **Asking that question without recursion took two seams.**
+    `centuryDows → centuryCrowdsOutLifting → lunchBudget → centuryChargeFor →
+    centuryHostSession → centuryDows` is a cycle, so (a) `centuryHostFor` is the
+    host lookup WITHOUT the centuryDows guard, and (b) `lunchBudget` takes a
+    `centuryOverride` — "what would this lunch afford IF it hosted the hundred" —
+    which also short-circuits the finisher gate, the other centuryDows call inside
+    that function. The point of the override is that the answer still comes from
+    the ONE ledger instead of a second copy of its arithmetic.
+  - Accepted cost, measured not assumed: on lunch-only the horizontal and rear-delt
+    mandates go from 1-of-7 and 1-of-1 landed to 0-of-2 and 0-of-3 over ten weeks.
+    Lunch-only weeks are already documented as structurally under-band and the back
+    accents already capped there; three fewer lunch slots is the direct cause.
 - `sessionPlan` / `TRANSITION_BUFFER_SECS` / `mcgillMins` (2026-08-18): Sam asked
   for the WHOLE routine — century, Big 3, stretching, spine holds, finisher —
   scheduled inside the one session that starts when he opens it, with the century
