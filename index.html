@@ -2247,8 +2247,14 @@ function centurySetPlan(){
 // NOT A LUNCH SESSION: ~1,500 reps is high-sweat and runs ~50 min, so it fails
 // both lunch constraints outright. The card says so on a lunch-only day rather
 // than silently hiding.
-const PYRAMID_MAX_PEAK=10;// the original prescription, and where it stops fitting an hour
-const PYRAMID_MIN_PEAK=5; // below this it isn't a session
+const PYRAMID_MAX_PEAK=10;// the original 1,500-rep prescription; ~90 min once
+                          // the timing model below counts what it really costs
+// Was 5. Lowered to 4 (240 reps, 7 rungs — still a real session) because
+// pyramidCapacityPeak below can now conclude "you finished 21 of 36 units, so a
+// peak-4 ladder is what you can actually complete", and a floor of 5 would have
+// blocked that conclusion from ever landing. A self-scaling rule that can't
+// reach the answer isn't self-scaling.
+const PYRAMID_MIN_PEAK=4;
 // The top rung is one unbroken set of `peak` pull-ups. Keeping it 2 reps clear
 // of failure is the SAME rule the Century runs on (every set 2+ short), and it
 // is what lets this repeat for months instead of being a one-off hero workout.
@@ -2267,30 +2273,58 @@ const PYRAMID_PEAK_HEADROOM=2;
 // of prescribing something that can't be done.
 const PYRAMID_LADDER=[
   {mult:1,pattern:'pull',options:[
-    {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,
+    {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,secsPerRep:3,
      cue:'Dead hang, drive the elbows to the hips, chin clears the bar. Switch grips freely as the rungs climb — overhand, neutral and chin-ups all count. Bands or feet on a box are legitimate regressions on the top rungs; a broken set of the right number beats a missed rung.'},
-    {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,
+    {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,secsPerRep:3,
      cue:'Supinated grip, full dead hang, elbows down and back.'},
   ]},
   {mult:2,pattern:'dip',options:[
-    {id:'tricep_dips',name:'Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,
+    {id:'tricep_dips',name:'Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,secsPerRep:2.5,
      cue:'PARALLEL BARS ONLY — never the bench-edge version, which pins the hands behind the body and loads the left shoulder exactly where it objects. SHOULDER STOP: elbows to about 90° and no further, tucked close, then press to lockout. At 200 reps the depth cap is the whole safety margin, and it is the first thing fatigue takes away — if you cannot hold the stop, end the rung.'},
   ]},
   {mult:3,pattern:'push',options:[
-    {id:'bw_pushups',name:'Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:12,rMax:25,
+    {id:'bw_pushups',name:'Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:12,rMax:25,secsPerRep:2,
      cue:'Hands under the shoulders, body in one line, full lockout at the top. SHOULDER STOP: chest to about fist height off the floor rather than flat to the deck — the hands are fixed here, so the bottom position is the one the left shoulder objects to under load. Drop to the knees to keep the reps rather than grinding out slop.'},
   ]},
   {mult:4,pattern:'core',options:[
-    {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,
+    {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,secsPerRep:2,
      cue:'Curl up leading with the chest, exhale at the top, lower under control — never yank on the neck. NOTE: at the top peak this rung is 400 reps of loaded spinal flexion, which is the one part of this session your lower back has a stated history with — and it is the exact movement McGill argues against for a symptomatic back, so it sits oddly next to the Big 3 you now do daily. Nothing here forces you to keep it: put `situps` on the avoid list and the ladder re-resolves around it, dropping to four rungs. If you want the rung but not the flexion, sub in dead bugs or side planks for the same count.'},
   ]},
   {mult:5,pattern:'squat',options:[
-    {id:'bw_squat',name:'Bodyweight Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,
+    {id:'bw_squat',name:'Bodyweight Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,secsPerRep:1.8,
      cue:'Feet shoulder-width, sit back and down to full depth, knees tracking the toes, stand all the way up. Unloaded and low-impact, so this stays outside the hip caution — but keep the depth honest rather than turning the last rungs into quarter squats.'},
   ]},
 ];
 // Today's evening slot, which is the only slot this session fits.
-function pyramidEveSlot(){return ((S.weekPlan?.availability||{})[todayDow()]||{}).eve||{};}
+//
+// WEEKENDS STORE IT FLAT (2026-08-19). Mon–Fri nest the evening under `.eve`;
+// Saturday and Sunday put {on,mins,loc,equipment} directly on the day — the
+// shape genProgram's own slot builder already keys on, and that centuryHostSession
+// and trainingDayCount both test for. Reading `.eve` unconditionally meant this
+// returned {} every weekend, with two consequences on precisely the days the
+// ladder is FOR:
+//   · pyramidPrescription bailed at `if(!eve.on)`, so the Pyramid was never once
+//     prescribed on a Saturday or Sunday — the "no barbell and plenty of time"
+//     rule it exists for describes a weekend better than any weekday.
+//   · pyramidGymKey fell through to its apartment_gym default regardless of
+//     where he actually was, so the ladder resolved its `options` against the
+//     wrong equipment — the exact "prescribing something that can't be done"
+//     failure that list exists to prevent. A bodyweight-only Saturday still got
+//     the pull-up rung it had no bar for.
+function pyramidEveSlot(){
+  const dow=todayDow();
+  const d=(S.weekPlan?.availability||{})[dow]||{};
+  return (dow===0||dow===6)?d:(d.eve||{});
+}
+// How long tonight actually is. The dashboard's "tonight" override wins when it
+// was set today; otherwise the availability slot's own length, which is what
+// genProgram builds the session from (slot.mins) and, on a weekend, the ONLY
+// place the length is recorded — getEveningMins alone falls through to the
+// generic S.cfg.mins and never sees it.
+function pyramidEveMins(){
+  if(S.eveningMins&&S.eveningMins.date===todayStr())return S.eveningMins.mins;
+  return pyramidEveSlot().mins||getEveningMins();
+}
 // Equipment key for tonight. Falls back to the apartment gym (his home base, and
 // it has a bar) rather than the YMCA, since the whole appeal of this session is
 // that it runs without a gym.
@@ -2309,48 +2343,176 @@ function pyramidExOK(ex,equip){
   const have=new Set([...(equip||[]),'bodyweight']);
   return (ex.eq||['bodyweight']).some(e=>have.has(e));
 }
-// The single self-scaling knob. Derived from the Century's measured best
-// unbroken set, because the ×1 rung IS pull-ups and the peak rung is one
-// unbroken set of that size — so his hardest single set is precisely the
-// constraint. No Century history yet: open at 6 (540 reps), which is a real
-// session and nowhere near the 1,500-rep version.
-function pyramidPeak(){
-  const best=centuryStats().best;
-  if(!best)return 6;
-  return Math.max(PYRAMID_MIN_PEAK,Math.min(PYRAMID_MAX_PEAK,best-PYRAMID_PEAK_HEADROOM));
-}
+// No Century history yet: open at 6 (540 reps), a real session and nowhere near
+// the 1,500-rep version.
+const PYRAMID_OPENING_PEAK=6;
 function pyramidRungSizes(peak){
   const out=[];
   for(let i=1;i<=peak;i++)out.push(i);
   for(let i=peak-1;i>=1;i--)out.push(i);
   return out;
 }
-// ~1.5 s/rep at the brisk cadence these movements actually run at (they're
-// deliberately submaximal), plus rest between rungs but not after the last.
-// Only ever a DEFAULT: pyramidMins() prefers measured sessions the moment there
-// are any, the same way centuryMins() does.
-const PYRAMID_SECS_PER_REP=1.5;
-const PYRAMID_REST_SECS=45;
 function pyramidLogs(){return (S.logs||[]).filter(l=>l&&l.pyramid);}
+// Rung sizes sum to peak² over a full ladder (1+…+P+…+1), which is the identity
+// the whole prescription is built on — so "units" is the natural currency for
+// how much of a ladder got done, independent of which movements resolved that
+// day (every movement scales by the same rung-size sum).
+function pyramidUnitsDone(peak,rungs){
+  return pyramidRungSizes(peak).slice(0,Math.max(0,rungs||0)).reduce((a,n)=>a+n,0);
+}
+
+// ── THE PEAK, PART 2: WHAT HE CAN ACTUALLY FINISH (2026-08-19) ──
+// Sam: "I only made my way up the pyramid on Saturday … scale the rung based on
+// my current fitness level."
+//
+// The peak used to come from ONE input: the Century's best unbroken pull-up set,
+// minus PYRAMID_PEAK_HEADROOM. That is the right ceiling — the top rung is one
+// unbroken set of that many pull-ups, so his hardest single set genuinely caps
+// it — but it is ONLY a ceiling. It says nothing about whether 15×peak² reps
+// across five movements is a session he can COMPLETE, and completing it is the
+// thing he actually couldn't do. Pull-up strength and work capacity are
+// different qualities and the ladder demands both.
+//
+// So the logs now supply the second half, and the peak is the MINIMUM of the two.
+// Same self-scaling shape as the Century: the prescription never gets rewritten,
+// the number moves.
+//   · Stopped short → he did `units` of peak², and the ladder he WOULD have
+//     finished on that much work has peak √units. Take it.
+//   · Finished      → that ladder is banked, so the next one is one rung taller.
+//     Completing it IS the test, exactly as a Century's test set is.
+// The most recent session governs rather than a rolling window: pyramids are
+// occasional, and responsiveness is the whole point of what he asked for. One
+// bad day drops the peak, the next completed session steps it straight back up,
+// so it oscillates onto his real capacity within a couple of sessions.
+function pyramidCapacityPeak(){
+  const logs=pyramidLogs().filter(l=>l&&l.pyramidPeak>0&&l.pyramidRungs>0);
+  if(!logs.length)return null;
+  const l=logs[logs.length-1];
+  if(l.pyramidComplete)return l.pyramidPeak+1;
+  return Math.floor(Math.sqrt(pyramidUnitsDone(l.pyramidPeak,l.pyramidRungs)));
+}
+function pyramidPeak(){
+  const best=centuryStats().best;
+  // Strength ceiling: the top rung is one unbroken set of this many pull-ups.
+  const strength=best?best-PYRAMID_PEAK_HEADROOM:PYRAMID_OPENING_PEAK;
+  const capacity=pyramidCapacityPeak();
+  const target=capacity===null?strength:Math.min(strength,capacity);
+  return Math.max(PYRAMID_MIN_PEAK,Math.min(PYRAMID_MAX_PEAK,target));
+}
+
+// ── HOW LONG THE LADDER ACTUALLY TAKES (rewritten 2026-08-19) ──
+// Sam: "it took me longer than it said it would take to go up and down" — and he
+// only went UP. At peak 6 that is 58% of the reps, which the old model priced at
+// 12 minutes against a full-ladder estimate of 21; he beat 21 doing the 12. So
+// the model was out by at least 1.8×, and both halves of it were wrong:
+//
+//  1) IT COUNTED REST AT RUNG BOUNDARIES ONLY. A rung is not one movement, it is
+//     FIVE — bar, dip station, floor, floor, floor — so an 11-rung ladder has 44
+//     changeovers INSIDE rungs that the model charged nothing for, against the
+//     10 boundaries it did charge. At peak 10 it is 76 uncounted against 18
+//     counted. That is the structural error and it dominates everything else:
+//     on the small rungs (rung 1 is one pull-up and five squats) the changeover
+//     IS the rung.
+//  2) ONE FLAT 1.5 s/rep FOR FIVE MOVEMENTS. A dead-hang pull-up is not an air
+//     squat. Each ladder entry now carries its own secsPerRep, which is also
+//     what keeps the model honest for a ladder that resolved to four rungs.
+const PYRAMID_DEFAULT_SECS_PER_REP=2;
+// Getting from one movement to the next INSIDE a rung. Not rest — just walking
+// to the bar and getting set. Deliberately smaller than PYRAMID_REST_SECS, and
+// deliberately NOT TRANSITION_BUFFER_SECS (45s), which prices whole session
+// BLOCKS moving between rooms and pieces of kit, not a step from the floor to
+// the bar you are standing under.
+const PYRAMID_CHANGEOVER_SECS=20;
+// Rest between rungs, averaged. The card's restNote prescribes this properly
+// (little at the bottom, 60–90s at the top); this is the flat mean of that.
+const PYRAMID_REST_SECS=45;
+function pyramidRepSecs(id){
+  for(const rung of PYRAMID_LADDER){
+    const o=(rung.options||[]).find(x=>x.id===id);
+    if(o)return o.secsPerRep||PYRAMID_DEFAULT_SECS_PER_REP;
+  }
+  return PYRAMID_DEFAULT_SECS_PER_REP;
+}
+// Modelled seconds for a ladder session. `blocks` is [{secsPerRep,reps}] — the
+// TOTAL reps of each movement across every rung performed — and `rungs` is how
+// many rungs were performed. Written to take the REPS rather than a peak so the
+// identical function prices tonight's plan and reconstructs a past session from
+// its log, which is what lets the calibration below compare like with like.
+function pyramidModelSecs(blocks,rungs){
+  const n=Math.max(0,rungs||0);
+  const work=blocks.reduce((a,b)=>a+b.reps*b.secsPerRep,0);
+  const changeovers=n*Math.max(0,blocks.length-1)*PYRAMID_CHANGEOVER_SECS;
+  const rest=Math.max(0,n-1)*PYRAMID_REST_SECS;
+  return work+changeovers+rest;
+}
+// Below this much modelled work a session is too small to calibrate from — the
+// same judgement CENTURY_PARTIAL_MIN_REPS makes, for the same reason.
+const PYRAMID_MIN_CALIBRATION_MINS=5;
+// One bad reading must not run away with the estimate. The Century's equivalent
+// guard is CENTURY_MAX_BUDGET_MINS; the ladder has no fixed size to cap against,
+// so what gets clamped here is the CORRECTION.
+const PYRAMID_PACE_CLAMP=[0.5,3];
+// CALIBRATION, and the reason partials are now welcome rather than discarded.
+//
+// The old pyramidPlan took a median of COMPLETED sessions only, arguing in its
+// comment that "a session stopped at rung 4 says nothing about how long the whole
+// thing takes". That is the exact reasoning the Century's own timing carried
+// until 2026-08-17, and it is wrong the same way: a stopped session is the
+// commonest outcome on precisely the days the estimate matters, and Sam's only
+// pyramid to date is one — so the app would have gone on quoting the unmeasured
+// default forever, which is what he is reporting.
+//
+// It is fixed here better than the Century manages, because the ladder's shape is
+// MODELLED rather than assumed. The Century has to extrapolate a partial pro-rata
+// (and then floor it, since pro-rata understates). This doesn't extrapolate at
+// all: it prices the portion he ACTUALLY did through the same model, compares
+// that against the clock, and keeps the RATIO. A partial yields an honest
+// correction with no guessing about the part that never happened — and because
+// it's a ratio it transfers across peaks, so a session logged at peak 6 still
+// calibrates a peak-4 ladder.
+function pyramidPaceFactor(){
+  const fs=pyramidLogs()
+    .filter(l=>l&&l.timedMins>0&&l.pyramidRungs>0)
+    .slice(-5)
+    .map(l=>{
+      const blocks=(l.exercises||[])
+        .map(e=>({secsPerRep:pyramidRepSecs(e.id),reps:pyramidRepsOf(e)}))
+        .filter(b=>b.reps>0);
+      if(!blocks.length)return 0;
+      const modelled=pyramidModelSecs(blocks,l.pyramidRungs)/60;
+      if(modelled<PYRAMID_MIN_CALIBRATION_MINS)return 0;
+      return l.timedMins/modelled;
+    })
+    .filter(f=>f>0)
+    .sort((a,b)=>a-b);
+  // `n` rather than testing the factor against 1: a genuinely measured session
+  // can land on exactly 1.00, and the card must not then claim it is guessing.
+  if(!fs.length)return{factor:1,n:0};
+  return{factor:Math.min(PYRAMID_PACE_CLAMP[1],Math.max(PYRAMID_PACE_CLAMP[0],median(fs))),n:fs.length};
+}
 function pyramidPlan(){
   const peak=pyramidPeak();
   const equip=pyramidEquip();
   const sizes=pyramidRungSizes(peak);
   const moves=PYRAMID_LADDER.map(rung=>{
     const ex=(rung.options||[]).find(o=>pyramidExOK(o,equip));
-    return ex?{...ex,mult:rung.mult,pattern:rung.pattern,reps:rung.mult*peak*peak}:null;
+    return ex?{...ex,mult:rung.mult,pattern:rung.pattern,reps:rung.mult*peak*peak,
+               secsPerRep:ex.secsPerRep||PYRAMID_DEFAULT_SECS_PER_REP}:null;
   }).filter(Boolean);
   const totalReps=moves.reduce((a,m)=>a+m.reps,0);
-  const est=Math.round((totalReps*PYRAMID_SECS_PER_REP+Math.max(0,sizes.length-1)*PYRAMID_REST_SECS)/60);
-  // Median of the last 5 COMPLETED sessions once they exist — same rule as
-  // centuryMins, including why partials are excluded rather than averaged in
-  // (a session stopped at rung 4 says nothing about how long the whole thing
-  // takes, and taking it at face value would report the hardest workout in the
-  // program as the shortest).
-  const done=pyramidLogs().filter(l=>l.timedMins>0&&l.pyramidComplete).slice(-5)
-    .map(l=>l.timedMins).sort((a,b)=>a-b);
-  const mins=done.length?done[Math.floor(done.length/2)]:est;
-  return{peak,sizes,moves,totalReps,mins,measured:!!done.length};
+  // Structural model first (see pyramidModelSecs), then corrected by whatever his
+  // own logged sessions say — completed OR stopped short, since the correction is
+  // a ratio against the portion actually performed rather than an extrapolation.
+  const pace=pyramidPaceFactor();
+  const est=pyramidModelSecs(moves,sizes.length)/60;
+  const mins=Math.max(1,Math.round(est*pace.factor));
+  // The climb shown separately, because it is what he actually did and because
+  // "half the ladder" is misleading: going up is MORE than half the work (it
+  // carries the peak rung — 21 of 36 units at peak 6).
+  const upRungs=Math.min(sizes.length,peak);
+  const upMoves=moves.map(m=>({...m,reps:pyramidRepsAfter(sizes,upRungs,m.mult)}));
+  const upMins=Math.max(1,Math.round(pyramidModelSecs(upMoves,upRungs)/60*pace.factor));
+  return{peak,sizes,moves,totalReps,mins,upMins,pace:pace.factor,measured:pace.n>0,paceCount:pace.n};
 }
 // Reps of each movement completed after `rungsDone` rungs of `sizes`.
 function pyramidRepsAfter(sizes,rungsDone,mult){
@@ -2427,7 +2589,7 @@ function pyramidPrescription(){
   if(!eve.on)return null;// no evening slot tonight — nowhere to put it
   const gym=pyramidGymKey();
   if(PYRAMID_EXCLUDED_GYMS.includes(gym))return null;
-  const mins=getEveningMins();
+  const mins=pyramidEveMins();
   if(!(mins>=PYRAMID_PRESCRIBE_MINS))return null;
   const plan=pyramidPlan();
   // A crippled ladder is never PRESCRIBED, only offered. The ×1 pull rung is
@@ -2503,7 +2665,7 @@ function cindyPrescription(){
   if(!(EQUIPMENT_PRESETS[gym]?.equipment||[]).includes('pullup_bar'))return null;
   if(centuryDows().includes(todayDow()))return null;
   if(pyramidPrescription())return null;
-  const mins=getEveningMins();
+  const mins=pyramidEveMins();
   // Warm-up + the 20-minute clock + the daily spine work still has to fit.
   const needed=CINDY_MINS+10+LUNCH_LEDGER.spineMins;
   if(mins<needed)return null;
@@ -6572,8 +6734,15 @@ function pyramidHTML(dd){
     ${started?`<button class='btn ${cur===null?'btn-ok':'btn-g'} btn-sm' data-action='pyramid-finish' style='width:100%;margin-top:8px'>${cur===null?`✓ Log Pyramid — ${repsDone} reps`:`Log ${repsDone} reps & stop here (rung ${rungsDone} of ${totalRungs})`}</button>`:''}
     ${lunchWarn}
     ${missingNote}
-    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>Up 1→${plan.peak}, then back down to 1. Every rung is <strong style='color:var(--txt)'>${plan.moves.map(m=>'×'+m.mult).join(' / ')}</strong> of the movements above, so the whole session is one number: ${plan.peak}² × ${plan.moves.reduce((a,m)=>a+m.mult,0)} = ${plan.totalReps} reps. ${plan.measured?`Your last sessions ran ~${plan.mins} min.`:`Estimated ~${plan.mins} min until there's a timed one to go on.`}</div>
-    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>Peak is set to <strong style='color:var(--txt)'>${plan.peak}</strong>${centuryStats().best?` — ${PYRAMID_PEAK_HEADROOM} clear of your best unbroken set of ${centuryStats().best}, so even the top rung isn't a grinder`:` until there's a Century on record to size it from`}. It moves on its own as that number climbs; the ladder never gets rewritten.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>Up 1→${plan.peak}, then back down to 1. Every rung is <strong style='color:var(--txt)'>${plan.moves.map(m=>'×'+m.mult).join(' / ')}</strong> of the movements above, so the whole session is one number: ${plan.peak}² × ${plan.moves.reduce((a,m)=>a+m.mult,0)} = ${plan.totalReps} reps.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>⏱ <strong style='color:var(--txt)'>~${plan.mins} min</strong> for the whole ladder — <strong style='color:var(--txt)'>~${plan.upMins} min</strong> just to get to the top, since the climb is more than half the work. ${plan.measured?`Calibrated from ${plan.paceCount} timed session${plan.paceCount>1?'s':''} of your own, finished or not${plan.pace>1.05?` — you run about ${Math.round((plan.pace-1)*100)}% slower than the model, and this already allows for it`:''}.`:`Estimate covers the reps, the changeover between the five movements every rung, and rest between rungs. It recalibrates the first time you log a timed one — a session you stop partway through counts too.`}</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>Peak is set to <strong style='color:var(--txt)'>${plan.peak}</strong>${(()=>{
+      const cap=pyramidCapacityPeak(),best=centuryStats().best;
+      const strength=best?best-PYRAMID_PEAK_HEADROOM:null;
+      if(cap!==null&&(strength===null||cap<=strength))return ` by your last ladder — what you actually finished is what sizes the next one. Complete this and it goes up a rung; stop short and it comes back down to one you will finish`;
+      if(strength!==null)return ` — ${PYRAMID_PEAK_HEADROOM} clear of your best unbroken set of ${best}, so even the top rung isn't a grinder`;
+      return ` until there's a Century on record to size it from`;
+    })()}. It moves on its own; the ladder never gets rewritten.</div>
   </div>`;
 }
 

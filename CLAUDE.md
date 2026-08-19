@@ -545,10 +545,11 @@ strip it before other debugging.
   feature: up-and-back sums to **peak² reps per unit of multiplier**, so the
   session is (Σ mult) × peak² — at peak 10 with 1/2/3/4/5 that's exactly the
   original 100/200/300/400/500 = 1,500 reps. **ONE number sets the entire dose**,
-  which is what makes it obey the self-scaling rule: `pyramidPeak()` derives it
-  from `centuryStats().best` minus `PYRAMID_PEAK_HEADROOM`, so the top rung stays
-  2 reps clear of failure (the same rule the Century runs on) and the ladder
-  never needs rewriting as he improves. No Century history → peak 6 (540 reps).
+  which is what makes it obey the self-scaling rule: `pyramidPeak()` is the
+  MINIMUM of a strength ceiling and a capacity ceiling (see the 2026-08-19 entry
+  below), so the top rung stays 2 reps clear of failure (the same rule the
+  Century runs on) AND stays a ladder he can actually finish. The ladder never
+  needs rewriting as he improves. No history at all → peak 6 (540 reps).
   **NEVER SCHEDULED BY THE GENERATOR** — `dayTemplate` knows nothing about it. A
   generated session that could be silently swapped would make the recovery-debt
   bookkeeping a lie, and "every Monday" is what Sam explicitly didn't want.
@@ -603,8 +604,9 @@ strip it before other debugging.
   - A peak-10 ladder is 100 pull-ups, so `centuryHTML` defers to it
     (`pyramidCoversCentury`) rather than asking for a second hundred. A shorter
     ladder does not, and the Century card still appears.
-  - Never a lunch: high-sweat and ~50 min fails both lunch constraints. The card
-    says so in words on a lunch-only day rather than vanishing.
+  - Never a lunch: high-sweat and (at any peak worth doing) far past 40 min, so
+    it fails both lunch constraints. The card says so in words on a lunch-only
+    day rather than vanishing.
   - **The 400-sit-up rung is the one part flagged to Sam as questionable** —
     high-rep loaded lumbar flexion against a stated lower-back history. Left in
     (it's the prescription, it's not on his avoid list, and the core cycle
@@ -614,6 +616,82 @@ strip it before other debugging.
     COMPLETED rungs, matching how the session is actually run. Cloud-synced by
     the shared `mergeStampedDraft` (see the Century's note on why
     `SINGLETON_FIELDS` and `unionById` both fail for session drafts).
+- **Pyramid timing + a peak that scales to what he can FINISH (2026-08-19)** —
+  Sam: *"I only made my way up the pyramid on Saturday and it took me longer than
+  it said it would take to go up and down. Fix the timing estimate of that and
+  scale the rung based on my current fitness level."* Both halves were real, and
+  a third bug fell out on the way.
+  - **The estimate was out by at least 1.8×, and the cause was structural, not a
+    fudge factor.** `PYRAMID_SECS_PER_REP=1.5` plus `PYRAMID_REST_SECS` charged
+    once per rung boundary. But **a rung is not one movement, it is FIVE** — bar,
+    dip station, floor, floor, floor — so an 11-rung ladder has **44 changeovers
+    INSIDE rungs that were charged nothing**, against the 10 boundaries that were
+    charged. At peak 10 it is 76 uncounted against 18. On the small rungs (rung 1
+    is one pull-up and five squats) the changeover IS the rung. Second error:
+    one flat rate for five movements — a dead-hang pull-up is not an air squat.
+    Now `pyramidModelSecs(blocks,rungs)` = Σ(reps × per-movement `secsPerRep`) +
+    `rungs × (moves−1) × PYRAMID_CHANGEOVER_SECS`(=20) + `(rungs−1) × 45`.
+    Deliberately NOT `TRANSITION_BUFFER_SECS`(45): that prices whole session
+    BLOCKS moving between rooms and kit, not a step from the floor to the bar
+    you are standing under.
+    Measured: peak 6 goes **21 → 41 min**, and the climb alone — what he actually
+    did — prices at **23 min**, which is what he reported beating. peak 10 (the
+    original 1,500-rep prescription) is **51 → 91 min**, so the old
+    `PYRAMID_MAX_PEAK` comment claiming it "stops fitting an hour" was arithmetic
+    that never held.
+  - **Partials now calibrate the estimate, and this is done BETTER than the
+    Century manages.** The old `pyramidPlan` medianed COMPLETED sessions only,
+    arguing a stopped session "says nothing about how long the whole thing
+    takes" — the exact reasoning `centuryMins` carried until 2026-08-17, wrong
+    the same way. Sam's only pyramid to date is a partial, so the app would have
+    quoted him the unmeasured default forever. The Century has to extrapolate a
+    partial pro-rata and then floor it (pro-rata understates); this doesn't
+    extrapolate **at all** — `pyramidPaceFactor()` prices the portion he ACTUALLY
+    did through the same model, compares it to the clock, and keeps the RATIO.
+    No guessing about the part that never happened, and because it is a ratio it
+    **transfers across peaks**, so a session logged at peak 6 still calibrates a
+    peak-4 ladder. Guards mirror the Century's: `PYRAMID_MIN_CALIBRATION_MINS`
+    (too small to learn from) and `PYRAMID_PACE_CLAMP` (one bad reading must not
+    run away — the Century clamps the ANSWER, this clamps the CORRECTION).
+  - **`pyramidPeak()` is now `min(strength, capacity)`.** The Century's best
+    unbroken set is the right CEILING — the top rung is one unbroken set of that
+    many pull-ups — but it is *only* a ceiling, and says nothing about whether
+    15×peak² reps across five movements is completable. Pull-up strength and work
+    capacity are different qualities and the ladder demands both.
+    `pyramidCapacityPeak()` reads the last logged ladder: **stopped short** → he
+    did `units` of peak², so the ladder he'd have finished has peak `√units`;
+    **finished** → banked, next one is one rung taller (completing it IS the
+    test, exactly as a Century's test set is). The most recent session governs
+    rather than a rolling window — pyramids are occasional and responsiveness is
+    the whole ask; it oscillates onto his real capacity within a couple of
+    sessions. `PYRAMID_MIN_PEAK` **5 → 4** because a floor of 5 would have
+    blocked the conclusion his own data points at (21 units → peak 4), and a
+    self-scaling rule that cannot reach the answer is not self-scaling.
+    His Saturday (peak 6, 6 of 11 rungs) resolves to **peak 4, ~29 min** — a
+    ladder he finishes, which then steps back up 4 → 5 → 6 → 7 as he does.
+  - **A THIRD bug, found while testing and pre-existing: the Pyramid was never
+    prescribed on a weekend.** `pyramidEveSlot()` read `.eve` unconditionally,
+    but **Saturday and Sunday store the session FLAT** (`{on,mins,loc,equipment}`
+    directly on the day) — the shape `genProgram`'s own slot builder, plus
+    `centuryHostSession` and `trainingDayCount`, already key on. So it returned
+    `{}` every weekend and `pyramidPrescription` bailed at `if(!eve.on)` — on
+    precisely the days "no barbell and plenty of time" describes best, and the
+    day he actually ran it. Worse, `pyramidGymKey()` fell through to its
+    apartment_gym default regardless of where he was, so the ladder resolved its
+    `options` against the WRONG equipment: a bodyweight-only Saturday still got
+    the pull-up rung it had no bar for — the exact "prescribing something that
+    can't be done" failure that `options` list exists to prevent. Fixed, and
+    `pyramidEveMins()` now prefers the slot's own `mins` (what `genProgram`
+    builds from) over `getEveningMins()`'s fall-through to the generic
+    `S.cfg.mins`, which on a weekend is the only place the length is recorded.
+  - Consequence worth knowing, and it is honest rather than a regression: at
+    **peak 10 the ladder needs 97 min including spine work, so it is never
+    PRESCRIBED** even on a 90-minute evening. It is still offered as a card. The
+    full Spider-Man ladder genuinely does not fit an evening; the old estimate
+    only said it did because it wasn't counting 76 changeovers.
+  - Verified: all 7 case-study scenarios **byte-identical** to baseline — the
+    generator has never known about this session (`dayTemplate` knows nothing
+    about it), which is exactly what that identity proves.
 - **Editing a log had to survive the cloud merge** (2026-08-05, `pickNewerEdit` /
   `stampLogEdit`). `unionById` keeps the CLOUD copy for any id present on both
   sides, which is right for collections that are only appended to and wrong for
