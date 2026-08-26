@@ -1838,6 +1838,21 @@ function weekDateForDow(dow){
 // itself next week would be its own kind of bug (see the Century's own
 // "offSession" flag for the same one-off-vs-recurring distinction).
 function noBarToday(dow){return !!(S.noBarLog||{})[weekDateForDow(dow)];}
+// A day's USABLE equipment, as opposed to what the location owns. The preset is
+// a property of the place and stays untouched — the apartment gym still has a
+// bar tomorrow — while "no bar today" is a property of the DAY, so it is applied
+// here, at every point that resolves equipment for a session.
+//
+// Without this the feature was half-done in the worst way: it correctly freed
+// the ~30 minutes the century was reserving, and then the generator spent the
+// freed slot on weighted_pullups. Measured over a sweep of flagged days, 3 of 11
+// programmed a bar-only movement on a day he had just said had no bar — the
+// exact "prescribing something that can't be done" failure the Pyramid's own
+// `options` list exists to prevent.
+function equipForDow(equipmentKey,dow){
+  const eq=(EQUIPMENT_PRESETS[equipmentKey]||EQUIPMENT_PRESETS.ymca).equipment||[];
+  return noBarToday(dow===undefined?todayDow():dow)?eq.filter(q=>q!=='pullup_bar'):eq;
+}
 function centuryEligibleDow(av,dow){
   if(noBarToday(dow))return false;
   const d=av[dow]||{};
@@ -2351,7 +2366,7 @@ function pyramidGymKey(){
   const k=pyramidEveSlot().equipment;
   return EQUIPMENT_PRESETS[k]?k:'apartment_gym';
 }
-function pyramidEquip(){return EQUIPMENT_PRESETS[pyramidGymKey()].equipment;}
+function pyramidEquip(){return equipForDow(pyramidGymKey(),todayDow());}
 // Same gates pickEx applies, minus the scheduling ones (frequency, MRV, tags) —
 // those are about what to PROGRAM, and this session isn't programmed. Note the
 // unconditional 'bodyweight' grant, copied from pickEx.
@@ -2681,7 +2696,7 @@ function cindyPrescription(){
   const eve=pyramidEveSlot();
   if(!eve.on)return null;
   const gym=pyramidGymKey();
-  if(!(EQUIPMENT_PRESETS[gym]?.equipment||[]).includes('pullup_bar'))return null;
+  if(!equipForDow(gym,todayDow()).includes('pullup_bar'))return null;
   if(centuryDows().includes(todayDow()))return null;
   if(pyramidPrescription())return null;
   const mins=pyramidEveMins();
@@ -3802,14 +3817,24 @@ function genProgram(cfg,av,workoutHistoryLog){
     // changed only by the rescue matches the previous plan and takes the
     // preserve-don't-rebuild path, and the rescue never lands.
     const rescued=slots.some(s=>s.hingeRescue);
-    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')+(stamped?'+f:'+stamped.foundationId:'')+(rescued?'+hr':'')};
+    // `n:` is the SLOT COUNT, and it is in the key for the same reason the
+    // foundation stamp and the hinge rescue are: tk is the session's identity,
+    // and buildSession preserves rather than rebuilds any day whose tk matches
+    // the previous plan. The slot count moves whenever the TIME BUDGET moves —
+    // a century skipped or logged, a finisher toggled off, the calf top-up
+    // banked — and none of that is visible in the muscle set, so without this a
+    // day could keep its old, smaller session and silently pocket the freed
+    // minutes. It happens to rebuild today because the muscle set usually shifts
+    // too, but "usually" is not a guarantee and this is the cheap way to make it
+    // one.
+    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')+'+n:'+slots.length+(stamped?'+f:'+stamped.foundationId:'')+(rescued?'+hr':'')};
   }
 
   function buildSession(slot,tk,oldData){
     // Use per-session equipment from availability
     const equipmentKey=slot.equipmentKey||'ymca';
     const selectedPreset=EQUIPMENT_PRESETS[equipmentKey]||EQUIPMENT_PRESETS.ymca;
-    const equip=selectedPreset.equipment;
+    const equip=equipForDow(equipmentKey,slot.dow);
     const dateStr=dateForDow(slot.dow);
     // A completed day is locked to what was ACTUALLY logged — the source of
     // truth — so regenerating/resetting can never reassign or relabel it, and
@@ -5197,7 +5222,7 @@ function pickEveningExercises(day,sessionMins){
   const todayAv=av[today]||{};
   const eveEquipment=todayAv.eve?.equipment||'ymca';
   const selectedPreset=EQUIPMENT_PRESETS[eveEquipment]||EQUIPMENT_PRESETS.ymca;
-  const equip=selectedPreset.equipment;
+  const equip=equipForDow(eveEquipment,today);
   const tmpl=TMPLS[day.tk];
   if(!tmpl)return day.exercises.slice(0,limit);
   const used=[];
@@ -6498,7 +6523,7 @@ function centuryHTML(){
         <span style='font-size:16px'>🚫</span>
         <div style='flex:1;min-width:0'>
           <div style='font-size:13px;font-weight:700'>No bar today — Century skipped</div>
-          <div style='font-size:11px;color:var(--mut);margin-top:2px'>Nothing reserved out of today's session for it, and the week's back volume plans around it not happening.</div>
+          <div style='font-size:11px;color:var(--mut);margin-top:2px'>Those ~${centuryMins()} min went back to today's session, so it's carrying an extra lift instead. Nothing needing the bar is programmed today, and the week's back volume plans around it not happening.</div>
         </div>
         <button class='btn btn-g btn-sm' data-action='century-no-bar-undo' style='width:auto;flex-shrink:0'>Undo</button>
       </div>
@@ -6562,7 +6587,7 @@ function centuryHTML(){
     ${setChips}
     ${draft.sets.length?`<button class='btn ${total>=T?'btn-ok':'btn-g'} btn-sm' data-action='century-finish' style='width:100%;margin-top:8px'>${total>=T?`✓ Log Century — ${total} reps in ${draft.sets.length} sets`:`Log ${total} reps & stop here (${remaining} short)`}</button>`:''}
     ${!draft.sets.length?`<button class='cue-btn' data-action='century-already-done' style='margin-top:8px;margin-bottom:0'>✓ Already did it today — log it and free the time</button>`:''}
-    ${!draft.sets.length?`<button class='cue-btn' data-action='century-no-bar-today' style='margin-top:4px;margin-bottom:0;color:var(--mut)'>🚫 No pull-up bar today — skip it</button>`:''}
+    ${!draft.sets.length?`<button class='cue-btn' data-action='century-no-bar-today' style='margin-top:4px;margin-bottom:0;color:var(--mut)'>🚫 No pull-up bar today — skip it and use the time</button>`:''}
     <div style='margin-top:10px;padding:10px 12px;background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.25);border-radius:10px'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>⏱ Pacing${plan.test?' · Test day':''}</div>
       ${plan.test?`<div style='font-size:13px;font-weight:700'>Set 1 to failure · rest ${plan.testRestSecs/60} min · then sets of ${plan.setSize}</div>
@@ -7695,7 +7720,7 @@ function renderWorkout(){
   const todayAv=av[today]||{};
   const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
   const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!plyoHidden(e)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!plyoHidden(e)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>equipForDow(sessionEquipment,today).includes(q))).slice(0,5):[];
   const swapSearchOpen=swapOpen&&S.active.swapSearch;
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>

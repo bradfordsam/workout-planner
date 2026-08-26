@@ -576,6 +576,40 @@ strip it before other debugging.
     `century-when`'s toggle makes — because excluding or restoring a day changes
     which session hosts the century, the week's back/biceps MRV budget via
     `getCommittedVolumes`, and today's own lift count via `centuryChargeFor`.
+  - **The freed time is real, and it has to go somewhere he can actually use.**
+    Sam, immediately after: *"but if I skip it it also allows for more time to do
+    other exercises."* Correct, and two things had to be true for that to hold:
+    1. **The lift count has to rebuild, not be preserved.** `centuryChargeFor`
+       drops to 0 the moment the day is ineligible, so `lunchBudget` /
+       `eveningLifts` hand back a bigger limit — but `buildSession` PRESERVES any
+       day whose `tk` matches the previous plan, and `tk` carried the muscle set,
+       the foundation stamp and the hinge rescue and **not the slot count**. It
+       happened to rebuild anyway because the muscle set usually shifts with the
+       limit, which is luck, not a guarantee. `tk` now carries `+n:<slots>`, for
+       exactly the reason the foundation stamp is in there. Measured: 0 of 7
+       case-study scenarios changed (it is a no-op on a stable week), and 10 of
+       10 flagged century days convert the freed minutes into an extra lift.
+       This is GENERAL, not century-specific — every input to the time budget
+       (a finisher toggled off, the calf top-up banked, century reps logged
+       mid-day shrinking `centuryBudgetToday`) had the same latent gap.
+    2. **The freed slot must not be spent on another bar movement.** It was:
+       measured over a sweep of flagged days, **3 of 11 programmed
+       `weighted_pullups`** on a day he had just said had no bar — the feature
+       correctly freeing 30 minutes and then spending them on the one thing he
+       cannot do. `equipForDow(equipmentKey,dow)` now drops `pullup_bar` from a
+       flagged day's equipment at every site that resolves it: `buildSession`
+       (which covers `canPlaceFoundation`, `pickEx` and `pickBackfillEx` in one
+       place, since all three take that array), `pickEveningExercises`,
+       `pyramidEquip`, the Cindy prescription's bar check, and the in-session
+       swap list. 3 → 0 after. The PRESET is deliberately untouched — the
+       apartment gym still has a bar tomorrow; this is a property of the day.
+    Knock-ons that fall out for free and are correct: the Pyramid's ×1 rung is
+    pull-ups, so a flagged day resolves the ladder to four rungs, which the
+    existing rule already refuses to PRESCRIBE (only offer); Cindy (5 pull-ups a
+    round) stops being prescribed; and the day stops counting as
+    conditioning-covered, so a finisher is offered again — which is right, since
+    the reason it was suppressed was that 100 pull-ups already WAS the day's
+    conditioning.
   - Storage mirrors `pushupLog` exactly (a plain `{date:true}` map, unbounded,
     no pruning — same accepted precedent): wired through both localStorage
     save/load and both cloud-sync merge points, local wins on conflict.
