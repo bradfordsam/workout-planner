@@ -1385,7 +1385,7 @@ let S={
     // edited from the Plan screen.)
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},noBarLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
   // Today's in-progress Pull-up Century tally, {date,sets:[reps,...]} — see
   // PULLUP_CENTURY. Cloud-synced, but NOT via SINGLETON_FIELDS — it has its own
@@ -1440,7 +1440,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1448,7 +1448,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -1820,7 +1820,26 @@ function centuryMrvSets(reps){
 // handle that. (The Fundamentals card used to say so in words; it was removed
 // 2026-08-03, so there is no longer a caller that prints the day list — but the
 // empty case is still real for any future one.)
+// This week's calendar date for a given day-of-week, Monday-anchored — the same
+// arithmetic genProgram's own local dateForDow uses, exposed at module scope
+// because centuryEligibleDow needs it and isn't inside that closure.
+function weekDateForDow(dow){
+  const mon=thisMonday();
+  return dow===0?addDays(mon,6):dow===6?addDays(mon,5):addDays(mon,dow-1);
+}
+// "No pull-up bar today" (2026-08-19, Sam: "let's make it so I can say I don't
+// have a pull up bar available today to do the century"). A real gap this
+// closes: century ELIGIBILITY has only ever asked "is a session available that
+// day", never "does that session have a bar" — none of the equipment presets
+// without pullup_bar (hotel_gym, bodyweight) were ever excluded either, so a
+// travel day could already have been scheduling 100 pull-ups with nothing to
+// hang from. Keyed by DATE, not day-of-week, because it's a one-off statement
+// about today, not a recurring preference — a flag that silently reapplied
+// itself next week would be its own kind of bug (see the Century's own
+// "offSession" flag for the same one-off-vs-recurring distinction).
+function noBarToday(dow){return !!(S.noBarLog||{})[weekDateForDow(dow)];}
 function centuryEligibleDow(av,dow){
+  if(noBarToday(dow))return false;
   const d=av[dow]||{};
   return(dow===0||dow===6)?!!d.on:(d.lunch!==false||!!d.eve?.on);
 }
@@ -6473,7 +6492,19 @@ function centuryHTML(){
       <div style='font-size:12px;color:var(--mut);margin-top:4px;line-height:1.6'>Same hundred reps, different shape — spread one rung at a time across the ladder instead of in dedicated sets. It's already booked against this week's back volume, so there's no second century to do.</div>
     </div>`;
   }
-  if(!isCenturyDay&&!draft.sets.length&&!doneToday)return'';
+  if(!isCenturyDay&&!draft.sets.length&&!doneToday){
+    if(noBarToday(todayDow()))return`<div style='margin-top:12px;padding:12px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;text-align:left'>
+      <div style='display:flex;align-items:center;gap:8px'>
+        <span style='font-size:16px'>🚫</span>
+        <div style='flex:1;min-width:0'>
+          <div style='font-size:13px;font-weight:700'>No bar today — Century skipped</div>
+          <div style='font-size:11px;color:var(--mut);margin-top:2px'>Nothing reserved out of today's session for it, and the week's back volume plans around it not happening.</div>
+        </div>
+        <button class='btn btn-g btn-sm' data-action='century-no-bar-undo' style='width:auto;flex-shrink:0'>Undo</button>
+      </div>
+    </div>`;
+    return'';
+  }
   const st=centuryStats();
   const T=PULLUP_CENTURY.target;
   // Progress line across sessions — the two numbers that actually moved for
@@ -6531,6 +6562,7 @@ function centuryHTML(){
     ${setChips}
     ${draft.sets.length?`<button class='btn ${total>=T?'btn-ok':'btn-g'} btn-sm' data-action='century-finish' style='width:100%;margin-top:8px'>${total>=T?`✓ Log Century — ${total} reps in ${draft.sets.length} sets`:`Log ${total} reps & stop here (${remaining} short)`}</button>`:''}
     ${!draft.sets.length?`<button class='cue-btn' data-action='century-already-done' style='margin-top:8px;margin-bottom:0'>✓ Already did it today — log it and free the time</button>`:''}
+    ${!draft.sets.length?`<button class='cue-btn' data-action='century-no-bar-today' style='margin-top:4px;margin-bottom:0;color:var(--mut)'>🚫 No pull-up bar today — skip it</button>`:''}
     <div style='margin-top:10px;padding:10px 12px;background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.25);border-radius:10px'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>⏱ Pacing${plan.test?' · Test day':''}</div>
       ${plan.test?`<div style='font-size:13px;font-weight:700'>Set 1 to failure · rest ${plan.testRestSecs/60} min · then sets of ${plan.setSize}</div>
@@ -9503,6 +9535,23 @@ document.addEventListener('click',e=>{
   //   · timedMins:0 — "I don't know how long it took", which centuryMins()
   //     already treats as a session to skip rather than a guess to average.
   // MRV is unaffected and correct: 100 reps is 100 reps wherever they happened.
+  if(a==='century-no-bar-today'){
+    // Keyed by DATE (see weekDateForDow) — a one-off statement about today, not
+    // a recurring toggle, so it never needs to be turned back on for next week.
+    S.noBarLog=S.noBarLog||{};
+    S.noBarLog[todayStr()]=true;
+    // centuryDows() reads this via centuryEligibleDow, so the whole week's back
+    // budget and today's session both have to be replanned around today NOT
+    // hosting a hundred anymore — same call the century-when toggle makes.
+    replanCurrentWeek();
+    save();render();return;
+  }
+  if(a==='century-no-bar-undo'){
+    S.noBarLog=S.noBarLog||{};
+    delete S.noBarLog[todayStr()];
+    replanCurrentWeek();
+    save();render();return;
+  }
   if(a==='century-already-done'){
     if(centuryLogs().some(l=>logDay(l.date)===todayStr()))return;
     const size=Math.max(1,centurySetPlan().setSize);
@@ -10168,6 +10217,7 @@ async function saveToCloud(){
         S.lastWeights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
         S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
         S.pushupLog={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
+        S.noBarLog={...(cloud.noBarLog||{}),...(S.noBarLog||{})};
         // AFTER the log merge above: the draft merges ask whether today's
         // session is already finished, and the log that says so may have
         // arrived from the other device in this very read.
@@ -10177,7 +10227,7 @@ async function saveToCloud(){
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -10336,6 +10386,7 @@ async function loadFromCloud(){
       // Merge sleepLog the same way: additive per-date map, local wins on conflict
       const sleep={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
       const pushl={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
+      const noBar={...(cloud.noBarLog||{}),...(S.noBarLog||{})};
       // Singleton state (cfg/program/weekPlan/...) adopted PER FIELD, by each
       // field's own change stamp. The old comparison used one global
       // updatedAt, so any unrelated save on this device (a sleep log, a
@@ -10361,7 +10412,7 @@ async function loadFromCloud(){
         const fu={...lf};Object.keys(cf).forEach(k=>{if(!fu[k]||cf[k]>fu[k])fu[k]=cf[k];});
         S.fieldUpdated=fu;
       }
-      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,customExercises:customEx});
+      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,noBarLog:noBar,customExercises:customEx});
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
       // device must not ride back in through this device's stale copy.
       S.logs=filterTombstoned(merged).slice(-LOG_KEEP);

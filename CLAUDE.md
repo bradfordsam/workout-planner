@@ -538,6 +538,47 @@ strip it before other debugging.
   `getMRVBreakdown` (submaximal sets don't cost what hard sets cost; at face
   value 100 reps ate the whole week's back MRV and crowded out the mandated
   row/rear-delt work). Weighted pull-ups avoid Century days before Wed.
+- **"No bar today" (2026-08-19, `noBarLog` / `weekDateForDow`)** — Sam: *"let's
+  make it so I can say I don't have a pull up bar available today to do the
+  century."* Closes a real gap: century ELIGIBILITY had only ever asked "is a
+  session available that day", never "does that session have a bar to hang
+  from" — none of the equipment presets without `pullup_bar` (`hotel_gym`,
+  `bodyweight`) were ever excluded either, so a travel day could already have
+  been scheduling 100 pull-ups with nothing to do them on.
+  - **Keyed by DATE, not day-of-week or a recurring cfg toggle.** This is a
+    one-off statement about today, not a preference — a flag that silently
+    reapplied itself the same day next week would be its own bug. Same
+    distinction the Century's own `offSession` flag makes for one-off vs.
+    recurring. `weekDateForDow(dow)` is the Monday-anchored arithmetic
+    `genProgram`'s own local `dateForDow` uses, hoisted to module scope because
+    `centuryEligibleDow` needs it outside that closure.
+  - **One check, in `centuryEligibleDow`, so every downstream consumer inherits
+    it for free** — `centuryDows`, `centuryHostSession`, `centuryChargeFor`,
+    `lunchBudget`/`eveningLifts`'s century charge, `sessionPlan`'s century line,
+    `centuryOnlyDow`'s dashboard label. No second place had to learn about this.
+  - **The greedy fill in `centuryDows` naturally substitutes a different day**
+    when today drops out — verified: flagging an actual Tuesday century day (on
+    a schedule with Tue/Thu/Sat availability) moved the week's centuries to
+    Mon/Thu/Sat rather than just losing one. On a schedule with no substitute
+    day available, the week simply runs one century short — no different from
+    any other day that fails `centuryEligibleDow`.
+  - **A day that silently drops out of the schedule looks like the app forgot,
+    not like it heard him** — the same lesson the Fundamentals-card removal note
+    already states. So when today would have hosted a century and the flag is
+    the ONLY reason it isn't, `centuryHTML` shows a small "🚫 No bar today —
+    Century skipped" card with an Undo button, rather than just returning `''`
+    the way a day that was never eligible does.
+  - The toggle itself (`🚫 No pull-up bar today — skip it`) sits next to the
+    existing `century-already-done` link, same visibility rule: only offered
+    before he's logged a single set today, since flagging it once sets are
+    already banked doesn't mean anything.
+  - Both the toggle and the undo call `replanCurrentWeek()` — the same call
+    `century-when`'s toggle makes — because excluding or restoring a day changes
+    which session hosts the century, the week's back/biceps MRV budget via
+    `getCommittedVolumes`, and today's own lift count via `centuryChargeFor`.
+  - Storage mirrors `pushupLog` exactly (a plain `{date:true}` map, unbounded,
+    no pruning — same accepted precedent): wired through both localStorage
+    save/load and both cloud-sync merge points, local wins on conflict.
 - `PYRAMID_LADDER` (2026-08-03): Tom Holland's Spider-Man ladder, taken as LOGIC
   not as a fixed prescription (Sam: "I don't have to do this exact workout every
   Monday, it just clearly works"). Climb rungs 1→peak then back down, each
