@@ -196,6 +196,78 @@ strip it before other debugging.
     in the finisher budget, costing the lifting nothing.
   - `S.cfg.jumpDurability` toggles it (Plan screen). Defaults ON via
     `!==false`, so it is live without a migration.
+- **Custom Session** (2026-08-29, `renderCustomSession` / `startCustomWorkout` /
+  `customRowPlan`) — Sam: *"add a custom workout plan to do rather than what the app
+  prescribes sometimes… I input the exercises I want to do, and the app prescribes
+  the appropriate warm ups and starting weight recommendations."* Pick the
+  movements; everything else is the ordinary session machinery.
+  - **Do not confuse it with the pre-existing custom-workout LOG**
+    (`renderCustomWorkoutLog`, `plan-custom-workout` / `log-custom-workout`). That
+    screen is a FORM filled in AFTER training — you type sets, reps and weight and
+    it writes a log. This is a SESSION you RUN. Three verbs now sit on the today
+    card and they are genuinely different: **Plan** schedules one for a later day,
+    **Log** records one that already happened, **Build My Own Workout** runs one now.
+  - **The picked list is handed to `renderWorkout`, so nothing is re-implemented.**
+    `prepPlan`'s warm-up block, the 50/75/90% acclimation ramp, `smartRest`, the
+    per-set logger, `sessionPlan`'s itemised clock and `estimateStartingWeight`'s
+    opener (with its confidence and its basis in words) all arrive by construction.
+    The only new work is turning names into the `S.active.exercises` shape. It calls
+    the SAME `flagFirstWorkingSet`, two-per-day cap, `applyDailyAutoReg` and lunch
+    set clamp `startWorkout` does — deliberately not `startWorkout` itself, which
+    reads a PROGRAM day (make-ups, `eveningSession`, the preserved-session path).
+  - **RIDES ALONGSIDE, does not replace** (Sam's call). `adaptWeekForCustomWorkout`
+    is deliberately NOT called: the log lands, `finishWorkout` calls
+    `replanCurrentWeek`, and recovery + MRV absorb it like any session. Consequence
+    worth knowing: `getCompletedDows` keys off ANY non-cardio log on the date, so
+    today's card flips to "✓ Completed" regardless of which session ran. That is
+    honest, and the evening block keeps its own Start button.
+  - **The safety gates WARN, they do not block** — the one place this path diverges
+    from `pickEx`, and it is deliberate. Those gates stop the GENERATOR prescribing
+    something Sam never asked for; here he is naming it. Silently refusing a
+    movement he typed is the "monitor that fires on correct plans" failure in the
+    other direction — he'd stop using the feature. `customExWarnings` therefore
+    calls the engine's OWN predicates (`userAvoids`, `plyoHidden`, `KNEE_SAFE_IDS`,
+    `dragonFlagUnlocked`, the same `hipRisk`/`shoulderRisk`/`highSweat`/equipment
+    tests `baseFor` uses) rather than re-deriving them, so a change to those follows
+    automatically. The over-budget clock warns the same way and names what will give.
+  - **`eq:['other']` on a synthesized (unmatched-name) movement is load-bearing.**
+    It must be a token no preset carries — so the equipment warning is honest — while
+    still passing `renderWorkout`'s `pctScalable` test, which only asks that SOME
+    token isn't bodyweight/medball. `eq:[]` or `eq:['bodyweight']` silently
+    suppresses the warm-up ramp, i.e. the exact thing the feature was asked for, and
+    it fails invisibly: a missing ramp looks identical to a movement that has none.
+    A per-row `bodyweight` checkbox is the deliberate way to get `noWeight` instead.
+  - **Typed names get a SLUG id (`slugId`), never `Date.now()`.** The log-edit
+    screen's `'custom_'+Date.now()` would mint a fresh id per session, so a
+    hand-typed movement could never accumulate history and `estimateStartingWeight`
+    would never get past step 4. Same movement next week → same id → real progression.
+  - **`estimateStartingWeight` and `exFull` now resolve through `exById`**, which
+    covers `S.customExercises`. It used to be `EX.find`, so every one of Sam's own
+    exercises fell straight through to the cold-start default even with its own
+    history or an in-group anchor available — silent, and indistinguishable from a
+    working estimate. Fixed here because the custom picker makes it reachable daily.
+  - **Templates store NAMES + set counts, not resolved exercise objects.** A template
+    loaded six weeks later must re-resolve against the current database and current
+    history so the starting weight reflects the intervening training; freezing the
+    objects hands back a stale prescription. `deleteCustomTemplate` **TOMBSTONES**
+    (`deleted:true` + `editedAt`) rather than splicing — `unionById` keeps the cloud
+    copy for any id it already holds, so a spliced template resurrects on the next
+    sync. Same rule as `mergeStampedDraft` and `pickNewerEdit`: a merge that cannot
+    express DELETION cannot merge a list with a delete button. Synced via
+    `unionById(..., pickNewerEdit)` in BOTH merge paths (`loadFromCloud` AND
+    `saveToCloud`'s read-merge — fixing only one looks fine until the 60s read
+    throttle lapses).
+  - **`csEncodeName` exists for one reason**: the suggestion's `onmousedown`
+    interpolates a name into a JS call inside a SINGLE-quoted HTML attribute, and
+    `encodeURIComponent` deliberately leaves `'` unescaped. No built-in name carries
+    one, but a custom exercise easily does ("Farmer's Carry") — and the failure is
+    silent, the row just stops being pickable. Caught by the render smoke test, not
+    by the syntax check.
+  - Verified with a render smoke test (108 assertions: every new render path, both
+    session types, every exercise index, the template round-trip, the quoted-name
+    case) and the full case-study harness — **all 7 scenarios byte-identical to
+    `git show HEAD:index.html` through the same harness**, since `dayTemplate`, MRV
+    pricing and the lunch ledger are untouched.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

@@ -1387,6 +1387,15 @@ let S={
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
+  // CUSTOM SESSION (2026-08-29). The in-progress builder draft for a workout Sam
+  // picks himself — see the CUSTOM SESSION block. Transient, never synced: it is
+  // a form, and a half-typed form arriving from another device is noise.
+  customSession:null,
+  // Saved reusable custom sessions, [{id,name,mins,isLunch,equipmentKey,exercises,
+  // createdAt,editedAt,deleted}]. Cloud-synced by unionById with an edit-stamp
+  // resolver + tombstones, because these are RENAMED and DELETED, and a plain
+  // union keeps the cloud copy for any id it already holds (see pickNewerEdit).
+  customTemplates:[],
   // Today's in-progress Pull-up Century tally, {date,sets:[reps,...]} — see
   // PULLUP_CENTURY. Cloud-synced, but NOT via SINGLETON_FIELDS — it has its own
   // merge (mergeCentury), because last-writer-wins would eat sets.
@@ -1440,7 +1449,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1448,7 +1457,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -3933,11 +3942,16 @@ function creditVolume(vol,ex,sets){
 // century had never once credited biceps. Aliasing fixes historical logs too,
 // which changing the writers would not.
 const EX_ID_ALIASES={pullup_century:'pullups'};
+// One id -> definition lookup across the built-in pool AND Sam's own additions.
+// Every consumer that resolves an id must go through this: a custom exercise that
+// is invisible here silently degrades to the estimator's cold-start default and
+// to primary-only MRV credit, and both failures look identical to a working one.
+function exById(id){return [...EX,...(S.customExercises||[])].find(x=>x.id===id)||null;}
 function exFull(e){
   if(!e||!e.id)return e;
   if(e.type)return e;
   const id=EX_ID_ALIASES[e.id]||e.id;
-  return [...EX,...(S.customExercises||[])].find(x=>x.id===id)||e;
+  return exById(id)||e;
 }
 
 // ─── MRV (Maximum Recoverable Volume) Tracking ───
@@ -5118,7 +5132,10 @@ function coldStartWeight(def,bodyLbs,exp){
 function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMatrix){
   const logs=historicalPerformanceLogs||[];
   const matrix=movementClassMatrix||MOVEMENT_CLASS;
-  const def=EX.find(e=>e.id===exId);
+  // Custom exercises are looked up too — they used to miss here, so every
+  // hand-added movement fell straight through to the step-4 cold-start default
+  // even when its own history or an in-group anchor was sitting right there.
+  const def=exById(exId);
   const bodyLbs=S.cfg?.bodyLbs||175;
   const exp=experienceLevel();
   if(!def)return{weight:coldStartWeight({eq:[],type:'isolation',muscle:''},bodyLbs,exp),source:'default',confidence:'low'};
@@ -5157,7 +5174,7 @@ function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMa
 
   // Step 3b — best estimated 1RM in the same primary muscle, at a 60% floor.
   let best1RM=0,bestFrom=null;
-  EX.forEach(e=>{
+  [...EX,...(S.customExercises||[])].forEach(e=>{
     if(e.muscle!==def.muscle||e.noWeight||e.isTimed||e.id===exId)return;
     const base=loggedBaseline(e.id,logs);
     if(base&&base.weight>0){const o=epley1RM(base.weight,base.reps);if(o>best1RM){best1RM=o;bestFrom=e.id;}}
@@ -5176,9 +5193,9 @@ function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMa
 function estBasisLabel(est){
   if(!est)return'';
   if(est.source==='history')return'your last session';
-  if(est.source==='anchor')return`scaled from your ${EX.find(e=>e.id===est.from)?.name||'related lift'}`;
+  if(est.source==='anchor')return`scaled from your ${exById(est.from)?.name||'related lift'}`;
   if(est.source==='preset')return'typical starting load for this movement';
-  if(est.source==='group')return`60% floor from your ${EX.find(e=>e.id===est.from)?.name||'best in-group lift'}`;
+  if(est.source==='group')return`60% floor from your ${exById(est.from)?.name||'best in-group lift'}`;
   if(est.source==='default')return`${experienceLevel()}-level default from your bodyweight`;
   return'estimate';
 }
@@ -6791,7 +6808,7 @@ function renderDash(){
             ${centuryHTML()}
             ${recoveryHTML(displayDow)}
           </div>`
-        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div>${isActualToday?centuryHTML():''}${isActualToday?recoveryHTML(displayDow):''}</div>`;
+        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div>${isActualToday?`<button class='btn btn-g btn-sm' data-action='build-custom-session' style='margin-top:8px;width:100%'>&#128296; Build My Own Workout</button>`:''}${isActualToday?centuryHTML():''}${isActualToday?recoveryHTML(displayDow):''}</div>`;
     }
     // The plan's own view of this dow — null when the (possibly regenerated)
     // program disagrees with what was actually logged (marks it rest, or is
@@ -6862,6 +6879,7 @@ function renderDash(){
       ${makeupNote}
       ${isActualToday&&!isCompleted?`<button class='btn btn-p' data-action='start-workout' data-session='lunch'>Start${dd?.eveningSession?' Lunch':''} Workout →</button>`:''}
       ${isActualToday&&isCompleted?`<button class='btn btn-g btn-sm' data-action='start-workout' data-session='lunch' style='width:100%'>↻ Repeat Workout</button>`:''}
+      ${isActualToday?`<button class='btn btn-g btn-sm' data-action='build-custom-session' style='margin-top:8px;width:100%'>&#128296; Build My Own Workout</button>`:''}
       ${displayDow > todayDow() || (displayDow === 0 && todayDow() < 6) ?
         `<button class='btn btn-g btn-sm' data-action='plan-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📅 Plan Custom Workout</button>` :
         `<button class='btn btn-g btn-sm' data-action='log-custom-workout' data-dow='${displayDow}' style='margin-top:8px;width:100%'>📝 ${isActualToday?'Log Custom Workout Instead':'Log Custom Workout'}</button>`
@@ -7523,6 +7541,481 @@ function renderReviewWorkout(){
 }
 
 // ─────────────────────────────────────────────
+// CUSTOM SESSION (2026-08-29)
+// ─────────────────────────────────────────────
+// Sam: "add a custom workout plan to do rather than what the app prescribes
+// sometimes — I input the exercises I want to do, and the app prescribes the
+// appropriate warm ups and starting weight recommendations."
+//
+// The distinction from the pre-existing custom-workout LOG (renderCustomWorkoutLog,
+// below) is the whole point and worth stating plainly: that screen is a FORM you
+// fill in AFTER training — you type sets, reps and weight yourself and it writes a
+// log. This is a SESSION you RUN. The picked exercises are handed to the ordinary
+// workout screen, so every piece of prescription the generated sessions get comes
+// with them for free and by construction: prepPlan's warm-up block, the 50/75/90%
+// acclimation ramp, estimateStartingWeight's opener with its confidence and its
+// basis in words, smartRest, the per-set logger, sessionPlan's itemised clock.
+// NOTHING here re-implements any of that — the only new work is turning a list of
+// names into the `S.active.exercises` shape startWorkout already builds.
+//
+// RIDES ALONGSIDE, it does not replace (Sam's call). No template is cancelled and
+// adaptWeekForCustomWorkout is deliberately NOT called: the log lands, finishWorkout
+// calls replanCurrentWeek, and the rest of the week absorbs it through recovery and
+// MRV like any other session. Two consequences worth knowing, neither a bug:
+//   - getCompletedDows keys off ANY non-cardio log on the date, so today's card
+//     flips to "✓ Completed" regardless. That is honest — he did train — and the
+//     evening block keeps its own Start button, so a second session is unaffected.
+//   - liftingSessionsOn's two-per-day cap still applies, and a custom session
+//     started as the day's SECOND goes through applyDailyAutoReg exactly like a
+//     prescribed one. A hand-picked list is not a reason to skip the 60% rule.
+//
+// SAFETY GATES WARN, THEY DO NOT BLOCK. Deliberate, and the one place this path
+// diverges from pickEx. The gates exist to stop the GENERATOR from prescribing
+// something Sam never asked for; here he is asking for it by name, and silently
+// refusing a movement he typed would be the "monitor that fires on correct plans"
+// failure in the other direction — he would just stop using the feature. So the
+// warnings quote the engine's OWN predicates (userAvoids, plyoHidden, the same
+// hipRisk/shoulderRisk/highSweat/equipment tests baseFor uses) rather than
+// re-deriving them, and let him proceed. If those predicates change, this follows.
+
+const CUSTOM_SESSION_DEFAULT_SETS=3;
+const CUSTOM_SESSION_MINS_CHOICES=[30,40,45,60,75,90];
+// Reps for a movement with no database entry to read rMin/rMax off. Deliberately
+// a middle hypertrophy range rather than anything heavy: we know nothing about an
+// unmatched name, and 3x10 is the answer least likely to be wrong badly.
+const CUSTOM_UNKNOWN_REPS={rMin:8,rMax:12,rest:90};
+
+// Seed the builder from what today already looks like, so the common case is
+// "open it, add three lifts, go". The EVENING is preferred when the day has both:
+// a custom session is extra work, and the evening is the side with slack — the
+// same reasoning centuryHostSession uses to bill the hundred there.
+function customSessionDefaults(){
+  const dow=todayDow();
+  const d=S.program?.week?.[dow];
+  const dd=(d&&!d.rest)?d:null;
+  const src=dd?.eveningSession||dd;
+  return{
+    dow,
+    mins:src?.mins||src?.sessionMins||getEveningMins()||60,
+    isLunch:!!src?.isLunch,
+    equipmentKey:src?.equipmentKey||dd?.equipmentKey||S.eveningLocation||'ymca',
+  };
+}
+
+// Stable id from a typed name, so re-typing the same movement next week lands on
+// the same history instead of accumulating one id per session. Date.now() ids —
+// which the log-edit screen uses — would make every custom movement permanently
+// historyless, and estimateStartingWeight would never get past step 4.
+function slugId(name){
+  return (name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40)||'movement';
+}
+
+// A picked name -> a full exercise definition in the shape the workout screen
+// expects. A database hit (built-in or one of Sam's own) is used WHOLE, which is
+// what carries rMin/rMax, rest, cue, eq, and every safety flag into the session.
+// An unmatched name is synthesized instead of rejected — typing "Sled Push" should
+// still give you a session.
+//
+// `eq:['other']` on a synthesized entry is load-bearing, not filler. It has to be
+// a token no preset carries (so the equipment warning is honest: we cannot confirm
+// it is here) while still passing renderWorkout's `pctScalable` test, which asks
+// only that SOME equipment token isn't bodyweight/medball. Setting eq:[] or
+// eq:['bodyweight'] instead silently suppresses the warm-up ramp — the exact thing
+// Sam asked this feature for — and it fails invisibly, since a missing ramp looks
+// the same as a movement that correctly has none.
+function customResolveEx(row){
+  if(row.exId){
+    const hit=exById(row.exId);
+    if(hit)return{...hit};
+  }
+  const{match}=resolveEx(row.name||'');
+  if(match)return{...match};
+  const nm=(row.name||'').trim();
+  return{
+    id:row.synthId||('custom_'+slugId(nm)),
+    name:nm||'Untitled movement',
+    muscle:row.muscle||estimateMuscleGroup(nm),
+    type:'isolation',
+    eq:row.noWeight?['bodyweight']:['other'],
+    noWeight:!!row.noWeight,
+    rMin:CUSTOM_UNKNOWN_REPS.rMin,rMax:CUSTOM_UNKNOWN_REPS.rMax,rest:CUSTOM_UNKNOWN_REPS.rest,
+    cue:'',
+    tags:[],
+    synthetic:true,
+  };
+}
+
+// The engine's own gates, reported instead of enforced. Order is roughly
+// most-serious first — an avoid-list entry is a decision Sam already made about
+// an injury, a missing dumbbell is an inconvenience.
+function customExWarnings(ex,opts){
+  const out=[];
+  const add=(icon,msg)=>out.push({icon,msg});
+  if(userAvoids(ex))add('&#9940;',`On your avoid list — you took this one off the program on purpose. It'll still run if you mean it.`);
+  if(S.cfg.hipCaution&&ex.hipRisk)add('&#9888;&#65039;',`Flagged for the left hip (FAI history) — loaded end-range rotation or hard landings.`);
+  if(S.cfg.shoulderCaution&&ex.shoulderRisk)add('&#9888;&#65039;',`Flagged for the left shoulder — ballistic anterior loading, which no cue makes safe.`);
+  if(plyoHidden(ex))add('&#9888;&#65039;',`Impact plyo — the generator hides these under hip caution; only the low-impact subset is cleared.`);
+  if(S.cfg.kneeCaution&&ex.muscle==='legs'&&!KNEE_SAFE_IDS.has(ex.id))add('&#9888;&#65039;',`Outside the knee-safe list that Knee Caution mode whitelists.`);
+  if(!dragonFlagUnlocked(ex.id))add('&#128274;',`The earlier tier of this progression isn't logged at 10 reps yet.`);
+  if(opts.isLunch&&ex.highSweat)add('&#128166;',`High sweat — there's no shower on a lunch session.`);
+  const preset=EQUIPMENT_PRESETS[opts.equipmentKey];
+  const eq=new Set([...(preset?.equipment||[]),'bodyweight']);
+  if((ex.eq||[]).length&&!ex.eq.some(q=>eq.has(q))){
+    add('&#129520;',ex.synthetic
+      ?`Not in the exercise database, so the app can't confirm the gear is at ${preset?.name||'this gym'}.`
+      :`Needs ${ex.eq.join(' or ')} — ${preset?.name||'this gym'} doesn't list it.`);
+  }
+  return out;
+}
+
+// Everything the builder shows for one row: what will be prescribed, and what the
+// engine would have refused. Both come from the SAME functions the generator and
+// the workout screen use — see the block comment on why this must not re-derive.
+function customRowPlan(row,opts){
+  const ex=customResolveEx(row);
+  const sets=Math.max(1,Math.min(10,row.sets||CUSTOM_SESSION_DEFAULT_SETS));
+  const scaleDef=exScale(ex);
+  const loaded=!ex.noWeight&&(!ex.isTimed||timedLoaded(ex));
+  const prog=loaded?progression(ex.id,ex.rMax):null;
+  const est=(loaded&&!scaleDef&&(!prog||prog.weight<=0))?estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS):null;
+  const isDb=!!(ex.eq?.includes('dumbbells')&&!ex.eq?.includes('barbell'));
+  const unit=scaleDef?scaleDef.unit:isDb?'lb ea':'lb';
+  const repLbl=ex.isTimed
+    ?`${ex.rMin||30}${ex.rMax&&ex.rMax!==ex.rMin?'–'+ex.rMax:''} sec`
+    :(ex.rMin===ex.rMax?`${ex.rMin}`:`${ex.rMin}–${ex.rMax}`)+' reps';
+  return{ex,sets,repLbl,unit,prog,est,loaded,
+    warnings:customExWarnings(ex,opts),
+    matched:!ex.synthetic};
+}
+
+// The clock, itemised — the same function and the same arguments the workout
+// screen's "This session" card uses, so the number in the builder is the number
+// he'll see once he starts. lifts is an INPUT to sessionPlan (computing it inside
+// would be circular), which is exactly the hand-off we want here: he chose the
+// lift count, everything else is priced around it.
+function customSessionSummary(d){
+  d=d||S.customSession;
+  if(!d)return null;
+  return sessionPlan({mins:d.mins,dow:d.dow,av:S.weekPlan?.availability,
+    equipmentKey:d.equipmentKey,isLunch:!!d.isLunch,lifts:d.exercises.length,
+    perLiftMins:d.isLunch?lunchExMins():EVENING_EX_MINS});
+}
+
+function customSessionInit(seed){
+  const base=customSessionDefaults();
+  S.customSession=Object.assign({name:'',exercises:[],templateId:null},base,seed||{});
+  return S.customSession;
+}
+
+// Pull live input values into state before any re-render — same guard, and same
+// reason, as harvestCustomInputs on the logging form: a render triggered while the
+// keyboard is still open (tapping "+ Add") otherwise wipes the row being typed.
+function customHarvest(){
+  const d=S.customSession;if(!d)return;
+  const g=id=>document.getElementById(id);
+  const nm=g('cs-session-name');if(nm)d.name=nm.value;
+  (d.exercises||[]).forEach((row,i)=>{
+    const n=g('cs-name-'+i);if(n&&n.value!=='')row.name=n.value;
+    const s=g('cs-sets-'+i);if(s&&s.value!=='')row.sets=parseInt(s.value)||row.sets;
+  });
+}
+
+// Builder autocomplete. Its own handlers rather than the logging form's, which
+// mutate S.customWorkoutLog and write to that screen's element ids.
+function csNameInput(idx,value){
+  const d=S.customSession;if(!d||!d.exercises[idx])return;
+  const row=d.exercises[idx];
+  row.name=value;row.exId=null;row.synthId=null;
+  const{match}=resolveEx(value);
+  if(match)row.exId=match.id;else row.synthId='custom_'+slugId(value);
+  const rx=document.getElementById('cs-rx-'+idx);
+  if(rx)rx.innerHTML=customRowRxHTML(idx);
+  csSuggest(idx,value);
+}
+// Encode a name for interpolation into a JS call inside a single-quoted HTML
+// attribute. encodeURIComponent alone is NOT enough: it deliberately leaves the
+// apostrophe unescaped, which is exactly the character that terminates the
+// attribute and makes the suggestion silently unpickable. csPick decodes.
+function csEncodeName(name){return encodeURIComponent(name||'').replace(/'/g,'%27');}
+function csSuggest(idx,value){
+  const box=document.getElementById('cs-suggest-'+idx);if(!box)return;
+  const list=exSuggestList(value);
+  if(!list.length){box.classList.remove('on');box.innerHTML='';return;}
+  box.innerHTML=list.map(e=>
+    `<div class='ex-suggest-item' onmousedown='csPick(${idx},&quot;${csEncodeName(e.name)}&quot;)'>`+
+    `<span>${e.name}</span><span class='es-mus'>${MNAME[e.muscle]||e.muscle}</span></div>`).join('');
+  box.classList.add('on');
+}
+function csPick(idx,name){
+  const d=S.customSession;if(!d||!d.exercises[idx])return;
+  try{name=decodeURIComponent(name);}catch(e){}
+  customHarvest();
+  csNameInput(idx,name);
+  const box=document.getElementById('cs-suggest-'+idx);
+  if(box){box.classList.remove('on');box.innerHTML='';}
+  render();
+}
+function csHideSuggest(idx){
+  setTimeout(()=>{const b=document.getElementById('cs-suggest-'+idx);if(b)b.classList.remove('on');},200);
+}
+
+// Turning the draft into a live session.
+// Mirrors startWorkout's guards deliberately rather than calling it: startWorkout
+// reads a PROGRAM day (make-up exercises, eveningSession, the preserved-session
+// path), none of which applies to a hand-picked list. What must not diverge is the
+// safety bookkeeping — the two-per-day cap, the second-session auto-regulation and
+// the lunch set clamp — so those are the same calls in the same order.
+function startCustomWorkout(){
+  const d=S.customSession;
+  if(!d)return;
+  customHarvest();
+  const rows=(d.exercises||[]).filter(r=>(r.name||'').trim());
+  if(!rows.length){alert('Add at least one exercise first.');return;}
+
+  const sessionsToday=liftingSessionsOn(todayStr());
+  if(sessionsToday>=2){
+    alert('Daily session limit: two lifting sessions are already logged today. Recovery beats more volume — go again tomorrow.');
+    return;
+  }
+
+  let exs=rows.map(r=>{
+    const p=customRowPlan(r,d);
+    return{...p.ex,sets:p.sets,sessionMins:d.mins};
+  });
+
+  // Order compounds first and flag the lift the acclimation ramp belongs on —
+  // the same call buildSession makes, so a custom session opens on a loadable
+  // movement the way a generated one does. It reorders in place.
+  flagFirstWorkingSet(exs);
+
+  // Lunch time-box clamp, identical to startWorkout's: lead lift keeps 3 working
+  // sets, everything after it drops to 2.
+  if(d.isLunch)exs=exs.map((e,i)=>i>0&&e.sets>2?{...e,sets:2}:e);
+
+  let autoRegNotes=[];
+  if(sessionsToday===1){
+    const reg=applyDailyAutoReg(exs);
+    exs=reg.exs;autoRegNotes=reg.notes;
+    if(!exs.length){
+      alert("Today's earlier session already used the volume budget for every muscle in this workout. Session blocked — recover and hit it tomorrow.");
+      return;
+    }
+  }
+
+  S.active={
+    dayName:(d.name||'').trim()||'Custom Session',
+    dow:todayDow(),startTime:Date.now(),isLunch:!!d.isLunch,
+    sessionMins:d.mins,loc:EQUIPMENT_PRESETS[d.equipmentKey]?.location||'ymca',
+    equipmentKey:d.equipmentKey,restCap:d.isLunch?90:null,exIdx:0,
+    autoRegNotes,isCustomSession:true,
+    exercises:exs.map(e=>({...e,done:[],estW:estimateStartingWeight(e.id,S.logs,MOVEMENT_CLASS)})),
+  };
+  S.customSession=null;
+  S.view='workout';save();render();
+}
+
+// Templates.
+// Stored as NAMES + set counts, not as frozen exercise objects. A template loaded
+// six weeks from now should be re-resolved against the current database and the
+// current history, so it picks up a renamed movement, a changed rep range, and —
+// the point of the feature — a starting weight that reflects the intervening
+// training. Freezing the resolved objects would hand back a stale prescription.
+function customTemplates(){return (S.customTemplates||[]).filter(t=>t&&!t.deleted);}
+function saveCustomTemplate(){
+  const d=S.customSession;if(!d)return;
+  customHarvest();
+  const rows=(d.exercises||[]).filter(r=>(r.name||'').trim());
+  if(!rows.length){alert('Add at least one exercise before saving a template.');return;}
+  const suggested=(d.name||'').trim()||rows.map(r=>r.name).slice(0,2).join(' + ');
+  const name=(prompt('Name this template:',suggested)||'').trim();
+  if(!name)return;
+  S.customTemplates=S.customTemplates||[];
+  const payload={
+    name,mins:d.mins,isLunch:!!d.isLunch,equipmentKey:d.equipmentKey,
+    exercises:rows.map(r=>({name:r.name,exId:r.exId||null,sets:r.sets||CUSTOM_SESSION_DEFAULT_SETS,noWeight:!!r.noWeight})),
+    editedAt:new Date().toISOString(),deleted:false,
+  };
+  // Re-saving a loaded template updates it in place; the edit stamp is what lets
+  // that survive the cloud union (see pickNewerEdit — a plain union would keep
+  // the cloud's older copy of this id and the rename would silently revert).
+  const existing=d.templateId?S.customTemplates.find(t=>t.id===d.templateId):null;
+  if(existing)Object.assign(existing,payload);
+  else{
+    const t=Object.assign({id:'tpl_'+Date.now().toString(36),createdAt:new Date().toISOString()},payload);
+    S.customTemplates.push(t);d.templateId=t.id;
+  }
+  d.name=name;save();render();
+}
+function loadCustomTemplate(id){
+  const t=(S.customTemplates||[]).find(x=>x.id===id&&!x.deleted);
+  if(!t)return;
+  const base=customSessionDefaults();
+  S.customSession={
+    name:t.name,templateId:t.id,
+    dow:base.dow,
+    mins:t.mins||base.mins,
+    isLunch:!!t.isLunch,
+    equipmentKey:t.equipmentKey||base.equipmentKey,
+    exercises:(t.exercises||[]).map(e=>({
+      name:e.name,exId:e.exId||null,synthId:e.exId?null:'custom_'+slugId(e.name),
+      sets:e.sets||CUSTOM_SESSION_DEFAULT_SETS,noWeight:!!e.noWeight})),
+  };
+  S.view='custom-session';save();render();
+}
+// TOMBSTONE, never splice. unionById reconciles by id and would resurrect a
+// spliced template from the cloud copy on the next sync — the same rule the
+// century draft and the log edits document: a merge that can't express DELETION
+// can't merge a list with a delete button.
+function deleteCustomTemplate(id){
+  const t=(S.customTemplates||[]).find(x=>x.id===id);
+  if(!t)return;
+  t.deleted=true;t.editedAt=new Date().toISOString();
+  if(S.customSession&&S.customSession.templateId===id)S.customSession.templateId=null;
+  save();render();
+}
+
+// ─────────────────────────────────────────────
+// RENDER – CUSTOM SESSION BUILDER
+// ─────────────────────────────────────────────
+// The prescription line for one row. Split out because csNameInput used to patch
+// it in place on every keystroke; it re-renders the whole row now (the estimate
+// depends on the resolved movement, not just its name), but keeping it a function
+// means the row markup below stays readable.
+function customRowRxHTML(idx){
+  const d=S.customSession;
+  const row=d.exercises[idx];
+  if(!(row.name||'').trim())return `<div style='font-size:12px;color:var(--mut)'>Start typing — the app fills in sets, reps and a starting weight.</div>`;
+  const p=customRowPlan(row,d);
+  const mcolor=MCOL[p.ex.muscle]||'var(--acc)';
+  // What the weight line says, in the same order of preference the workout screen
+  // itself resolves: your own last session first, then the estimation engine, and
+  // an explicit "no external load" for bodyweight work so a blank isn't ambiguous.
+  const wLine=!p.loaded
+    ? `<span style='color:var(--mut)'>bodyweight — no external load</span>`
+    : p.prog
+      ? `<strong style='color:var(--acc)'>${p.prog.suggest} ${p.unit}</strong> <span style='color:var(--mut)'>· last time ${p.prog.summary}</span>`
+      : p.est
+        ? `<strong style='color:var(--acc)'>~${p.est.weight} ${p.unit}</strong> <span style='color:var(--mut)'>· ${p.est.confidence} confidence, ${estBasisLabel(p.est)}</span>`
+        : `<span style='color:var(--mut)'>enter a weight on set one</span>`;
+  const warns=p.warnings.map(w=>`<div style='font-size:11px;color:var(--warn);line-height:1.5;margin-top:4px'>${w.icon} ${w.msg}</div>`).join('');
+  return `<div style='display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px'>
+      <span class='m-tag' style='background:${mcolor}22;color:${mcolor};border:1px solid ${mcolor}44;font-size:10px;padding:2px 6px'>${MNAME[p.ex.muscle]||p.ex.muscle}</span>
+      <span style='font-size:12px;color:var(--mut)'>${p.matched?`&#10003; ${p.ex.name}`:'new movement &middot; tracked on its own'}</span>
+    </div>
+    <div style='font-size:13px;line-height:1.6'><strong>${p.sets} &times; ${p.repLbl}</strong> &middot; ${wLine}</div>
+    ${warns}`;
+}
+
+function renderCustomSession(){
+  const d=S.customSession;
+  if(!d)return '';
+  const plan=customSessionSummary(d);
+  const tpls=customTemplates();
+
+  const rows=(d.exercises||[]).map((row,idx)=>`
+    <div class='card2' style='margin-bottom:8px'>
+      <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px'>
+        <div style='position:relative;flex:1'>
+          <input type='text' class='ni' id='cs-name-${idx}' autocomplete='off' placeholder='&#128269; Type an exercise name…'
+                 value='${(row.name||'').replace(/'/g,'&#39;')}'
+                 oninput='csNameInput(${idx}, this.value)' onfocus='csSuggest(${idx}, this.value)'
+                 onblur='csHideSuggest(${idx})' style='width:100%;text-align:left'>
+          <div id='cs-suggest-${idx}' class='ex-suggest'></div>
+        </div>
+        <button class='btn btn-g btn-sm' data-action='cs-remove-ex' data-idx='${idx}' style='color:var(--bad);flex-shrink:0;padding:8px 10px'>&times;</button>
+      </div>
+      <div id='cs-rx-${idx}' style='margin-bottom:8px'>${customRowRxHTML(idx)}</div>
+      <div style='display:flex;align-items:center;gap:8px;flex-wrap:wrap'>
+        <span style='font-size:11px;color:var(--mut)'>Sets</span>
+        <button class='btn btn-g btn-sm' data-action='cs-sets' data-idx='${idx}' data-delta='-1' style='padding:4px 12px'>&minus;</button>
+        <strong style='font-size:14px;min-width:16px;text-align:center'>${Math.max(1,Math.min(10,row.sets||CUSTOM_SESSION_DEFAULT_SETS))}</strong>
+        <button class='btn btn-g btn-sm' data-action='cs-sets' data-idx='${idx}' data-delta='1' style='padding:4px 12px'>+</button>
+        ${!row.exId&&(row.name||'').trim()&&!resolveEx(row.name).match?`
+        <label style='font-size:11px;color:var(--mut);display:flex;align-items:center;gap:5px;margin-left:auto;cursor:pointer'>
+          <input type='checkbox' data-action='cs-noweight' data-idx='${idx}' ${row.noWeight?'checked':''} style='width:15px;height:15px'>
+          bodyweight
+        </label>`:''}
+      </div>
+    </div>`).join('');
+
+  const minsBtns=CUSTOM_SESSION_MINS_CHOICES.map(m=>
+    `<button class='btn ${d.mins===m?'btn-s':'btn-g'} btn-sm' data-action='cs-mins' data-val='${m}' style='flex:1;min-width:52px'>${m}m</button>`).join('');
+
+  const locOpts=Object.entries(EQUIPMENT_PRESETS).map(([k,v])=>
+    `<option value='${k}'${d.equipmentKey===k?' selected':''}>${v.name}</option>`).join('');
+
+  // The clock, priced exactly as the workout screen will price it. Over-budget is
+  // a WARNING, not a block (Sam's call) — but it says what will actually give, so
+  // "8 min over" isn't left to mean whatever he assumes it means.
+  const shed=plan.deferred.filter(i=>!i.byDesign).map(i=>i.label);
+  const planRows=plan.items.filter(i=>!i.deferred).map(i=>
+    `<div style='display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:12px'>
+      <span style='color:var(--mut)'>${i.label}${i.note?` <span style='opacity:.7'>&middot; ${i.note}</span>`:''}</span>
+      <strong style='color:var(--txt);flex-shrink:0'>${i.mins}m</strong></div>`).join('')
+    +plan.deferred.map(i=>
+    `<div style='display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:12px;opacity:.55'>
+      <span style='color:var(--mut);text-decoration:line-through'>${i.label}</span>
+      <span style='flex-shrink:0;color:var(--mut)'>${i.key==='century'?'needs a longer day':(i.note||'at home')}</span></div>`).join('');
+
+  const overNote=plan.over>0
+    ? `<div style='font-size:12px;color:var(--warn);line-height:1.6;margin-top:8px'>&#9888;&#65039; <strong>${plan.over} min over</strong> the ${d.mins} you've set. That's your call — but the clock doesn't stretch, so expect to run long${shed.length?` or lose ${shed.join(' and ')}`:''}. Drop a lift or raise the session length to make it fit.</div>`
+    : `<div style='font-size:12px;color:var(--mut);line-height:1.6;margin-top:8px'>Fits, with ${plan.spare} min spare.${shed.length?` ${shed.join(' and ')} ${shed.length>1?'are':'is'} already deferred to make it.`:''}</div>`;
+
+  const tplList=tpls.length?`<div style='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px'>
+      ${tpls.map(t=>`<span style='display:inline-flex;align-items:center;background:var(--surf2);border:1px solid var(--bdr);border-radius:999px;overflow:hidden'>
+        <button class='btn btn-g btn-sm' data-action='cs-load-template' data-id='${t.id}' style='border:none;background:none;padding:6px 4px 6px 12px'>${t.name}<span style='color:var(--mut);font-size:11px;margin-left:6px'>${(t.exercises||[]).length} ex</span></button>
+        <button class='btn btn-g btn-sm' data-action='cs-delete-template' data-id='${t.id}' style='border:none;background:none;color:var(--bad);padding:6px 10px 6px 4px'>&times;</button>
+      </span>`).join('')}
+    </div>`
+    :`<div style='font-size:12px;color:var(--mut);margin-bottom:16px'>No saved templates yet — build a session and tap "Save as template" to reuse it.</div>`;
+
+  return `<div class='view'>
+    <button class='s-back' data-action='cs-cancel' style='margin-bottom:20px;margin-top:0'>
+      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Cancel
+    </button>
+    <div class='hdg'>Build My Own Workout</div>
+    <div style='font-size:13px;color:var(--mut);margin-bottom:20px;line-height:1.6'>Pick the movements; the app supplies the rest — prep, warm-up ramp, sets, reps, rest, and a starting weight from your own history. This runs <strong style='color:var(--txt)'>alongside</strong> today's program rather than replacing it, and it feeds recovery and weekly volume exactly like a prescribed session does.</div>
+
+    <div class='sec-lbl'>Saved Templates</div>
+    ${tplList}
+
+    <div class='sec-lbl'>Session</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Name (optional)</div>
+      <input type='text' class='ni' id='cs-session-name' placeholder='e.g. Arms &amp; shoulders' value='${(d.name||'').replace(/'/g,'&#39;')}' style='width:100%;text-align:left;margin-bottom:12px'>
+      <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>How long have you got?</div>
+      <div style='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px'>${minsBtns}</div>
+      <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Where</div>
+      <select class='ni' id='cs-loc' data-action='cs-loc' style='width:100%;text-align:left;margin-bottom:12px'>${locOpts}</select>
+      <div class='plan-chk${d.isLunch?' on':''}' data-action='cs-toggle-lunch'>
+        <div class='plan-chk-box'>${d.isLunch?'&#10003;':''}</div>
+        <div>
+          <div style='font-size:13px;font-weight:700'>This is a lunch session</div>
+          <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Caps rest at 90s, cuts the warm-up ramp to two sets, trims every lift after the first to 2 sets, and flags anything that'll make you sweat through the afternoon.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class='sec-lbl'>Exercises</div>
+    <div style='font-size:12px;color:var(--mut);margin-bottom:10px;line-height:1.6'>Type a name and pick it from the dropdown so it links to your weight history. Anything the database doesn't know still works — it just starts without an estimate.</div>
+    ${rows||`<div style='text-align:center;color:var(--mut);padding:20px;font-size:13px'>No exercises yet</div>`}
+    <button class='btn btn-s btn-sm' data-action='cs-add-ex' style='margin:12px 0 16px;width:100%'>+ Add Exercise</button>
+
+    <div class='sec-lbl'>The Clock</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:14px;font-weight:700;margin-bottom:8px'>&#9201;&#65039; This session &middot; ${plan.total} min of ${d.mins}</div>
+      ${planRows}
+      ${overNote}
+    </div>
+
+    <div style='display:flex;gap:8px;margin-bottom:12px'>
+      <button class='btn btn-g' data-action='cs-save-template' style='flex:1'>&#128190; Save as template</button>
+    </div>
+    <button class='btn btn-p' data-action='cs-start' style='width:100%'>&#9654;&#65039; Start This Workout &rarr;</button>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
 // RENDER – CUSTOM WORKOUT LOG
 // ─────────────────────────────────────────────
 function renderCustomWorkoutLog(){
@@ -8061,6 +8554,7 @@ function render(){
   if(S.view==='workout'){root.innerHTML=renderWorkout();return;}
   if(S.view==='mrv-breakdown'){root.innerHTML=renderMRVBreakdown();return;}
   if(S.view==='review-workout'){root.innerHTML=renderReviewWorkout();return;}
+  if(S.view==='custom-session'){root.innerHTML=renderCustomSession();return;}
   if(S.view==='custom-workout-log'){root.innerHTML=renderCustomWorkoutLog();return;}
   if(S.view==='dash'){root.innerHTML=renderDash();return;}
   if(S.view==='plan'){root.innerHTML=renderPlan();return;}
@@ -8981,6 +9475,50 @@ document.addEventListener('click',e=>{
     S.weekPlan.cardioStyle=btn.dataset.val;
     render();return;
   }
+  // ── Custom session builder (see CUSTOM SESSION) ──
+  if(a==='build-custom-session'){
+    customSessionInit();S.view='custom-session';render();return;
+  }
+  if(a==='cs-cancel'){S.customSession=null;S.view='dash';render();return;}
+  if(a==='cs-add-ex'){
+    if(!S.customSession)return;
+    customHarvest();
+    S.customSession.exercises.push({name:'',exId:null,synthId:null,sets:CUSTOM_SESSION_DEFAULT_SETS,noWeight:false});
+    render();return;
+  }
+  if(a==='cs-remove-ex'){
+    if(!S.customSession)return;
+    customHarvest();
+    S.customSession.exercises.splice(parseInt(btn.dataset.idx),1);
+    render();return;
+  }
+  if(a==='cs-sets'){
+    if(!S.customSession)return;
+    customHarvest();
+    const row=S.customSession.exercises[parseInt(btn.dataset.idx)];
+    if(row)row.sets=Math.max(1,Math.min(10,(row.sets||CUSTOM_SESSION_DEFAULT_SETS)+parseInt(btn.dataset.delta)));
+    render();return;
+  }
+  if(a==='cs-mins'){
+    if(!S.customSession)return;
+    customHarvest();
+    S.customSession.mins=parseInt(btn.dataset.val);
+    render();return;
+  }
+  if(a==='cs-toggle-lunch'){
+    if(!S.customSession)return;
+    customHarvest();
+    S.customSession.isLunch=!S.customSession.isLunch;
+    render();return;
+  }
+  if(a==='cs-save-template'){saveCustomTemplate();return;}
+  if(a==='cs-load-template'){loadCustomTemplate(btn.dataset.id);return;}
+  if(a==='cs-delete-template'){
+    const t=(S.customTemplates||[]).find(x=>x.id===btn.dataset.id);
+    if(t&&confirm('Delete the "'+t.name+'" template?'))deleteCustomTemplate(t.id);
+    return;
+  }
+  if(a==='cs-start'){startCustomWorkout();return;}
   if(a==='log-custom-workout'){
     const dow = parseInt(btn.dataset.dow);
     S.customWorkoutLog = {
@@ -9634,6 +10172,21 @@ document.addEventListener('click',e=>{
   if(a==='skip-rest'||btn.id==='skip-rest-btn'){stopRest();return;}
 });
 
+// The location <select> and the per-row bodyweight checkbox are value controls,
+// so they arrive here rather than through the click dispatcher.
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(!el||!el.dataset)return;
+  if(el.dataset.action==='cs-loc'&&S.customSession){
+    customHarvest();S.customSession.equipmentKey=el.value;render();return;
+  }
+  if(el.dataset.action==='cs-noweight'&&S.customSession){
+    customHarvest();
+    const row=S.customSession.exercises[parseInt(el.dataset.idx)];
+    if(row)row.noWeight=el.checked;
+    render();return;
+  }
+});
 document.addEventListener('input',e=>{
   const src=e.target.dataset.warmupSrc;
   if(src!==undefined&&src!==''){
@@ -9748,6 +10301,7 @@ async function saveToCloud(){
         S.deletedSessions=unionById(S.deletedSessions,cloud.deletedSessions,d=>d.log?.id).slice(-20);
         S.logs=filterTombstoned(merged).slice(-LOG_KEEP);
         S.customExercises=unionById(S.customExercises,cloud.customExercises);
+        S.customTemplates=unionById(S.customTemplates,cloud.customTemplates,null,pickNewerEdit);
         S.lastWeights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
         S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
         S.pushupLog={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
@@ -9760,7 +10314,7 @@ async function saveToCloud(){
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -9913,6 +10467,7 @@ async function loadFromCloud(){
       const merged=unionById(S.logs,cloud.logs,null,pickNewerEdit);
       merged.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
       const customEx=unionById(S.customExercises,cloud.customExercises);
+      const customTpl=unionById(S.customTemplates,cloud.customTemplates,null,pickNewerEdit);
       const deleted=unionById(S.deletedSessions,cloud.deletedSessions,d=>d.log?.id);
       // Merge lastWeights: local takes precedence (most recent device)
       const weights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
@@ -9944,7 +10499,7 @@ async function loadFromCloud(){
         const fu={...lf};Object.keys(cf).forEach(k=>{if(!fu[k]||cf[k]>fu[k])fu[k]=cf[k];});
         S.fieldUpdated=fu;
       }
-      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,customExercises:customEx});
+      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,customExercises:customEx,customTemplates:customTpl});
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
       // device must not ride back in through this device's stale copy.
       S.logs=filterTombstoned(merged).slice(-LOG_KEEP);
