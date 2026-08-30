@@ -361,6 +361,91 @@ strip it before other debugging.
     case) and the full case-study harness — **all 7 scenarios byte-identical to
     `git show HEAD:index.html` through the same harness**, since `dayTemplate`, MRV
     pricing and the lunch ledger are untouched.
+- **Estimator step 3b: comparability, not "the heaviest thing in the muscle group"**
+  (2026-08-30, `loadComparability` / `loadBridge` / `loadClass`). Sam: *"it needs to
+  scale to the most comparable movement for muscular load, not just barbell row."*
+  - **The old rule was `best e1RM anywhere in def.muscle × 0.6`**, and the fatal part
+    wasn't the 0.6 — it was that `muscle` is far too coarse to mean "loads the same
+    tissue the same way". 'legs' is quads, hamstrings, glutes AND calves; 'back' is
+    vertical pulling, horizontal pulling, rear delts and traps. Because the anchor
+    was always the same in-group maximum, **every movement in a muscle group opened
+    at the identical number.** Measured over all 106 loadable movements with a
+    realistic history (`analysis`-style vm sweep, seeded squat 225×5 / leg press
+    360×10 / bb row 155×8 / machine press 170×8): **55 of 106 resolved through this
+    step** — Calf Raises, Leg Extension and Bulgarian Split Squats all at **290 lb**
+    off the leg press; Reverse Flyes and Dumbbell Pullover at **120 lb EACH**;
+    DB Flyes at **130 lb each**.
+  - **Three GATES, each added because the sweep produced a number nobody would
+    attempt.** They are hard filters; the score only ranks what already passed.
+    - **REGION** — sub-muscle tissue, read off tags EX already carries
+      (`quad`/`hamstring`/`glute`/`calf`/`soleus`/`adductor`/`vertical`/`horizontal`/
+      `rear_delt`/`trap`/…). Two movements that each name a region and share none
+      don't load the same tissue and no coefficient bridges that. A leg press cannot
+      tell you what you calf raise.
+    - **TYPE** — compound vs isolation is the single biggest load gap and has no
+      defensible generic ratio. Without it a 360 lb leg press prescribed a **360 lb
+      leg extension** and a 170 lb machine press a **170 lb cable fly**.
+    - **LOADING** — a bodyweight movement's weight box means ADDED load; a stack's
+      means total load. Different quantities, never cross. Without it a 170 lb
+      machine press prescribed a **170 lb weighted vest** for push-ups.
+  - **`loadClass` is now shared with `coldStartWeight`** rather than duplicated —
+    two functions answering "what does this number physically mean" separately is
+    exactly how `getLockedMuscles`/`legsRecovered` drifted. **It tests bodyweight
+    implements FIRST**, which the old inline version did not: `eq` lists what can
+    HOST a movement, not how it's loaded, so Inverted Row
+    (`eq=[barbell,cables,machine,pullup_bar]`) was classed as a barbell lift and
+    inherited a barbell row's 155 lb. A bar you hang from supplies no resistance, so
+    `pullup_bar` sits with `bodyweight`/`own_gear`. **But bodyweight-class means NO
+    external-resistance implement, not merely `bodyweight` present** — testing for
+    presence was measured and was wrong: most leg lifts list it to mean "can be done
+    unloaded", and that test threw away every good anchor they had and dumped the
+    whole leg pool on the cold-start default.
+  - **`bwBase:true` on `inverted_row` is the one explicit override**, in the spirit
+    of `startW`. Swept the pool: exactly ONE movement lists a non-resistance host
+    alongside a resistance implement and is really bodyweight. Everything else
+    pairing `bodyweight` with an implement (Bulgarians, hip thrusts, calf raises) is
+    genuinely loaded by it.
+  - **PATTERN tags are scored separately from region, and that is load-bearing.**
+    `squat`/`hinge`/`lateral`/`carry`/`isometric`/`power`/`eccentric` are NOT in
+    `LOAD_REGION_TAGS`, and leaving them out of the score was a measured misfire: a
+    Bulgarian scored the back squat (shared region `quad` AND pattern `squat`)
+    *below* the leg press (shared region only), purely because the leg press's rep
+    range sat closer — and took a 360 lb machine as its reference. Pattern outranks
+    rep proximity, which is the weakest signal here.
+  - **A `loadFamily` tie-break (free / supported / bodyweight)** catches what the
+    implement match misses: a machine stabilises you and a free weight doesn't.
+    Without it, standing unilateral work (step-ups, reverse and lateral lunges)
+    anchored to the leg press and opened at 100 lb per hand.
+  - **Epley is applied ALWAYS, not only when rep ranges miss.** Identical rep targets
+    cancel exactly (in and out), so the branch that skipped it bought nothing and got
+    the edge case wrong — ranges touching at a single rep counted as "overlapping",
+    handing a deep 8–12 ATG squat the full 4–8 back-squat working weight. Same trick
+    the heavy 1–5 tier's `pct` anchors use, and it self-scales with no per-movement
+    constant.
+  - **Leverage across implements is deliberately NOT bridged.** The ratio swings from
+    ~1.8 (leg press vs back squat) to ~0.95 (machine press vs bench), so no single
+    constant is honest. It is handled by PREFERRING a same-implement anchor in the
+    score — pick a better reference rather than invent a conversion. The only
+    coefficients applied are ones with a stated basis, both reused from
+    MOVEMENT_CLASS rather than invented: per-hand↔total 0.5/1.9 (`db_row` from
+    `bb_row` is coef 0.5), and bilateral→unilateral 0.55 (that table's own note
+    records RFESS *total* reading ~55% of a back squat).
+  - **When nothing is comparable it now refuses to answer** and falls to step 4,
+    whose bodyweight × muscle × type × equipment table already knows a rear delt fly
+    is not a row. `source` is `'comparable'` (was `'group'`); the basis line names
+    the movement AND why it was chosen, since an unexplained anchor was the
+    complaint. Distribution went 55 group → 25 comparable + 30 more on the honest
+    default.
+  - **Result, same sweep**: Calf Raises 290 → 90, Leg Extension 290 → 90, Reverse
+    Flyes 120 → 20 ea, DB Fly 130 → 20 ea, Face Pulls 120 → 40, weighted push-ups
+    130 → 40, Bulgarian 290 → 55 ea **via the squat** (≈ MOVEMENT_CLASS's own
+    documented 55% figure), step-ups 290 → 55 ea via the squat rather than 100 ea via
+    a machine. A plausibility sweep (isolation < 1.2× bodyweight total, compounds
+    < 2.5×, legs < 3×) flags **nothing**; before the change it flagged the leg pool.
+    All 7 case-study scenarios byte-identical to `origin/main` — this touches
+    prescription, not scheduling. **Re-run the sweep after editing EX tags**, since
+    region and pattern matching read them and an untagged movement silently loses
+    its best anchor.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

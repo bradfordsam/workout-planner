@@ -324,7 +324,7 @@ const EX = [
   // in any week that has one, so loaded rowing still happens.
   // eq deliberately omits plain 'bodyweight' — this needs a waist-height bar or
   // rings, which the grassy-field preset doesn't have.
-  {id:'inverted_row',name:'Inverted Row',muscle:'back',type:'compound',eq:['barbell','cables','machine','pullup_bar'],rMin:8,rMax:10,rest:120,scale:{unit:'notch',label:'Notch',lowerIsHarder:true,min:1,max:20},cue:'SCALED BY BAR HEIGHT, not weight — log the Smith machine notch you used (count from the floor). A LOWER notch means a more horizontal body and a harder row, so progress by dropping a notch once you own the rep range at your current one. Bar in a rack at roughly waist height (or rings/straps). Hang underneath, hands just outside shoulder width, body in ONE straight line from heels to head. Squeeze the glutes hard to drive the pelvis neutral and keep the abs braced the whole set — the plank IS the exercise, and letting it go is the main thing that kills this movement. Squeeze the shoulder blades down and together first to set the shoulders back, then pull, imagining you\'re pulling the BAR DOWN to your chest rather than hauling yourself up. Go as high as you can and stop there — do NOT arch the back to cheat the chest into the bar. No rushing: control both directions. 3 sets of 8–10 with clean form. Scale by angle, not weight: regress by raising the bar toward vertical or bending the knees to shorten the lever; progress by lowering the bar, then feet on a bench, then feet elevated + vest, then one arm.',tags:['horizontal']},
+  {id:'inverted_row',bwBase:true,name:'Inverted Row',muscle:'back',type:'compound',eq:['barbell','cables','machine','pullup_bar'],rMin:8,rMax:10,rest:120,scale:{unit:'notch',label:'Notch',lowerIsHarder:true,min:1,max:20},cue:'SCALED BY BAR HEIGHT, not weight — log the Smith machine notch you used (count from the floor). A LOWER notch means a more horizontal body and a harder row, so progress by dropping a notch once you own the rep range at your current one. Bar in a rack at roughly waist height (or rings/straps). Hang underneath, hands just outside shoulder width, body in ONE straight line from heels to head. Squeeze the glutes hard to drive the pelvis neutral and keep the abs braced the whole set — the plank IS the exercise, and letting it go is the main thing that kills this movement. Squeeze the shoulder blades down and together first to set the shoulders back, then pull, imagining you\'re pulling the BAR DOWN to your chest rather than hauling yourself up. Go as high as you can and stop there — do NOT arch the back to cheat the chest into the bar. No rushing: control both directions. 3 sets of 8–10 with clean form. Scale by angle, not weight: regress by raising the bar toward vertical or bending the knees to shorten the lever; progress by lowering the bar, then feet on a bench, then feet elevated + vest, then one arm.',tags:['horizontal']},
   {id:'bb_row',name:'Barbell Row',muscle:'back',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Hip hinge, chest up. Bar to lower sternum. Drive elbows back and up. Control the negative — don\'t drop the bar.',tags:['horizontal']},
   {id:'db_row',name:'Dumbbell Row',muscle:'back',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Brace hand on bench. Drive elbow to hip — not to the ceiling. Full stretch at bottom, full row.',tags:['horizontal']},
   {id:'cable_row',name:'Seated Cable Row',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Sit tall, slight forward lean to stretch. Drive elbows back past your sides. No momentum.',tags:['horizontal']},
@@ -5380,6 +5380,151 @@ function recalcLastWeights(){
   S.lastWeights=Object.assign({},S.lastWeights||{},w);
 }
 
+// ── COMPARABILITY, for step 3b of the estimation engine (2026-08-29) ──
+// Sam: "it needs to scale to the most comparable movement for muscular load, not
+// just barbell row."
+//
+// Step 3b used to take the BEST estimated 1RM anywhere in the target's primary
+// muscle and open at 60% of it. Two things were wrong, and the second is the
+// serious one:
+//   1. It picked the HEAVIEST logged lift, not the most similar one.
+//   2. `muscle` is far too coarse to stand in for "loads the same tissue the same
+//      way". 'legs' is quads, hamstrings, glutes AND calves; 'back' is vertical
+//      pulling, horizontal pulling, rear delts and traps.
+// Measured over the whole pool with a realistic history: 55 of 106 loadable
+// movements resolved through that step, and because the anchor was always the same
+// in-group maximum, EVERY movement in a muscle group opened at the SAME number —
+// Calf Raises, Leg Extension and Bulgarian Split Squats all at 290 lb off a leg
+// press; Reverse Flyes at 120 lb EACH off a cable row; DB Flyes at 130 lb each.
+//
+// The rewrite ranks candidates by how comparable the LOAD is and refuses to answer
+// when nothing is close. A movement with no comparable history falls through to
+// step 4, whose bodyweight x muscle x type x equipment table already knows a rear
+// delt fly is not a row — a far better answer than a confident wrong one.
+//
+// THREE GATES, each measured into existence rather than assumed. Every one of them
+// was added because the sweep over all 106 loadable movements produced a number no
+// one would attempt:
+//   REGION   — a leg press cannot tell you what you calf raise. Different tissue,
+//              and no coefficient bridges it.
+//   TYPE     — compound vs isolation is the biggest single load gap there is, and
+//              there is no defensible generic ratio for it. Without this gate a
+//              360 lb leg press prescribed a 360 lb LEG EXTENSION, and a 170 lb
+//              machine press prescribed a 170 lb CABLE FLY.
+//   LOADING  — a bodyweight movement's weight box means ADDED load; a stack's means
+//              total load. They are different quantities and must never cross.
+//              Without this gate a 170 lb machine press prescribed a 170 lb
+//              WEIGHTED VEST for push-ups.
+//
+// NOT solved by writing 175 more MOVEMENT_CLASS rows. That table is hand-authored
+// for pairs whose ratio is actually known and stays the higher-precedence answer
+// (steps 2/3). This is the generic fallback beneath it, and it has to work for
+// movements nobody has written a coefficient for — including Sam's own custom
+// exercises, which is exactly when it gets used.
+
+// Sub-muscle regions, read off the tags EX already carries.
+const LOAD_REGION_TAGS=['quad','hamstring','glute','calf','soleus','adductor','tibialis','hip_flexor',
+  'vertical','horizontal','rear_delt','trap','scapular','side_delt'];
+const loadRegions=(e)=>(e.tags||[]).filter(t=>LOAD_REGION_TAGS.includes(t));
+// Movement PATTERN, which is a different axis from region and has to be scored
+// separately — 'squat' and 'hinge' are not in LOAD_REGION_TAGS, and leaving them out
+// of the score was measured as a real misfire: a Bulgarian split squat scored the
+// back squat (shared region quad, shared pattern squat) BELOW a leg press (shared
+// region only) purely because the leg press's rep range sat closer, and took a
+// 360 lb leg press as its reference instead of the 225 lb squat. Pattern is worth
+// more than rep proximity, which is the weakest signal here.
+const LOAD_PATTERN_TAGS=['squat','hinge','lateral','carry','isometric','power','eccentric'];
+const loadPatterns=(e)=>(e.tags||[]).filter(t=>LOAD_PATTERN_TAGS.includes(t));
+// Per-hand loading (dumbbells with no barbell alternative) vs one total number. The
+// estimator, the weight inputs and the "lb ea" unit all key off this same test.
+const perHandLoaded=(e)=>!!((e.eq||[]).includes('dumbbells')&&!(e.eq||[]).includes('barbell'));
+const isUnilateral=(e)=>(e.tags||[]).includes('unilateral');
+const repMid=(e)=>((e.rMin||8)+(e.rMax||12))/2;
+// What the number in the weight box physically MEANS. coldStartWeight computes the
+// same five buckets and now calls this, because two functions answering this
+// question separately is precisely how they drift apart.
+//
+// BODYWEIGHT IMPLEMENTS ARE TESTED FIRST, which the older inline version did not do,
+// and it matters: `eq` lists what can HOST a movement, not how it is loaded. An
+// Inverted Row reads eq=[barbell,cables,machine,pullup_bar] and was therefore classed
+// as a barbell lift — so it inherited a barbell row's 155 lb, for a movement whose
+// weight box means ADDED load on top of your own body. Bottom-Half ATG Squat and the
+// weighted pull-ups had the same shape of error. A bar you hang from supplies no
+// resistance, so pullup_bar belongs on this side of the line with bodyweight and
+// own_gear (the vest).
+function loadClass(e){
+  const eq=e.eq||[];
+  // Bodyweight-class means NO external-resistance implement at all. Testing for the
+  // PRESENCE of 'bodyweight' instead is wrong and was measured as such: most leg
+  // lifts list it to mean 'can be done unloaded', so that test threw away every good
+  // anchor they had and dropped the whole leg pool onto the cold-start default.
+  // Explicit per-exercise override, in the spirit of startW. Swept the whole pool:
+  // exactly ONE movement lists a non-resistance host alongside a resistance implement
+  // and is really bodyweight — the Inverted Row, whose barbell/cables/machine entries
+  // are all things to hang UNDER. Everything else that pairs 'bodyweight' with an
+  // implement (Bulgarians, hip thrusts, calf raises) is genuinely loaded by it.
+  if(e.bwBase)return 'bw';
+  const RESISTANCE=['barbell','dumbbells','cables','machine','medball','medball_wall','kettlebell'];
+  if(!eq.some(q=>RESISTANCE.includes(q)))return 'bw';
+  return eq.includes('barbell')?'bb':eq.includes('machine')?'mach':eq.includes('cables')?'cable'
+    :eq.includes('dumbbells')?'db':'bw';
+}
+
+// Free weight vs supported vs bodyweight — the stabilisation axis, coarser than the
+// implement itself and used to break ties when the implements differ.
+const loadFamily=(e)=>{const c=loadClass(e);return c==='bb'||c==='db'?'free':c==='bw'?'bw':'supported';};
+
+// How well does `cand` stand in for `target` as a load reference? null = cannot,
+// otherwise a score (higher = more comparable). The gates are hard; the score only
+// chooses among candidates that already passed them.
+function loadComparability(target,cand){
+  if(cand.muscle!==target.muscle)return null;
+  if(cand.type!==target.type)return null;                     // TYPE gate
+  const tbw=loadClass(target)==='bw',cbw=loadClass(cand)==='bw';
+  if(tbw!==cbw)return null;                                   // LOADING gate
+  const tr=loadRegions(target),cr=loadRegions(cand);
+  if(tr.length&&cr.length&&!tr.some(t=>cr.includes(t)))return null;  // REGION gate
+  let score=0;
+  score+=tr.filter(t=>cr.includes(t)).length*4;      // shared region — the main signal
+  const tp=loadPatterns(target),cp=loadPatterns(cand);
+  score+=tp.filter(t=>cp.includes(t)).length*3;      // shared pattern — how the load is carried
+  if(loadClass(target)===loadClass(cand))score+=3;   // same implement, so same leverage
+  // Failing an exact implement match, still prefer the same FAMILY: a machine or
+  // cable stabilises you and a free weight does not, and that gap moves real load.
+  // Without this, standing unilateral work (step-ups, reverse and lateral lunges)
+  // anchored to the LEG PRESS — a supported machine at 360 lb — and opened at
+  // 100 lb per hand, because the leg press's rep range happened to sit closer than
+  // the back squat's.
+  if(loadFamily(target)===loadFamily(cand))score+=2;
+  if(perHandLoaded(target)===perHandLoaded(cand))score+=2;
+  if(isUnilateral(target)===isUnilateral(cand))score+=2;
+  // Rep-range proximity: movements trained in the same range are loaded alike.
+  score+=Math.max(0,3-Math.abs(repMid(target)-repMid(cand))/3);
+  return score;
+}
+
+// Convert the anchor's load into the target's terms. ONLY conversions with a stated
+// basis are applied — a coefficient invented to paper over a mismatch is how 290 lb
+// calf raises happen, and anything that needs one is refused by a gate instead.
+//   per-hand <-> total: one hand carries about half the total. Same bridge the
+//     hand-authored table uses (db_row from bb_row is coef 0.5, the inverse 1.9).
+//   bilateral -> unilateral: MOVEMENT_CLASS's own note records that RFESS TOTAL load
+//     reads ~55% of a back squat; that number is reused here rather than a new one,
+//     and the inverse rounds to 1.8.
+// Leverage across implements (a leg press moves ~1.8x a back squat) is deliberately
+// NOT bridged: the ratio swings from 1.8 for that pair to 0.95 for machine-press vs
+// bench, so no single constant is honest. It is handled by PREFERRING a same-
+// implement anchor in the score above — pick a better reference rather than invent
+// a conversion.
+function loadBridge(target,cand){
+  let c=1;
+  if(perHandLoaded(target)&&!perHandLoaded(cand))c*=0.5;
+  else if(!perHandLoaded(target)&&perHandLoaded(cand))c*=1.9;
+  if(isUnilateral(target)&&!isUnilateral(cand))c*=0.55;
+  else if(!isUnilateral(target)&&isUnilateral(cand))c*=1.8;
+  return c;
+}
+
 // ─────────────────────────────────────────────
 // INTENSITY ESTIMATION ENGINE — starting weight for unperformed movements
 // ─────────────────────────────────────────────
@@ -5406,6 +5551,14 @@ function recalcLastWeights(){
 
 // Derived movement id → ranked anchor list. coef = derived load ÷ anchor load,
 // so per-hand dumbbell anchors/targets carry sub-1 or >1 factors accordingly.
+// Below this, "comparable" is doing no work and step 4's bodyweight-derived
+// default is the more honest answer. Type, region and loading class are GATES, so
+// everything reaching the score already shares them; what the score separates is
+// how alike the implement, laterality and rep range are. A full match reaches 14,
+// a same-region pair differing on implement and laterality lands near 7, and a pair
+// agreeing on nothing but the gates scores ~0-3 — which is the case this cuts.
+const COMPARABILITY_MIN=5;
+
 const MOVEMENT_CLASS = {
   // ─ Chest: horizontal / incline press ─
   machine_press: [{from:'bench',coef:0.95},{from:'incline_db',coef:1.7}],
@@ -5499,8 +5652,7 @@ function timedLoaded(ex){return !!ex&&ex.isTimed===true&&!ex.noWeight&&(ex.eq||[
 // ALWAYS returns a positive number — this is the floor that guarantees the
 // engine never comes up empty.
 function coldStartWeight(def,bodyLbs,exp){
-  const eq=def.eq||[];
-  const load=eq.includes('barbell')?'bb':eq.includes('machine')?'mach':eq.includes('cables')?'cable':eq.includes('dumbbells')?'db':'bw';
+  const load=loadClass(def); // shared with the comparability gate — see loadClass
   // Beginner working-set load as a fraction of bodyweight. DB = per hand.
   const COMPOUND={
     legs:     {bb:0.75,mach:1.10,cable:0.50,db:0.30,bw:0.30},
@@ -5573,17 +5725,37 @@ function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMa
   // lifts would be meaningless (nobody chest-passes 60% of their bench 1RM).
   if(def.startW)return{weight:def.startW,source:'preset',confidence:'medium'};
 
-  // Step 3b — best estimated 1RM in the same primary muscle, at a 60% floor.
-  let best1RM=0,bestFrom=null;
+  // Step 3b — the MOST COMPARABLE logged movement, converted into this movement's
+  // terms. See loadComparability above for why this is not "the heaviest lift in
+  // the same muscle group": that answer opened every leg movement Sam owns at the
+  // same 290 lb, calf raises included.
+  //
+  // Two conversions, in this order:
+  //   INTENSITY — the anchor's working set runs through Epley to an e1RM and back
+  //     down at the TARGET's own rMax. Same trick the heavy 1-5 tier's `pct` anchors
+  //     use, and it self-scales with no per-movement constant: a 12-rep isolation
+  //     opens lighter than a 5-rep compound off identical history. Applied ALWAYS,
+  //     including when the ranges match — Epley in and out then cancels exactly, so
+  //     the branch that used to skip it bought nothing and got the edge case wrong
+  //     (ranges touching at a single rep counted as "overlapping", which handed a
+  //     deep 8-12 ATG squat the full 4-8 back-squat working weight).
+  //   LOADING — loadBridge converts per-hand vs total and bilateral vs unilateral.
+  let bestScore=-1,bestFrom=null,bestW=0;
   [...EX,...(S.customExercises||[])].forEach(e=>{
-    if(e.muscle!==def.muscle||e.noWeight||e.isTimed||e.id===exId)return;
+    if(e.noWeight||e.isTimed||e.id===exId)return;
+    const score=loadComparability(def,e);
+    if(score===null||score<COMPARABILITY_MIN)return;
     const base=loggedBaseline(e.id,logs);
-    if(base&&base.weight>0){const o=epley1RM(base.weight,base.reps);if(o>best1RM){best1RM=o;bestFrom=e.id;}}
+    if(!base||!(base.weight>0))return;
+    const raw=epley1RM(base.weight,base.reps)/(1+(def.rMax||12)/30);
+    const w=r5(raw*loadBridge(def,e));
+    if(!(w>0))return;
+    // Ties break toward the closer rep range, then by EX order — deterministic,
+    // the same rule pickEx's leastUsed uses, so the answer never depends on which
+    // session happened to be logged most recently.
+    if(score>bestScore){bestScore=score;bestFrom=e.id;bestW=w;}
   });
-  if(best1RM>0){
-    const w=r5(best1RM*0.6);
-    if(w>0)return{weight:w,source:'group',from:bestFrom,confidence:'low'};
-  }
+  if(bestW>0)return{weight:bestW,source:'comparable',from:bestFrom,confidence:'low'};
 
   // Step 4 — no reference data anywhere: conservative bodyweight-based default.
   // This branch can always produce a number, so the engine never returns null.
@@ -5596,7 +5768,7 @@ function estBasisLabel(est){
   if(est.source==='history')return'your last session';
   if(est.source==='anchor')return`scaled from your ${exById(est.from)?.name||'related lift'}`;
   if(est.source==='preset')return'typical starting load for this movement';
-  if(est.source==='group')return`60% floor from your ${exById(est.from)?.name||'best in-group lift'}`;
+  if(est.source==='comparable')return`scaled from your ${exById(est.from)?.name||'closest comparable lift'} — the closest match you've logged for this kind of load`;
   if(est.source==='default')return`${experienceLevel()}-level default from your bodyweight`;
   return'estimate';
 }
