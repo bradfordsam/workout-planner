@@ -1385,7 +1385,7 @@ let S={
     // edited from the Plan screen.)
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},noBarLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
   // CUSTOM SESSION (2026-08-29). The in-progress builder draft for a workout Sam
   // picks himself — see the CUSTOM SESSION block. Transient, never synced: it is
@@ -1449,7 +1449,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1457,7 +1457,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -1661,13 +1661,19 @@ const FOUNDATION_SLOTTED=FOUNDATION_FIVE.filter(f=>!f.daily);
 //     of every week outright. Carving it a lifting slot was tried and measured
 //     at 20% of weeks: legs only get about two slots and both are mandated,
 //     and it cannot go at lunch because it is highSweat.
-//   · The soleus work IS a normal set, is not sweaty, and can take a lunch
-//     slot — so it rides the weekly stamp here, trailing the Foundation Five.
+//   · The soleus work USED TO ride this same weekly-stamp mechanism, trailing
+//     the Foundation Five — and measured (2026-08-19) it never landed: 0 of 10
+//     simulated weeks on all three schedules, including lunch+3-evening. Root
+//     cause: legs produces only ONE slot a week this queue can even contest —
+//     the accent slot, once heavy strength is already banked; every other leg
+//     slot carries a hard mandate — and pistol_squat sits ahead of soleus in
+//     this SAME single-stamp-per-session queue, so it won that one slot every
+//     time. Calf coverage now has its own mechanism (see
+//     CALF_WEEKLY_TARGET_SETS) that doesn't compete for a slot at all, so it's
+//     removed from here rather than left to lose forever.
 // Toggleable, because it is a training block aimed at one sport and there
 // should be a way to stop without editing code.
-const JUMP_DURABILITY=[
-  {id:'soleus_raises',name:'Bent-Knee Calf Raise',muscle:'legs',why:'The soleus is the first thing to fail in repeated jumping and the barbell never reaches it — bending the knee is what takes the gastroc out and loads it. Not sweaty, so unlike the jump work it can take a lunch slot.'},
-];
+const JUMP_DURABILITY=[];
 function jumpDurabilityOn(){return S.cfg?.jumpDurability!==false;}
 function jumpDurabilitySlotted(){return jumpDurabilityOn()?JUMP_DURABILITY:[];}
 // The single list dayTemplate stamps from, and the single set of ids
@@ -1689,6 +1695,56 @@ function foundationCoveredThisWeek(){
     (l.exercises||[]).forEach(e=>{if(e&&FOUNDATION_IDS.has(e.id))out.add(e.id);});
   });
   return out;
+}
+
+// ─── CALF WEEKLY COVERAGE (2026-08-19) ───
+// Sam: "make sure I get at least 2 sets of calves a week in programming."
+//
+// Doesn't compete for a leg slot — see the note above JUMP_DURABILITY for why
+// that queue is the wrong mechanism (measured dead code, 0/10 weeks). Instead
+// this is a small, independently-priced TOP-UP — 2 quick sets, ~2 min — that
+// buildSession appends to whichever session it finishes assembling first this
+// week, outside the muscle-slot system entirely. Same convergence rule as
+// Foundation Five: log-seeded, so a session PLANNED with the top-up doesn't
+// retire it — only one actually LOGGED does — and a daily replan keeps
+// offering it on every session until it's really been done.
+const CALF_WEEKLY_TARGET_SETS=2;
+// Priced like a small McGill/spine block, not a full lift: 2 sets at ~90s
+// rest is a couple of minutes, nowhere near EVENING_EX_MINS/lunchExMins()'s
+// per-lift rate — charging the full rate for it would be the exact "prep
+// smeared across every exercise" mistake the lunch ledger was built to fix.
+const CALF_TOPUP_MINS=2;
+const CALF_TOPUP_POOL=['calf_raise','single_leg_calf_raise','soleus_raises','tempo_calf','iso_calf'];
+function calfSetsThisWeek(){
+  const mon=thisMonday(),end=addDays(mon,7);
+  let sets=0;
+  (S.logs||[]).forEach(l=>{
+    if(!l||logDay(l.date)<mon||logDay(l.date)>=end)return;
+    (l.exercises||[]).forEach(e=>{
+      if(!e)return;
+      const full=exFull(e);
+      if(!(full.tags||[]).includes('calf'))return;
+      sets+=(e.sets||[]).filter(st=>st&&st.reps>0).length;
+    });
+  });
+  return sets;
+}
+function needsCalfTopUp(){return calfSetsThisWeek()<CALF_WEEKLY_TARGET_SETS;}
+// Pick the least-used still-eligible calf movement — same safety gates
+// Foundation Five's canPlaceFoundation uses (equipment, hip/shoulder caution,
+// plyo, avoid list, knee caution, dragon-flag gate); calf isolation work trips
+// none of these in practice, but a custom avoid-list entry should still work.
+function pickCalfTopUp(equip,used,freq){
+  const eqSet=new Set([...(equip||[]),'bodyweight']);
+  const f=freq||{};
+  const cands=CALF_TOPUP_POOL
+    .map(id=>EX.find(e=>e.id===id))
+    .filter(e=>e&&!used.includes(e.id)
+      &&(e.eq||[]).some(q=>eqSet.has(q))
+      &&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.shoulderCaution&&e.shoulderRisk)
+      &&!plyoHidden(e)&&!userAvoids(e)&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id));
+  if(!cands.length)return null;
+  return cands.reduce((best,e)=>(f[e.id]||0)<(f[best.id]||0)?e:best);
 }
 
 // ─────────────────────────────────────────────
@@ -1773,7 +1829,41 @@ function centuryMrvSets(reps){
 // handle that. (The Fundamentals card used to say so in words; it was removed
 // 2026-08-03, so there is no longer a caller that prints the day list — but the
 // empty case is still real for any future one.)
+// This week's calendar date for a given day-of-week, Monday-anchored — the same
+// arithmetic genProgram's own local dateForDow uses, exposed at module scope
+// because centuryEligibleDow needs it and isn't inside that closure.
+function weekDateForDow(dow){
+  const mon=thisMonday();
+  return dow===0?addDays(mon,6):dow===6?addDays(mon,5):addDays(mon,dow-1);
+}
+// "No pull-up bar today" (2026-08-19, Sam: "let's make it so I can say I don't
+// have a pull up bar available today to do the century"). A real gap this
+// closes: century ELIGIBILITY has only ever asked "is a session available that
+// day", never "does that session have a bar" — none of the equipment presets
+// without pullup_bar (hotel_gym, bodyweight) were ever excluded either, so a
+// travel day could already have been scheduling 100 pull-ups with nothing to
+// hang from. Keyed by DATE, not day-of-week, because it's a one-off statement
+// about today, not a recurring preference — a flag that silently reapplied
+// itself next week would be its own kind of bug (see the Century's own
+// "offSession" flag for the same one-off-vs-recurring distinction).
+function noBarToday(dow){return !!(S.noBarLog||{})[weekDateForDow(dow)];}
+// A day's USABLE equipment, as opposed to what the location owns. The preset is
+// a property of the place and stays untouched — the apartment gym still has a
+// bar tomorrow — while "no bar today" is a property of the DAY, so it is applied
+// here, at every point that resolves equipment for a session.
+//
+// Without this the feature was half-done in the worst way: it correctly freed
+// the ~30 minutes the century was reserving, and then the generator spent the
+// freed slot on weighted_pullups. Measured over a sweep of flagged days, 3 of 11
+// programmed a bar-only movement on a day he had just said had no bar — the
+// exact "prescribing something that can't be done" failure the Pyramid's own
+// `options` list exists to prevent.
+function equipForDow(equipmentKey,dow){
+  const eq=(EQUIPMENT_PRESETS[equipmentKey]||EQUIPMENT_PRESETS.ymca).equipment||[];
+  return noBarToday(dow===undefined?todayDow():dow)?eq.filter(q=>q!=='pullup_bar'):eq;
+}
 function centuryEligibleDow(av,dow){
+  if(noBarToday(dow))return false;
   const d=av[dow]||{};
   return(dow===0||dow===6)?!!d.on:(d.lunch!==false||!!d.eve?.on);
 }
@@ -1900,9 +1990,12 @@ function centuryTimeFor(dow){
 // centuryWhen flips it for someone who genuinely does it at lunch — the Plan
 // screen carries the toggle, since getting this backwards means either an
 // over-long lunch or an evening that quietly overruns.
-function centuryHostSession(dow,av){
+// Which session WOULD hold the hundred on this day, asked purely of availability.
+// Split out of centuryHostSession because centuryDows now needs the answer while
+// it is still deciding which days are century days — going through the guarded
+// version there would recurse.
+function centuryHostFor(dow,av){
   av=av||(S.weekPlan?.availability)||defaultAvailability();
-  if(!centuryDows(av).includes(dow))return null;
   const d=av[dow]||{};
   const hasLunch=dow>=1&&dow<=5&&d.lunch!==false;
   const hasEve=(dow===0||dow===6)?!!d.on:!!d.eve?.on;
@@ -1910,6 +2003,21 @@ function centuryHostSession(dow,av){
   if(hasLunch)return'lunch';
   if(hasEve)return'eve';
   return null;
+}
+function centuryHostSession(dow,av){
+  av=av||(S.weekPlan?.availability)||defaultAvailability();
+  if(!centuryDows(av).includes(dow))return null;
+  return centuryHostFor(dow,av);
+}
+// Would a century on this day leave its host session with NO lifting at all?
+// True only for a 40-minute lunch with no evening behind it: at a measured ~30
+// min the hundred fills that box on its own. Asked through lunchBudget with the
+// century minutes passed in EXPLICITLY, so the answer comes from the one ledger
+// rather than a second copy of its arithmetic — and so the call doesn't recurse
+// back into centuryDows through centuryChargeFor.
+function centuryCrowdsOutLifting(dow,av){
+  if(centuryHostFor(dow,av)!=='lunch')return false;
+  return lunchBudget(dow,av,null,centuryMins()).lifts<=0;
 }
 // Minutes a century takes out of `slot`'s own session — 0 unless this is the
 // session hosting it. Both the lunch ledger and eveningLifts read this, so the
@@ -1932,13 +2040,26 @@ function centuryDows(av){
   const cap=Math.max(1,Math.min(PULLUP_CENTURY.maxDays,trainingDayCount(av)-1));
   const ORDER=[1,2,3,4,5,6,0];
   const posOf=(dow)=>ORDER.indexOf(dow);
-  // Greedy fill in a given day order, keeping the ≥48h spacing the protocol
-  // needs (positions at least 2 apart in calendar order).
+  // SECOND cap, on the days where a century costs the WHOLE session. The rule
+  // above only guarantees one century-free day, which was enough while a century
+  // was budgeted at 16–20 min and a lunch still fitted a lift around it. At the
+  // measured ~30 a lunch-only day hosting one has no lifting at all, and the flat
+  // cap of 3 then turned a five-day lunch week into 300 pull-ups plus TWO lifting
+  // sessions (measured: 50 sessions → 20 over 10 weeks). The protocol's own range
+  // is "2–3× a week", so the low end is available and costs nothing structural —
+  // spend it here and keep CENTURY_KEEP_LIFTING_DAYS days that still lift.
+  // Days whose host is an EVENING don't count against this: those keep their
+  // lifting, just one exercise lighter.
+  const trainDays=trainingDayCount(av);
   const fill=(order,seed)=>{
     const out=seed?seed.slice():[];
+    let crowded=(out.filter(d=>centuryCrowdsOutLifting(d,av))).length;
     order.forEach(dow=>{
       if(out.length>=cap||!centuryEligibleDow(av,dow))return;
       if(out.some(d=>Math.abs(posOf(d)-posOf(dow))<2))return;
+      const eatsSession=centuryCrowdsOutLifting(dow,av);
+      if(eatsSession&&trainDays-(crowded+1)<CENTURY_KEEP_LIFTING_DAYS)return;
+      if(eatsSession)crowded++;
       out.push(dow);
     });
     return out;
@@ -1965,6 +2086,12 @@ function centuryLogs(){return (S.logs||[]).filter(l=>l&&l.century);}
 // prescribing sets he can't hold. Eight centuries is roughly three weeks at the
 // protocol's 3×/week cadence. `bestEver` stays available for the trend line,
 // where a record genuinely is the interesting number.
+// How many training days a week must still LIFT once the centuries are placed.
+// Three is the number the protocol's own "2–3× a week" range makes free: on a
+// five-day lunch week it buys back a third lifting session for the price of the
+// third century, and on any schedule whose centuries ride an evening it never
+// binds at all.
+const CENTURY_KEEP_LIFTING_DAYS=3;
 const CENTURY_BEST_WINDOW=8;
 function centuryStats(){
   const logs=centuryLogs().slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
@@ -2163,8 +2290,14 @@ function centurySetPlan(){
 // NOT A LUNCH SESSION: ~1,500 reps is high-sweat and runs ~50 min, so it fails
 // both lunch constraints outright. The card says so on a lunch-only day rather
 // than silently hiding.
-const PYRAMID_MAX_PEAK=10;// the original prescription, and where it stops fitting an hour
-const PYRAMID_MIN_PEAK=5; // below this it isn't a session
+const PYRAMID_MAX_PEAK=10;// the original 1,500-rep prescription; ~90 min once
+                          // the timing model below counts what it really costs
+// Was 5. Lowered to 4 (240 reps, 7 rungs — still a real session) because
+// pyramidCapacityPeak below can now conclude "you finished 21 of 36 units, so a
+// peak-4 ladder is what you can actually complete", and a floor of 5 would have
+// blocked that conclusion from ever landing. A self-scaling rule that can't
+// reach the answer isn't self-scaling.
+const PYRAMID_MIN_PEAK=4;
 // The top rung is one unbroken set of `peak` pull-ups. Keeping it 2 reps clear
 // of failure is the SAME rule the Century runs on (every set 2+ short), and it
 // is what lets this repeat for months instead of being a one-off hero workout.
@@ -2183,30 +2316,58 @@ const PYRAMID_PEAK_HEADROOM=2;
 // of prescribing something that can't be done.
 const PYRAMID_LADDER=[
   {mult:1,pattern:'pull',options:[
-    {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,
+    {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,secsPerRep:3,
      cue:'Dead hang, drive the elbows to the hips, chin clears the bar. Switch grips freely as the rungs climb — overhand, neutral and chin-ups all count. Bands or feet on a box are legitimate regressions on the top rungs; a broken set of the right number beats a missed rung.'},
-    {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,
+    {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,secsPerRep:3,
      cue:'Supinated grip, full dead hang, elbows down and back.'},
   ]},
   {mult:2,pattern:'dip',options:[
-    {id:'tricep_dips',name:'Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,
+    {id:'tricep_dips',name:'Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,secsPerRep:2.5,
      cue:'PARALLEL BARS ONLY — never the bench-edge version, which pins the hands behind the body and loads the left shoulder exactly where it objects. SHOULDER STOP: elbows to about 90° and no further, tucked close, then press to lockout. At 200 reps the depth cap is the whole safety margin, and it is the first thing fatigue takes away — if you cannot hold the stop, end the rung.'},
   ]},
   {mult:3,pattern:'push',options:[
-    {id:'bw_pushups',name:'Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:12,rMax:25,
+    {id:'bw_pushups',name:'Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:12,rMax:25,secsPerRep:2,
      cue:'Hands under the shoulders, body in one line, full lockout at the top. SHOULDER STOP: chest to about fist height off the floor rather than flat to the deck — the hands are fixed here, so the bottom position is the one the left shoulder objects to under load. Drop to the knees to keep the reps rather than grinding out slop.'},
   ]},
   {mult:4,pattern:'core',options:[
-    {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,
+    {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,secsPerRep:2,
      cue:'Curl up leading with the chest, exhale at the top, lower under control — never yank on the neck. NOTE: at the top peak this rung is 400 reps of loaded spinal flexion, which is the one part of this session your lower back has a stated history with — and it is the exact movement McGill argues against for a symptomatic back, so it sits oddly next to the Big 3 you now do daily. Nothing here forces you to keep it: put `situps` on the avoid list and the ladder re-resolves around it, dropping to four rungs. If you want the rung but not the flexion, sub in dead bugs or side planks for the same count.'},
   ]},
   {mult:5,pattern:'squat',options:[
-    {id:'bw_squat',name:'Bodyweight Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,
+    {id:'bw_squat',name:'Bodyweight Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,secsPerRep:1.8,
      cue:'Feet shoulder-width, sit back and down to full depth, knees tracking the toes, stand all the way up. Unloaded and low-impact, so this stays outside the hip caution — but keep the depth honest rather than turning the last rungs into quarter squats.'},
   ]},
 ];
 // Today's evening slot, which is the only slot this session fits.
-function pyramidEveSlot(){return ((S.weekPlan?.availability||{})[todayDow()]||{}).eve||{};}
+//
+// WEEKENDS STORE IT FLAT (2026-08-19). Mon–Fri nest the evening under `.eve`;
+// Saturday and Sunday put {on,mins,loc,equipment} directly on the day — the
+// shape genProgram's own slot builder already keys on, and that centuryHostSession
+// and trainingDayCount both test for. Reading `.eve` unconditionally meant this
+// returned {} every weekend, with two consequences on precisely the days the
+// ladder is FOR:
+//   · pyramidPrescription bailed at `if(!eve.on)`, so the Pyramid was never once
+//     prescribed on a Saturday or Sunday — the "no barbell and plenty of time"
+//     rule it exists for describes a weekend better than any weekday.
+//   · pyramidGymKey fell through to its apartment_gym default regardless of
+//     where he actually was, so the ladder resolved its `options` against the
+//     wrong equipment — the exact "prescribing something that can't be done"
+//     failure that list exists to prevent. A bodyweight-only Saturday still got
+//     the pull-up rung it had no bar for.
+function pyramidEveSlot(){
+  const dow=todayDow();
+  const d=(S.weekPlan?.availability||{})[dow]||{};
+  return (dow===0||dow===6)?d:(d.eve||{});
+}
+// How long tonight actually is. The dashboard's "tonight" override wins when it
+// was set today; otherwise the availability slot's own length, which is what
+// genProgram builds the session from (slot.mins) and, on a weekend, the ONLY
+// place the length is recorded — getEveningMins alone falls through to the
+// generic S.cfg.mins and never sees it.
+function pyramidEveMins(){
+  if(S.eveningMins&&S.eveningMins.date===todayStr())return S.eveningMins.mins;
+  return pyramidEveSlot().mins||getEveningMins();
+}
 // Equipment key for tonight. Falls back to the apartment gym (his home base, and
 // it has a bar) rather than the YMCA, since the whole appeal of this session is
 // that it runs without a gym.
@@ -2214,7 +2375,7 @@ function pyramidGymKey(){
   const k=pyramidEveSlot().equipment;
   return EQUIPMENT_PRESETS[k]?k:'apartment_gym';
 }
-function pyramidEquip(){return EQUIPMENT_PRESETS[pyramidGymKey()].equipment;}
+function pyramidEquip(){return equipForDow(pyramidGymKey(),todayDow());}
 // Same gates pickEx applies, minus the scheduling ones (frequency, MRV, tags) —
 // those are about what to PROGRAM, and this session isn't programmed. Note the
 // unconditional 'bodyweight' grant, copied from pickEx.
@@ -2225,48 +2386,176 @@ function pyramidExOK(ex,equip){
   const have=new Set([...(equip||[]),'bodyweight']);
   return (ex.eq||['bodyweight']).some(e=>have.has(e));
 }
-// The single self-scaling knob. Derived from the Century's measured best
-// unbroken set, because the ×1 rung IS pull-ups and the peak rung is one
-// unbroken set of that size — so his hardest single set is precisely the
-// constraint. No Century history yet: open at 6 (540 reps), which is a real
-// session and nowhere near the 1,500-rep version.
-function pyramidPeak(){
-  const best=centuryStats().best;
-  if(!best)return 6;
-  return Math.max(PYRAMID_MIN_PEAK,Math.min(PYRAMID_MAX_PEAK,best-PYRAMID_PEAK_HEADROOM));
-}
+// No Century history yet: open at 6 (540 reps), a real session and nowhere near
+// the 1,500-rep version.
+const PYRAMID_OPENING_PEAK=6;
 function pyramidRungSizes(peak){
   const out=[];
   for(let i=1;i<=peak;i++)out.push(i);
   for(let i=peak-1;i>=1;i--)out.push(i);
   return out;
 }
-// ~1.5 s/rep at the brisk cadence these movements actually run at (they're
-// deliberately submaximal), plus rest between rungs but not after the last.
-// Only ever a DEFAULT: pyramidMins() prefers measured sessions the moment there
-// are any, the same way centuryMins() does.
-const PYRAMID_SECS_PER_REP=1.5;
-const PYRAMID_REST_SECS=45;
 function pyramidLogs(){return (S.logs||[]).filter(l=>l&&l.pyramid);}
+// Rung sizes sum to peak² over a full ladder (1+…+P+…+1), which is the identity
+// the whole prescription is built on — so "units" is the natural currency for
+// how much of a ladder got done, independent of which movements resolved that
+// day (every movement scales by the same rung-size sum).
+function pyramidUnitsDone(peak,rungs){
+  return pyramidRungSizes(peak).slice(0,Math.max(0,rungs||0)).reduce((a,n)=>a+n,0);
+}
+
+// ── THE PEAK, PART 2: WHAT HE CAN ACTUALLY FINISH (2026-08-19) ──
+// Sam: "I only made my way up the pyramid on Saturday … scale the rung based on
+// my current fitness level."
+//
+// The peak used to come from ONE input: the Century's best unbroken pull-up set,
+// minus PYRAMID_PEAK_HEADROOM. That is the right ceiling — the top rung is one
+// unbroken set of that many pull-ups, so his hardest single set genuinely caps
+// it — but it is ONLY a ceiling. It says nothing about whether 15×peak² reps
+// across five movements is a session he can COMPLETE, and completing it is the
+// thing he actually couldn't do. Pull-up strength and work capacity are
+// different qualities and the ladder demands both.
+//
+// So the logs now supply the second half, and the peak is the MINIMUM of the two.
+// Same self-scaling shape as the Century: the prescription never gets rewritten,
+// the number moves.
+//   · Stopped short → he did `units` of peak², and the ladder he WOULD have
+//     finished on that much work has peak √units. Take it.
+//   · Finished      → that ladder is banked, so the next one is one rung taller.
+//     Completing it IS the test, exactly as a Century's test set is.
+// The most recent session governs rather than a rolling window: pyramids are
+// occasional, and responsiveness is the whole point of what he asked for. One
+// bad day drops the peak, the next completed session steps it straight back up,
+// so it oscillates onto his real capacity within a couple of sessions.
+function pyramidCapacityPeak(){
+  const logs=pyramidLogs().filter(l=>l&&l.pyramidPeak>0&&l.pyramidRungs>0);
+  if(!logs.length)return null;
+  const l=logs[logs.length-1];
+  if(l.pyramidComplete)return l.pyramidPeak+1;
+  return Math.floor(Math.sqrt(pyramidUnitsDone(l.pyramidPeak,l.pyramidRungs)));
+}
+function pyramidPeak(){
+  const best=centuryStats().best;
+  // Strength ceiling: the top rung is one unbroken set of this many pull-ups.
+  const strength=best?best-PYRAMID_PEAK_HEADROOM:PYRAMID_OPENING_PEAK;
+  const capacity=pyramidCapacityPeak();
+  const target=capacity===null?strength:Math.min(strength,capacity);
+  return Math.max(PYRAMID_MIN_PEAK,Math.min(PYRAMID_MAX_PEAK,target));
+}
+
+// ── HOW LONG THE LADDER ACTUALLY TAKES (rewritten 2026-08-19) ──
+// Sam: "it took me longer than it said it would take to go up and down" — and he
+// only went UP. At peak 6 that is 58% of the reps, which the old model priced at
+// 12 minutes against a full-ladder estimate of 21; he beat 21 doing the 12. So
+// the model was out by at least 1.8×, and both halves of it were wrong:
+//
+//  1) IT COUNTED REST AT RUNG BOUNDARIES ONLY. A rung is not one movement, it is
+//     FIVE — bar, dip station, floor, floor, floor — so an 11-rung ladder has 44
+//     changeovers INSIDE rungs that the model charged nothing for, against the
+//     10 boundaries it did charge. At peak 10 it is 76 uncounted against 18
+//     counted. That is the structural error and it dominates everything else:
+//     on the small rungs (rung 1 is one pull-up and five squats) the changeover
+//     IS the rung.
+//  2) ONE FLAT 1.5 s/rep FOR FIVE MOVEMENTS. A dead-hang pull-up is not an air
+//     squat. Each ladder entry now carries its own secsPerRep, which is also
+//     what keeps the model honest for a ladder that resolved to four rungs.
+const PYRAMID_DEFAULT_SECS_PER_REP=2;
+// Getting from one movement to the next INSIDE a rung. Not rest — just walking
+// to the bar and getting set. Deliberately smaller than PYRAMID_REST_SECS, and
+// deliberately NOT TRANSITION_BUFFER_SECS (45s), which prices whole session
+// BLOCKS moving between rooms and pieces of kit, not a step from the floor to
+// the bar you are standing under.
+const PYRAMID_CHANGEOVER_SECS=20;
+// Rest between rungs, averaged. The card's restNote prescribes this properly
+// (little at the bottom, 60–90s at the top); this is the flat mean of that.
+const PYRAMID_REST_SECS=45;
+function pyramidRepSecs(id){
+  for(const rung of PYRAMID_LADDER){
+    const o=(rung.options||[]).find(x=>x.id===id);
+    if(o)return o.secsPerRep||PYRAMID_DEFAULT_SECS_PER_REP;
+  }
+  return PYRAMID_DEFAULT_SECS_PER_REP;
+}
+// Modelled seconds for a ladder session. `blocks` is [{secsPerRep,reps}] — the
+// TOTAL reps of each movement across every rung performed — and `rungs` is how
+// many rungs were performed. Written to take the REPS rather than a peak so the
+// identical function prices tonight's plan and reconstructs a past session from
+// its log, which is what lets the calibration below compare like with like.
+function pyramidModelSecs(blocks,rungs){
+  const n=Math.max(0,rungs||0);
+  const work=blocks.reduce((a,b)=>a+b.reps*b.secsPerRep,0);
+  const changeovers=n*Math.max(0,blocks.length-1)*PYRAMID_CHANGEOVER_SECS;
+  const rest=Math.max(0,n-1)*PYRAMID_REST_SECS;
+  return work+changeovers+rest;
+}
+// Below this much modelled work a session is too small to calibrate from — the
+// same judgement CENTURY_PARTIAL_MIN_REPS makes, for the same reason.
+const PYRAMID_MIN_CALIBRATION_MINS=5;
+// One bad reading must not run away with the estimate. The Century's equivalent
+// guard is CENTURY_MAX_BUDGET_MINS; the ladder has no fixed size to cap against,
+// so what gets clamped here is the CORRECTION.
+const PYRAMID_PACE_CLAMP=[0.5,3];
+// CALIBRATION, and the reason partials are now welcome rather than discarded.
+//
+// The old pyramidPlan took a median of COMPLETED sessions only, arguing in its
+// comment that "a session stopped at rung 4 says nothing about how long the whole
+// thing takes". That is the exact reasoning the Century's own timing carried
+// until 2026-08-17, and it is wrong the same way: a stopped session is the
+// commonest outcome on precisely the days the estimate matters, and Sam's only
+// pyramid to date is one — so the app would have gone on quoting the unmeasured
+// default forever, which is what he is reporting.
+//
+// It is fixed here better than the Century manages, because the ladder's shape is
+// MODELLED rather than assumed. The Century has to extrapolate a partial pro-rata
+// (and then floor it, since pro-rata understates). This doesn't extrapolate at
+// all: it prices the portion he ACTUALLY did through the same model, compares
+// that against the clock, and keeps the RATIO. A partial yields an honest
+// correction with no guessing about the part that never happened — and because
+// it's a ratio it transfers across peaks, so a session logged at peak 6 still
+// calibrates a peak-4 ladder.
+function pyramidPaceFactor(){
+  const fs=pyramidLogs()
+    .filter(l=>l&&l.timedMins>0&&l.pyramidRungs>0)
+    .slice(-5)
+    .map(l=>{
+      const blocks=(l.exercises||[])
+        .map(e=>({secsPerRep:pyramidRepSecs(e.id),reps:pyramidRepsOf(e)}))
+        .filter(b=>b.reps>0);
+      if(!blocks.length)return 0;
+      const modelled=pyramidModelSecs(blocks,l.pyramidRungs)/60;
+      if(modelled<PYRAMID_MIN_CALIBRATION_MINS)return 0;
+      return l.timedMins/modelled;
+    })
+    .filter(f=>f>0)
+    .sort((a,b)=>a-b);
+  // `n` rather than testing the factor against 1: a genuinely measured session
+  // can land on exactly 1.00, and the card must not then claim it is guessing.
+  if(!fs.length)return{factor:1,n:0};
+  return{factor:Math.min(PYRAMID_PACE_CLAMP[1],Math.max(PYRAMID_PACE_CLAMP[0],median(fs))),n:fs.length};
+}
 function pyramidPlan(){
   const peak=pyramidPeak();
   const equip=pyramidEquip();
   const sizes=pyramidRungSizes(peak);
   const moves=PYRAMID_LADDER.map(rung=>{
     const ex=(rung.options||[]).find(o=>pyramidExOK(o,equip));
-    return ex?{...ex,mult:rung.mult,pattern:rung.pattern,reps:rung.mult*peak*peak}:null;
+    return ex?{...ex,mult:rung.mult,pattern:rung.pattern,reps:rung.mult*peak*peak,
+               secsPerRep:ex.secsPerRep||PYRAMID_DEFAULT_SECS_PER_REP}:null;
   }).filter(Boolean);
   const totalReps=moves.reduce((a,m)=>a+m.reps,0);
-  const est=Math.round((totalReps*PYRAMID_SECS_PER_REP+Math.max(0,sizes.length-1)*PYRAMID_REST_SECS)/60);
-  // Median of the last 5 COMPLETED sessions once they exist — same rule as
-  // centuryMins, including why partials are excluded rather than averaged in
-  // (a session stopped at rung 4 says nothing about how long the whole thing
-  // takes, and taking it at face value would report the hardest workout in the
-  // program as the shortest).
-  const done=pyramidLogs().filter(l=>l.timedMins>0&&l.pyramidComplete).slice(-5)
-    .map(l=>l.timedMins).sort((a,b)=>a-b);
-  const mins=done.length?done[Math.floor(done.length/2)]:est;
-  return{peak,sizes,moves,totalReps,mins,measured:!!done.length};
+  // Structural model first (see pyramidModelSecs), then corrected by whatever his
+  // own logged sessions say — completed OR stopped short, since the correction is
+  // a ratio against the portion actually performed rather than an extrapolation.
+  const pace=pyramidPaceFactor();
+  const est=pyramidModelSecs(moves,sizes.length)/60;
+  const mins=Math.max(1,Math.round(est*pace.factor));
+  // The climb shown separately, because it is what he actually did and because
+  // "half the ladder" is misleading: going up is MORE than half the work (it
+  // carries the peak rung — 21 of 36 units at peak 6).
+  const upRungs=Math.min(sizes.length,peak);
+  const upMoves=moves.map(m=>({...m,reps:pyramidRepsAfter(sizes,upRungs,m.mult)}));
+  const upMins=Math.max(1,Math.round(pyramidModelSecs(upMoves,upRungs)/60*pace.factor));
+  return{peak,sizes,moves,totalReps,mins,upMins,pace:pace.factor,measured:pace.n>0,paceCount:pace.n};
 }
 // Reps of each movement completed after `rungsDone` rungs of `sizes`.
 function pyramidRepsAfter(sizes,rungsDone,mult){
@@ -2343,7 +2632,7 @@ function pyramidPrescription(){
   if(!eve.on)return null;// no evening slot tonight — nowhere to put it
   const gym=pyramidGymKey();
   if(PYRAMID_EXCLUDED_GYMS.includes(gym))return null;
-  const mins=getEveningMins();
+  const mins=pyramidEveMins();
   if(!(mins>=PYRAMID_PRESCRIBE_MINS))return null;
   const plan=pyramidPlan();
   // A crippled ladder is never PRESCRIBED, only offered. The ×1 pull rung is
@@ -2416,10 +2705,10 @@ function cindyPrescription(){
   const eve=pyramidEveSlot();
   if(!eve.on)return null;
   const gym=pyramidGymKey();
-  if(!(EQUIPMENT_PRESETS[gym]?.equipment||[]).includes('pullup_bar'))return null;
+  if(!equipForDow(gym,todayDow()).includes('pullup_bar'))return null;
   if(centuryDows().includes(todayDow()))return null;
   if(pyramidPrescription())return null;
-  const mins=getEveningMins();
+  const mins=pyramidEveMins();
   // Warm-up + the 20-minute clock + the daily spine work still has to fit.
   const needed=CINDY_MINS+10+LUNCH_LEDGER.spineMins;
   if(mins<needed)return null;
@@ -2549,14 +2838,21 @@ const listWords=(a)=>a.length<2?(a[0]||''):a.slice(0,-1).join(', ')+' and '+a[a.
 function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   const items=[];
   const push=(key,label,m,note)=>{if(m>0)items.push({key,label,mins:m,note});};
-  push('prep','Prep & mobility',isLunch?PREP_BUDGET_MINS.lunch:PREP_BUDGET_MINS.evening);
-  const per=perLiftMins||(isLunch?lunchExMins():EVENING_EX_MINS);
-  if(lifts>0)push('lifts',`${lifts} lift${lifts>1?'s':''}`,Math.round(lifts*per));
   // 0 unless THIS session is the one hosting the century (see centuryChargeFor):
   // he does the hundred once, so on a lunch+evening day only one of the two
   // shows it and only one of the two pays for it.
   const centuryChg=centuryChargeFor(dow,!!isLunch,av);
-  if(centuryChg>0)push('century','Pull-up Century',centuryChg,'median of your timed sessions');
+  // A lunch that hosts the century gets the abbreviated prep, same figure the
+  // ledger reserves — the two must agree or the card contradicts the lift count.
+  const centuryLunch=!!isLunch&&centuryChg>0;
+  push('prep','Prep & mobility',isLunch?(centuryLunch?PREP_BUDGET_MINS.centuryLunch:PREP_BUDGET_MINS.lunch):PREP_BUDGET_MINS.evening);
+  const per=perLiftMins||(isLunch?lunchExMins():EVENING_EX_MINS);
+  if(lifts>0)push('lifts',`${lifts} lift${lifts>1?'s':''}`,Math.round(lifts*per));
+  // Priced separately from the lifts above — 2 quick sets at CALF_TOPUP_MINS,
+  // not a full per-lift charge. Skipped on a century lunch, matching the
+  // ledger and the actual buildSession append.
+  if(!centuryLunch&&needsCalfTopUp())push('calf','Calf raises (weekly top-up)',CALF_TOPUP_MINS,`${calfSetsThisWeek()}/${CALF_WEEKLY_TARGET_SETS} sets so far this week`);
+  if(centuryChg>0)push('century','Pull-up Century',centuryChg,centuryLunch?'this is the session':'median of your timed sessions');
   // Covered-ness is a property of the DAY, not of this session's charge — a
   // lunch on a day that still ends in 100 pull-ups has its conditioning too.
   const conditioningCovered=centuryDows(av).includes(dow);
@@ -2565,7 +2861,10 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
     const afford=isLunch?!!lunchBudget(dow,av,mins).finisher:true;
     if(f&&afford)push('finisher',f.name,f.mins||8);
   }
-  push('spine','Daily spine minimums',prepBlockMins(DAILY_SPINE_MINIMUMS));
+  // On a century lunch the spine holds are off the box BY DESIGN, not because
+  // today happened to run long — the ledger already stopped charging for them.
+  if(centuryLunch)items.push({key:'spine',label:'Daily spine minimums',mins:prepBlockMins(DAILY_SPINE_MINIMUMS),note:'morning or evening — the hundred is the whole box',deferred:true,byDesign:true});
+  else push('spine','Daily spine minimums',prepBlockMins(DAILY_SPINE_MINIMUMS));
   const mcgillNote=mcgillLogs().length?'median of your timed sessions':'from its prescribed holds';
   if(isLunch){
     // Listed but never charged, and never performed here — see the lunch
@@ -2649,11 +2948,16 @@ function eveningLifts(mins,dow,av,equipmentKey){
   // evening was billed for 16 minutes of work the plan then deferred anyway and
   // came out at ONE lift with six minutes spare. All three are floor work that
   // genuinely can happen at home; a lift can't.
-  // Four pieces, matching what's actually guaranteed to be in the session:
-  // prep, the lifting, the century if this evening hosts it, and the finisher.
-  // Charging six (the full itemised plan) reserved buffer for blocks that get
-  // shed anyway and quietly cost a lift at 75 and 90 minutes.
-  const fixed=PREP_BUDGET_MINS.evening+century+finisher+transitionMins(4);
+  // Whichever session buildSession finishes assembling first this week gets
+  // the calf top-up appended (see CALF_WEEKLY_TARGET_SETS) — not knowable in
+  // advance which one that'll be, so every evening reserves for it until the
+  // week's 2 sets are actually banked, same as the century/finisher above.
+  const calfTopUp=needsCalfTopUp()?CALF_TOPUP_MINS:0;
+  // Five pieces, matching what's actually guaranteed to be in the session:
+  // prep, the lifting, the century if this evening hosts it, the finisher, and
+  // the calf top-up. Charging six (the full itemised plan) reserved buffer for
+  // blocks that get shed anyway and quietly cost a lift at 75 and 90 minutes.
+  const fixed=PREP_BUDGET_MINS.evening+century+finisher+calfTopUp+transitionMins(4);
   // EX_LIMIT is the ceiling only. The tiers are calibrated as prep plus N lifts
   // at EVENING_EX_MINS (60 → 12 + 4×12), so the two agree on an empty evening
   // and diverge only by what's actually prescribed on top.
@@ -2663,20 +2967,32 @@ function eveningLifts(mins,dow,av,equipmentKey){
 // Everything that spends the lunch box, in priority order. `av` is passed
 // explicitly during generation for the same reason centuryDows takes it —
 // reading S.program mid-generation would be circular.
-function lunchBudget(dow,av,boxMins){
+// centuryOverride answers "what would this lunch afford IF it hosted the
+// hundred" — the question centuryDows has to ask before it knows the answer.
+// Without it that call would recurse (centuryDows → centuryChargeFor →
+// centuryHostSession → centuryDows).
+function lunchBudget(dow,av,boxMins,centuryOverride){
   const box=boxMins||40;
-  const spine=LUNCH_LEDGER.spineMins;
+  // 0 unless the lunch is the session actually hosting the century, and scaled
+  // to the reps still outstanding when it's today (see centuryChargeFor). On a
+  // lunch+evening day the default host is the evening, so the box keeps its
+  // full lift count instead of paying for work happening after six.
+  const hypothetical=centuryOverride!==undefined;
+  const century=hypothetical?centuryOverride:centuryChargeFor(dow,true,av);
+  // A century lunch is a DIFFERENT session, not a shorter one: at ~30 measured
+  // minutes the hundred IS the 40-minute box, so prep is abbreviated, the spine
+  // holds move out, and the lift floor is waived below.
+  const hostsCentury=century>0;
   // Prep is reserved at its BUDGET CAP, not at the cost of the particular
   // rotation that lands today. That is deliberate: which items come up depends
   // on the date and on whether the session turns out to be a leg day, and the
   // session doesn't exist yet when this runs — reserving the cap is the only
   // non-circular answer, and prepPlan guarantees it never exceeds it.
-  const prep=LUNCH_LEDGER.prepMins;
-  // 0 unless the lunch is the session actually hosting the century, and scaled
-  // to the reps still outstanding when it's today (see centuryChargeFor). On a
-  // lunch+evening day the default host is the evening, so the box keeps its
-  // full lift count instead of paying for work happening after six.
-  const century=centuryChargeFor(dow,true,av);
+  const prep=hostsCentury?PREP_BUDGET_MINS.centuryLunch:LUNCH_LEDGER.prepMins;
+  // The spine holds come off a century lunch for the same reason the Big 3 never
+  // went on it: six minutes of floor work that needs no gym, against a box that
+  // can no longer even afford one lift. sessionPlan lists them as deferred.
+  const spine=hostsCentury?0:LUNCH_LEDGER.spineMins;
   const per=lunchExMins();
   // The transition buffer joins the box for the same reason the spine holds and
   // prep already had: it happens inside this session, so pretending it's free is
@@ -2689,8 +3005,21 @@ function lunchBudget(dow,av,boxMins){
   // morning-or-evening job — sessionPlan lists it on a lunch as deferred, with
   // that reason, rather than dropping it silently. If it ever DOES move into
   // the box, LUNCH_LEDGER.spineMins has to move with it.
-  let left=box-spine-prep-century-transitionMins(5);
-  const lifts=Math.max(LUNCH_LEDGER.minLifts,Math.min(LUNCH_LEDGER.maxLifts,Math.floor(left/per)));
+  //
+  // The calf top-up (see CALF_WEEKLY_TARGET_SETS) is skipped on a century
+  // lunch for the same reason the spine holds are: that box has no room for
+  // anything past the hundred itself.
+  const calfTopUp=(!hostsCentury&&needsCalfTopUp())?CALF_TOPUP_MINS:0;
+  let left=box-spine-prep-century-calfTopUp-transitionMins(hostsCentury?2:5);
+  // minLifts is waived on a century lunch. Its comment used to read "a century
+  // day never becomes a no-lifting day", written when a century was budgeted at
+  // 16–20 min; at the MEASURED ~30 that sentence is arithmetically false, and
+  // forcing the floor made the ledger lie in the worst possible way — the plan
+  // came out at one lift and then SHED THE CENTURY to fit it, i.e. dropped the
+  // only thing the day exists for and left 21 of 40 minutes unused. Sam, seeing
+  // it: "looks like we just have to get rid of all exercises and do abbreviated
+  // stretching to fit it in 40 min." Correct, so that is now what it says.
+  const lifts=Math.max(hostsCentury?0:LUNCH_LEDGER.minLifts,Math.min(LUNCH_LEDGER.maxLifts,Math.floor(left/per)));
   left-=lifts*per;
   // A finisher has to be affordable TWICE OVER before it's offered.
   //  1) Never on a century day. 100 pull-ups already IS the conditioning, and
@@ -2715,11 +3044,15 @@ function lunchBudget(dow,av,boxMins){
   // 2026-08-17 the century's minutes can be billed to the evening instead, and
   // reading `century` here would have let a finisher back into the lunch of a
   // day that still ends in 100 pull-ups.
-  const conditioningCovered=centuryDows(av).includes(dow);
+  // The hypothetical call is asking "if this day hosted the hundred, would any
+  // lifting survive" — so by construction it IS a century day. Short-circuiting
+  // here is what keeps that question out of centuryDows, which is the function
+  // asking it (see centuryCrowdsOutLifting).
+  const conditioningCovered=hypothetical||centuryDows(av).includes(dow);
   const f=(S.cfg?.conditioning&&!conditioningCovered)?getFinisher(dow,true,lunchEquip):null;
   const finisher=(f&&left>=(f.mins||8)+FINISHER_MARGIN_MINS)?f:null;
   if(finisher)left-=(finisher.mins||8);
-  return{box,spine,prep,century,per:Math.round(per*10)/10,lifts,finisher,left:Math.round(left)};
+  return{box,spine,prep,century,hostsCentury,per:Math.round(per*10)/10,lifts,finisher,left:Math.round(left)};
 }
 
 // Dragon Flag progression track: Tier 1 (Lying Leg Lifts) is always offered;
@@ -3493,14 +3826,24 @@ function genProgram(cfg,av,workoutHistoryLog){
     // changed only by the rescue matches the previous plan and takes the
     // preserve-don't-rebuild path, and the rescue never lands.
     const rescued=slots.some(s=>s.hingeRescue);
-    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')+(stamped?'+f:'+stamped.foundationId:'')+(rescued?'+hr':'')};
+    // `n:` is the SLOT COUNT, and it is in the key for the same reason the
+    // foundation stamp and the hinge rescue are: tk is the session's identity,
+    // and buildSession preserves rather than rebuilds any day whose tk matches
+    // the previous plan. The slot count moves whenever the TIME BUDGET moves —
+    // a century skipped or logged, a finisher toggled off, the calf top-up
+    // banked — and none of that is visible in the muscle set, so without this a
+    // day could keep its old, smaller session and silently pocket the freed
+    // minutes. It happens to rebuild today because the muscle set usually shifts
+    // too, but "usually" is not a guarantee and this is the cheap way to make it
+    // one.
+    return{name:names.join(' · '),desc:'Recovery-based · '+names.join(', '),slots,tk:'rb:'+top.map(t=>t.m).slice().sort().join('-')+'+n:'+slots.length+(stamped?'+f:'+stamped.foundationId:'')+(rescued?'+hr':'')};
   }
 
   function buildSession(slot,tk,oldData){
     // Use per-session equipment from availability
     const equipmentKey=slot.equipmentKey||'ymca';
     const selectedPreset=EQUIPMENT_PRESETS[equipmentKey]||EQUIPMENT_PRESETS.ymca;
-    const equip=selectedPreset.equipment;
+    const equip=equipForDow(equipmentKey,slot.dow);
     const dateStr=dateForDow(slot.dow);
     // A completed day is locked to what was ACTUALLY logged — the source of
     // truth — so regenerating/resetting can never reassign or relabel it, and
@@ -3532,6 +3875,11 @@ function genProgram(cfg,av,workoutHistoryLog){
       ?lunchBudget(slot.dow,av,slot.mins).lifts
       :eveningLifts(slot.mins,slot.dow,av,equip);
     // Plan this day on demand from recovery debt (most-overdue rested muscles).
+    // The ledger can now answer ZERO — a 40-minute lunch that hosts a ~30 min
+    // century has no room for lifting at all. Build nothing rather than an empty
+    // session: the century card is what that day is, and it lives on the
+    // dashboard independently of any workout (see centuryOnlyDow).
+    if(limit<=0)return null;
     const tmpl=dayTemplate(dateStr,limit,slot.isLunch,equip);
     if(!tmpl)return null; // nothing adequately rested → this day stays a rest day
     if(oldData===undefined)oldData=oldWeek?.[slot.dow];
@@ -3631,6 +3979,40 @@ function genProgram(cfg,av,workoutHistoryLog){
       });
     }
 
+    // ── Calf weekly top-up (see CALF_WEEKLY_TARGET_SETS) ──
+    // Outside the muscle-slot system on purpose (that queue is exactly what
+    // left calf work at 0 covered weeks — see the note above JUMP_DURABILITY).
+    // Appended AFTER flagFirstWorkingSet-adjacent trimming so it never competes
+    // to lead the session, and skipped if this exact session already contains a
+    // calf-tagged exercise (e.g. a lunch's own isolation slot happened to pick
+    // one) so it can never double up in one session.
+    // Skipped on a lunch hosting the century for the same reason the ledger
+    // skips it there — that box has no room for anything past the hundred.
+    const calfBlocked=slot.isLunch&&centuryChargeFor(slot.dow,true,av)>0;
+    // Can land on ANY session, not just a leg day — see the note below on why
+    // it's excluded from the recovery-debt marking pass, which is what makes
+    // that safe.
+    if(!calfBlocked&&needsCalfTopUp()&&!exs.some(e=>(e.tags||[]).includes('calf'))){
+      const topUp=pickCalfTopUp(equip,used,exFreq);
+      if(topUp){
+        used.push(topUp.id);
+        exFreq[topUp.id]=(exFreq[topUp.id]||0)+1;
+        const modifiedTopUp={...topUp,sets:CALF_WEEKLY_TARGET_SETS,sessionMins:slot.mins,calfTopUp:true};
+        // Deliberately NOT credited to budget.vol. That scratch object also
+        // drives the SAME week's remaining anchor-priority ranking (which
+        // muscle is "under" and gets picked next) — crediting it here, on a
+        // session that could be ANY muscle, made legs look caught up on volume
+        // and starved the recovery-debt engine of real leg-anchor days:
+        // measured, the hinge and hamstring mandates collapsed to 0 slots/week
+        // on the full schedule. getWeeklySetVolumes() re-derives the dashboard's
+        // real weekly volume from LOGS once this is actually performed, which
+        // is entirely separate from this in-run scratch object, so the true
+        // volume is never lost — only THIS run's remaining slot decisions don't
+        // see it early.
+        exs.push(modifiedTopUp);
+      }
+    }
+
     // Adjust session name for circuit training
     let sessionName = isCircuitStyle && !slot.isLunch ? tmpl.name.replace('Day', 'Circuit') : tmpl.name;
     let sessionDesc = tmpl.desc;
@@ -3670,7 +4052,12 @@ function genProgram(cfg,av,workoutHistoryLog){
   lunchSlots.forEach(slot=>{const s=assignSlot(slot);if(s)slotMap[slot.key]=s;});
   // Pass 2: evening lifting on days WITHOUT a lunch session (e.g. weekends).
   eveSlots.forEach(slot=>{
-    if(lunchDows.has(slot.dow))return; // a lunch+evening day is handled in Pass 3
+    // Keyed on whether a lunch session was actually BUILT, not on whether the
+    // day has lunch availability. A lunch that came back empty — nothing rested,
+    // or a century that ate the whole box — leaves the evening as the day's
+    // PRIMARY session; Pass 3 would otherwise refuse it as a "bonus" and the day
+    // would lose its lifting entirely.
+    if(slotMap[`${slot.dow}-lunch`])return; // a lunch+evening day is handled in Pass 3
     const s=assignSlot(slot);if(s)slotMap[slot.key]=s;
   });
   // Pass 3: double-lifting days — a day with both lunch and evening available
@@ -4178,14 +4565,28 @@ function legsRecovered(dateStr,history,assigned,heavyDates){
 // Weekly MRV set volume still counts either way — sets are sets.
 // Planned/EX-shaped exercise: loadable = not noWeight and has non-bodyweight
 // equipment (same idea as flagFirstWorkingSet's `scalable`).
-function weightedLegEx(e){return !e.noWeight&&(e.eq||[]).some(q=>q!=='bodyweight');}
+//
+// 'calf' is excluded regardless of load (2026-08-19, found while wiring the
+// weekly calf top-up — see CALF_WEEKLY_TARGET_SETS). A calf raise never
+// touches the squat/hinge musculature the 72h window exists for, however much
+// weight is on it, so treating a loaded one as "heavy leg day" is the same
+// mistake this whole function was written to fix for bodyweight tendon work —
+// it kept legs looking "recently trained" on days that never really loaded
+// the pattern, and measured, that starved the SAME heavy-strength and
+// hinge/hamstring mandates the original bug did (0 slots/week on two
+// schedules) once the top-up started actually landing on real sessions.
+function weightedLegEx(e){return !e.noWeight&&!(e.tags||[]).includes('calf')&&(e.eq||[]).some(q=>q!=='bodyweight');}
 // Logged exercise: trust the actual logged sets first (any working set with
 // weight on the bar), fall back to the movement's DB entry, and assume loaded
-// for unknown custom movements (conservative: keeps the 72h window).
+// for unknown custom movements (conservative: keeps the 72h window). The calf
+// exemption has to come BEFORE the logged-weight check, not just live in the
+// DB-entry fallback — a real loaded calf raise still logs weight>0 and would
+// otherwise pass the first branch straight through.
 function weightedLegLog(exLog){
+  const full=[...EX,...(S.customExercises||[])].find(x=>x.id===exLog.id);
+  if(full&&(full.tags||[]).includes('calf'))return false;
   const sets=(exLog.sets||[]).filter(s=>s&&s.reps>0);
   if(sets.length)return sets.some(s=>(s.weight||0)>0);
-  const full=[...EX,...(S.customExercises||[])].find(x=>x.id===exLog.id);
   return full?weightedLegEx(full):true;
 }
 // "This exercise counts as training its muscle" for recovery purposes.
@@ -4835,7 +5236,7 @@ function pickEveningExercises(day,sessionMins){
   const todayAv=av[today]||{};
   const eveEquipment=todayAv.eve?.equipment||'ymca';
   const selectedPreset=EQUIPMENT_PRESETS[eveEquipment]||EQUIPMENT_PRESETS.ymca;
-  const equip=selectedPreset.equipment;
+  const equip=equipForDow(eveEquipment,today);
   const tmpl=TMPLS[day.tk];
   if(!tmpl)return day.exercises.slice(0,limit);
   const used=[];
@@ -5732,9 +6133,9 @@ const MCGILL_BIG3=[
 function lunchBudgetHTML(dow){
   const b=lunchBudget(dow);
   const rows=[
-    [`${b.lifts} lift${b.lifts===1?'':'s'}`,Math.round(b.lifts*b.per)],
+    b.lifts?[`${b.lifts} lift${b.lifts===1?'':'s'}`,Math.round(b.lifts*b.per)]:null,
     b.century?['Pull-up century',b.century]:null,
-    ['Daily spine minimums',b.spine],
+    b.spine?['Daily spine minimums',b.spine]:null,
     ['Prep before rep one',b.prep],
     b.finisher?[`Finisher · ${b.finisher.name}`,b.finisher.mins]:null,
   ].filter(Boolean);
@@ -5746,7 +6147,7 @@ function lunchBudgetHTML(dow){
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:6px'>⏱ The ${b.box}-minute lunch</div>
     ${rows.map(r=>`<div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9'><span style='color:var(--mut)'>${r[0]}</span><span style='font-weight:700'>${r[1]} min</span></div>`).join('')}
     <div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9;border-top:1px solid var(--bdr);margin-top:4px;padding-top:4px'><span style='color:var(--mut)'>Slack</span><span style='font-weight:700;color:${b.left<0?'var(--warn)':'var(--ok)'}'>${b.left} min</span></div>
-    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${eveHosts?` Today's century isn't on this ledger — it's charged to tonight's session instead, since that's where you do it. Change that on the Plan screen.`:''}${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${b.hostsCentury&&!b.lifts?` Today the century is the session — it leaves no room for a lift, so none is programmed, and the spine holds and Big 3 move to this morning or tonight.`:''}${eveHosts?` Today's century isn't on this ledger — it's charged to tonight's session instead, since that's where you do it. Change that on the Plan screen.`:''}${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
   </div>`;
 }
 
@@ -6020,7 +6421,13 @@ function stretchRot(pool,n){
 // 6 minutes; an evening can afford twice that. These are caps, not estimates —
 // prepPlan fills up to them and stops, which is what makes the figure safe for
 // lunchBudget to reserve without knowing which rotation lands on a given day.
-const PREP_BUDGET_MINS={lunch:6,evening:12};
+// centuryLunch is the abbreviated cap for a lunch whose whole session is the
+// hundred: at a measured ~30 min century there is no 40-minute box left to buy
+// the ordinary 6 minutes AND the spine holds AND a lift, so the prep is cut to
+// the fixed decompression/desk-reversal blocks plus about a minute of rotation.
+// It is deliberately not zero — 100 pull-ups on a cold shoulder is the one thing
+// in this app worth spending scarce minutes on.
+const PREP_BUDGET_MINS={lunch:6,evening:12,centuryLunch:4};
 // Assemble the session's prep. Blocks are filled round-robin in priority order
 // so a later block can't be starved by an earlier one eating the whole budget,
 // and the leg block jumps the queue on a leg day — which is the entire point of
@@ -6028,7 +6435,7 @@ const PREP_BUDGET_MINS={lunch:6,evening:12};
 function prepPlan(o){
   o=o||{};
   const isLunch=!!o.isLunch, isLegDay=!!o.isLegDay;
-  const cap=(isLunch?PREP_BUDGET_MINS.lunch:PREP_BUDGET_MINS.evening)*60;
+  const cap=(o.capMins||(isLunch?PREP_BUDGET_MINS.lunch:PREP_BUDGET_MINS.evening))*60;
   const want=(evening,lunch)=>isLunch?lunch:evening;
   const legPool=[...HIP_POOL,...LOWER_MOBILITY_POOL].filter(prepIsLeg);
   const deskPool=[...HIP_POOL,...LOWER_MOBILITY_POOL].filter(prepIsDesk);
@@ -6045,6 +6452,13 @@ function prepPlan(o){
     o.shoulderCaution?{key:'shoulder',title:'🩹 Achy Shoulder',color:'var(--acc)',pool:SHOULDER_POOL,n:want(2,1)}:null,
     {key:'upper',title:'🔄 Upper Body',color:'var(--acc)',pool:UPPER_MOBILITY_POOL,n:want(2,1)},
   ].filter(Boolean);
+  // Blocks are dealt round-robin, so at the abbreviated cap only the first round
+  // or two lands and ORDER decides what he actually gets. A century is 100
+  // pull-ups and nothing else, so the shoulder and upper-back blocks go first.
+  if(o.upperFirst){
+    const isUpper=(b)=>b.key==='shoulder'||b.key==='upper';
+    rotating.sort((a,b)=>(isUpper(b)?1:0)-(isUpper(a)?1:0));
+  }
   let secs=fixed.reduce((a,b)=>a+b.items.reduce((x,it)=>x+prepItemSecs(it),0),0);
   // Pre-roll each pool's rotation, then deal one item at a time across the
   // blocks until the budget is gone.
@@ -6120,7 +6534,19 @@ function centuryHTML(){
       <div style='font-size:12px;color:var(--mut);margin-top:4px;line-height:1.6'>Same hundred reps, different shape — spread one rung at a time across the ladder instead of in dedicated sets. It's already booked against this week's back volume, so there's no second century to do.</div>
     </div>`;
   }
-  if(!isCenturyDay&&!draft.sets.length&&!doneToday)return'';
+  if(!isCenturyDay&&!draft.sets.length&&!doneToday){
+    if(noBarToday(todayDow()))return`<div style='margin-top:12px;padding:12px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;text-align:left'>
+      <div style='display:flex;align-items:center;gap:8px'>
+        <span style='font-size:16px'>🚫</span>
+        <div style='flex:1;min-width:0'>
+          <div style='font-size:13px;font-weight:700'>No bar today — Century skipped</div>
+          <div style='font-size:11px;color:var(--mut);margin-top:2px'>Those ~${centuryMins()} min went back to today's session, so it's carrying an extra lift instead. Nothing needing the bar is programmed today, and the week's back volume plans around it not happening.</div>
+        </div>
+        <button class='btn btn-g btn-sm' data-action='century-no-bar-undo' style='width:auto;flex-shrink:0'>Undo</button>
+      </div>
+    </div>`;
+    return'';
+  }
   const st=centuryStats();
   const T=PULLUP_CENTURY.target;
   // Progress line across sessions — the two numbers that actually moved for
@@ -6162,6 +6588,7 @@ function centuryHTML(){
   return`<div style='margin-top:12px;padding:14px;background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.3);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>🎯 Pull-up Century · ${DOW[todayDow()]}</div>
     <div style='font-size:15px;font-weight:800'>${T} pull-ups. However many sets it takes.</div>
+    ${centuryOnlyDow(todayDow())?`<div style='font-size:12px;color:var(--mut);margin-top:4px;line-height:1.6'><strong style='color:var(--txt)'>Today's lunch is this and nothing else.</strong> At ~${centuryMins()} min the hundred fills the 40-minute box on its own — there is no room for lifts, so none are programmed rather than promised and dropped.</div>`+centuryPrepHTML():''}
     <div style='display:flex;align-items:baseline;gap:8px;margin-top:8px'>
       <div style='font-size:24px;font-weight:800;color:${total>=T?'var(--ok)':'var(--txt)'}'>${total}</div>
       <div style='font-size:13px;color:var(--mut)'>/ ${T} · ${draft.sets.length} set${draft.sets.length!==1?'s':''}${bestToday?` · best ${bestToday}`:''}${draft.startedAt?` · ${Math.max(1,Math.round((Date.now()-new Date(draft.startedAt).getTime())/60000))} min`:''}</div>
@@ -6177,6 +6604,7 @@ function centuryHTML(){
     ${setChips}
     ${draft.sets.length?`<button class='btn ${total>=T?'btn-ok':'btn-g'} btn-sm' data-action='century-finish' style='width:100%;margin-top:8px'>${total>=T?`✓ Log Century — ${total} reps in ${draft.sets.length} sets`:`Log ${total} reps & stop here (${remaining} short)`}</button>`:''}
     ${!draft.sets.length?`<button class='cue-btn' data-action='century-already-done' style='margin-top:8px;margin-bottom:0'>✓ Already did it today — log it and free the time</button>`:''}
+    ${!draft.sets.length?`<button class='cue-btn' data-action='century-no-bar-today' style='margin-top:4px;margin-bottom:0;color:var(--mut)'>🚫 No pull-up bar today — skip it and use the time</button>`:''}
     <div style='margin-top:10px;padding:10px 12px;background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.25);border-radius:10px'>
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:4px'>⏱ Pacing${plan.test?' · Test day':''}</div>
       ${plan.test?`<div style='font-size:13px;font-weight:700'>Set 1 to failure · rest ${plan.testRestSecs/60} min · then sets of ${plan.setSize}</div>
@@ -6187,6 +6615,35 @@ function centuryHTML(){
     <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>${plan.test?'After the opener, end':'End'} every set <strong style='color:var(--txt)'>2+ reps short of failure</strong>, and keep them the SAME SIZE — a set count that falls away as you go means set one was too close to failure. Reps don't creep up within a session; they step up on test day. That's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Bands, feet on a box, or slow negatives all count too.</div>
     <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>📊 <strong style='color:var(--txt)'>This is booked against your week.</strong> A full century bills ${CENTURY_MRV_SETS} back sets and ${(CENTURY_MRV_SETS*0.5).toFixed(1)} biceps against weekly MRV (a partial bills its share), so the generator plans less rowing and fewer curls on the days around it — you don't have to hold back on purpose.</div>
     ${trend}
+  </div>`;
+}
+
+// A day whose whole lunch is the hundred. At a MEASURED ~30 min century the
+// 40-minute box affords no lifts at all, so genProgram builds no session and the
+// day reaches the dashboard looking exactly like a rest day. It isn't one, so
+// it says what it actually is.
+// Read off the built program rather than re-deriving the ledger, so a session
+// that was preserved or hand-edited into that day still counts as lifting.
+function centuryOnlyDow(dow){
+  if(centuryHostSession(dow)!=='lunch')return false;
+  const d=S.program?.week?.[dow];
+  return !d||d.rest||!((d.exercises||[]).length||d.eveningSession?.exercises?.length);
+}
+// The warm-up for a session that is nothing but pull-ups. Same pools and same
+// budgeting as the pre-lift prep, at PREP_BUDGET_MINS.centuryLunch and with the
+// shoulder/upper blocks dealt first — this is 100 reps of one overhead pull, so
+// that is what needs to be warm. Rendered on the century card because on this
+// kind of day there is no workout screen to put it on.
+function centuryPrepHTML(){
+  const p=prepPlan({isLunch:true,capMins:PREP_BUDGET_MINS.centuryLunch,upperFirst:true,
+    hipCaution:!!S.cfg?.hipCaution,shoulderCaution:!!S.cfg?.shoulderCaution});
+  return`<div style='margin-top:10px;padding:10px 12px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.25);border-radius:10px'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:4px'>🔥 Before rep one · ~${p.mins} min</div>
+    ${p.blocks.map(b=>`<div style='margin-bottom:4px'>
+      <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:${b.color}'>${b.title}</div>
+      ${b.items.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.6'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
+    </div>`).join('')}
+    <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>Abbreviated on purpose — the hundred takes ~${centuryMins()} min of a 40-minute lunch, so this is the short version rather than the usual ${PREP_BUDGET_MINS.lunch}. Spine holds and the Big 3 move to this morning or tonight; they need no gym.</div>
   </div>`;
 }
 
@@ -6351,8 +6808,15 @@ function pyramidHTML(dd){
     ${started?`<button class='btn ${cur===null?'btn-ok':'btn-g'} btn-sm' data-action='pyramid-finish' style='width:100%;margin-top:8px'>${cur===null?`✓ Log Pyramid — ${repsDone} reps`:`Log ${repsDone} reps & stop here (rung ${rungsDone} of ${totalRungs})`}</button>`:''}
     ${lunchWarn}
     ${missingNote}
-    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>Up 1→${plan.peak}, then back down to 1. Every rung is <strong style='color:var(--txt)'>${plan.moves.map(m=>'×'+m.mult).join(' / ')}</strong> of the movements above, so the whole session is one number: ${plan.peak}² × ${plan.moves.reduce((a,m)=>a+m.mult,0)} = ${plan.totalReps} reps. ${plan.measured?`Your last sessions ran ~${plan.mins} min.`:`Estimated ~${plan.mins} min until there's a timed one to go on.`}</div>
-    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>Peak is set to <strong style='color:var(--txt)'>${plan.peak}</strong>${centuryStats().best?` — ${PYRAMID_PEAK_HEADROOM} clear of your best unbroken set of ${centuryStats().best}, so even the top rung isn't a grinder`:` until there's a Century on record to size it from`}. It moves on its own as that number climbs; the ladder never gets rewritten.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>Up 1→${plan.peak}, then back down to 1. Every rung is <strong style='color:var(--txt)'>${plan.moves.map(m=>'×'+m.mult).join(' / ')}</strong> of the movements above, so the whole session is one number: ${plan.peak}² × ${plan.moves.reduce((a,m)=>a+m.mult,0)} = ${plan.totalReps} reps.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>⏱ <strong style='color:var(--txt)'>~${plan.mins} min</strong> for the whole ladder — <strong style='color:var(--txt)'>~${plan.upMins} min</strong> just to get to the top, since the climb is more than half the work. ${plan.measured?`Calibrated from ${plan.paceCount} timed session${plan.paceCount>1?'s':''} of your own, finished or not${plan.pace>1.05?` — you run about ${Math.round((plan.pace-1)*100)}% slower than the model, and this already allows for it`:''}.`:`Estimate covers the reps, the changeover between the five movements every rung, and rest between rungs. It recalibrates the first time you log a timed one — a session you stop partway through counts too.`}</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>Peak is set to <strong style='color:var(--txt)'>${plan.peak}</strong>${(()=>{
+      const cap=pyramidCapacityPeak(),best=centuryStats().best;
+      const strength=best?best-PYRAMID_PEAK_HEADROOM:null;
+      if(cap!==null&&(strength===null||cap<=strength))return ` by your last ladder — what you actually finished is what sizes the next one. Complete this and it goes up a rung; stop short and it comes back down to one you will finish`;
+      if(strength!==null)return ` — ${PYRAMID_PEAK_HEADROOM} clear of your best unbroken set of ${best}, so even the top rung isn't a grinder`;
+      return ` until there's a Century on record to size it from`;
+    })()}. It moves on its own; the ladder never gets rewritten.</div>
   </div>`;
 }
 
@@ -6524,7 +6988,9 @@ function centuryWhenPlanHTML(){
       </div>
       <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>${when==='eve'
         ?`Reserving ~${centuryMins()} min out of an evening costs it one exercise off the template. Taking the same minutes out of the 40-minute lunch costs half the session, which is why this is the default.`
-        :`Reserving ~${centuryMins()} min out of the 40-minute lunch cuts it to ${lunchBudget(centuryDows()[0]??1).lifts} lift${lunchBudget(centuryDows()[0]??1).lifts===1?'':'s'}. Only pick this if you genuinely do the hundred at midday.`}</div>
+        :(()=>{const n=lunchBudget(centuryDows()[0]??1).lifts;return n>0
+          ?`Reserving ~${centuryMins()} min out of the 40-minute lunch cuts it to ${n} lift${n===1?'':'s'}. Only pick this if you genuinely do the hundred at midday.`
+          :`At ~${centuryMins()} min the hundred fills the 40-minute lunch on its own — that day gets NO lifting session, just an abbreviated warm-up and the century. Only pick this if you genuinely do the hundred at midday.`;})()}</div>
     </div>`;
 }
 
@@ -6799,7 +7265,11 @@ function renderDash(){
     const loggedSess=isCompleted?getLoggedSessionForDow(displayDow):null;
 
     if((!d||d.rest)&&!loggedSess){
-      const label=isActualToday?(isSunday?'Sunday · Plan Your Week':'Rest Day 😴'):(DOW[displayDow]+' · Rest');
+      // A century-only lunch has no lifting session by design, so it arrives
+      // here looking exactly like a rest day. Say what it actually is.
+      const centuryOnly=centuryOnlyDow(displayDow);
+      const label=centuryOnly?'🎯 Century Day'
+        :isActualToday?(isSunday?'Sunday · Plan Your Week':'Rest Day 😴'):(DOW[displayDow]+' · Rest');
       return isActualToday&&isSunday
         ?`<div class='today' style='border-color:rgba(251,191,36,.35);background:linear-gradient(135deg,var(--surf2) 0%,rgba(251,191,36,.04) 100%)'>
             <div class='t-lbl' style='color:var(--warn)'>Sunday · Plan Your Week</div>
@@ -6808,7 +7278,7 @@ function renderDash(){
             ${centuryHTML()}
             ${recoveryHTML(displayDow)}
           </div>`
-        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${isActualToday?'Recovery is where the growth happens.':''}</div>${isActualToday?`<button class='btn btn-g btn-sm' data-action='build-custom-session' style='margin-top:8px;width:100%'>&#128296; Build My Own Workout</button>`:''}${isActualToday?centuryHTML():''}${isActualToday?recoveryHTML(displayDow):''}</div>`;
+        :`<div class='today'><div class='t-lbl'>${isActualToday?'Today':DOW[displayDow]}</div><div class='t-name'>${label}</div><div class='t-desc'>${centuryOnly?'No lifting programmed — 100 pull-ups fills the 40-minute lunch on its own.':(isActualToday?'Recovery is where the growth happens.':'')}</div>${isActualToday?`<button class='btn btn-g btn-sm' data-action='build-custom-session' style='margin-top:8px;width:100%'>&#128296; Build My Own Workout</button>`:''}${isActualToday?centuryHTML():''}${isActualToday?recoveryHTML(displayDow):''}</div>`;
     }
     // The plan's own view of this dow — null when the (possibly regenerated)
     // program disagrees with what was actually logged (marks it rest, or is
@@ -7268,7 +7738,7 @@ function renderWorkout(){
   const todayAv=av[today]||{};
   const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
   const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!plyoHidden(e)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>selectedPreset.equipment.includes(q))).slice(0,5):[];
+  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!plyoHidden(e)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>equipForDow(sessionEquipment,today).includes(q))).slice(0,5):[];
   const swapSearchOpen=swapOpen&&S.active.swapSearch;
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
     <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
@@ -7403,8 +7873,12 @@ function renderWorkout(){
       // finisher included, not a lifting-only estimate with the rest bolted on
       // afterwards.
       if(exIdx!==0)return'';
+      // Exclude the calf top-up from the "N lifts" count — it's priced as its
+      // own small line inside sessionPlan (see CALF_TOPUP_MINS), not at the
+      // full per-lift rate; counting it here would double it into "lifts" too.
+      const countedLifts=exercises.filter(e=>!e.calfTopUp).length;
       const plan=sessionPlan({mins:S.active.sessionMins,dow:S.active.dow,av:S.weekPlan?.availability,
-        equipmentKey:S.active.equipmentKey,isLunch:!!S.active.isLunch,lifts:exercises.length,
+        equipmentKey:S.active.equipmentKey,isLunch:!!S.active.isLunch,lifts:countedLifts,
         perLiftMins:S.active.isLunch?lunchExMins():EVENING_EX_MINS});
       const rows=plan.items.filter(i=>!i.deferred).map(i=>`<div style='display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:12px'>
         <span style='color:var(--mut)'>${i.label}${i.note?` <span style='opacity:.7'>· ${i.note}</span>`:''}</span>
@@ -9624,6 +10098,23 @@ document.addEventListener('click',e=>{
   //   · timedMins:0 — "I don't know how long it took", which centuryMins()
   //     already treats as a session to skip rather than a guess to average.
   // MRV is unaffected and correct: 100 reps is 100 reps wherever they happened.
+  if(a==='century-no-bar-today'){
+    // Keyed by DATE (see weekDateForDow) — a one-off statement about today, not
+    // a recurring toggle, so it never needs to be turned back on for next week.
+    S.noBarLog=S.noBarLog||{};
+    S.noBarLog[todayStr()]=true;
+    // centuryDows() reads this via centuryEligibleDow, so the whole week's back
+    // budget and today's session both have to be replanned around today NOT
+    // hosting a hundred anymore — same call the century-when toggle makes.
+    replanCurrentWeek();
+    save();render();return;
+  }
+  if(a==='century-no-bar-undo'){
+    S.noBarLog=S.noBarLog||{};
+    delete S.noBarLog[todayStr()];
+    replanCurrentWeek();
+    save();render();return;
+  }
   if(a==='century-already-done'){
     if(centuryLogs().some(l=>logDay(l.date)===todayStr()))return;
     const size=Math.max(1,centurySetPlan().setSize);
@@ -10305,6 +10796,7 @@ async function saveToCloud(){
         S.lastWeights={...(cloud.lastWeights||{}),...(S.lastWeights||{})};
         S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
         S.pushupLog={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
+        S.noBarLog={...(cloud.noBarLog||{}),...(S.noBarLog||{})};
         // AFTER the log merge above: the draft merges ask whether today's
         // session is already finished, and the log that says so may have
         // arrived from the other device in this very read.
@@ -10314,7 +10806,7 @@ async function saveToCloud(){
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -10474,6 +10966,7 @@ async function loadFromCloud(){
       // Merge sleepLog the same way: additive per-date map, local wins on conflict
       const sleep={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
       const pushl={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
+      const noBar={...(cloud.noBarLog||{}),...(S.noBarLog||{})};
       // Singleton state (cfg/program/weekPlan/...) adopted PER FIELD, by each
       // field's own change stamp. The old comparison used one global
       // updatedAt, so any unrelated save on this device (a sleep log, a
@@ -10499,7 +10992,7 @@ async function loadFromCloud(){
         const fu={...lf};Object.keys(cf).forEach(k=>{if(!fu[k]||cf[k]>fu[k])fu[k]=cf[k];});
         S.fieldUpdated=fu;
       }
-      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,customExercises:customEx,customTemplates:customTpl});
+      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,noBarLog:noBar,customExercises:customEx,customTemplates:customTpl});
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
       // device must not ride back in through this device's stale copy.
       S.logs=filterTombstoned(merged).slice(-LOG_KEEP);

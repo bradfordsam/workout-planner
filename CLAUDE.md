@@ -191,11 +191,104 @@ strip it before other debugging.
     lunch-only week gets no jump work at all, the same structural gap
     `bear_crawl` has.
   - Measured vs `origin/main` (6 wks): lunch+3-evening and 3-evening are
-    **identical** on every muscle, mandate and leg-set count; lunch-only gains
-    soleus 0% → 20% and loses hinge 80% → 60%. The jump capacity arrives on top,
-    in the finisher budget, costing the lifting nothing.
+    **identical** on every muscle, mandate and leg-set count; lunch-only loses
+    hinge 80% → 60%. The jump capacity arrives on top, in the finisher budget,
+    costing the lifting nothing. (The soleus-gains-20%-of-weeks figure this
+    line originally reported is now moot — see `CALF_WEEKLY_TARGET_SETS`
+    below: measured again on 2026-08-19, the soleus stamp actually landed 0 of
+    10 simulated weeks, and that mechanism is retired in favor of the one
+    described there.)
   - `S.cfg.jumpDurability` toggles it (Plan screen). Defaults ON via
     `!==false`, so it is live without a migration.
+- **`CALF_WEEKLY_TARGET_SETS` (2026-08-19)** — Sam: *"make sure I get at least 2
+  sets of calves a week in programming."* Measured first, same method as every
+  other feature in this file: **0 of 10 simulated weeks on all three schedules**
+  had ANY calf-tagged set land, including lunch+3-evening. The JUMP_DURABILITY
+  stamp above (`soleus_raises`, riding the Foundation Five's weekly-guarantee
+  queue) was the only existing mechanism, and it was dead code for a structural
+  reason: legs produces only ONE slot a week that queue can even contest — the
+  accent slot, once heavy strength is already banked; every other leg slot
+  carries a hard mandate — and `pistol_squat` sits ahead of it in that SAME
+  single-stamp-per-session queue, so it won that one slot every time (measured
+  10/10 weeks on the full schedule, 0/10 for soleus). **That queue is the wrong
+  mechanism for this** — `JUMP_DURABILITY` is now `[]` rather than left to lose
+  forever (the note above it explains why; the stale "soleus 0%→20%" line in
+  the note above that no longer applies now that this replaces it).
+  - **Doesn't compete for a leg slot at all.** `needsCalfTopUp()` (log-seeded,
+    same convergence rule as Foundation Five — a PLANNED top-up doesn't retire
+    it, only a LOGGED one does) gates a small, independently-priced append in
+    `buildSession`: 2 quick sets from `CALF_TOPUP_POOL`, tacked onto whichever
+    session finishes building first this week, outside the muscle-slot system
+    entirely. `pickCalfTopUp` applies the same safety gates
+    `canPlaceFoundation` does (equipment, hip/shoulder caution, plyo, avoid
+    list, knee caution) via the same helper functions.
+  - **Priced like a small McGill block, not a full lift**
+    (`CALF_TOPUP_MINS=2`), charged into `eveningLifts`/`lunchBudget`'s fixed
+    cost BEFORE the lift count is sized — same reasoning as the century/
+    finisher, and the reason it must NOT be counted in `sessionPlan`'s "N
+    lifts" line (that would double-charge it at the full ~11–12 min per-lift
+    rate). The render call site excludes `calfTopUp`-flagged exercises from
+    the count it hands to `sessionPlan`; `sessionPlan` re-derives
+    `needsCalfTopUp()` independently and prices it as its own line, exactly
+    the pattern century/finisher already use for "does THIS session pay."
+    Skipped entirely on a lunch hosting the century — that box has no room for
+    anything past the hundred, same as the spine holds.
+  - **Two real regressions found and fixed before this could ship**, both
+    from the SAME root cause and both caught by the mandatory 3-schedule
+    balance sim, not by inspection:
+    1. Appending the top-up credited 2 sets to `budget.vol.legs` at
+       GENERATION TIME, on whatever session happened to build first — which
+       could be a chest day, a back day, anything. `budget.vol` also drives
+       THIS WEEK's remaining anchor-priority ranking (which muscle is "under"
+       and gets picked next), so a phantom 2 sets of legs credit early in the
+       week made legs look caught up and the recovery-debt engine kept
+       skipping it as an anchor. Measured: hinge and hamstring mandate slots
+       collapsed to **0/week on the full schedule** (were 5 and 4). Fixed by
+       NOT crediting `budget.vol` for the top-up — `getWeeklySetVolumes()`
+       (the dashboard's real number) re-derives everything from LOGS once it's
+       actually performed, which is a completely separate computation, so the
+       true volume is never lost; only this run's remaining slot decisions
+       don't see it early.
+    2. Once landing on non-leg days (any session, by design — see above), the
+       top-up made `weightedLegEx`/`weightedLegLog` (the **weighted-only legs
+       rule**, `countsForRecoveryEx`/`Log`) see a `legs`-muscle exercise and
+       mark that date as legs-trained, because `calf_raise`'s `eq` includes
+       `'machine'` (non-bodyweight) — the SAME rule that already exists to
+       keep bodyweight pistol-squat-style work from resetting the 72h heavy
+       clock never anticipated a genuinely LOADED-by-`eq` movement that still
+       shouldn't count. This is the ROOT-CAUSE fix, not a special case for
+       this feature: `weightedLegEx`/`weightedLegLog` now exclude any
+       `tags.includes('calf')` movement outright, regardless of load — a calf
+       raise never touches the squat/hinge pattern the 72h window exists for,
+       however heavy it's loaded. `weightedLegLog`'s calf check has to run
+       BEFORE the logged-weight check, not just live in the DB-entry fallback,
+       because a genuinely loaded calf raise still logs `weight>0` and would
+       otherwise sail through the first branch. This is general — it also
+       correctly covers Sam manually swapping a calf exercise into any slot,
+       not just this top-up.
+  - Both bugs were invisible to a single-day snapshot and only showed up
+    across a **daily-replan** simulation, exactly the trap this file's Deploy
+    Workflow section warns about — the first fix (removing the volume credit)
+    looked complete in isolation and only the second sim run surfaced that
+    `mandates`/`goal.legAllowlistBreaches` were still wrong.
+  - **`analysis/case-study.js` needed two of its own updates**, both
+    documented inline there: `legAllow` (the harness's own replica of
+    `LEG_EMPHASIS_TAGS`) now includes `'calf'` as a narrow, deliberate
+    exception — plain calf raises are excluded from AUTO-GENERATED leg
+    programming everywhere else by design (`LEG_EMPHASIS_TAGS`'s own comment:
+    "pure hypertrophy/strength... excluded from auto-generation everywhere");
+    this is the one guaranteed carve-out, the same shape Foundation Five
+    already has for `pistol_squat`. And the harness's own lockout-gap replica
+    of the weighted-only legs rule needed the same `'calf'` exclusion the real
+    `weightedLegEx` got, or it flagged false lockout violations the real app's
+    scheduler was never actually making.
+  - Measured after both fixes, `git show 62d462a:index.html` baseline (10 sim
+    weeks, daily replan, all three schedules): **calf sets/week 0/10 → 10/10
+    on every schedule**; `mandates`, `goal`, and `lockout.legs.violations`
+    (0 everywhere) are **byte-identical** to baseline; legs weekly volume +2
+    (still under band on the two schedules already documented as
+    structurally under-band — a welcome, not a regression); `pistol_squat`
+    coverage untouched at 10/10 on the full schedule.
 - **Custom Session** (2026-08-29, `renderCustomSession` / `startCustomWorkout` /
   `customRowPlan`) — Sam: *"add a custom workout plan to do rather than what the app
   prescribes sometimes… I input the exercises I want to do, and the app prescribes
@@ -517,6 +610,81 @@ strip it before other debugging.
   `getMRVBreakdown` (submaximal sets don't cost what hard sets cost; at face
   value 100 reps ate the whole week's back MRV and crowded out the mandated
   row/rear-delt work). Weighted pull-ups avoid Century days before Wed.
+- **"No bar today" (2026-08-19, `noBarLog` / `weekDateForDow`)** — Sam: *"let's
+  make it so I can say I don't have a pull up bar available today to do the
+  century."* Closes a real gap: century ELIGIBILITY had only ever asked "is a
+  session available that day", never "does that session have a bar to hang
+  from" — none of the equipment presets without `pullup_bar` (`hotel_gym`,
+  `bodyweight`) were ever excluded either, so a travel day could already have
+  been scheduling 100 pull-ups with nothing to do them on.
+  - **Keyed by DATE, not day-of-week or a recurring cfg toggle.** This is a
+    one-off statement about today, not a preference — a flag that silently
+    reapplied itself the same day next week would be its own bug. Same
+    distinction the Century's own `offSession` flag makes for one-off vs.
+    recurring. `weekDateForDow(dow)` is the Monday-anchored arithmetic
+    `genProgram`'s own local `dateForDow` uses, hoisted to module scope because
+    `centuryEligibleDow` needs it outside that closure.
+  - **One check, in `centuryEligibleDow`, so every downstream consumer inherits
+    it for free** — `centuryDows`, `centuryHostSession`, `centuryChargeFor`,
+    `lunchBudget`/`eveningLifts`'s century charge, `sessionPlan`'s century line,
+    `centuryOnlyDow`'s dashboard label. No second place had to learn about this.
+  - **The greedy fill in `centuryDows` naturally substitutes a different day**
+    when today drops out — verified: flagging an actual Tuesday century day (on
+    a schedule with Tue/Thu/Sat availability) moved the week's centuries to
+    Mon/Thu/Sat rather than just losing one. On a schedule with no substitute
+    day available, the week simply runs one century short — no different from
+    any other day that fails `centuryEligibleDow`.
+  - **A day that silently drops out of the schedule looks like the app forgot,
+    not like it heard him** — the same lesson the Fundamentals-card removal note
+    already states. So when today would have hosted a century and the flag is
+    the ONLY reason it isn't, `centuryHTML` shows a small "🚫 No bar today —
+    Century skipped" card with an Undo button, rather than just returning `''`
+    the way a day that was never eligible does.
+  - The toggle itself (`🚫 No pull-up bar today — skip it`) sits next to the
+    existing `century-already-done` link, same visibility rule: only offered
+    before he's logged a single set today, since flagging it once sets are
+    already banked doesn't mean anything.
+  - Both the toggle and the undo call `replanCurrentWeek()` — the same call
+    `century-when`'s toggle makes — because excluding or restoring a day changes
+    which session hosts the century, the week's back/biceps MRV budget via
+    `getCommittedVolumes`, and today's own lift count via `centuryChargeFor`.
+  - **The freed time is real, and it has to go somewhere he can actually use.**
+    Sam, immediately after: *"but if I skip it it also allows for more time to do
+    other exercises."* Correct, and two things had to be true for that to hold:
+    1. **The lift count has to rebuild, not be preserved.** `centuryChargeFor`
+       drops to 0 the moment the day is ineligible, so `lunchBudget` /
+       `eveningLifts` hand back a bigger limit — but `buildSession` PRESERVES any
+       day whose `tk` matches the previous plan, and `tk` carried the muscle set,
+       the foundation stamp and the hinge rescue and **not the slot count**. It
+       happened to rebuild anyway because the muscle set usually shifts with the
+       limit, which is luck, not a guarantee. `tk` now carries `+n:<slots>`, for
+       exactly the reason the foundation stamp is in there. Measured: 0 of 7
+       case-study scenarios changed (it is a no-op on a stable week), and 10 of
+       10 flagged century days convert the freed minutes into an extra lift.
+       This is GENERAL, not century-specific — every input to the time budget
+       (a finisher toggled off, the calf top-up banked, century reps logged
+       mid-day shrinking `centuryBudgetToday`) had the same latent gap.
+    2. **The freed slot must not be spent on another bar movement.** It was:
+       measured over a sweep of flagged days, **3 of 11 programmed
+       `weighted_pullups`** on a day he had just said had no bar — the feature
+       correctly freeing 30 minutes and then spending them on the one thing he
+       cannot do. `equipForDow(equipmentKey,dow)` now drops `pullup_bar` from a
+       flagged day's equipment at every site that resolves it: `buildSession`
+       (which covers `canPlaceFoundation`, `pickEx` and `pickBackfillEx` in one
+       place, since all three take that array), `pickEveningExercises`,
+       `pyramidEquip`, the Cindy prescription's bar check, and the in-session
+       swap list. 3 → 0 after. The PRESET is deliberately untouched — the
+       apartment gym still has a bar tomorrow; this is a property of the day.
+    Knock-ons that fall out for free and are correct: the Pyramid's ×1 rung is
+    pull-ups, so a flagged day resolves the ladder to four rungs, which the
+    existing rule already refuses to PRESCRIBE (only offer); Cindy (5 pull-ups a
+    round) stops being prescribed; and the day stops counting as
+    conditioning-covered, so a finisher is offered again — which is right, since
+    the reason it was suppressed was that 100 pull-ups already WAS the day's
+    conditioning.
+  - Storage mirrors `pushupLog` exactly (a plain `{date:true}` map, unbounded,
+    no pruning — same accepted precedent): wired through both localStorage
+    save/load and both cloud-sync merge points, local wins on conflict.
 - `PYRAMID_LADDER` (2026-08-03): Tom Holland's Spider-Man ladder, taken as LOGIC
   not as a fixed prescription (Sam: "I don't have to do this exact workout every
   Monday, it just clearly works"). Climb rungs 1→peak then back down, each
@@ -524,10 +692,11 @@ strip it before other debugging.
   feature: up-and-back sums to **peak² reps per unit of multiplier**, so the
   session is (Σ mult) × peak² — at peak 10 with 1/2/3/4/5 that's exactly the
   original 100/200/300/400/500 = 1,500 reps. **ONE number sets the entire dose**,
-  which is what makes it obey the self-scaling rule: `pyramidPeak()` derives it
-  from `centuryStats().best` minus `PYRAMID_PEAK_HEADROOM`, so the top rung stays
-  2 reps clear of failure (the same rule the Century runs on) and the ladder
-  never needs rewriting as he improves. No Century history → peak 6 (540 reps).
+  which is what makes it obey the self-scaling rule: `pyramidPeak()` is the
+  MINIMUM of a strength ceiling and a capacity ceiling (see the 2026-08-19 entry
+  below), so the top rung stays 2 reps clear of failure (the same rule the
+  Century runs on) AND stays a ladder he can actually finish. The ladder never
+  needs rewriting as he improves. No history at all → peak 6 (540 reps).
   **NEVER SCHEDULED BY THE GENERATOR** — `dayTemplate` knows nothing about it. A
   generated session that could be silently swapped would make the recovery-debt
   bookkeeping a lie, and "every Monday" is what Sam explicitly didn't want.
@@ -582,8 +751,9 @@ strip it before other debugging.
   - A peak-10 ladder is 100 pull-ups, so `centuryHTML` defers to it
     (`pyramidCoversCentury`) rather than asking for a second hundred. A shorter
     ladder does not, and the Century card still appears.
-  - Never a lunch: high-sweat and ~50 min fails both lunch constraints. The card
-    says so in words on a lunch-only day rather than vanishing.
+  - Never a lunch: high-sweat and (at any peak worth doing) far past 40 min, so
+    it fails both lunch constraints. The card says so in words on a lunch-only
+    day rather than vanishing.
   - **The 400-sit-up rung is the one part flagged to Sam as questionable** —
     high-rep loaded lumbar flexion against a stated lower-back history. Left in
     (it's the prescription, it's not on his avoid list, and the core cycle
@@ -593,6 +763,82 @@ strip it before other debugging.
     COMPLETED rungs, matching how the session is actually run. Cloud-synced by
     the shared `mergeStampedDraft` (see the Century's note on why
     `SINGLETON_FIELDS` and `unionById` both fail for session drafts).
+- **Pyramid timing + a peak that scales to what he can FINISH (2026-08-19)** —
+  Sam: *"I only made my way up the pyramid on Saturday and it took me longer than
+  it said it would take to go up and down. Fix the timing estimate of that and
+  scale the rung based on my current fitness level."* Both halves were real, and
+  a third bug fell out on the way.
+  - **The estimate was out by at least 1.8×, and the cause was structural, not a
+    fudge factor.** `PYRAMID_SECS_PER_REP=1.5` plus `PYRAMID_REST_SECS` charged
+    once per rung boundary. But **a rung is not one movement, it is FIVE** — bar,
+    dip station, floor, floor, floor — so an 11-rung ladder has **44 changeovers
+    INSIDE rungs that were charged nothing**, against the 10 boundaries that were
+    charged. At peak 10 it is 76 uncounted against 18. On the small rungs (rung 1
+    is one pull-up and five squats) the changeover IS the rung. Second error:
+    one flat rate for five movements — a dead-hang pull-up is not an air squat.
+    Now `pyramidModelSecs(blocks,rungs)` = Σ(reps × per-movement `secsPerRep`) +
+    `rungs × (moves−1) × PYRAMID_CHANGEOVER_SECS`(=20) + `(rungs−1) × 45`.
+    Deliberately NOT `TRANSITION_BUFFER_SECS`(45): that prices whole session
+    BLOCKS moving between rooms and kit, not a step from the floor to the bar
+    you are standing under.
+    Measured: peak 6 goes **21 → 41 min**, and the climb alone — what he actually
+    did — prices at **23 min**, which is what he reported beating. peak 10 (the
+    original 1,500-rep prescription) is **51 → 91 min**, so the old
+    `PYRAMID_MAX_PEAK` comment claiming it "stops fitting an hour" was arithmetic
+    that never held.
+  - **Partials now calibrate the estimate, and this is done BETTER than the
+    Century manages.** The old `pyramidPlan` medianed COMPLETED sessions only,
+    arguing a stopped session "says nothing about how long the whole thing
+    takes" — the exact reasoning `centuryMins` carried until 2026-08-17, wrong
+    the same way. Sam's only pyramid to date is a partial, so the app would have
+    quoted him the unmeasured default forever. The Century has to extrapolate a
+    partial pro-rata and then floor it (pro-rata understates); this doesn't
+    extrapolate **at all** — `pyramidPaceFactor()` prices the portion he ACTUALLY
+    did through the same model, compares it to the clock, and keeps the RATIO.
+    No guessing about the part that never happened, and because it is a ratio it
+    **transfers across peaks**, so a session logged at peak 6 still calibrates a
+    peak-4 ladder. Guards mirror the Century's: `PYRAMID_MIN_CALIBRATION_MINS`
+    (too small to learn from) and `PYRAMID_PACE_CLAMP` (one bad reading must not
+    run away — the Century clamps the ANSWER, this clamps the CORRECTION).
+  - **`pyramidPeak()` is now `min(strength, capacity)`.** The Century's best
+    unbroken set is the right CEILING — the top rung is one unbroken set of that
+    many pull-ups — but it is *only* a ceiling, and says nothing about whether
+    15×peak² reps across five movements is completable. Pull-up strength and work
+    capacity are different qualities and the ladder demands both.
+    `pyramidCapacityPeak()` reads the last logged ladder: **stopped short** → he
+    did `units` of peak², so the ladder he'd have finished has peak `√units`;
+    **finished** → banked, next one is one rung taller (completing it IS the
+    test, exactly as a Century's test set is). The most recent session governs
+    rather than a rolling window — pyramids are occasional and responsiveness is
+    the whole ask; it oscillates onto his real capacity within a couple of
+    sessions. `PYRAMID_MIN_PEAK` **5 → 4** because a floor of 5 would have
+    blocked the conclusion his own data points at (21 units → peak 4), and a
+    self-scaling rule that cannot reach the answer is not self-scaling.
+    His Saturday (peak 6, 6 of 11 rungs) resolves to **peak 4, ~29 min** — a
+    ladder he finishes, which then steps back up 4 → 5 → 6 → 7 as he does.
+  - **A THIRD bug, found while testing and pre-existing: the Pyramid was never
+    prescribed on a weekend.** `pyramidEveSlot()` read `.eve` unconditionally,
+    but **Saturday and Sunday store the session FLAT** (`{on,mins,loc,equipment}`
+    directly on the day) — the shape `genProgram`'s own slot builder, plus
+    `centuryHostSession` and `trainingDayCount`, already key on. So it returned
+    `{}` every weekend and `pyramidPrescription` bailed at `if(!eve.on)` — on
+    precisely the days "no barbell and plenty of time" describes best, and the
+    day he actually ran it. Worse, `pyramidGymKey()` fell through to its
+    apartment_gym default regardless of where he was, so the ladder resolved its
+    `options` against the WRONG equipment: a bodyweight-only Saturday still got
+    the pull-up rung it had no bar for — the exact "prescribing something that
+    can't be done" failure that `options` list exists to prevent. Fixed, and
+    `pyramidEveMins()` now prefers the slot's own `mins` (what `genProgram`
+    builds from) over `getEveningMins()`'s fall-through to the generic
+    `S.cfg.mins`, which on a weekend is the only place the length is recorded.
+  - Consequence worth knowing, and it is honest rather than a regression: at
+    **peak 10 the ladder needs 97 min including spine work, so it is never
+    PRESCRIBED** even on a 90-minute evening. It is still offered as a card. The
+    full Spider-Man ladder genuinely does not fit an evening; the old estimate
+    only said it did because it wasn't counting 76 changeovers.
+  - Verified: all 7 case-study scenarios **byte-identical** to baseline — the
+    generator has never known about this session (`dayTemplate` knows nothing
+    about it), which is exactly what that identity proves.
 - **Editing a log had to survive the cloud merge** (2026-08-05, `pickNewerEdit` /
   `stampLogEdit`). `unionById` keeps the CLOUD copy for any id present on both
   sides, which is right for collections that are only appended to and wrong for
@@ -636,6 +882,57 @@ strip it before other debugging.
   because the generator stops spending slots on curls it no longer thinks are
   needed. It also closed the documented `pistol_squat` gap on efficiency weeks
   (0% → 100%).
+- **A century lunch is a DIFFERENT session, not a shorter one** (2026-08-19). Sam,
+  looking at the plan: *"on pull up century lunch days, looks like we just have to
+  get rid of all exercises and do abbreviated stretching to fit it in 40 min."*
+  Correct, and the app was doing something worse than that. `LUNCH_LEDGER.minLifts`
+  forced one lift onto every lunch — its comment read "a century day never becomes
+  a no-lifting day", written when a century was budgeted at 16–20 min. At the
+  MEASURED ~30 that sentence is arithmetically false: the ledger came back with one
+  lift, `sessionPlan` then couldn't fit it, and SHED_ORDER dropped **the century** —
+  the only thing the day exists for — leaving 21 of 40 minutes unused.
+  - **`minLifts` is waived when the lunch hosts the century** (`hostsCentury`), so
+    the answer can be ZERO. Prep drops to `PREP_BUDGET_MINS.centuryLunch`(=4) and
+    the spine holds come off the box entirely, listed `deferred` with
+    `byDesign:true` the way the Big 3 already was. Result: 4 prep + ~30 century +
+    2 transitions = 36 of 40, and the century is never shed.
+  - **`buildSession` returns null on `limit<=0`.** An empty session object would
+    reach the dashboard and `startWorkout` with no exercise 0. `centuryOnlyDow()`
+    then labels that day **🎯 Century Day** instead of "Rest Day 😴", so a day the
+    app deliberately left unprogrammed doesn't read as one it forgot.
+  - **The abbreviated warm-up lives on the century card** (`centuryPrepHTML`),
+    because on that kind of day there is no workout screen to put it on. Same pools
+    and same budgeting as the pre-lift prep, at the reduced cap and with
+    `upperFirst` — blocks are dealt round-robin, so at 4 minutes ORDER decides what
+    he actually gets, and 100 pull-ups means the shoulder and upper-back blocks go
+    first. Never zero: a cold shoulder under 100 overhead pulls is the one thing
+    worth spending scarce minutes on.
+  - **`genProgram`'s Pass 2 now keys on whether a lunch session was BUILT**, not on
+    lunch availability. A lunch that came back empty leaves the evening as the day's
+    PRIMARY session; Pass 3 would have refused it as a "bonus" and the day would
+    have lost its lifting entirely. This is what makes `centuryWhen:'lunch'` on a
+    lunch+evening day work: lunch = the hundred, evening = the session.
+  - **`CENTURY_KEEP_LIFTING_DAYS`(=3) is the second cap on `centuryDows`.** The
+    existing rule only guaranteed ONE century-free day, which was enough while a
+    century left room for a lift. Once it doesn't, the flat cap of 3 turned a
+    five-day lunch week into 300 pull-ups plus **two** lifting sessions (measured:
+    50 sessions → 20 over 10 weeks). The protocol's own range is "2–3× a week", so
+    the low end is free: spend it and keep three days that lift. Measured after:
+    lunch-only goes to 2 centuries (Tue/Thu, his preferred days) + 3 lifting days.
+    Days whose host is an EVENING never count against it — those keep their
+    lifting, one exercise lighter — so **S2, the full schedule, is byte-identical.**
+  - **Asking that question without recursion took two seams.**
+    `centuryDows → centuryCrowdsOutLifting → lunchBudget → centuryChargeFor →
+    centuryHostSession → centuryDows` is a cycle, so (a) `centuryHostFor` is the
+    host lookup WITHOUT the centuryDows guard, and (b) `lunchBudget` takes a
+    `centuryOverride` — "what would this lunch afford IF it hosted the hundred" —
+    which also short-circuits the finisher gate, the other centuryDows call inside
+    that function. The point of the override is that the answer still comes from
+    the ONE ledger instead of a second copy of its arithmetic.
+  - Accepted cost, measured not assumed: on lunch-only the horizontal and rear-delt
+    mandates go from 1-of-7 and 1-of-1 landed to 0-of-2 and 0-of-3 over ten weeks.
+    Lunch-only weeks are already documented as structurally under-band and the back
+    accents already capped there; three fewer lunch slots is the direct cause.
 - `sessionPlan` / `TRANSITION_BUFFER_SECS` / `mcgillMins` (2026-08-18): Sam asked
   for the WHOLE routine — century, Big 3, stretching, spine holds, finisher —
   scheduled inside the one session that starts when he opens it, with the century
