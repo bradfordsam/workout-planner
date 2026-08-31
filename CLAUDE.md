@@ -361,6 +361,19 @@ strip it before other debugging.
     case) and the full case-study harness — **all 7 scenarios byte-identical to
     `git show HEAD:index.html` through the same harness**, since `dayTemplate`, MRV
     pricing and the lunch ledger are untouched.
+  - **Second entry point, the Weekly Program tab (2026-08-31)** — Sam reported not
+    seeing the dashboard button and, after an Android PWA cache-clear didn't fix
+    it, asked to put it somewhere he'd find more easily rather than keep
+    troubleshooting a device he couldn't hand me. `renderProgram()` now carries the
+    same `build-custom-session` button, unconditionally at the top of the page —
+    the trigger (`customSessionInit()`) was already view-independent, so this is
+    the same action wired to a second place, not a second implementation. The
+    dashboard button stays; this is additive. **The root cause of the original
+    report was never confirmed** — service-worker version bumps (v80→v82 across
+    this and the prior two turns) were the standing hypothesis, tried in case the
+    real cause was something more specific to his device that a session with no
+    access to his phone or the live URL (network egress to the deployed domain is
+    blocked from this environment) couldn't diagnose further.
 - **Estimator step 3b: comparability, not "the heaviest thing in the muscle group"**
   (2026-08-30, `loadComparability` / `loadBridge` / `loadClass`). Sam: *"it needs to
   scale to the most comparable movement for muscular load, not just barbell row."*
