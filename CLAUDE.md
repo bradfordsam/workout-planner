@@ -564,6 +564,70 @@ strip it before other debugging.
     builder test, plus the MRV sweep above. **Re-run the pairing test after
     touching `flagFirstWorkingSet`, `completeSet` or the set-row ids** — the
     station model depends on all three.
+- **Import a workout from a screenshot** (2026-08-30, `parseWorkoutText` /
+  `resolveImportName` / `runWorkoutImport`) — Sam: *"make it so I can enter a
+  screenshot of the workout and it generates it in this same feature and uses my log
+  history and logic to fill in any holes."* Three stages, and only the middle one is
+  new code: OCR the image, PARSE the text into rows, then hand the rows to the
+  custom-session builder, which already fills every hole (`resolveEx` → the
+  database, `customRowPlan` → sets/reps/rest, `estimateStartingWeight` → the opener
+  from his own history).
+  - **The result is a DRAFT in the builder, never a started session.** OCR gets
+    things wrong; landing in the editor with every row visible and editable is what
+    makes imperfect recognition acceptable rather than dangerous. Same reasoning as
+    the builder's warn-don't-block safety gates.
+  - **Tesseract.js is lazily fetched from a CDN** (`loadScriptOnce`, the same
+    pattern the Firebase sync already uses) — a few MB of wasm and language data
+    that most sessions never touch. `sw.js` is network-first and caches what it
+    sees, so it works offline AFTER the first successful run; the first run needs a
+    connection and `ocrWorkoutImage` says so rather than spinning forever.
+  - **Every pattern is looked for BOTH inline and on the following line.** OCR
+    flattens the cards' two columns unpredictably — "3 x 6-15 reps" sits to the
+    right of the name and lands sometimes on the name's line, sometimes on its own.
+    Assuming one layout silently halves the recognition rate.
+  - **`RX_GUTTER` / `stripGutter` runs before any pattern match, never after**, and
+    this was a measured bug, not a nicety: `RX_PAIR` is anchored, so one stray
+    character OCR'd from the card's left rule (`| A1. Goblet Squat`) stopped the
+    label being seen — and the knock-on was worse than a messy name. That row lost
+    its pairing, which orphaned its partner, which then had its own label stripped
+    as a dangling half-pair. **One misread pixel column cost a whole station.**
+  - **An unstructured line is only an exercise if it NAMES one.** With no A1 label
+    and no sets×reps there is no structural evidence at all, so the only evidence
+    left is a database match. The earlier test — "two or more words" — passed
+    `Some Gym` straight through as an exercise.
+  - **`resolveImportName` relaxes the TIE rule, not the "is it close" rule.**
+    `fuzzyMatchEx` refuses to answer on a near-tie, which is right for the
+    autocomplete (a wrong confident guess is worse than "new exercise" while
+    someone is watching) and wrong here: "Lateral Raise" on a card ties across five
+    variants, so the strict matcher declined and the row landed as a NEW movement
+    with a cold-start opener — throwing away the exact history this feature exists
+    to use, with nobody typing to notice. Ties now break on EVIDENCE: the variant
+    he has actually logged, most recent first; failing that EX order, which is
+    already the generator's statement of the default. Verified both ways — with no
+    history "Lateral Raise" resolves to DB Lateral Raise, and after logging the
+    machine variant it resolves to that instead. Still returns null when nothing is
+    close, and the review panel NAMES what it guessed.
+  - **A stated rep range overrides the database's** (`applyRowReps`). The EX entry's
+    rMin/rMax is what to do with a movement in general; a range written on the card
+    is what to do with it today.
+  - **EXPLICIT pairing beats inferred pairing.** A card that pairs two leg movements
+    (Sam's do) is a deliberate instruction, and `pairSession` would refuse it — it
+    declines same-muscle pairs because as an AUTOMATIC choice that stacks fatigue on
+    the day's anchor. The safety rule governs what the app picks on its own, not
+    what it was handed. So imported labels are carried onto the exercise objects
+    **inside the map, before `flagFirstWorkingSet` reorders** (index alignment with
+    `rows` cannot survive that), and `pairSortAdjacent` then restores partner
+    adjacency without re-deciding who pairs with whom.
+  - **`A1–A4` under an EMOM heading is a ROTATION, not four pair-stations** — the
+    labels there mean order within the minute. Only a genuine two-per-letter layout
+    is treated as pairing, and a dangling half-pair has its label dropped.
+  - Anything the parser can't place goes to `skipped` or `notes` and is **shown**.
+    A missing exercise you can't see is the failure mode that would make the whole
+    feature untrustworthy.
+  - Verified by a 34-assertion test driving text shaped like real Tesseract output
+    from all four of Sam's cards, in both column layouts, plus OCR noise and garbage
+    input. All four new movements and the archer/side-to-side rename resolve
+    correctly. The other three suites and all 7 case-study scenarios are unchanged.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

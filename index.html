@@ -1411,6 +1411,8 @@ let S={
   // picks himself — see the CUSTOM SESSION block. Transient, never synced: it is
   // a form, and a half-typed form arriving from another device is noise.
   customSession:null,
+  // Screenshot-import progress/report for the builder. Transient, never persisted.
+  csImport:null,
   // Saved reusable custom sessions, [{id,name,mins,isLunch,equipmentKey,exercises,
   // createdAt,editedAt,deleted}]. Cloud-synced by unionById with an edit-stamp
   // resolver + tombstones, because these are RENAMED and DELETED, and a plain
@@ -2919,6 +2921,28 @@ function pairSession(exs){
     a.pairId=id;a.pairPos=1;b.pairId=id;b.pairPos=2;
     out.push(a,b);
   }
+  exs.length=0;exs.push(...out);
+  return exs;
+}
+
+// Put explicitly-labelled pairs back in order after flagFirstWorkingSet has moved
+// things around: partners adjacent, leader first. pairSession does this for pairs
+// it creates; an IMPORTED pairing needs the same guarantee without re-deciding who
+// pairs with whom.
+function pairSortAdjacent(exs){
+  const out=[];const taken=new Set();
+  exs.forEach((e,i)=>{
+    if(taken.has(i))return;
+    taken.add(i);
+    if(!e.pairId){out.push(e);return;}
+    if(e.pairPos===2){
+      const li=exs.findIndex((o,j)=>!taken.has(j)&&o.pairId===e.pairId&&o.pairPos===1);
+      if(li>=0){taken.add(li);out.push(exs[li],e);return;}
+    }
+    out.push(e);
+    const pi=exs.findIndex((o,j)=>!taken.has(j)&&o.pairId===e.pairId&&o!==e);
+    if(pi>=0){taken.add(pi);out.push(exs[pi]);}
+  });
   exs.length=0;exs.push(...out);
   return exs;
 }
@@ -8741,13 +8765,22 @@ function slugId(name){
 // eq:['bodyweight'] instead silently suppresses the warm-up ramp — the exact thing
 // Sam asked this feature for — and it fails invisibly, since a missing ramp looks
 // the same as a movement that correctly has none.
+// A rep range stated on the row (imported from a screenshot, say) overrides the
+// movement's own default. The database range is what to do with this movement in
+// GENERAL; a range written on the card is what to do with it TODAY.
+function applyRowReps(def,row){
+  if(!row||row.rMin==null)return def;
+  const rMin=Math.max(1,Math.min(100,row.rMin));
+  const rMax=Math.max(rMin,Math.min(100,row.rMax==null?rMin:row.rMax));
+  return{...def,rMin,rMax};
+}
 function customResolveEx(row){
   if(row.exId){
     const hit=exById(row.exId);
-    if(hit)return{...hit};
+    if(hit)return applyRowReps({...hit},row);
   }
   const{match}=resolveEx(row.name||'');
-  if(match)return{...match};
+  if(match)return applyRowReps({...match},row);
   const nm=(row.name||'').trim();
   return{
     id:row.synthId||('custom_'+slugId(nm)),
@@ -8756,7 +8789,9 @@ function customResolveEx(row){
     type:'isolation',
     eq:row.noWeight?['bodyweight']:['other'],
     noWeight:!!row.noWeight,
-    rMin:CUSTOM_UNKNOWN_REPS.rMin,rMax:CUSTOM_UNKNOWN_REPS.rMax,rest:CUSTOM_UNKNOWN_REPS.rest,
+    rMin:row.rMin!=null?row.rMin:CUSTOM_UNKNOWN_REPS.rMin,
+    rMax:row.rMax!=null?row.rMax:(row.rMin!=null?row.rMin:CUSTOM_UNKNOWN_REPS.rMax),
+    rest:CUSTOM_UNKNOWN_REPS.rest,
     cue:'',
     tags:[],
     synthetic:true,
@@ -8843,8 +8878,246 @@ function emomMinutes(rows){
   return (rows||[]).reduce((a,r)=>a+Math.max(1,Math.min(10,r.sets||CUSTOM_SESSION_DEFAULT_SETS)),0);
 }
 
+// ─────────────────────────────────────────────
+// IMPORT A WORKOUT FROM A SCREENSHOT (2026-08-30)
+// ─────────────────────────────────────────────
+// Sam: *"make it so I can enter a screenshot of the workout and it generates it in
+// this same feature and uses my log history and logic to fill in any holes."*
+//
+// Three stages, and only the middle one is new work:
+//   1. OCR the image (Tesseract.js, lazily fetched — see ocrWorkoutImage).
+//   2. PARSE the text into rows (parseWorkoutText, below).
+//   3. Hand the rows to the custom-session builder, which already fills every hole:
+//      resolveEx maps a name to the database, customRowPlan supplies sets, reps and
+//      rest, and estimateStartingWeight supplies the opening weight from his own
+//      history. That is the entire "fill in the holes" half, and it is code that
+//      already exists and is already tested.
+//
+// THE RESULT IS A DRAFT, NEVER A STARTED SESSION. OCR gets things wrong; the
+// import lands in the builder where every row is editable and every gap is visible,
+// and he taps Start when it looks right. That is what makes imperfect recognition
+// acceptable rather than dangerous — the same reasoning behind the custom builder
+// warning instead of blocking.
+
+// Loaded on demand, not at boot: this is a few megabytes of wasm and language data
+// that most sessions never touch. Same lazy-script pattern the Firebase sync uses.
+const TESSERACT_CDN='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+
+async function loadScriptOnce(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector(`script[src="${src}"]`)){res();return;}
+    const s=document.createElement('script');
+    s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error('script failed: '+src));
+    document.head.appendChild(s);
+  });
+}
+
+// Returns the recognised text, or throws with a message worth showing. The service
+// worker is network-first and caches what it sees, so the wasm and language data
+// are on hand after the first successful run — but the FIRST run needs a
+// connection, and saying so beats a spinner that never resolves.
+async function ocrWorkoutImage(file,onProgress){
+  if(!navigator.onLine&&typeof Tesseract==='undefined'){
+    throw new Error('Reading a screenshot needs a connection the first time (it downloads the text recogniser). It works offline after that.');
+  }
+  onProgress&&onProgress('Loading the text recogniser…',0);
+  await loadScriptOnce(TESSERACT_CDN);
+  if(typeof Tesseract==='undefined')throw new Error("Couldn't load the text recogniser.");
+  const{data}=await Tesseract.recognize(file,'eng',{
+    logger:m=>{
+      if(m.status==='recognizing text')onProgress&&onProgress('Reading the workout…',m.progress||0);
+      else if(m.status)onProgress&&onProgress('Loading the text recogniser…',m.progress||0);
+    },
+  });
+  return (data&&data.text)||'';
+}
+
+// ── The parser ──
+// Written against the format of the cards Sam actually uses: an "A1."/"A2." label
+// per movement, a "3 x 6-15 reps" prescription set to the right of the name, a
+// "Rest N seconds" line under it, and free-text notes marked with an asterisk.
+// OCR flattens the two columns unpredictably — the reps sometimes land on the name's
+// line and sometimes on their own — so every pattern is looked for BOTH inline and
+// on the following line rather than assuming one layout.
+
+// "3 x 6-15 reps", "5 x 10 reps", "3x8". The unit word is optional because OCR
+// drops it often enough to matter.
+const RX_SETS_REPS=/(\d{1,2})\s*[x×X]\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?\s*(?:reps?)?\b/;
+// "A1.", "B2)", "A1 " — the pair label. Anchored so a movement called "T2 Bar Row"
+// can't be mistaken for one.
+const RX_PAIR=/^([A-Fa-f])\s*([1-4])\s*[.):\-]?\s+(.{2,})$/;
+const RX_EMOM=/\bEMOM\s*(\d{1,2})?\b/i;
+const RX_REST=/\brest\s*(?:for\s*)?(\d{1,3})\s*(?:sec|second)/i;
+// Lines that are commentary, not movements.
+const RX_NOTE=/^\s*[*•]|^\s*notes?\b|^\s*ex[:.]|\bcluster set\b|\bremainder of the minute\b|\bperform 1 rep\b|\brest \d+[-–]\d+ sec\b/i;
+
+// Leading characters OCR picks up from a card's rule or gutter — pipes, bullets,
+// smart quotes, stray dashes. Stripped from the line BEFORE any pattern is matched,
+// never after, because every pattern here is anchored.
+const RX_GUTTER=/^[\s|>‹›«»"'`~•·°*_\-–—.]+/;
+function stripGutter(s){return (s||'').replace(RX_GUTTER,'').trim();}
+
+function cleanImportName(s){
+  return (s||'')
+    .replace(RX_SETS_REPS,' ')
+    .replace(RX_REST,' ')
+    .replace(/\brest\b.*$/i,' ')
+    .replace(/[|_]+/g,' ')
+    // OCR routinely reads a leading "|" or stray punctuation into the name.
+    .replace(/^[^A-Za-z0-9(]+/,'')
+    .replace(/[^A-Za-z0-9)\s/+&'-]+$/,'')
+    .replace(/\s{2,}/g,' ')
+    .trim();
+}
+
+// Text -> {rows, structure, emomMins, notes, skipped}. Deliberately forgiving: a
+// line it can't make sense of goes to `skipped` and is SHOWN, rather than being
+// silently dropped — a missing exercise you can't see is the failure mode that
+// would make this feature untrustworthy.
+function parseWorkoutText(text){
+  const lines=(text||'').split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>1);
+  const rows=[],notes=[],skipped=[];
+  let emomMins=0,sawPair=false;
+  for(let i=0;i<lines.length;i++){
+    // Note-detection runs on the RAW line (it keys on the leading asterisk among
+    // other things); everything after it runs on the de-guttered one.
+    if(RX_NOTE.test(lines[i])){notes.push(lines[i]);continue;}
+    const line=stripGutter(lines[i]);
+    if(line.length<2){skipped.push(lines[i]);continue;}
+    const em=line.match(RX_EMOM);
+    if(em){emomMins=parseInt(em[1])||emomMins||0;if(!RX_PAIR.test(line)){notes.push(line);continue;}}
+    const pm=line.match(RX_PAIR);
+    let name=pm?pm[3]:line;
+    let pairId=pm?pm[1].toUpperCase():null,pairPos=pm?parseInt(pm[2]):null;
+
+    // Reps/sets: on this line, or on the next one or two (the right-hand column
+    // often OCRs as its own line directly after the name).
+    let sr=line.match(RX_SETS_REPS);
+    let consumed=0;
+    if(!sr){
+      for(let k=1;k<=2&&i+k<lines.length;k++){
+        const nxt=stripGutter(lines[i+k]);
+        if(RX_PAIR.test(nxt))break;              // that's the next movement
+        const m2=nxt.match(RX_SETS_REPS);
+        if(m2){sr=m2;consumed=k;break;}
+      }
+    }
+    name=cleanImportName(name);
+    // A line with no label and no prescription that doesn't look like a movement
+    // name is almost certainly a heading or stray text.
+    if(!name||name.length<3||/^\d+$/.test(name)){if(line)skipped.push(line);continue;}
+    if(!pm&&!sr&&!/[a-z]{3}/i.test(name)){skipped.push(line);continue;}
+    // No label and no prescription: the only evidence left that this is an exercise
+    // is that it names one. A heading, a gym name or a date reaches here otherwise,
+    // and "two or more words" is not a test — "Some Gym" passes it.
+    if(!pm&&!sr&&!resolveEx(name).match){notes.push(line);continue;}
+
+    const row={name,sets:null,rMin:null,rMax:null};
+    if(sr){
+      row.sets=Math.max(1,Math.min(10,parseInt(sr[1])||CUSTOM_SESSION_DEFAULT_SETS));
+      const lo=parseInt(sr[2]),hi=sr[3]?parseInt(sr[3]):null;
+      if(lo>0&&lo<=100){row.rMin=lo;row.rMax=hi&&hi>=lo&&hi<=100?hi:lo;}
+    }
+    if(pairId){row.pairId=pairId;row.pairPos=pairPos;sawPair=true;}
+    rows.push(row);
+    i+=consumed;
+  }
+
+  // A1/A2/A3/A4 under one EMOM heading is a ROTATION, not four pair-stations —
+  // the labels there mean "the order within the minute". Only a genuine two-per-
+  // letter layout is pairing.
+  const byLetter={};
+  rows.forEach(r=>{if(r.pairId)byLetter[r.pairId]=(byLetter[r.pairId]||0)+1;});
+  const looksPaired=sawPair&&Object.values(byLetter).every(n=>n<=2)&&Object.keys(byLetter).length>0;
+  const structure=emomMins?'emom':(looksPaired?'paired':'straight');
+  if(structure!=='paired')rows.forEach(r=>{delete r.pairId;delete r.pairPos;});
+  // Drop a dangling half-pair: a letter with one entry can't be a station, and
+  // leaving the label on would render an A1 with nothing to alternate with.
+  if(structure==='paired'){
+    const counts={};rows.forEach(r=>{if(r.pairId)counts[r.pairId]=(counts[r.pairId]||0)+1;});
+    rows.forEach(r=>{if(r.pairId&&counts[r.pairId]<2){delete r.pairId;delete r.pairPos;}});
+  }
+  return{rows,structure,emomMins,notes,skipped};
+}
+
+// Name -> movement, for IMPORTED text specifically. resolveEx is deliberately
+// strict: fuzzyMatchEx refuses to answer when two candidates are close, because on
+// the autocomplete a wrong confident guess is worse than saying "new exercise" while
+// the user is still typing and can see it.
+//
+// Import is the opposite situation. "Lateral Raise" written on a card is a real
+// movement he owns history for, but it ties across five variants (DB, cable, lying
+// cable, machine, alternating front) so the strict matcher declines — and the row
+// lands as a brand-new movement with a cold-start opener, throwing away the exact
+// history this feature exists to use. There is no one typing to notice.
+//
+// So on a tie, break it with EVIDENCE, in this order:
+//   1. the variant he has actually LOGGED (most recently, if several) — the whole
+//      point is to reuse his own numbers;
+//   2. failing that, EX order, which is already the generator's own statement of
+//      which variant is the default for a slot.
+// Still returns null when nothing is close, so a genuinely unknown movement stays
+// an honest "new movement" rather than being forced onto a bad match.
+function resolveImportName(name){
+  const strict=resolveEx(name);
+  if(strict.match)return{match:strict.match,exact:strict.exact,ambiguous:false};
+  const tokens=exTokens(name);
+  if(!tokens.length)return{match:null,exact:false,ambiguous:false};
+  const want=new Set(tokens);
+  const all=[...EX,...(S.customExercises||[])];
+  let best=0;const scored=[];
+  all.forEach((e,idx)=>{
+    const has=new Set(exTokens(e.name));
+    let overlap=0;want.forEach(t=>{if(has.has(t))overlap++;});
+    if(!overlap)return;
+    const coverage=overlap/want.size;
+    // Same coverage bar fuzzyMatchEx uses — this relaxes the TIE rule, not the
+    // "is it even close" rule.
+    if(coverage<0.6)return;
+    const dice=(2*overlap)/(want.size+has.size);
+    if(dice<0.5)return;
+    if(dice>best)best=dice;
+    scored.push({e,dice,idx});
+  });
+  if(!scored.length)return{match:null,exact:false,ambiguous:false};
+  const top=scored.filter(s=>best-s.dice<0.15);
+  if(top.length===1)return{match:top[0].e,exact:false,ambiguous:false};
+  const lastLogged=(id)=>{
+    for(let i=(S.logs||[]).length-1;i>=0;i--){
+      const l=S.logs[i];
+      if((l.exercises||[]).some(x=>(EX_ID_ALIASES[x.id]||x.id)===id))return i;
+    }
+    return-1;
+  };
+  top.sort((a,b)=>{
+    const la=lastLogged(a.e.id),lb=lastLogged(b.e.id);
+    if(la!==lb)return lb-la;          // logged, and more recently, wins
+    return a.idx-b.idx;               // else EX order — the generator's own default
+  });
+  return{match:top[0].e,exact:false,ambiguous:true};
+}
+
+// Match each parsed row against the exercise database and report what happened, so
+// the review screen can be honest about which rows the app recognised and which it
+// is taking on trust as a new movement.
+function resolveImportRows(parsed){
+  return parsed.rows.map(r=>{
+    const{match,exact,ambiguous}=resolveImportName(r.name);
+    return{...r,
+      exId:match?match.id:null,
+      synthId:match?null:('custom_'+slugId(r.name)),
+      matchedName:match?match.name:null,
+      // Surfaced so the review panel can say WHICH variant it picked for an
+      // ambiguous name — "Lateral Raise" becoming DB Lateral Raise is a decision
+      // worth showing, not one to make quietly.
+      ambiguous:!!ambiguous,
+      exact:!!exact};
+  });
+}
+
 function customSessionInit(seed){
   const base=customSessionDefaults();
+  S.csImport=null;
   S.customSession=Object.assign({name:'',exercises:[],templateId:null,structure:'straight'},base,seed||{});
   return S.customSession;
 }
@@ -8922,7 +9195,11 @@ function startCustomWorkout(){
 
   let exs=rows.map(r=>{
     const p=customRowPlan(r,d);
-    return{...p.ex,sets:p.sets,sessionMins:d.mins};
+    // Carry any EXPLICIT pair labels across with the row, before anything
+    // reorders — flagFirstWorkingSet moves entries, so index alignment with
+    // `rows` cannot be relied on after this point.
+    const pair=r.pairId?{pairId:r.pairId,pairPos:r.pairPos||1}:{};
+    return{...p.ex,...pair,sets:p.sets,sessionMins:d.mins};
   });
 
   // Order compounds first and flag the lift the acclimation ramp belongs on —
@@ -8934,7 +9211,18 @@ function startCustomWorkout(){
   // pairing ignores the Plan-screen toggle on purpose — you picked these movements
   // and asked for them paired, which is a more specific instruction than a mode.
   const structure=customStructure(d);
-  if(structure==='paired')pairSession(exs);
+  if(structure==='paired'){
+    // EXPLICIT pairing wins over the automatic rule. A card that pairs two leg
+    // movements (Sam's do) is a deliberate instruction about this session, and
+    // pairSession would refuse it — it declines same-muscle pairs because as an
+    // AUTOMATIC choice that just stacks fatigue on the day's anchor. Told exactly
+    // what to pair, the app should do exactly that; the safety rule exists to
+    // govern what the app picks on its own, not to overrule what it was handed.
+    // Labels are already on the exercises (carried in the map above), so an
+    // explicit import just keeps them; only an unlabelled list gets auto-paired.
+    if(!exs.some(e=>e.pairId))pairSession(exs);
+    else pairSortAdjacent(exs);
+  }
 
   // Lunch time-box clamp, identical to startWorkout's: lead lift keeps 3 working
   // sets, everything after it drops to 2.
@@ -9058,6 +9346,93 @@ function customRowRxHTML(idx){
     ${warns}`;
 }
 
+// Runs the whole pipeline and drops the result into the open builder. Never starts
+// the session: the rows land in the editor, and Sam reviews them. S.csImport holds
+// the progress/summary state so the builder can report what happened.
+async function runWorkoutImport(file){
+  if(!file)return;
+  if(!S.customSession)customSessionInit();
+  S.csImport={busy:true,msg:'Reading the workout…',pct:0,err:null,summary:null};
+  render();
+  try{
+    const text=await ocrWorkoutImage(file,(msg,pct)=>{
+      S.csImport={...S.csImport,msg,pct:Math.round((pct||0)*100)};
+      const el=document.getElementById('cs-import-status');
+      if(el)el.textContent=S.csImport.pct?`${msg} ${S.csImport.pct}%`:msg;
+    });
+    const parsed=parseWorkoutText(text);
+    const rows=resolveImportRows(parsed);
+    if(!rows.length){
+      S.csImport={busy:false,msg:'',pct:0,summary:null,
+        err:"Couldn't find any exercises in that image. A tighter crop around the exercise list usually fixes it — or add them by hand below."};
+      render();return;
+    }
+    const d=S.customSession;
+    // REPLACES the list rather than appending. Importing a card is "run this
+    // workout", not "add these to what I already picked" — and an append would
+    // silently double a list if the image is scanned twice.
+    d.exercises=rows.map(r=>({
+      name:r.matchedName||r.name,
+      exId:r.exId,synthId:r.synthId,
+      sets:r.sets||CUSTOM_SESSION_DEFAULT_SETS,
+      rMin:r.rMin,rMax:r.rMax,
+      pairId:r.pairId||null,pairPos:r.pairPos||null,
+      noWeight:false,
+    }));
+    d.structure=parsed.structure;
+    if(parsed.structure==='emom'&&parsed.emomMins)d.emomHint=parsed.emomMins;
+    S.csImport={busy:false,msg:'',pct:0,err:null,summary:{
+      count:rows.length,
+      matched:rows.filter(r=>r.exId).length,
+      structure:parsed.structure,
+      emomMins:parsed.emomMins,
+      unmatched:rows.filter(r=>!r.exId).map(r=>r.name),
+      guessed:rows.filter(r=>r.ambiguous&&r.matchedName).map(r=>`${r.name} → ${r.matchedName}`),
+      notes:parsed.notes.slice(0,4),
+      skipped:parsed.skipped.slice(0,4),
+    }};
+    save();render();
+  }catch(e){
+    S.csImport={busy:false,msg:'',pct:0,summary:null,err:(e&&e.message)||'Could not read that image.'};
+    render();
+  }
+}
+
+// The import card in the builder: the button, the progress line, and — after a
+// run — a plain account of what was read. The unmatched list is the important
+// part: those rows still work (they become one-off movements with an estimated
+// opener), but Sam should know which ones the app didn't recognise.
+function csImportHTML(){
+  const st=S.csImport||{};
+  if(st.busy){
+    return`<div class='card' style='margin-bottom:16px'>
+      <div style='font-size:13px;font-weight:700;margin-bottom:6px'>&#128248; Reading your screenshot</div>
+      <div id='cs-import-status' style='font-size:12px;color:var(--mut)'>${st.msg||'Working…'}</div>
+      <div style='font-size:11px;color:var(--mut);margin-top:6px'>First run downloads the text recogniser (a few MB). After that it's cached and works offline.</div>
+    </div>`;
+  }
+  const sum=st.summary;
+  const structLbl=sum?({paired:'A1/A2 pairs',emom:'EMOM',straight:'straight sets'}[sum.structure]||sum.structure):'';
+  return`<div class='card' style='margin-bottom:16px'>
+    <div style='display:flex;align-items:center;gap:8px'>
+      <div style='flex:1'>
+        <div style='font-size:13px;font-weight:700'>&#128248; Import from a screenshot</div>
+        <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Photograph or screenshot a workout card. Anything it doesn't state — weight, rest, the missing reps — gets filled from your own history.</div>
+      </div>
+      <button class='btn btn-s btn-sm' data-action='cs-import-pick' style='width:auto;flex-shrink:0'>Choose</button>
+    </div>
+    <input type='file' id='cs-import-file' accept='image/*' style='display:none'>
+    ${st.err?`<div style='font-size:12px;color:var(--warn);margin-top:8px;line-height:1.6'>&#9888;&#65039; ${st.err}</div>`:''}
+    ${sum?`<div style='font-size:12px;color:var(--mut);margin-top:8px;line-height:1.7'>
+      &#9989; Read <strong style='color:var(--txt)'>${sum.count} exercise${sum.count===1?'':'s'}</strong> as <strong style='color:var(--txt)'>${structLbl}</strong>${sum.emomMins?` (${sum.emomMins} min)`:''}. ${sum.matched} matched your exercise database${sum.matched<sum.count?`; ${sum.count-sum.matched} came through as new movements`:''}.
+      ${sum.unmatched.length?`<div style='margin-top:4px'>&#129520; Not recognised: <strong style='color:var(--txt)'>${sum.unmatched.join(', ')}</strong> — these still run, with a conservative opener. Retype one to match it to a movement you have history for.</div>`:''}
+      ${sum.guessed&&sum.guessed.length?`<div style='margin-top:4px'>&#128260; Ambiguous names, resolved to what you've trained most recently: <strong style='color:var(--txt)'>${sum.guessed.join(', ')}</strong>. Change any of them below.</div>`:''}
+      ${sum.skipped.length?`<div style='margin-top:4px;opacity:.8'>Skipped as text: ${sum.skipped.join(' · ')}</div>`:''}
+      <div style='margin-top:4px'>Check the rows below before you start &mdash; OCR misreads things.</div>
+    </div>`:''}
+  </div>`;
+}
+
 function renderCustomSession(){
   const d=S.customSession;
   if(!d)return '';
@@ -9127,6 +9502,8 @@ function renderCustomSession(){
     </button>
     <div class='hdg'>Build My Own Workout</div>
     <div style='font-size:13px;color:var(--mut);margin-bottom:20px;line-height:1.6'>Pick the movements; the app supplies the rest — prep, warm-up ramp, sets, reps, rest, and a starting weight from your own history. This runs <strong style='color:var(--txt)'>alongside</strong> today's program rather than replacing it, and it feeds recovery and weekly volume exactly like a prescribed session does.</div>
+
+    ${csImportHTML()}
 
     <div class='sec-lbl'>Saved Templates</div>
     ${tplList}
@@ -10645,7 +11022,7 @@ document.addEventListener('click',e=>{
   if(a==='build-custom-session'){
     customSessionInit();S.view='custom-session';render();return;
   }
-  if(a==='cs-cancel'){S.customSession=null;S.view='dash';render();return;}
+  if(a==='cs-cancel'){S.customSession=null;S.csImport=null;S.view='dash';render();return;}
   if(a==='cs-add-ex'){
     if(!S.customSession)return;
     customHarvest();
@@ -10670,6 +11047,15 @@ document.addEventListener('click',e=>{
     customHarvest();
     S.customSession.mins=parseInt(btn.dataset.val);
     render();return;
+  }
+  if(a==='cs-import-pick'){
+    const inp=document.getElementById('cs-import-file');
+    if(!inp)return;
+    // Bound per click rather than once at boot: the input is re-created on every
+    // render of this screen, so a listener attached earlier would be on a detached
+    // node. onchange (not addEventListener) keeps it idempotent.
+    inp.onchange=()=>{const f=inp.files&&inp.files[0];inp.value='';if(f)runWorkoutImport(f);};
+    inp.click();return;
   }
   if(a==='cs-structure'){
     if(!S.customSession)return;
