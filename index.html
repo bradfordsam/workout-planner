@@ -269,6 +269,10 @@ const EX = [
   // pickEx tiers, the Foundation short-circuit, the backfill, and the swap list.
   {id:'pushups_w',name:'Push-ups (+ Weighted Vest)',muscle:'chest',type:'compound',eq:['own_gear'],rMin:6,rMax:10,rest:120,cue:'Hands shoulder-width, body straight. Chest to floor, lock out top. Slow descent. Add vest for progressive overload.'},
   {id:'perfect_pushups',name:'Perfect Pushups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'Rotating-handle push-up grips (or dumbbells). Grip the handles and let them rotate naturally as you lower — this opens up a deeper stretch at the bottom and is easier on the wrists. Hands under shoulders, body in a straight line, brace the core. Lower under control until the chest is below the hands, press back to full lockout. Slow descent every rep. Add a vest to progressively overload.'},
+  // Feet elevated shifts the load toward the upper chest and front delt, so it gets
+  // the same SHOULDER STOP the rest of the pressing carries — more so, since the
+  // decline angle drives the humerus further behind the torso at the bottom.
+  {id:'feet_elev_pushup',name:'Feet Elevated Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],noWeight:true,rMin:6,rMax:15,rest:120,cue:'Feet on a bench or box, hands under the shoulders, body one straight line. SHOULDER STOP: come down only until the upper arms reach the line of the torso — the elevation makes it easy to sink past that without noticing, and that bottom position is the one the left shoulder objects to. Elbows ~45°, not flared.',tags:[]},
   // Athletic power accents (goal: look like a bodybuilder, MOVE like an athlete).
   // Tagged 'power'/'ballistic' — NOT 'plyometric' — because the hip-caution
   // plyo ban targets lower-body flight/landing impact, which these don't have.
@@ -296,6 +300,13 @@ const EX = [
   // otherwise bank the week's strength slot and stop the heavy squat/hinge
   // mandate from ever firing. startW:10 keeps the cold-start estimate honest:
   // the bodyweight-fraction default would have suggested ~40 lb added.
+  // Neutral/parallel grip is the most shoulder-friendly vertical pull there is —
+  // the humerus stays in a neutral rotation the whole way up instead of being held
+  // in the internal rotation a pronated bar forces. Worth knowing it sits BELOW
+  // pullups/chinups in this block, so the generator will seldom choose it; if the
+  // left shoulder ever makes the pronated bar a problem, moving this entry above
+  // them is the one-line change that makes it the default vertical pull.
+  {id:'parallel_pullup',name:'Parallel (Neutral-Grip) Pull-up',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,rest:180,noWeight:true,cue:'Palms facing each other on parallel handles. Dead hang, drive the elbows down and back, chest to the handles. Neutral grip keeps the shoulder in its strongest and least pinchy position — if pronated pull-ups ever nag the left shoulder, this is the swap.',tags:['vertical']},
   {id:'weighted_pullups',name:'Weighted Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:3,rMax:6,rest:180,startW:10,cue:'Vest, or a plate/dumbbell hung from a dip belt. Dead hang, drive the elbows down toward the hips, chin fully clears the bar, 3-count descent — added weight never buys a shorter rep. Start at 10 lb and only add when every set hits the top of the range clean. This is the STRENGTH expression of the pull-up; the Century (100 submaximal reps) is the VOLUME expression. They progress together and neither replaces the other.',tags:['vertical','foundation']},
   {id:'lat_pulldown',name:'Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Slight lean back. Pull to upper chest, feel lat stretch fully at the top. Don\'t let elbows drift forward.',tags:['vertical']},
   {id:'bumstead_pulldown',name:'Bumstead Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:8,rMax:12,rest:150,isoHoldSecs:5,cue:'Wide overhand grip. Pull the bar down to the upper chest, but stop and HOLD at the mid-position (elbows roughly level with your ribs) for a full 5 seconds — squeeze the shoulder blades down and together to lock in the lat contraction before finishing the rep. The mid-position pause is the whole point: it kills momentum and forces the lats, not the arms, to do the work. Use the 5s hold timer below at that point each rep.',tags:['vertical']},
@@ -378,6 +389,14 @@ const EX = [
   {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Sit back and down, knees track toes. Full depth. Drive the floor away on the way up.',tags:['quad','squat'],hipRisk:true},
   {id:'bulgarian',name:'Bulgarian Split Squat (RFESS)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated, front foot well forward. Keep the front shin closer to vertical and torso upright — this caps front-hip flexion well short of a deep bilateral squat, and the staggered stance keeps the working hip neutral-to-externally-rotated. The hip-friendly substitute for deep squats. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral']},
   {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold DB at chest. Elbows between knees at bottom. Full depth. Controlled descent.',tags:['quad','squat'],hipRisk:true},
+  // Front-rack DB squats (2026-08-30, from Sam's paired-set workouts). The front
+  // rack is deliberately hip-friendly: holding load at the chest forces a more
+  // upright torso than a back squat, which keeps the femur out of the deep
+  // flexion+adduction corner the left hip complains about. Heels-elevated is the
+  // quad-biased twin — the wedge lets the knee travel further forward, so the
+  // depth comes from the ankle instead of from more hip flexion.
+  {id:'front_rack_db_squat',name:'Front Rack DB Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:15,rest:150,cue:'DBs racked on the shoulders, elbows up and forward. Chest tall, sit straight down between the hips. The front rack will quit before your legs do — that is the point, it caps the load and keeps the torso upright. Stop the set when the elbows start to drop.',tags:['quad','squat']},
+  {id:'heels_elev_front_squat',name:'Heels Elevated Front Rack Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:15,rest:150,cue:'Heels on a 1–2 inch wedge or plates, DBs in the front rack. The elevation lets the knees travel forward so you get depth from the ankles rather than from folding at the hip — quad-biased and easier on the left hip than an equally deep flat-footed squat. Knees track over the middle toes, no collapsing in.',tags:['quad','squat']},
   {id:'leg_press',name:'Leg Press',muscle:'legs',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:180,cue:'Feet shoulder-width on platform. Lower until knees reach ~90°, don\'t let lower back round off the pad. Press through full foot, stop just short of lockout.',tags:['quad']},
   {id:'step_ups',name:'Step-ups',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step onto stable surface, drive through full foot. Keep hips level throughout movement. Control the step down. Count per leg.',tags:['quad','unilateral']},
   {id:'reverse_lunge',name:'Reverse Lunge (DB)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step BACK — hip-friendly. Front shin vertical. Drive through front heel to return. Control the descent. Count per leg.',tags:['quad','unilateral']},
@@ -553,7 +572,7 @@ const EX = [
   {id:'single_leg_bounds',name:'Single-Leg Forward Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],noWeight:true,rMin:6,rMax:8,rest:150,cue:'Single-leg hop forward for distance, stick the landing, repeat on same leg. Focus on distance and landing mechanics. Builds unilateral power and stability. Count per leg.',tags:['plyometric','unilateral','power'],highSweat:true},
   {id:'bear_crawl',name:'Bear Crawl',muscle:'core',type:'compound',eq:['bodyweight'],noWeight:true,rMin:20,rMax:40,rest:90,cue:'Hands and toes, knees hovering. Crawl forward moving opposite hand/foot together. Keep hips level, core tight. Great for shoulder stability and core strength. Count steps.',tags:['crawling','stability'],highSweat:true},
   {id:'turkish_getup_bw',name:'Turkish Get-up (Bodyweight)',muscle:'core',type:'compound',eq:['bodyweight'],noWeight:true,rMin:3,rMax:6,rest:150,cue:'Complex movement from lying to standing. Focus on smooth transitions and stability at each position. Master the movement before adding weight. Ultimate full-body coordination exercise. Count per side.',tags:['complex','stability','coordination'],highSweat:true},
-  {id:'archer_pushup',name:'Archer Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],noWeight:true,rMin:4,rMax:8,rest:180,cue:'Wide hand position, shift weight to one arm during the push-up. Builds unilateral strength toward one-arm push-up. Control the eccentric phase. Count per side.',tags:['unilateral','advanced']},
+  {id:'archer_pushup',name:'Archer / Side-to-Side Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],noWeight:true,rMin:4,rMax:8,rest:180,cue:'Wide hand position, shift weight to one arm during the push-up. Builds unilateral strength toward one-arm push-up. Control the eccentric phase. Count per side.',tags:['unilateral','advanced']},
   // Foundation Five movement. 'eccentric' added 2026-07-28 and it matters:
   // LEG_EMPHASIS_TAGS/legAutoOK gate the legs pool to emphasis-tagged work, and
   // without one of those tags this was UNREACHABLE by every normal pick path —
@@ -1383,6 +1402,7 @@ let S={
     // card that used to present this was removed 2026-08-03; the scan now only
     // feeds the protein target shown on the Plan screen and cfg.bodyLbs, and is
     // edited from the Plan screen.)
+    pairedSets:false,
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},noBarLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
@@ -1399,6 +1419,9 @@ let S={
   // Today's in-progress Pull-up Century tally, {date,sets:[reps,...]} — see
   // PULLUP_CENTURY. Cloud-synced, but NOT via SINGLETON_FIELDS — it has its own
   // merge (mergeCentury), because last-writer-wins would eat sets.
+  // Today's in-progress EMOM 20 round counter — same stamped-draft shape as
+  // `cindy`, and synced by the same merge for the same reason.
+  emom:null,emomOpen:false,
   century:null,
   // Today's in-progress Pyramid ladder, {date,rung,...} — see PYRAMID_LADDER.
   // Synced by the same stamped-draft merge as `century`.
@@ -1449,7 +1472,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1457,7 +1480,11 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      // Paired sets shipped 2026-08-30; a cfg stored before that has no key at
+      // all, and `pairedSetsOn` tests === true, so the migration is only about
+      // making the Plan-screen checkbox render in a known state.
+      if(S.cfg.pairedSets===undefined)S.cfg.pairedSets=false;
       // migrate skipDays → availability
       if(S.weekPlan?.skipDays&&!S.weekPlan.availability){
         const av=defaultAvailability();
@@ -2835,6 +2862,100 @@ function lunchExMins(){
 // computing it here too would be circular.
 // 'a', 'a and b', 'a, b and c' — the deferred list reads as a sentence.
 const listWords=(a)=>a.length<2?(a[0]||''):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+// ─────────────────────────────────────────────
+// PAIRED SETS (2026-08-30)
+// ─────────────────────────────────────────────
+// From the workouts Sam brought in: A1/A2 with "Rest 10 seconds" between the pair
+// and "Rest 90 seconds" after it, then B1/B2 the same. Two movements run as one
+// station: you alternate them, and the only real rest is at the end of a round.
+//
+// OFF BY DEFAULT, behind `S.cfg.pairedSets` on the Plan screen, alongside the
+// separate/circuits toggle that already sets session structure. The generator
+// keeps producing straight sets until it's switched on.
+//
+// WHAT IS NEVER PAIRED, and why it matters more than what is:
+//   - 'strength' — the heavy 1–5 @ 85–95% tier. Ten seconds of rest is the
+//     opposite of what that work needs, and the weekly heavy-leg mandate is the
+//     one guarantee in the whole program most worth not quietly degrading.
+//   - 'power' / 'ballistic' / 'plyometric' — trained by SPEED, not proximity to
+//     failure. A fatigued explosive rep is a worse rep, not a harder one; this is
+//     the same reasoning that already excludes them from the back-off model.
+//   - Two movements of the SAME muscle. The source workouts do pair leg with leg,
+//     but that is a giant set for someone who chose it deliberately; as an
+//     automatic rule it just compounds fatigue on whatever the day's anchor is.
+// Anything that can't find a partner stays a straight set rather than being forced
+// into one — a session with an odd number of pairable lifts is normal, not a bug.
+const PAIR_TRANSITION_SECS=10;
+const PAIR_LETTERS='ABCDEF';
+const PAIR_BLOCKED_TAGS=['strength','power','ballistic','plyometric'];
+
+function pairedSetsOn(){return S.cfg?.pairedSets===true;}
+function canPair(e){
+  if(!e)return false;
+  const tags=e.tags||[];
+  return !tags.some(t=>PAIR_BLOCKED_TAGS.includes(t));
+}
+
+// Assign pairId/pairPos and reorder so partners sit adjacent. Mutates in place,
+// matching flagFirstWorkingSet's contract — and it must run AFTER that one, so the
+// lift carrying the warm-up ramp stays at index 0 and simply becomes A1.
+function pairSession(exs){
+  if(!exs||exs.length<2)return exs;
+  exs.forEach(e=>{delete e.pairId;delete e.pairPos;});
+  const used=new Array(exs.length).fill(false);
+  const out=[];let letter=0;
+  for(let i=0;i<exs.length;i++){
+    if(used[i])continue;
+    const a=exs[i];used[i]=true;
+    if(!canPair(a)){out.push(a);continue;}
+    let j=-1;
+    for(let k=i+1;k<exs.length;k++){
+      if(used[k]||!canPair(exs[k])||exs[k].muscle===a.muscle)continue;
+      j=k;break;
+    }
+    if(j<0){out.push(a);continue;}
+    const b=exs[j];used[j]=true;
+    const id=PAIR_LETTERS[letter++]||'X';
+    a.pairId=id;a.pairPos=1;b.pairId=id;b.pairPos=2;
+    out.push(a,b);
+  }
+  exs.length=0;exs.push(...out);
+  return exs;
+}
+
+// Index of the other half of this exercise's pair, or -1.
+function pairPartnerIdx(idx){
+  const exs=S.active?.exercises||[];
+  const e=exs[idx];
+  if(!e||!e.pairId)return-1;
+  for(let i=0;i<exs.length;i++){if(i!==idx&&exs[i].pairId===e.pairId)return i;}
+  return-1;
+}
+
+// ── What a paired lift costs the clock ──
+// Derived from numbers already in the file rather than picked. EVENING_EX_MINS
+// budgets 12 min for a 3-set lift, i.e. 240s per set; the rest interval inside
+// that is smartRest's middle compound tier (150s), so the WORK is about 90s. Run
+// as a pair, one round is A1 work + the 10s transition + A2 work + ONE full rest:
+// 90+10+90+150 = 340s covering two lifts, or 170s per lift per set against 240s
+// straight. That is the factor below (~0.71) — one rest interval saved per round
+// is the entire mechanism, and it falls out of the arithmetic instead of being
+// asserted.
+//
+// It is an APPROXIMATION on purpose: a session with an odd lift out pays full rate
+// for that one, and the ledgers size the lift count before the exercises exist
+// (the same chicken-and-egg `lifts` being an input to sessionPlan already has). It
+// errs toward charging slightly too much, which is the safe direction for a box
+// that has to hold.
+const PAIR_STRAIGHT_SET_SECS=EVENING_EX_MINS*60/3;
+const PAIR_REST_SECS=150;
+const PAIR_WORK_SECS=PAIR_STRAIGHT_SET_SECS-PAIR_REST_SECS;
+const PAIR_TIME_FACTOR=(2*PAIR_WORK_SECS+PAIR_TRANSITION_SECS+PAIR_REST_SECS)/2/PAIR_STRAIGHT_SET_SECS;
+// The one place the ledgers ask "what does a lift cost today". Every per-lift rate
+// goes through this so the two ledgers and sessionPlan can never disagree about
+// whether pairing is on — the failure mode getLockedMuscles/legsRecovered records.
+function perLiftMinsFor(base){return pairedSetsOn()?base*PAIR_TIME_FACTOR:base;}
+
 function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   const items=[];
   const push=(key,label,m,note)=>{if(m>0)items.push({key,label,mins:m,note});};
@@ -2846,7 +2967,7 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   // ledger reserves — the two must agree or the card contradicts the lift count.
   const centuryLunch=!!isLunch&&centuryChg>0;
   push('prep','Prep & mobility',isLunch?(centuryLunch?PREP_BUDGET_MINS.centuryLunch:PREP_BUDGET_MINS.lunch):PREP_BUDGET_MINS.evening);
-  const per=perLiftMins||(isLunch?lunchExMins():EVENING_EX_MINS);
+  const per=perLiftMins||perLiftMinsFor(isLunch?lunchExMins():EVENING_EX_MINS);
   if(lifts>0)push('lifts',`${lifts} lift${lifts>1?'s':''}`,Math.round(lifts*per));
   // Priced separately from the lifts above — 2 quick sets at CALF_TOPUP_MINS,
   // not a full per-lift charge. Skipped on a century lunch, matching the
@@ -2961,7 +3082,7 @@ function eveningLifts(mins,dow,av,equipmentKey){
   // EX_LIMIT is the ceiling only. The tiers are calibrated as prep plus N lifts
   // at EVENING_EX_MINS (60 → 12 + 4×12), so the two agree on an empty evening
   // and diverge only by what's actually prescribed on top.
-  return Math.max(1,Math.min(exLimitFor(box),Math.floor((box-fixed)/EVENING_EX_MINS)));
+  return Math.max(1,Math.min(exLimitFor(box),Math.floor((box-fixed)/perLiftMinsFor(EVENING_EX_MINS))));
 }
 
 // Everything that spends the lunch box, in priority order. `av` is passed
@@ -2993,7 +3114,7 @@ function lunchBudget(dow,av,boxMins,centuryOverride){
   // went on it: six minutes of floor work that needs no gym, against a box that
   // can no longer even afford one lift. sessionPlan lists them as deferred.
   const spine=hostsCentury?0:LUNCH_LEDGER.spineMins;
-  const per=lunchExMins();
+  const per=perLiftMinsFor(lunchExMins());
   // The transition buffer joins the box for the same reason the spine holds and
   // prep already had: it happens inside this session, so pretending it's free is
   // how a 40-minute lunch became a 43-minute one.
@@ -3964,6 +4085,9 @@ function genProgram(cfg,av,workoutHistoryLog){
     Object.entries(lockedLimits).forEach(([m,lim])=>{budget.limits[m]=lim;});
 
     flagFirstWorkingSet(exs); // compounds first; warm-up flag on first loaded lift
+    // AFTER the flag, never before: pairSession reorders, and the lift carrying
+    // the warm-up ramp has to stay at index 0 (it just becomes A1).
+    if(pairedSetsOn())pairSession(exs);
 
     // Lunch time-box calibration (2026-07-14, user report: lunch plans ran
     // ~7 min long). The lead lift keeps 3 working sets; every exercise after
@@ -6097,13 +6221,35 @@ function completeSet(exIdx,setIdx){
     if(db){db.innerHTML='↩';db.dataset.action='undo-set';}
     row.querySelectorAll('.ni').forEach(inp=>{if(inp.id!==`w-${exIdx}-${setIdx}`||wEl)inp.disabled=true;});
   }
-  const allDone=ex.done.filter(Boolean).length>=ex.sets;
-  if(allDone){const nb=document.getElementById(`next-btn-${exIdx}`);if(nb)nb.style.display='flex';}
+  // The Next button belongs to the STATION, so a paired exercise only reveals it
+  // once its partner is done too — and it always lives on the pair's LEADER, which
+  // is the index the card was rendered under.
+  const pIdxDone=pairPartnerIdx(exIdx);
+  const partnerDone=pIdxDone<0?null:S.active.exercises[pIdxDone];
+  const doneAll=(e)=>e.done.filter(Boolean).length>=e.sets;
+  const allDone=doneAll(ex)&&(!partnerDone||doneAll(partnerDone));
+  const btnIdx=(ex.pairId&&ex.pairPos===2&&pIdxDone>=0)?pIdxDone:exIdx;
+  if(allDone){const nb=document.getElementById(`next-btn-${btnIdx}`);if(nb)nb.style.display='flex';}
   save();
   // Lunch sessions keep the 90s cap (hard 40-min time box); evenings get the
   // full intensity-based rest.
-  const restSecs=S.active.restCap?Math.min(smartRest(ex),S.active.restCap):smartRest(ex);
-  startRest(restSecs,ex.name);
+  // Paired sets: after A1 you get the short transition and go straight to A2;
+  // the real rest lands after A2. Guarded on the partner actually still owing
+  // this round — once A2 is finished for the session, A1 goes back to full rest
+  // rather than sending you to a movement you're done with.
+  // EMOM runs on the minute, so the rest timer is not the instrument — the top of
+  // the next minute is. Starting a 150s rest inside a 60s minute would actively
+  // mislead, so an EMOM session gets no timer at all.
+  if(S.active.emom){save();return;}
+  const pIdx=pairPartnerIdx(exIdx);
+  const partner=pIdx>=0?S.active.exercises[pIdx]:null;
+  const partnerOwesRound=partner&&!partner.done[setIdx]&&setIdx<partner.sets;
+  if(ex.pairId&&ex.pairPos===1&&partnerOwesRound){
+    startRest(PAIR_TRANSITION_SECS,`→ ${partner.name}`);
+  }else{
+    const restSecs=S.active.restCap?Math.min(smartRest(ex),S.active.restCap):smartRest(ex);
+    startRest(restSecs,ex.name);
+  }
 }
 
 function updateWarmup(exIdx,weight){
@@ -6822,6 +6968,138 @@ function centuryPrepHTML(){
 // The Pyramid card. Collapsed to a single line until tapped, because this is an
 // ALTERNATIVE to the day's session and nagging about it every day is exactly how
 // "it just clearly works" turns into another thing to ignore.
+// ─────────────────────────────────────────────
+// EMOM 20 · FULL BODY (2026-08-30)
+// ─────────────────────────────────────────────
+// From the card Sam brought in: *"Four movements covering everything, a squat, a
+// press, a pull, and a hinge. The basics work every time."* Twenty minutes, one
+// movement at the top of each, five rounds of the four.
+//
+// Built on the CINDY pattern rather than the Pyramid's, because it is the same
+// SHAPE of thing: a fixed named session with a round counter, a spacing rule, and
+// a card that only prescribes itself when it can be run honestly. Like Cindy and
+// unlike the Century it is logged as a REAL session — 20 minutes of squats,
+// push-ups, pull-ups and hinges IS the day's training, so it marks the day
+// completed, feeds recovery and books MRV.
+//
+// NEVER SCHEDULED BY THE GENERATOR, same rule as the Pyramid and Cindy:
+// dayTemplate knows nothing about it. A generated session that could be silently
+// swapped would make the recovery bookkeeping a lie.
+const EMOM_MINS=20;
+const EMOM_EVERY_DAYS=14;
+// A squat, a press, a pull, a hinge — the four the source card names, in the order
+// it lists them. `reps` is the per-minute dose; the pull is lower because it is the
+// one that gates the whole thing, and it is the movement the cluster protocol
+// exists for (see CLUSTER SETS — clusterPlan applies here too).
+const EMOM_ROUND=[
+  {id:'heels_elev_front_squat',name:'Heels Elevated Front Rack Squat',muscle:'legs',type:'compound',rMin:8,rMax:12,reps:10},
+  {id:'feet_elev_pushup',name:'Feet Elevated Push-ups',muscle:'chest',type:'compound',rMin:8,rMax:15,reps:10},
+  {id:'parallel_pullup',name:'Parallel (Neutral-Grip) Pull-up',muscle:'back',type:'compound',rMin:4,rMax:10,reps:6},
+  {id:'db_rdl',name:'Dumbbell RDL',muscle:'legs',type:'compound',rMin:8,rMax:12,reps:10},
+];
+const EMOM_ROUNDS_TOTAL=Math.floor(EMOM_MINS/EMOM_ROUND.length);
+
+function emomLogs(){return (S.logs||[]).filter(l=>l&&l.emom);}
+function emomDraft(){
+  if(!S.emom||S.emom.date!==todayStr())return{date:todayStr(),rounds:0,startedAt:null,touchedAt:null};
+  return S.emom;
+}
+function emomDoneToday(){return emomLogs().find(l=>logDay(l.date)===todayStr())||null;}
+function emomStats(){
+  const logs=emomLogs();
+  return{count:logs.length,best:logs.reduce((a,l)=>Math.max(a,l.emomRounds||0),0),last:logs[logs.length-1]||null};
+}
+function emomDaysSince(){
+  const l=emomLogs();
+  return l.length?daysBetween(logDay(l[l.length-1].date),todayStr()):Infinity;
+}
+function emomDue(){return emomDaysSince()>=EMOM_EVERY_DAYS;}
+
+// Which of the four can actually be done here. The pull needs a bar; the squat and
+// hinge need dumbbells. A round missing a movement is still a session — you just
+// cycle the ones you have — but it is not PRESCRIBED, the same rule the Pyramid
+// uses for a ladder missing a rung.
+function emomMovements(equipmentKey){
+  const eq=new Set([...(EQUIPMENT_PRESETS[equipmentKey]?.equipment||[]),'bodyweight']);
+  return EMOM_ROUND.map(mv=>{
+    const def=exById(mv.id);
+    const ok=def?(def.eq||[]).some(q=>eq.has(q))&&!userAvoids(def):true;
+    return{...mv,available:ok,def};
+  });
+}
+
+// PRESCRIBED only when it can be run honestly: every movement available, the
+// evening has room for it, it is actually due, and nothing else already owns the
+// night. Deliberately never on a Century day — the pull-up minutes and 100
+// submaximal reps are the same tissue — and never alongside the Pyramid or Cindy,
+// since one big benchmark per evening is the entire point.
+function emomPrescription(){
+  const dow=todayDow();
+  const d=S.program?.week?.[dow];
+  const dd=(d&&!d.rest)?d:null;
+  const sess=dd?.eveningSession||((dd&&!dd.isLunch)?dd:null);
+  if(!sess)return null;
+  if(!emomDue()||emomDoneToday())return null;
+  if(centuryDows(S.weekPlan?.availability).includes(dow))return null;
+  if(typeof pyramidPrescription==='function'&&pyramidPrescription())return null;
+  if(typeof cindyPrescription==='function'&&cindyPrescription())return null;
+  const key=sess.equipmentKey||'ymca';
+  const moves=emomMovements(key);
+  if(moves.some(m=>!m.available))return null;
+  const needed=EMOM_MINS+PREP_BUDGET_MINS.evening+LUNCH_LEDGER.spineMins;
+  if((sess.mins||60)<needed)return null;
+  return{gymName:EQUIPMENT_PRESETS[key]?.name||'this gym',needed,moves,key};
+}
+
+function emomHTML(dd){
+  const done=emomDoneToday();
+  const draft=emomDraft();
+  const started=!!draft.startedAt;
+  const rx=emomPrescription();
+  const st=emomStats();
+  const key=dd?.eveningSession?.equipmentKey||dd?.equipmentKey||S.eveningLocation||'ymca';
+  const moves=emomMovements(key);
+  const missing=moves.filter(m=>!m.available);
+  if(done){
+    return`<div style='margin-top:10px;padding:12px 14px;background:var(--surf2);border:1px solid rgba(74,222,128,.3);border-radius:12px;text-align:left'>
+      <div style='font-size:13px;font-weight:700;color:var(--ok)'>&#9989; EMOM 20 logged — ${done.emomRounds||0} of ${EMOM_ROUNDS_TOTAL} rounds</div>
+    </div>`;
+  }
+  if(!S.emomOpen&&!started&&!rx){
+    return`<div style='margin-top:10px;padding:10px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;display:flex;align-items:center;gap:10px'>
+      <div style='flex:1;font-size:12px;color:var(--mut)'><strong style='color:var(--txt)'>EMOM 20 &middot; Full Body</strong> — a squat, a press, a pull and a hinge, ${EMOM_MINS} minutes.${emomDaysSince()===Infinity?' Never tested.':` Last done ${emomDaysSince()} days ago.`}</div>
+      <button class='btn btn-g btn-sm' data-action='emom-toggle' style='width:auto;flex-shrink:0'>Open</button>
+    </div>`;
+  }
+  const rows=moves.map((m,i)=>`<div class='wu-row'>
+    <span class='wu-set' style='width:26px;font-size:11px'>A${i+1}</span>
+    <span class='wu-val'${m.available?'':" style='opacity:.5;text-decoration:line-through'"}>${m.name}</span>
+    <span style='color:var(--mut);font-size:12px'> &middot; ${m.reps} reps</span>
+  </div>`).join('');
+  const rxNote=rx?`<div style='font-size:11px;color:var(--acc);margin-top:8px;line-height:1.6'>&#11088; <strong>Tonight's call.</strong> ${emomDaysSince()===Infinity?'You have never run it':`It has been ${emomDaysSince()} days`} — due every ${EMOM_EVERY_DAYS}. ${rx.gymName} has all four movements and the evening has the ${rx.needed} min it needs.</div>`:'';
+  const gap=missing.length?`<div style='font-size:11px;color:var(--warn);margin-top:8px;line-height:1.6'>&#129520; ${missing.map(m=>m.name).join(' and ')} can't be done here — cycle the rest and it's still a session, but it isn't the prescribed one.</div>`:'';
+  const pace=st.best
+    ?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>Best ${st.best} of ${EMOM_ROUNDS_TOTAL} rounds. The minute is the cap: if a movement takes more than about 40 seconds you have no rest left, and the next one is worse. Cut the reps before the clock cuts them for you.</div>`
+    :`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First time: aim for ${EMOM_MINS <= 20 ? '15–25' : '20–30'} seconds of work per minute. If a round runs long, drop a rep off that movement rather than borrowing the next minute.</div>`;
+  return`<div style='margin-top:10px;padding:12px 14px;background:var(--surf2);border:1px solid ${rx?'rgba(129,140,248,.45)':'var(--bdr)'};border-radius:12px;text-align:left'>
+    <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
+      <div style='flex:1;font-size:13px;font-weight:800'>&#9201; EMOM ${EMOM_MINS} &middot; Full Body</div>
+      ${started?'':`<button class='btn btn-g btn-sm' data-action='emom-toggle' style='width:auto;flex-shrink:0'>Hide</button>`}
+    </div>
+    <div style='font-size:12px;color:var(--mut);line-height:1.6;margin-bottom:8px'>A squat, a press, a pull and a hinge — ${EMOM_ROUNDS_TOTAL} rounds of the four. Do the reps at the top of each minute; the rest of that minute is your rest.</div>
+    ${rows}
+    ${rxNote}
+    ${gap}
+    ${pace}
+    <div style='display:flex;align-items:center;gap:8px;margin-top:10px'>
+      <div style='flex:1;font-size:13px'><strong>${draft.rounds}</strong> / ${EMOM_ROUNDS_TOTAL} rounds</div>
+      ${started?`<button class='btn btn-g btn-sm' data-action='emom-undo-round' style='width:auto'>&minus;1</button>`:''}
+      <button class='btn btn-p btn-sm' data-action='emom-round' style='width:auto'>+1 round</button>
+      ${draft.rounds>0?`<button class='btn btn-ok btn-sm' data-action='emom-finish' style='width:auto'>Log it</button>`:''}
+    </div>
+  </div>`;
+}
+
 function cindyHTML(dd){
   const done=cindyDoneToday();
   const draft=cindyDraft();
@@ -7118,6 +7396,25 @@ function renderCustomExercises(){
 // rather than on the dashboard — the scheduler ENFORCES this block via the
 // weekly stamp, and Sam's standing rule is that anything the algorithm already
 // enforces gets no dashboard space to report on itself.
+// Session-structure toggle, on the Plan screen with the separate/circuits control
+// rather than the dashboard: the generator ENFORCES this, and Sam's standing rule
+// is that anything the algorithm already enforces gets no dashboard space to
+// report on itself.
+function pairedSetsPlanHTML(){
+  const on=pairedSetsOn();
+  const saved=Math.round((1-PAIR_TIME_FACTOR)*100);
+  return`<div class='sec-lbl' style='margin-top:16px'>&#8644; Paired Sets</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div class='plan-chk${on?' on':''}' data-action='toggle-paired-sets' style='margin-bottom:${on?'10px':'0'}'>
+        <div class='plan-chk-box'>${on?'&#10003;':''}</div>
+        <div>
+          <div style='font-size:13px;font-weight:700'>Run lifts as A1/A2 pairs</div>
+          <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Two movements per station, ${PAIR_TRANSITION_SECS}s to change over, the full rest after the pair. Buys back about ${saved}% of the lifting clock, so more fits in the same box.</div>
+        </div>
+      </div>
+      ${on?`<div style='font-size:12px;color:var(--mut);line-height:1.6'>Never pairs the heavy 1&ndash;5 strength lift or anything explosive &mdash; those need the full rest to be worth doing &mdash; and never pairs two movements of the same muscle. Anything left without a partner stays a straight set.</div>`:''}
+    </div>`;
+}
 function jumpDurabilityPlanHTML(){
   const on=jumpDurabilityOn();
   const covered=foundationCoveredThisWeek();
@@ -7208,6 +7505,7 @@ function renderPlan(){
     ${capacityWarnHTML}
     ${renderAvailGrid(av,false)}
 
+    ${pairedSetsPlanHTML()}
     ${jumpDurabilityPlanHTML()}
     ${centuryWhenPlanHTML()}
 
@@ -7532,6 +7830,7 @@ function renderDash(){
       ${isActualToday?centuryHTML():''}
       ${isActualToday?pyramidHTML(dd):''}
       ${isActualToday?cindyHTML(dd):''}
+      ${isActualToday?emomHTML(dd):''}
       ${isActualToday?dailySpineHTML():''}
     </div>`;
   }
@@ -7671,6 +7970,167 @@ function renderSwapSearchResults(query,exIdx){
     }
     return`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left;width:100%' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.muscle} · ${a.type}</span></button>`;
   }).join('');
+}
+
+// ─────────────────────────────────────────────
+// CLUSTER SETS (2026-08-30)
+// ─────────────────────────────────────────────
+// From the paired-set workouts Sam brought in: *"Do Cluster Sets if you can't do 3
+// sets of 5 reps. Perform 1 rep, rest 15-30 sec then repeat 2-4 more times."*
+//
+// The condition is the interesting half, because the app can actually EVALUATE it
+// rather than leaving Sam to judge mid-set — and it is the same self-scaling shape
+// the Century runs on: the TARGET never moves, the prescription underneath it does,
+// and it retires itself the moment the logs say it is no longer needed.
+//
+// EVIDENCE, in the same spirit as loggedBaseline: the best UNBROKEN set actually
+// recorded for this exact movement. Grip and added load change the number
+// completely, so weighted pull-ups, chin-ups and neutral-grip pull-ups each carry
+// their own history rather than sharing one. The one alias is the Century, whose
+// sets are logged under 'pullup_century' and ARE sets of pull-ups — the same
+// EX_ID_ALIASES entry that already exists so secondary credit works.
+//
+// Consequence worth knowing up front: because Sam does Centuries, bodyweight
+// pull-ups will essentially never trigger this — his best unbroken set is far past
+// 5. That is correct, not a dud feature. Where it will fire is WEIGHTED pull-ups
+// (rMin 3 / rMax 6 by design) and any bar variation he hasn't built up yet.
+const CLUSTER_TRIGGER_REPS=5;   // "3 sets of 5" — the bar named in the protocol
+const CLUSTER_TARGET_SETS=3;
+const CLUSTER_REST_LO=15, CLUSTER_REST_HI=30;
+const CLUSTER_MIN_REPEATS=2, CLUSTER_MAX_REPEATS=4;
+
+// Vertical pulling only. Keyed on the tag rather than an id list, so a movement
+// added to that family later is covered without editing this — the same rule
+// SECONDARY_CREDIT_RULES follows and for the same reason.
+function clusterEligible(ex){
+  return !!(ex&&ex.type==='compound'&&(ex.tags||[]).includes('vertical'));
+}
+
+// Best unbroken set ever logged for this movement. Deliberately ALL history, not a
+// rolling window: this decides whether a rep target has been PROVEN, and proof
+// doesn't expire the way current form does (which is what CENTURY_BEST_WINDOW is
+// for). Undoing that would put a lifter back on clusters after a quiet fortnight.
+function bestUnbrokenReps(exId){
+  let best=0;
+  (S.logs||[]).forEach(l=>{
+    (l.exercises||[]).forEach(e=>{
+      if((EX_ID_ALIASES[e.id]||e.id)!==exId)return;
+      (e.sets||[]).forEach(s=>{if(s&&s.reps>best)best=s.reps;});
+    });
+  });
+  return best;
+}
+
+// null when clusters don't apply. Otherwise the prescription plus the number that
+// triggered it, so the workout screen never silently changes what it's asking for.
+function clusterPlan(ex){
+  if(!clusterEligible(ex))return null;
+  const best=bestUnbrokenReps(ex.id);
+  // No history at all is NOT a trigger. An unknown is not a weakness, and guessing
+  // "you probably can't" would open every new bar variation on a remedial protocol.
+  if(best<=0||best>=CLUSTER_TRIGGER_REPS)return null;
+  const total=Math.max(CLUSTER_TRIGGER_REPS,ex.rMax||CLUSTER_TRIGGER_REPS);
+  return{best,total,
+    repeats:Math.min(CLUSTER_MAX_REPEATS,Math.max(CLUSTER_MIN_REPEATS,total-1)),
+    restLo:CLUSTER_REST_LO,restHi:CLUSTER_REST_HI};
+}
+
+function clusterHTML(ex){
+  const c=clusterPlan(ex);
+  if(!c)return'';
+  return`<div class='wu-box' style='border-color:rgba(129,140,248,.35);background:rgba(129,140,248,.05);margin-bottom:14px'>
+    <div class='wu-title' style='color:var(--acc)'>🔗 Cluster this one — best unbroken set on record is ${c.best}</div>
+    <div class='wu-note' style='margin-top:0'>Under ${CLUSTER_TRIGGER_REPS} clean reps, ${CLUSTER_TARGET_SETS}×${CLUSTER_TRIGGER_REPS} straight sets turns into a grind and the last reps stop being pull-ups. Do <strong style='color:var(--txt)'>1 rep, rest ${c.restLo}–${c.restHi} sec, repeat ${c.repeats > CLUSTER_MIN_REPEATS ? `${CLUSTER_MIN_REPEATS}–${c.repeats}` : c.repeats} more times</strong> — same total reps, every one of them crisp. Log the cluster as one set of ${c.total}.</div>
+    <div class='wu-note'>This retires itself: the moment you log a clean unbroken set of ${CLUSTER_TRIGGER_REPS}, the card stops appearing and you go back to straight sets.</div>
+  </div>`;
+}
+
+// ── The partner half of a pair, rendered inside the leader's card ──
+// Deliberately NOT a second full exercise card. The pair is one station, so what
+// the partner needs is what you read between rounds: its name, its prescription,
+// its cue, and its own set rows. The heavy furniture (prep, warm-up ramp, swap
+// panel, progression hints) belongs to the station and is already above.
+//
+// The set-row element ids are the SAME convention the leader's rows use —
+// sr-/w-/r-/db- keyed on the partner's real index in S.active.exercises — which is
+// the whole reason this needs no change to completeSet. The rows log to the right
+// exercise because their ids say which one they are.
+function pairPartnerHTML(pIdx){
+  const exs=S.active?.exercises||[];
+  const ex=exs[pIdx];
+  if(!ex)return'';
+  const mcolor=MCOL[ex.muscle]||'var(--acc)';
+  const scaleDef=exScale(ex);
+  const isNoWeight=ex.noWeight===true,isTimed=ex.isTimed===true;
+  const isLoadedTimed=timedLoaded(ex);
+  const hideWeight=(isNoWeight&&!scaleDef)||(isTimed&&!isLoadedTimed);
+  const prog=progression(ex.id,ex.rMax);
+  const progHasW=!!prog&&prog.weight>0;
+  const est=(!isNoWeight&&!scaleDef&&(!isTimed||isLoadedTimed)&&(!prog||(isLoadedTimed&&!progHasW)))
+    ?(ex.estW||estimateStartingWeight(ex.id,S.logs,MOVEMENT_CLASS)):null;
+  const isDb=!!(ex.eq?.includes('dumbbells')&&!ex.eq?.includes('barbell'));
+  const wUnit=scaleDef?scaleDef.unit:isDb?'lb ea':'lb';
+  const baseW=prog?prog.suggest:(est?est.weight:null);
+  const repRange=isTimed?`${ex.rMin}–${ex.rMax}s`:`${ex.rMin}–${ex.rMax}`;
+  const rowGrid=hideWeight?'grid-template-columns:36px 64px 1fr 42px':'';
+  const target=hideWeight
+    ?`${repRange}${isTimed?'':' reps'}`
+    :`${baseW!=null?baseW+' '+wUnit:'pick a weight'} × ${repRange}`;
+  const basis=prog?`last time ${prog.summary}`:(est?`${est.confidence} confidence · ${estBasisLabel(est)}`:'first time — start conservative');
+  const rows=Array.from({length:ex.sets},(_,i)=>{
+    const done=ex.done[i];
+    return`<div class='set-row${done?' done':''}' id='sr-${pIdx}-${i}' style='${rowGrid}'>
+      <div class='sn'>${i+1}</div>
+      <div class='st'>${repRange}</div>
+      ${hideWeight?'':`<input class='ni' type='number' id='w-${pIdx}-${i}' placeholder='${scaleDef?scaleDef.unit:isDb?'each':'lb'}' value='${done?done.weight:(baseW!=null?baseW:'')}' min='0' step='5' inputmode='decimal' ${done?'disabled':''}>`}
+      <input class='ni' type='number' id='r-${pIdx}-${i}' placeholder='${isTimed?'sec':'reps'}' value='${done?done.reps:ex.rMax}' min='0' max='${isTimed?300:50}' inputmode='numeric' ${done?'disabled':''}>
+      <button class='done-btn' id='db-${pIdx}-${i}' data-action='${done?'undo-set':'done-set'}' data-ex='${pIdx}' data-set='${i}'>${done?'↩':'→'}</button>
+    </div>`;
+  }).join('');
+  return`<div style='margin-top:16px;padding-top:14px;border-top:2px solid ${mcolor}55'>
+    <div style='display:flex;align-items:center;gap:8px;margin-bottom:2px'>
+      <span style='font-size:12px;font-weight:800;letter-spacing:1px;color:${mcolor}'>${ex.pairId}2</span>
+      <span style='font-size:17px;font-weight:800'>${ex.name}</span>
+    </div>
+    <div style='font-size:12px;color:var(--mut);margin-bottom:8px'>${MNAME[ex.muscle]||ex.muscle} · ${target} · ${basis}</div>
+    ${cueBlockHTML(ex,mcolor)}
+    <div class='sets-hdr' style='${rowGrid};margin-top:10px'>
+      <div>Set</div><div>Target</div>${hideWeight?'':'<div>Weight</div>'}<div>${isTimed?'Sec':'Reps'}</div><div></div>
+    </div>
+    ${rows}
+  </div>`;
+}
+
+// "Station 2 of 3" once pairing is on, "Exercise 2 of 4" otherwise. A pair counts
+// once — it is one stop on the way through the session, and counting its halves
+// separately makes the progress line skip numbers as you advance.
+function stationLabel(exs,idx){
+  const isSecond=(e)=>e&&e.pairId&&e.pairPos===2;
+  const stations=exs.filter(e=>!isSecond(e)).length;
+  const at=exs.slice(0,idx+1).filter(e=>!isSecond(e)).length;
+  const paired=exs.some(e=>e&&e.pairId);
+  return `${paired?'Station':'Exercise'} ${at} of ${stations}`;
+}
+
+// EMOM banner for a custom session run on the minute. The clock replaces the rest
+// timer entirely (see completeSet), so this has to say what the instrument is.
+function emomBannerHTML(){
+  if(!S.active||!S.active.emom)return'';
+  const mins=S.active.emomMins||0;
+  return`<div class='wu-box' style='border-color:rgba(129,140,248,.35);background:rgba(129,140,248,.05);margin-bottom:14px'>
+    <div class='wu-title' style='color:var(--acc)'>&#9201; EMOM${mins?' &middot; '+mins+' minutes':''}</div>
+    <div class='wu-note' style='margin-top:0'>One set at the top of every minute, cycling through your movements. Whatever is left of the minute is the rest &mdash; so there is no rest timer here, the clock is the timer. If a set runs past about 40 seconds, drop a rep rather than borrowing the next minute.</div>
+  </div>`;
+}
+
+// The banner that explains the station, above everything else in the card.
+function pairBannerHTML(ex,partner){
+  if(!ex||!ex.pairId||!partner)return'';
+  return`<div class='wu-box' style='border-color:rgba(74,222,128,.35);background:rgba(74,222,128,.05);margin-bottom:14px'>
+    <div class='wu-title' style='color:var(--ok)'>⇄ Paired station ${ex.pairId} — ${ex.name} + ${partner.name}</div>
+    <div class='wu-note' style='margin-top:0'>Alternate them. One set of <strong style='color:var(--txt)'>${ex.pairId}1</strong>, about <strong style='color:var(--txt)'>${PAIR_TRANSITION_SECS} seconds</strong> to change over, one set of <strong style='color:var(--txt)'>${ex.pairId}2</strong>, then the full rest before you come back. The timer does this for you — log a set and it starts the right one.</div>
+    <div class='wu-note'>Straight sets across, no back-off — both movements keep the same load every round. Nothing here goes to failure; the pace is the stimulus.</div>
+  </div>`;
 }
 
 function renderWorkout(){
@@ -7819,6 +8279,12 @@ function renderWorkout(){
   // med ball / bodyweight / timed movement as the session opener.
   const isGroupFirst=!ex.isFirst&&!S.active.isLunch&&pctScalable&&!['core','hips'].includes(ex.muscle)
     &&exercises.slice(0,exIdx).every(p=>p.muscle!==ex.muscle);
+  // Paired station: this card owns BOTH halves (see pairPartnerHTML).
+  const pairIdx=(ex.pairId&&ex.pairPos===1)?pairPartnerIdx(exIdx):-1;
+  const pairEx=pairIdx>=0?exercises[pairIdx]:null;
+  const pairBanner=pairBannerHTML(ex,pairEx)+emomBannerHTML();
+  const pairBlock=pairIdx>=0?pairPartnerHTML(pairIdx):'';
+  const clusterBox=clusterHTML(ex)+(pairEx?clusterHTML(pairEx):'');
   const warmupHTML=ex.isFirst&&pctScalable?(S.active.isLunch
   // Lunch: abbreviated 2-set ramp (part of the 2026-07-14 time-box
   // calibration — the full 3-set ramp with a 90% CNS primer belongs to
@@ -7860,7 +8326,7 @@ function renderWorkout(){
   // shy of failure); the remaining sets are "back-off" sets at ~15% less weight
   // for higher reps. Straight sets for bodyweight, timed, single-set, circuit,
   // and power work (every power set is the same quality — no fatigued sets).
-  const useBackoff=!isNoWeight&&!isTimed&&!scaleDef&&!ex.circuitStyle&&!isPowerEx&&ex.sets>1;
+  const useBackoff=!isNoWeight&&!isTimed&&!scaleDef&&!ex.circuitStyle&&!isPowerEx&&!ex.pairId&&ex.sets>1;
   const backoffW=(useBackoff&&sugW0)?r5(sugW0*0.85):null;
   const backoffRepLo=ex.rMax, backoffRepHi=ex.rMax+5;
   let progHTML;
@@ -7950,8 +8416,11 @@ function renderWorkout(){
     </div>`;
   }).join('');
 
-  const allDone=ex.done.filter(Boolean).length>=ex.sets;
-  const isLast=exIdx===total-1;
+  const stationDone=(e)=>e.done.filter(Boolean).length>=e.sets;
+  const allDone=stationDone(ex)&&(!pairEx||stationDone(pairEx));
+  // A paired leader's station ends at its PARTNER, so "last" has to look past it —
+  // otherwise the final pair never offers Finish Workout.
+  const isLast=(pairIdx>=0?pairIdx:exIdx)===total-1;
   const condBlock=isLast&&S.cfg.conditioning&&allDone?finisherHTML(S.active.dow,false,!!S.active.isLunch,S.active.equipmentKey):'';
   // Post-session cool-down (~5 min, evening/weekend sessions only — lunch is
   // hard time-boxed): static relief for the desk-stiff areas (neck, lower
@@ -8026,7 +8495,7 @@ function renderWorkout(){
     <div class='wkt-hdr'>
       <div>
         <div class='wkt-day'>${dayName}</div>
-        <div class='wkt-prog'>Exercise ${exIdx+1} of ${total}</div>
+        <div class='wkt-prog'>${stationLabel(exercises,exIdx)}</div>
       </div>
       <div style='display:flex;gap:6px'>
         <button class='abandon' style='width:auto;padding:8px 12px;border-radius:10px' data-action='end-now'>🏁 End Now</button>
@@ -8051,7 +8520,7 @@ function renderWorkout(){
       const countedLifts=exercises.filter(e=>!e.calfTopUp).length;
       const plan=sessionPlan({mins:S.active.sessionMins,dow:S.active.dow,av:S.weekPlan?.availability,
         equipmentKey:S.active.equipmentKey,isLunch:!!S.active.isLunch,lifts:countedLifts,
-        perLiftMins:S.active.isLunch?lunchExMins():EVENING_EX_MINS});
+        perLiftMins:perLiftMinsFor(S.active.isLunch?lunchExMins():EVENING_EX_MINS)});
       const rows=plan.items.filter(i=>!i.deferred).map(i=>`<div style='display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:12px'>
         <span style='color:var(--mut)'>${i.label}${i.note?` <span style='opacity:.7'>· ${i.note}</span>`:''}</span>
         <strong style='color:var(--txt);flex-shrink:0'>${i.mins}m</strong></div>`).join('')
@@ -8087,6 +8556,8 @@ function renderWorkout(){
       </div>
       ${ex.isoHoldSecs?`<button class='btn btn-g btn-sm' data-action='start-iso-hold' data-secs='${ex.isoHoldSecs}' style='margin-bottom:10px;width:100%'>⏱ Start ${ex.isoHoldSecs}s mid-position hold</button>`:''}
       ${swapPanel}
+      ${pairBanner}
+      ${clusterBox}
       ${warmupHTML}
       ${progHTML}
       ${dbCapNote}
@@ -8095,6 +8566,7 @@ function renderWorkout(){
         ${hideWeight?'':`<div class='sh'>Weight</div>`}<div class='sh'>${isTimed?'Sec':'Reps'}</div><div class='sh'></div>
       </div>
       ${setsRows}
+      ${pairBlock}
       ${condBlock}
       ${isLast&&allDone&&centuryHostSession(S.active.dow)===(S.active.isLunch?'lunch':'eve')&&!centuryLogs().some(l=>logDay(l.date)===todayStr())?centuryHTML():''}
       ${cooldownHTML}
@@ -8344,12 +8816,36 @@ function customSessionSummary(d){
   if(!d)return null;
   return sessionPlan({mins:d.mins,dow:d.dow,av:S.weekPlan?.availability,
     equipmentKey:d.equipmentKey,isLunch:!!d.isLunch,lifts:d.exercises.length,
-    perLiftMins:d.isLunch?lunchExMins():EVENING_EX_MINS});
+    perLiftMins:perLiftMinsFor(d.isLunch?lunchExMins():EVENING_EX_MINS)});
+}
+
+// A custom session's structure. 'straight' is the ordinary top-set/back-off model,
+// 'paired' runs the picks as A1/A2 stations (see PAIRED SETS), 'emom' puts one
+// movement at the top of each minute.
+//
+// EMOM is timing, not volume: same sets, same reps, so nothing downstream — MRV,
+// recovery, the ledgers — needs to know about it. What it changes is the rest,
+// which is why the workout screen suppresses the rest timer for it and shows the
+// minute clock instead.
+const CUSTOM_STRUCTURES=[
+  {key:'straight',label:'Straight sets',sub:'One movement at a time, full rest between sets.'},
+  {key:'paired',label:'Paired A1/A2',sub:'Two movements per station, '+PAIR_TRANSITION_SECS+'s to change over, full rest after the pair.'},
+  {key:'emom',label:'EMOM',sub:'One movement at the top of every minute. Rest is whatever is left of the minute.'},
+];
+function customStructure(d){
+  const k=(d||S.customSession||{}).structure;
+  return CUSTOM_STRUCTURES.some(s=>s.key===k)?k:'straight';
+}
+// An EMOM's length is its total set count — one movement per minute, round-robin.
+// Derived rather than asked for: the number of minutes IS the work you picked, and
+// making it a separate input would let the two disagree.
+function emomMinutes(rows){
+  return (rows||[]).reduce((a,r)=>a+Math.max(1,Math.min(10,r.sets||CUSTOM_SESSION_DEFAULT_SETS)),0);
 }
 
 function customSessionInit(seed){
   const base=customSessionDefaults();
-  S.customSession=Object.assign({name:'',exercises:[],templateId:null},base,seed||{});
+  S.customSession=Object.assign({name:'',exercises:[],templateId:null,structure:'straight'},base,seed||{});
   return S.customSession;
 }
 
@@ -8433,6 +8929,12 @@ function startCustomWorkout(){
   // the same call buildSession makes, so a custom session opens on a loadable
   // movement the way a generated one does. It reorders in place.
   flagFirstWorkingSet(exs);
+  // Structure, applied in the same order the generator applies it: pairing runs
+  // AFTER the flag so the warm-up lift stays at index 0 and becomes A1. Hand-built
+  // pairing ignores the Plan-screen toggle on purpose — you picked these movements
+  // and asked for them paired, which is a more specific instruction than a mode.
+  const structure=customStructure(d);
+  if(structure==='paired')pairSession(exs);
 
   // Lunch time-box clamp, identical to startWorkout's: lead lift keeps 3 working
   // sets, everything after it drops to 2.
@@ -8454,6 +8956,9 @@ function startCustomWorkout(){
     sessionMins:d.mins,loc:EQUIPMENT_PRESETS[d.equipmentKey]?.location||'ymca',
     equipmentKey:d.equipmentKey,restCap:d.isLunch?90:null,exIdx:0,
     autoRegNotes,isCustomSession:true,
+    // EMOM is a clock, not a volume change — see CUSTOM_STRUCTURES. The workout
+    // screen reads these two to swap the rest timer for a minute count.
+    emom:structure==='emom',emomMins:structure==='emom'?emomMinutes(rows):0,
     exercises:exs.map(e=>({...e,done:[],estW:estimateStartingWeight(e.id,S.logs,MOVEMENT_CLASS)})),
   };
   S.customSession=null;
@@ -8477,7 +8982,7 @@ function saveCustomTemplate(){
   if(!name)return;
   S.customTemplates=S.customTemplates||[];
   const payload={
-    name,mins:d.mins,isLunch:!!d.isLunch,equipmentKey:d.equipmentKey,
+    name,mins:d.mins,isLunch:!!d.isLunch,equipmentKey:d.equipmentKey,structure:customStructure(d),
     exercises:rows.map(r=>({name:r.name,exId:r.exId||null,sets:r.sets||CUSTOM_SESSION_DEFAULT_SETS,noWeight:!!r.noWeight})),
     editedAt:new Date().toISOString(),deleted:false,
   };
@@ -8498,6 +9003,7 @@ function loadCustomTemplate(id){
   const base=customSessionDefaults();
   S.customSession={
     name:t.name,templateId:t.id,
+    structure:t.structure||'straight',
     dow:base.dow,
     mins:t.mins||base.mins,
     isLunch:!!t.isLunch,
@@ -8633,6 +9139,13 @@ function renderCustomSession(){
       <div style='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px'>${minsBtns}</div>
       <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>Where</div>
       <select class='ni' id='cs-loc' data-action='cs-loc' style='width:100%;text-align:left;margin-bottom:12px'>${locOpts}</select>
+      <div style='font-size:11px;color:var(--mut);margin-bottom:4px'>How to run it</div>
+      <div style='display:flex;flex-direction:column;gap:6px;margin-bottom:12px'>
+        ${CUSTOM_STRUCTURES.map(s=>`<div class='opt${customStructure(d)===s.key?' on':''}' data-action='cs-structure' data-val='${s.key}' style='text-align:left'>
+          <div class='opt-v' style='font-size:14px'>${s.label}</div><div class='opt-l'>${s.sub}</div>
+        </div>`).join('')}
+      </div>
+      ${customStructure(d)==='emom'&&d.exercises.length?`<div style='font-size:12px;color:var(--mut);line-height:1.6;margin-bottom:12px'>${emomMinutes(d.exercises)} minutes — one movement at the top of each, cycling through your ${d.exercises.length}. Every set you add is another minute.</div>`:''}
       <div class='plan-chk${d.isLunch?' on':''}' data-action='cs-toggle-lunch'>
         <div class='plan-chk-box'>${d.isLunch?'&#10003;':''}</div>
         <div>
@@ -9917,6 +10430,12 @@ document.addEventListener('click',e=>{
   // save-log-edit: an input that reshapes recovery debt, weekly MRV and the time
   // box shouldn't leave the program running on the old numbers until some
   // unrelated event happens to trigger a rebuild.
+  if(a==='toggle-paired-sets'){
+    S.cfg.pairedSets=!pairedSetsOn();
+    // The lift COUNT changes with the rate, so the week has to be rebuilt, not
+    // just re-rendered — this is a scheduling input, not a display preference.
+    replanCurrentWeek();save();render();return;
+  }
   if(a==='toggle-jump-durability'){
     S.cfg.jumpDurability=!jumpDurabilityOn();
     replanCurrentWeek();save();render();return;
@@ -10151,6 +10670,12 @@ document.addEventListener('click',e=>{
     S.customSession.mins=parseInt(btn.dataset.val);
     render();return;
   }
+  if(a==='cs-structure'){
+    if(!S.customSession)return;
+    customHarvest();
+    S.customSession.structure=btn.dataset.val;
+    render();return;
+  }
   if(a==='cs-toggle-lunch'){
     if(!S.customSession)return;
     customHarvest();
@@ -10352,6 +10877,43 @@ document.addEventListener('click',e=>{
       isCardio:true,mcgill:true,duration:timedMins||mcgillDefaultMins(),timedMins,exercises:[]});
     S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     S.mcgill=null;save();render();return;
+  }
+  if(a==='emom-toggle'){S.emomOpen=!S.emomOpen;render();return;}
+  if(a==='emom-round'){
+    const d=emomDraft();
+    // Clock starts on the FIRST completed round, not at render — the card sits on
+    // the dashboard all day (same reasoning as the century's startedAt).
+    S.emom={date:d.date,rounds:d.rounds+1,startedAt:d.startedAt||new Date().toISOString(),touchedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='emom-undo-round'){
+    const d=emomDraft();
+    if(!d.rounds)return;
+    S.emom={...d,rounds:d.rounds-1,touchedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='emom-finish'){
+    const d=emomDraft();
+    if(!d.rounds)return;
+    // Measured first round -> last round, never to the Log tap — same unbounded
+    // gap the century and Cindy both document.
+    const timedMins=(d.startedAt&&d.touchedAt)
+      ?Math.max(1,Math.round((new Date(d.touchedAt).getTime()-new Date(d.startedAt).getTime())/60000)):0;
+    // A REAL session (no isCardio), like Cindy and the Pyramid: this IS the day's
+    // training. One set entry per movement holding total reps, because a
+    // per-round breakdown would be counted as N working sets by anything that
+    // doesn't know about the emom flag.
+    S.logs.push({
+      id:Date.now().toString(),date:new Date().toISOString(),
+      dayName:`EMOM ${EMOM_MINS} · ${d.rounds} rounds`,
+      emom:true,emomRounds:d.rounds,
+      duration:timedMins||EMOM_MINS,timedMins,measured:!!timedMins,
+      exercises:EMOM_ROUND.map(m=>({id:m.id,name:m.name,muscle:m.muscle,type:m.type,
+        rMin:m.rMin,rMax:m.rMax,sets:[{weight:0,reps:m.reps*d.rounds}]})),
+    });
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    S.emom=null;S.emomOpen=false;
+    recalcLastWeights();replanCurrentWeek();save();render();return;
   }
   if(a==='cindy-toggle'){S.cindyOpen=!S.cindyOpen;render();return;}
   if(a==='cindy-round'){
@@ -10632,11 +11194,21 @@ document.addEventListener('click',e=>{
     completeSet(parseInt(btn.dataset.ex),parseInt(btn.dataset.set));return;
   }
   if(a==='next-ex'){
-    const next=S.active.exIdx+1;
-    if(next<S.active.exercises.length)goToEx(next);
+    // A pair renders as one station, so stepping off it has to clear BOTH halves
+    // — landing on A2 would show the same card again with the partner's rows
+    // already logged.
+    const exs=S.active.exercises,cur=exs[S.active.exIdx];
+    const step=(cur&&cur.pairId&&cur.pairPos===1)?2:1;
+    const next=S.active.exIdx+step;
+    if(next<exs.length)goToEx(next);
     return;
   }
-  if(a==='prev-ex'){goToEx(S.active.exIdx-1);return;}
+  if(a==='prev-ex'){
+    const exs=S.active.exercises;let p=S.active.exIdx-1;
+    // Never land on the second half of a pair — back up to its leader.
+    if(p>0&&exs[p]&&exs[p].pairId&&exs[p].pairPos===2)p--;
+    goToEx(Math.max(0,p));return;
+  }
   if(a==='finish-workout'){S.active.ratePending=true;save();render();return;}
   if(a==='rate-fatigue'){finishWorkout(parseInt(btn.dataset.val)||null);return;}
   if(a==='abandon'){abandonWorkout();return;}
@@ -10978,7 +11550,7 @@ async function saveToCloud(){
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}

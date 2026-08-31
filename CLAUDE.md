@@ -446,6 +446,111 @@ strip it before other debugging.
     prescription, not scheduling. **Re-run the sweep after editing EX tags**, since
     region and pattern matching read them and an untagged movement silently loses
     its best anchor.
+- **Paired sets, clusters, EMOM and the front-rack/decline movements** (2026-08-30)
+  — Sam brought in four workout cards using A1/A2 pairs with "Rest 10 seconds"
+  between and "Rest 90 seconds" after, a cluster-set note on the pull-ups, and an
+  EMOM 20 Full Body. All four pieces landed; the structural ones are below.
+  - **New movements (4, plus one rename).** `front_rack_db_squat`,
+    `heels_elev_front_squat`, `feet_elev_pushup`, `parallel_pullup`. Each is placed
+    AFTER the movement leading its block, so none displaces an established pick —
+    which per the EX-ORDER rule also means the generator will rarely choose them.
+    Stated rather than discovered later: **they are here to be picked by hand** in
+    the custom builder and the swap list, which is where the workouts they came
+    from live. Two are deliberate shoulder/hip accommodations: the front rack forces
+    an upright torso (keeps the femur out of the flexion+adduction corner the left
+    hip objects to) and `parallel_pullup`'s neutral grip is the least pinchy
+    vertical pull there is — **if the pronated bar ever nags the left shoulder,
+    moving that entry above `pullups` is the one-line change that makes it the
+    default.** `feet_elev_pushup` carries the same SHOULDER STOP cue as the rest of
+    the pressing, more so because the decline drives the humerus further behind the
+    torso. **"Side to Side Push-ups" is `archer_pushup`**, renamed to
+    "Archer / Side-to-Side Push-ups" rather than duplicated — a near-identical
+    second entry would dilute the chest block's EX order for no new training
+    effect, and the NAME is what the autocomplete searches.
+  - **`CLUSTER SETS`** — the protocol's *"if you can't do 3 sets of 5"* is a
+    condition the app can EVALUATE, so it does. `clusterPlan` reads the best
+    unbroken set actually logged for that exact movement and prescribes 1 rep /
+    15–30s / repeat when it's under 5. Three decisions worth keeping:
+    - **Keyed on the `vertical` tag, not an id list** — a movement added to that
+      family later is covered without editing this.
+    - **Per-movement history, with the Century as the one alias.** Grip and added
+      load change the number completely, so weighted, chin-up and neutral-grip
+      histories stay separate; `pullup_century` maps to `pullups` through the
+      `EX_ID_ALIASES` entry that already exists for secondary credit.
+    - **ALL history, not a rolling window.** This decides whether a rep target has
+      been PROVEN, and proof doesn't expire the way current form does — that is
+      what `CENTURY_BEST_WINDOW` is for. Windowing it would put him back on
+      clusters after a quiet fortnight.
+    - No history at all is **not** a trigger: an unknown is not a weakness.
+      Consequence, and it's the right one: because Sam does Centuries, bodyweight
+      pull-ups will essentially never cluster. Where it fires is `weighted_pullups`
+      (rMin 3 by design) and any bar variation he hasn't built yet.
+  - **`PAIRED SETS`** — `S.cfg.pairedSets`, **off by default**, Plan-screen toggle
+    beside the separate/circuits control. `pairSession` assigns `pairId`/`pairPos`
+    and reorders so partners sit adjacent.
+    - **Runs AFTER `flagFirstWorkingSet`, never before** — it reorders, and the
+      lift carrying the warm-up ramp has to stay at index 0 and simply become A1.
+    - **What is never paired matters more than what is**: `strength` (the heavy
+      1–5 @ 85–95% tier — ten seconds of rest is the opposite of what it needs, and
+      the weekly heavy-leg mandate is the last guarantee worth degrading),
+      `power`/`ballistic`/`plyometric` (trained by speed; a fatigued explosive rep
+      is a worse rep, the same reasoning that already excludes them from back-off),
+      and **two movements of the same muscle**. The source cards do pair leg with
+      leg, but that's a giant set someone chose deliberately; as an automatic rule
+      it just compounds fatigue on the day's anchor. Anything without a partner
+      stays a straight set — an odd lift out is normal, not a bug.
+    - **`PAIR_TIME_FACTOR` is derived, not picked.** `EVENING_EX_MINS` budgets 12
+      min for a 3-set lift = 240s/set; the rest inside that is smartRest's middle
+      compound tier (150s), so work is ~90s. A paired round is 90+10+90+150 = 340s
+      for two lifts, i.e. 170s per lift per set against 240s — **~0.71**. One rest
+      interval saved per round is the whole mechanism. It's an approximation on
+      purpose (an odd lift pays full rate, and the ledgers size the count before
+      the exercises exist) and errs toward charging too much.
+    - **`perLiftMinsFor` is the single place the rate is decided**, used by
+      `eveningLifts`, `lunchBudget` and `sessionPlan`, so the three can never
+      disagree about whether pairing is on — the `getLockedMuscles`/`legsRecovered`
+      failure.
+    - **The workout screen renders a pair as ONE station.** `pairPartnerHTML` emits
+      the partner's set rows using the SAME `sr-`/`w-`/`r-`/`db-` id convention
+      keyed on its real index — which is the entire reason `completeSet` needed no
+      change; the rows log to the right exercise because their ids say which one
+      they are. `allDone` spans both halves (in the renderer AND in `completeSet`,
+      which reveals the button without a re-render), Next skips the partner, Prev
+      never lands on it, and the progress line counts STATIONS or it skips numbers.
+    - **Paired work is straight sets, no back-off** — that's the protocol
+      (3 × 6–15 across both), so `useBackoff` excludes anything with a `pairId`.
+    - Measured: with pairing OFF all 7 case-study scenarios are byte-identical to
+      `origin/main`. ON, a 60-min evening goes 3 → 4 lifts (45 → 3, 75 → 5, 90
+      unchanged at the `exLimitFor` ceiling); **lunch stays at 2** — 22 available
+      minutes against 7.8/lift is 2.8, genuinely short of a third — and gains 6
+      spare minutes. Weekly volume: **no muscle exceeds MRV max on any profile**,
+      and on the 3-evening profile shoulders go 0 → 3 sets, into band.
+  - **`EMOM 20 · Full Body`** — built on the **CINDY** pattern, not the Pyramid's,
+    because it is the same shape: fixed named session, round counter, spacing rule
+    (`EMOM_EVERY_DAYS`), and a card that only prescribes itself when it can be run
+    honestly. Logged as a **REAL session** (no `isCardio`) like Cindy — 20 minutes
+    of squats, push-ups, pull-ups and hinges IS the day's training, so it marks the
+    day complete, feeds recovery and books MRV. **Never scheduled by the
+    generator**, same rule as the Pyramid and Cindy. Not prescribed on a Century
+    day (the pull-up minutes and 100 submaximal reps are the same tissue) or
+    alongside the Pyramid or Cindy. One set entry per movement holding TOTAL reps,
+    because a per-round breakdown reads as N working sets to anything that doesn't
+    know about the `emom` flag.
+  - **EMOM is also a custom-session structure** (`CUSTOM_STRUCTURES`:
+    straight / paired / emom). It is **timing, not volume** — same sets, same reps
+    — so MRV, recovery and the ledgers price an EMOM exactly as they price the same
+    list run straight, which is honest because it IS the same work. Its length is
+    DERIVED as the total set count rather than asked for, so the two can't
+    disagree. **The rest timer is suppressed entirely during an EMOM**: starting a
+    150s rest inside a 60s minute would actively mislead, and the clock is the
+    instrument. Hand-built pairing ignores the Plan-screen toggle on purpose —
+    picking these movements and asking for them paired is a more specific
+    instruction than a mode.
+  - Verified: 122-assertion render smoke test, 22-assertion pairing test (rules,
+    ledger, rest routing, navigation, station rendering) and 43-assertion EMOM /
+    builder test, plus the MRV sweep above. **Re-run the pairing test after
+    touching `flagFirstWorkingSet`, `completeSet` or the set-row ids** — the
+    station model depends on all three.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
