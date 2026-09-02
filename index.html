@@ -6917,6 +6917,7 @@ function centuryHTML(){
       <div style='font-size:12px;color:var(--mut);margin-top:2px'>${doneToday.estimated?'Logged as already done — the set breakdown is an even split, so it is left out of your best-set record. Nothing is reserved out of today for it.':sets.map(s=>s.reps).join(' · ')}</div>
       ${clock}
       ${centuryTimeEditHTML(doneToday)}
+      <button class='cue-btn' data-action='delete-log' data-id='${doneToday.id}' style='margin-top:4px;margin-bottom:0;color:var(--bad)'>🗑️ Undo — log it wrong? Delete it</button>
       ${trend}
     </div>`;
   }
@@ -9972,7 +9973,7 @@ function renderDeleteModal(){
   const log=S.logs.find(l=>l.id===S.confirmDelete);
   if(!log)return'';
   const exRows=log.exercises.map(e=>{
-    const exDef=EX.find(x=>x.id===e.id);
+    const exDef=exFull(e);
     const isNW=exDef?.noWeight;const isTm=exDef?.isTimed;
     const isDbH2=!!(exDef&&exDef.eq?.includes('dumbbells')&&!exDef.eq?.includes('barbell'));
     const setStr=(e.sets||[]).filter(s=>s&&s.reps>0)

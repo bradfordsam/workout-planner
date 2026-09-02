@@ -877,6 +877,26 @@ strip it before other debugging.
   `getMRVBreakdown` (submaximal sets don't cost what hard sets cost; at face
   value 100 reps ate the whole week's back MRV and crowded out the mandated
   row/rear-delt work). Weighted pull-ups avoid Century days before Wed.
+  **Undo (2026-08-31)** — Sam: *"I need an undo button for logging century."*
+  The Done card had `centuryTimeEditHTML` to fix the minutes but no way to undo
+  the log itself. Deliberately does NOT reconstruct the draft from the log and
+  reopen the tap-in-sets card — that would need to fabricate a `startedAt` (the
+  log stores `timedMins`, not the clock times that produced it) and treats an
+  `estimated:true` "already did it" log identically to a real one when it has
+  no real per-set breakdown to restore. Routes into the EXISTING soft-delete
+  pipeline instead (`delete-log` → confirm modal → tombstone → 8s undo banner
+  → `restore-log`), the same one History already uses for every other log
+  type — cross-device-sync-safe by construction (`deletedSessions` tombstoning
+  is exactly what stops a delete on one phone from being silently resurrected
+  by a not-yet-synced second phone), and already has its own working undo.
+  **Found and fixed on the way**: `renderDeleteModal`'s set-breakdown preview
+  resolved exercise definitions with a raw `EX.find`, which misses everything
+  `exFull`/`exById` exist to cover — `pullup_century` has no `EX` entry of its
+  own (`EX_ID_ALIASES` maps it to `pullups`), so every century set previewed as
+  "0 lb × N" instead of "N reps," and a custom exercise's own logged workout
+  would have shown the identical wrong "0 lb" line. Never reachable before —
+  no century-card button routed into this modal — so latent until now, same
+  "silent until the path becomes reachable" trap as the custom-picker bugs.
 - **"No bar today" (2026-08-19, `noBarLog` / `weekDateForDow`)** — Sam: *"let's
   make it so I can say I don't have a pull up bar available today to do the
   century."* Closes a real gap: century ELIGIBILITY had only ever asked "is a
