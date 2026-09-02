@@ -2262,29 +2262,58 @@ const CENTURY_REST_SECS=75;
 // climbs the set count falls and the overhead falls with it.
 const CENTURY_SET_OVERHEAD_SECS=85;
 const CENTURY_SET_FRACTION=0.5; // of best unbroken set
+// How close to the actual best unbroken set the pacing plan is allowed to grow
+// a set size, when it has to — the numeric form of "every set 2+ reps clear of
+// failure" the whole protocol runs on. Same figure PYRAMID_PEAK_HEADROOM uses
+// for the identical rule on the Pyramid's top rung.
+const CENTURY_SET_SAFETY_MARGIN=2;
 const CENTURY_TEST_EVERY=4;     // every Nth century opens with a max-effort set
 const CENTURY_TEST_REST_SECS=180; // after the max set only — see Schoenfeld 2016 above
 // Counting from the LOG rather than from a stored flag, so the schedule can't
 // drift out of sync with what was actually done — the first century (0 logs) is
 // itself a test, because there is no `best` to size anything from yet.
 function centuryIsTestDay(){return centuryLogs().length%CENTURY_TEST_EVERY===0;}
+// Sets/mins for a given set size — pulled out of centurySetPlan so the sizing
+// loop below can price a candidate before committing to it.
+function centuryPacingFor(setSize,test,best){
+  const opener=test?Math.max(setSize,best):0;
+  const remaining=Math.max(0,PULLUP_CENTURY.target-opener);
+  const sets=(opener?1:0)+Math.ceil(remaining/setSize);
+  const testRest=test?CENTURY_TEST_REST_SECS-CENTURY_REST_SECS:0;
+  const mins=Math.round((PULLUP_CENTURY.target*3+(sets-1)*CENTURY_REST_SECS+testRest+sets*CENTURY_SET_OVERHEAD_SECS)/60);
+  return{sets,mins,opener};
+}
 function centurySetPlan(){
   const best=centuryStats().best;
   // No history yet: sets of 10 is the conventional opening and divides 100
   // evenly, which matters more than precision on day one.
-  const setSize=best?Math.max(3,Math.round(best*CENTURY_SET_FRACTION)):10;
+  let setSize=best?Math.max(3,Math.round(best*CENTURY_SET_FRACTION)):10;
   const test=centuryIsTestDay();
-  // The opener on a test day is one unbroken max set. Without a `best` to expect
-  // it's just the first ordinary set, so day one degrades to the old plan.
-  const opener=test?Math.max(setSize,best):0;
-  const remaining=Math.max(0,PULLUP_CENTURY.target-opener);
-  const sets=(opener?1:0)+Math.ceil(remaining/setSize);
-  // ~3s/rep at the cued 3-count descent, plus the rest between (not after) sets.
-  // The post-test rest is longer because that set genuinely WAS near failure —
-  // the 2–3 min literature above applies to it and to nothing else here.
+  let plan=centuryPacingFor(setSize,test,best);
+  // GROW THE SET SIZE when "half of best" would run the session past what
+  // CENTURY_MAX_BUDGET_MINS treats as the ceiling everywhere else in the app.
+  // Found 2026-08-31 (Sam: "it says approx 56 min for a century that is not
+  // right") — CENTURY_SET_OVERHEAD_SECS was calibrated against Sam's actual
+  // ~10-set pace and correctly modelled ~30 min there, but the set-SIZING rule
+  // never checked what happens when `best` is smaller: at best=9–10 (half →
+  // sets of 5) the plan reaches 20 sets, and 20 sets of 85s overhead ALONE is
+  // 28 minutes before a single rep or rest second is counted. centuryDefaultMins
+  // already capped the BUDGET this plan feeds at 40, but nothing capped this
+  // card's own PACING ADVICE — so it told him "sets of 5, rest 75s" and then a
+  // separately-capped number next to it that the sets/rest didn't actually add
+  // up to. Growing the set size keeps the two honest: bigger, safer-margin sets
+  // instead of a smaller number that contradicts its own instructions.
+  // Bounded by CENTURY_SET_SAFETY_MARGIN so it can never grow into the same
+  // near-failure territory the scheduled test set is reserved for — if even the
+  // safety ceiling can't fit the budget, the honest (if larger) number is shown
+  // rather than a smaller one the sets/rest wouldn't actually produce.
+  const ceiling=best?Math.max(setSize,best-CENTURY_SET_SAFETY_MARGIN):setSize;
+  while(plan.mins>CENTURY_MAX_BUDGET_MINS&&setSize<ceiling){
+    setSize++;
+    plan=centuryPacingFor(setSize,test,best);
+  }
   const testRest=test?CENTURY_TEST_REST_SECS-CENTURY_REST_SECS:0;
-  const mins=Math.round((PULLUP_CENTURY.target*3+(sets-1)*CENTURY_REST_SECS+testRest+sets*CENTURY_SET_OVERHEAD_SECS)/60);
-  return{setSize,sets,restSecs:CENTURY_REST_SECS,mins,test,opener,testRestSecs:CENTURY_TEST_REST_SECS};
+  return{setSize,sets:plan.sets,restSecs:CENTURY_REST_SECS,mins:plan.mins,test,opener:plan.opener,testRestSecs:CENTURY_TEST_REST_SECS};
 }
 
 // ─────────────────────────────────────────────
