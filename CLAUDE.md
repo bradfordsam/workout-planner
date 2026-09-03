@@ -877,6 +877,69 @@ strip it before other debugging.
   `getMRVBreakdown` (submaximal sets don't cost what hard sets cost; at face
   value 100 reps ate the whole week's back MRV and crowded out the mandated
   row/rear-delt work). Weighted pull-ups avoid Century days before Wed.
+  **Undo (2026-08-31)** — Sam: *"I need an undo button for logging century."*
+  The Done card had `centuryTimeEditHTML` to fix the minutes but no way to undo
+  the log itself. Deliberately does NOT reconstruct the draft from the log and
+  reopen the tap-in-sets card — that would need to fabricate a `startedAt` (the
+  log stores `timedMins`, not the clock times that produced it) and treats an
+  `estimated:true` "already did it" log identically to a real one when it has
+  no real per-set breakdown to restore. Routes into the EXISTING soft-delete
+  pipeline instead (`delete-log` → confirm modal → tombstone → 8s undo banner
+  → `restore-log`), the same one History already uses for every other log
+  type — cross-device-sync-safe by construction (`deletedSessions` tombstoning
+  is exactly what stops a delete on one phone from being silently resurrected
+  by a not-yet-synced second phone), and already has its own working undo.
+  **Found and fixed on the way**: `renderDeleteModal`'s set-breakdown preview
+  resolved exercise definitions with a raw `EX.find`, which misses everything
+  `exFull`/`exById` exist to cover — `pullup_century` has no `EX` entry of its
+  own (`EX_ID_ALIASES` maps it to `pullups`), so every century set previewed as
+  "0 lb × N" instead of "N reps," and a custom exercise's own logged workout
+  would have shown the identical wrong "0 lb" line. Never reachable before —
+  no century-card button routed into this modal — so latent until now, same
+  "silent until the path becomes reachable" trap as the custom-picker bugs.
+  **Pacing card showing ~56 min (2026-08-31, `centuryPacingFor` /
+  `CENTURY_SET_SAFETY_MARGIN`)** — Sam: *"right now it says approx 56 min for
+  a century that is not right."* `CENTURY_SET_OVERHEAD_SECS=85` (per-set cost
+  of getting back to the bar, chalking, waiting your turn) was calibrated
+  against Sam's real ~10-set pace and correctly modelled his measured ~30 min
+  there — but the SET-SIZING rule (half of `best`) was never checked against
+  what happens when `best` is smaller. At `best`≈9–10, halving gives sets of
+  5, which needs 20 sets to reach 100 — and 20 sets × 85s of overhead ALONE is
+  28 minutes before a single rep or rest second is counted. `centuryDefaultMins`
+  already capped the BUDGET this feeds at `CENTURY_MAX_BUDGET_MINS`(40), but
+  nothing capped the Pacing block's own advice text, so the card said "sets of
+  5, rest 75s" right next to a number those sets/rest don't actually add up to
+  once something else (this budget cap) has silently clipped it. Simply
+  capping the DISPLAYED number the way `centuryDefaultMins` does would have
+  left that same self-contradiction, just at a different number — 20 sets of 5
+  genuinely takes ~57 minutes if you follow the prescription printed next to
+  the number.
+  - **The fix grows the SET SIZE, not just clips the total** — fewer, bigger
+    sets cost less cumulative overhead, and `centuryPacingFor(setSize,test,best)`
+    lets `centurySetPlan` re-price a candidate size before committing to it.
+    Bounded by `CENTURY_SET_SAFETY_MARGIN`(=2) — the numeric form of "every set
+    2+ reps clear of failure" the whole protocol runs on, same figure
+    `PYRAMID_PEAK_HEADROOM` uses for the identical rule on the Pyramid's top
+    rung — so growth can never edge toward the near-failure territory the
+    *scheduled test set* is reserved for.
+  - **When even the safety ceiling can't fit the budget, the plan says so
+    honestly rather than lying smaller.** At `best`=4–6 the ceiling and the
+    starting size are the same number — there is no room to grow at all — and
+    the card still shows ~70–94 min. That is correct, not a residual bug: a
+    genuinely low best means a full century genuinely takes that long, and the
+    honest answer is what tells him to work the number up, not a comforting
+    one that contradicts its own sets/rest instructions.
+  - Measured, `best`=9 (matching what he reported almost exactly): setSize 5→7,
+    sets 20→15, **57 min → 44 min**. `best`=10: setSize 5→8, sets 20→13,
+    **57 min → 38 min**. `best`=20 (already fits): unchanged at 30 min.
+  - **Byte-identical to baseline on all 7 case-study scenarios**, and correctly
+    so: `centuryDefaultMins()` — the number that actually feeds `dayTemplate`'s
+    lunch/evening budgeting — was ALREADY capped at 40 before this fix, so for
+    any `best` where the new pacing still lands ≥40 the budget-relevant number
+    is unchanged; the harness's fabricated centuries all carry a measured
+    `timedMins`, so after the first one `centuryMins()` reads the measured
+    median and never touches `centurySetPlan()` at all. This fix is scoped
+    entirely to the advisory Pacing text, which the generator has never read.
 - **"No bar today" (2026-08-19, `noBarLog` / `weekDateForDow`)** — Sam: *"let's
   make it so I can say I don't have a pull up bar available today to do the
   century."* Closes a real gap: century ELIGIBILITY had only ever asked "is a
