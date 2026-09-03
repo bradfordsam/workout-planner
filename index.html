@@ -211,6 +211,281 @@ body{
 .ex-suggest-item:last-child{border-bottom:none}
 .ex-suggest-item:active,.ex-suggest-item:hover{background:var(--acc2)}
 .ex-suggest-item .es-mus{font-size:11px;font-weight:600;color:var(--mut);flex-shrink:0;text-transform:capitalize}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   OFF-RAIL — the base direction (2026-09-03)
+
+   One asymmetric layout language, defined once and applied to EVERY route
+   (dashboard, weekly program, history, plan, workout builder, volume
+   breakdown, log edit, cloud). Typography, colour and card fills are
+   untouched — this layer only moves things off the centre line, so every
+   screen keeps the same voice while losing the uniform stacked-column
+   rhythm the app had before.
+
+   Components, each usable on its own — strike any one by deleting its
+   block; nothing else depends on it:
+     OR-1  the rail .............. off-centre spine + broken hairline
+     OR-2  stepped masthead ...... title steps right, vertical side label
+     OR-3  ragged edges .......... blocks indent / bleed past the right edge
+     OR-4  broken corners ........ asymmetric radii, alternating direction
+     OR-5  staggered week strip .. equal 7-col grid broken off its baseline
+     OR-6  straddling labels ..... labels hang into the rail / notch the card
+     OR-7  uneven rhythm ......... 5-step vertical scale, deliberate voids
+     OR-8  off-axis hero ......... empty first column inside the today card
+     OR-9  non-uniform grids ..... equal-fr grids given unequal columns
+     OR-10 revealed charts ....... progress bars grow on scroll into view
+
+   The in-session workout screen (a .view WITHOUT .rag) deliberately opts
+   out of OR-1/2/3/5/6/7: mid-set, a bled card edge and an irregular gap
+   are cost, not character. It still inherits OR-4 and OR-10, so it reads
+   as the same application.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --rail:20px;            /* left gutter the content hangs off */
+  --bleed:18px;           /* how far a block runs past the right edge */
+  --void-xl:56px;--void-lg:38px;--void-md:18px;--void-sm:6px;
+  --r-lead:20px;--r-cut:4px;   /* the two corner sizes, never balanced */
+}
+
+/* ── OR-1 · the rail ─────────────────────────────────────────────────
+   Content sits on a spine that is NOT the centre of the viewport: a wide
+   left gutter, a narrow right one. The hairline running down the gutter is
+   broken in two places — the gaps are the point, not an accident. */
+.view.rag{position:relative;padding:22px 14px 108px calc(var(--rail) + 10px)}
+.view.rag::before{
+  content:'';position:absolute;left:var(--rail);top:86px;bottom:130px;width:1px;pointer-events:none;
+  background:linear-gradient(180deg,
+    transparent 0,var(--bdr-strong) 3%,var(--bdr-strong) 26%,transparent 31%,
+    transparent 38%,var(--bdr-strong) 43%,var(--bdr-strong) 71%,transparent 76%,
+    transparent 84%,var(--bdr-strong) 88%,transparent 100%);
+}
+
+/* ── OR-2 · stepped masthead ─────────────────────────────────────────
+   The title breaks across two lines and the second steps right and dims,
+   so the block has a straight edge on neither side. The section label
+   leaves the horizontal flow entirely and stands up on the right. */
+.masthead{position:relative;margin:2px 0 var(--void-lg) calc(var(--rail) * -1 + 6px);min-height:84px}
+.mh-title{display:flex;flex-direction:column;font-size:40px;font-weight:800;line-height:.9;letter-spacing:-1.8px}
+.mh-l2{margin-left:38px;color:var(--mut-light)}
+.mh-side{
+  position:absolute;right:0;bottom:2px;writing-mode:vertical-rl;transform:rotate(180deg);
+  font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mut);
+}
+/* Every other route's heading gets the same voice: oversized, pulled into
+   the rail, with a hard right margin that forces an early wrap and leaves
+   a deliberate void beside it. */
+.view.rag>.hdg{
+  font-size:32px;font-weight:800;line-height:.92;letter-spacing:-1.4px;
+  margin:0 46px var(--void-lg) calc(var(--rail) * -1);
+}
+
+/* ── OR-3 · ragged edges ─────────────────────────────────────────────
+   Blocks step in and out, and every fourth runs off the right edge of the
+   screen with its border and corners cut — so the column has a straight
+   edge on neither side. Buttons, labels and headings are excluded: a tap
+   target that runs off-screen is a worse button, and a label that drifts
+   away from what it labels reads as a bug rather than a decision. */
+.view.rag>*:not(.masthead,.wk-grid,.btn,.sec-lbl,.hdg,.sub,.s-back,.empty,.nav):nth-child(4n+2){margin-left:14px}
+.view.rag>*:not(.masthead,.wk-grid,.btn,.sec-lbl,.hdg,.sub,.s-back,.empty,.nav):nth-child(4n+3){
+  margin-right:calc(var(--bleed) * -1);
+  border-top-right-radius:0;border-bottom-right-radius:0;border-right-color:transparent;
+}
+.view.rag>*:not(.masthead,.wk-grid,.btn,.sec-lbl,.hdg,.sub,.s-back,.empty,.nav):nth-child(4n){margin-left:28px}
+
+/* ── OR-4 · broken corners ───────────────────────────────────────────
+   Two radii, never balanced, alternating direction down the page. This is
+   the one component that runs on EVERY screen including mid-session. */
+.card,.card2,.today:not(.wk-day),.ex-card,.pg-day,.log-item,.plan-slot-row,
+.wu-box,.cardio-row,.cue-txt,.prog-hint,.plan-chk,.opt,.eq-item{
+  border-radius:var(--r-lead) var(--r-cut) var(--r-lead) var(--r-cut);
+}
+.view.rag>.card:nth-child(odd),
+.view.rag>.log-item:nth-child(odd),
+.view.rag>.pg-day:nth-child(odd){border-radius:var(--r-cut) var(--r-lead) var(--r-cut) var(--r-lead)}
+.btn{border-radius:var(--r-lead) var(--r-cut) var(--r-lead) var(--r-cut)}
+.btn-sm{border-radius:14px 3px 14px 3px}
+
+/* ── OR-5 · staggered week strip ─────────────────────────────────────
+   Seven equal columns was the most rigid grid in the app. It now occupies
+   about three quarters of the width (the remaining quarter is left empty
+   on purpose) and the cells no longer share a baseline — evens drop, and
+   today drops furthest, sitting lowest in the row rather than largest. */
+.v-dash .wk-grid{width:76%;gap:3px;margin:0 0 var(--void-xl) -2px;align-items:end}
+.v-dash .wk-day{padding:7px 2px;border-radius:10px 3px 10px 3px;transition:transform .18s ease}
+.v-dash .wk-day:nth-child(even){transform:translateY(8px)}
+.v-dash .wk-day.viewing{border-radius:10px 3px 10px 3px}
+.v-dash .wk-day.today{transform:translateY(16px);box-shadow:0 0 0 1px rgba(129,140,248,.25)}
+
+/* ── OR-6 · straddling labels ────────────────────────────────────────
+   Section labels hang left out of the content box, tied back to the rail
+   by a short tick. The hero's own label goes further and notches the card
+   it belongs to, cutting a bite out of its left border. */
+.view.rag>.sec-lbl{position:relative;margin-left:calc(var(--rail) * -1 + 4px);margin-bottom:10px}
+.view.rag>.sec-lbl::before{content:'';position:absolute;left:-10px;top:6px;width:6px;height:1px;background:var(--acc);opacity:.75}
+.today:not(.wk-day) .t-lbl{
+  display:inline-block;margin-left:-34px;margin-bottom:8px;
+  padding:4px 12px 4px 34px;background:var(--bg);border-radius:0 12px 12px 0;
+}
+
+/* ── OR-7 · uneven rhythm ────────────────────────────────────────────
+   A five-step cycle instead of a uniform 12px gap: one big breath, one
+   normal gap, then a pair pushed almost together. Labels and headings keep
+   their own spacing so they never float away from what they introduce. */
+.view.rag>*:not(.sec-lbl,.hdg,.masthead,.sub,.nav){margin-bottom:var(--void-md)}
+.view.rag>*:not(.sec-lbl,.hdg,.masthead,.sub,.nav):nth-child(5n+1){margin-bottom:var(--void-xl)}
+.view.rag>*:not(.sec-lbl,.hdg,.masthead,.sub,.nav):nth-child(5n+3){margin-bottom:var(--void-sm)}
+
+/* ── OR-8 · off-axis hero ────────────────────────────────────────────
+   The today card reserves a whole column down its left and puts nothing in
+   it but a fading hairline. The content is pushed off the card's own axis;
+   the empty column is the loudest thing on the screen. */
+.today:not(.wk-day){position:relative;padding:22px 18px 20px 34px;border-radius:24px var(--r-cut) 24px var(--r-cut)}
+.today:not(.wk-day)::before{
+  content:'';position:absolute;left:14px;top:24px;bottom:24px;width:2px;border-radius:2px;
+  background:linear-gradient(180deg,var(--acc) 0,rgba(129,140,248,0) 88%);
+}
+
+/* ── OR-9 · non-uniform grids ────────────────────────────────────────
+   Equal-fraction grids given unequal columns. Two of them, both chosen
+   because they actually render — an earlier pass here styled .plan-days and
+   .opts, and BOTH are dead: .plan-days has no markup anywhere in the app,
+   and .opts renders only in the setup flow and the fatigue-rating card, in
+   neither of which a .v-plan / .v-build ancestor exists. A grid break aimed
+   at a selector that never matches looks identical to one that works.
+     · the plan screen's session row: the Lunch checkbox takes more than its
+       half, so the pair reads as a decision rather than a lattice;
+     · the set list: weight and reps were an exact 1fr / 1fr split even
+       though a weight is up to four figures and a rep count is two. The
+       header and the rows share the same declaration, so they cannot fall
+       out of alignment. */
+.plan-slot-checks .plan-chk:first-child{flex:1.35}
+.sets-hdr,.set-row{grid-template-columns:28px 50px 1.18fr .82fr 38px}
+
+/* ── OR-10 · scroll-revealed progress charts ─────────────────────────
+   The volume bars are the only real chart in the app, and they were
+   painted at full length before you ever looked at them. They now grow
+   from zero when their card scrolls into view, staggered down the rows so
+   the shape of the week reads as it fills. Armed once per render (see
+   armReveals) and fired once per element — scrolling back up does not
+   replay it, because a chart that re-animates every time you pass it stops
+   being information and becomes decoration. */
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .55s cubic-bezier(.22,.9,.24,1)}
+.reveal.in{opacity:1;transform:none}
+.mrv-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.mrv-name{font-size:12px;font-weight:600;width:60px;text-transform:capitalize;display:flex;align-items:center;gap:4px}
+.mrv-track{flex:1;background:var(--surf2);border-radius:4px;height:12px;position:relative}
+.mrv-fill{height:100%;border-radius:4px;width:var(--w)}
+.mrv-tick{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--ok);opacity:.5;border-radius:1px}
+.mrv-val{font-size:11px;min-width:40px;text-align:right}
+.reveal .mrv-fill{width:0;transition:width .75s cubic-bezier(.22,.9,.24,1);transition-delay:calc(var(--i,0) * 55ms)}
+.reveal.in .mrv-fill{width:var(--w)}
+/* The breakdown route's per-muscle bars use the same mechanism, so the two
+   volume screens animate identically. */
+.bd-track{background:var(--surf2);border-radius:4px;height:8px;margin-bottom:10px}
+.bd-fill{height:100%;border-radius:4px;width:var(--w)}
+.reveal .bd-fill{width:0;transition:width .75s cubic-bezier(.22,.9,.24,1)}
+.reveal.in .bd-fill{width:var(--w)}
+@media (prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  .reveal .mrv-fill,.reveal .bd-fill{width:var(--w);transition:none}
+}
+
+/* ── OR-11 · bento hero ──────────────────────────────────────────────
+   The three daily-habit blocks were three identical full-width cards
+   stacked in a row — the most template-shaped part of the app. They are
+   now an asymmetric bento: sleep and push-ups take unequal cells on the
+   left, and the cardio action becomes a tall tile down the right with its
+   label set vertically. When the push-up habit is off, the grid re-flows
+   to two cells rather than leaving a hole where the third was. */
+.bento{display:grid;grid-template-columns:2.15fr .85fr;grid-template-areas:'sleep act' 'push act';gap:10px;align-items:stretch}
+.bento.bento-2{grid-template-areas:'sleep act'}
+.bento-cell{min-width:0}
+.bento-sleep{grid-area:sleep}
+.bento-push{grid-area:push}
+.bento-act{grid-area:act}
+.bento-cell>.card{margin-bottom:0;height:100%;border-radius:var(--r-lead) var(--r-cut) var(--r-lead) var(--r-cut)}
+.bento-cardio{
+  height:100%;width:100%;flex-direction:column;justify-content:center;gap:14px;padding:18px 8px;
+  border-radius:var(--r-cut) var(--r-lead) var(--r-cut) var(--r-lead);
+  background:linear-gradient(160deg,var(--surf2) 0%,var(--surf) 100%);border:1px solid var(--bdr);color:var(--txt);
+}
+.bc-ico{font-size:26px;line-height:1}
+.bc-txt{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--mut-light)}
+
+/* ── OR-12 · display typography ──────────────────────────────────────
+   One type idea, used everywhere: a heavy tight-tracked display size for
+   the thing you came to read, against a small wide-tracked caps label for
+   everything that only tells you what kind of thing it is. Figures are
+   tabular so a counting number never shifts the layout as it changes. */
+.t-name{font-size:30px;letter-spacing:-1.2px;line-height:1.02;margin-bottom:4px}
+.ex-name{font-size:27px;letter-spacing:-1.1px;line-height:1.02}
+/* The station line is set as a wide-tracked caps label, which makes it
+   WIDER than the sentence case it replaced. The header is a space-between
+   flex row with a long day name beside two buttons, so without an explicit
+   shrink/no-shrink split the Quit button gets pushed off the right edge —
+   a control you need on the screen you cannot leave any other way. */
+.wkt-prog{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+.wkt-hdr{gap:10px;align-items:flex-start}
+.wkt-hdr>div:first-child{min-width:0;flex:1}
+.wkt-hdr>div:last-child{flex-shrink:0}
+.wkt-day{line-height:1.3}
+.opt-v,.cr-dur,.mrv-val,.sn,#t-num{font-variant-numeric:tabular-nums}
+.opt-v{letter-spacing:-1px}
+.mrv-val{font-weight:700}
+.log-date{font-size:16px;letter-spacing:-.3px}
+
+/* ── OR-13 · sets, reps and the active timer ─────────────────────────
+   The set list was a plain table. The set number is now a display figure
+   rather than caption text, and a completed set is marked by a bar in the
+   left gutter as well as by colour — the state survives a glance from arm's
+   length on a phone propped against a rack, which a colour change alone
+   does not.
+   The rest overlay stops being a centred bullseye: the ring sits in the
+   left column of a two-column card, everything else is left-aligned beside
+   it, and the count is a display figure. Nothing here changes a tap target
+   or a value — mid-set is the wrong place to be clever with layout. */
+.set-row{position:relative}
+.sn{font-size:17px;font-weight:800;letter-spacing:-.5px}
+.set-row.done::before{content:'';position:absolute;left:-9px;top:3px;bottom:3px;width:3px;border-radius:2px;background:var(--ok);opacity:.85}
+.sets-hdr .sh:first-child,.set-row .sn{text-align:left}
+.ni{border-radius:10px 3px 10px 3px}
+.done-btn{border-radius:12px 3px 12px 3px}
+.rest-inner{
+  display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;
+  gap:4px 22px;align-items:start;text-align:left;padding:30px 24px;width:100%;max-width:480px;
+}
+.rest-lbl{grid-column:2;grid-row:1;margin-bottom:0}
+.tcircle{grid-column:1;grid-row:1 / 4;margin:0;align-self:center}
+#rest-exname{grid-column:2;grid-row:2}
+.skip-rest{grid-column:2;grid-row:3;justify-self:start;margin-top:10px;border-radius:var(--r-lead) var(--r-cut) var(--r-lead) var(--r-cut)}
+#t-num{font-size:46px;letter-spacing:-2px}
+
+/* ── narrow screens ──────────────────────────────────────────────────
+   The rag is a PROPORTION of the screen, not a fixed distance. At 360px the
+   28px indent and the 18px bleed together spend 13% of the width, and the
+   hero card starts wrapping mid-phrase. Everything scales down together so
+   the language survives; nothing is switched off. */
+@media (max-width:380px){
+  :root{--rail:14px;--bleed:12px;--void-xl:44px;--void-lg:30px}
+  .mh-title{font-size:34px;letter-spacing:-1.4px}
+  .mh-l2{margin-left:28px}
+  .view.rag>.hdg{font-size:27px;margin-right:34px}
+  .view.rag>*:not(.masthead,.wk-grid,.btn,.sec-lbl,.hdg,.sub,.s-back,.empty,.nav):nth-child(4n+2){margin-left:8px}
+  .view.rag>*:not(.masthead,.wk-grid,.btn,.sec-lbl,.hdg,.sub,.s-back,.empty,.nav):nth-child(4n){margin-left:16px}
+  .today:not(.wk-day){padding-left:26px}
+  .today:not(.wk-day)::before{left:11px}
+  .today:not(.wk-day) .t-lbl{margin-left:-26px;padding-left:26px}
+  .v-dash .wk-grid{width:84%}
+}
+
+/* ── nav ─────────────────────────────────────────────────────────────
+   The tab bar stays square to the screen — it is the one thing that has to
+   be predictable under a thumb mid-set — but its active marker is set off
+   centre so it speaks the same language. */
+.nb{position:relative}
+.nb.on::after{content:'';position:absolute;top:2px;left:calc(50% - 14px);width:10px;height:2px;border-radius:2px;background:var(--acc)}
+
 </style>
 </head>
 <body>
@@ -4917,7 +5192,7 @@ function renderPushupCard(){
       ?`<div style='flex:1;text-align:center;opacity:.5'>${lbl}${bar}</div>`
       :`<div style='flex:1;text-align:center;cursor:pointer' data-action='toggle-pushup-day' data-date='${d}'>${lbl}${bar}</div>`;
   }).join('');
-  return`<div class='card' style='margin-bottom:14px'>
+  return`<div class='card'>
     <div class='sec-lbl' style='margin-bottom:8px'>💪 Morning Push-ups · ${target}/day</div>
     <div style='display:flex;gap:4px;margin-bottom:10px'>${ticks}</div>
     <button class='btn btn-sm ${doneToday?'btn-ok':'btn-p'}' data-action='toggle-pushups' style='width:100%'>${doneToday?`✓ Done today — ${target} logged`:`Log today's ${target}`}</button>
@@ -4930,7 +5205,7 @@ function renderSleepCard(){
   const logged=S.sleepLog?.[today];
   const opts=[{v:5,label:'<6h'},{v:6.5,label:'6–7h'},{v:8,label:'7–9h'},{v:9.5,label:'9h+'}];
   const shielded=logged!=null&&logged>=7&&logged<=9;
-  return`<div class='card' style='margin-bottom:14px'>
+  return`<div class='card'>
     <div class='sec-lbl' style='margin-bottom:8px'>😴 Last Night's Sleep${logged!=null?` <span style='color:var(--mut);font-weight:400;text-transform:none;letter-spacing:0'>· logged</span>`:''}</div>
     <div style='display:flex;gap:6px;flex-wrap:wrap'>
       ${opts.map(o=>`<button class='btn btn-sm ${logged===o.v?'btn-p':'btn-g'}' data-action='log-sleep' data-hours='${o.v}' style='flex:1;min-width:70px'>${o.label}</button>`).join('')}
@@ -5215,31 +5490,29 @@ function renderMRVWidget(){
   // green within min–max, red over max. ⚠️ still flags recent external work
   // but no longer overrides the range color.
   const rows = Object.entries(mrvStatus)
-    .map(([muscle, status]) => {
+    .map(([muscle, status], rowIdx) => {
       const {current, min, max, level} = status;
       const isOverworked = overworkedMuscles.has(muscle);
       const color = level === 'high' ? 'var(--bad)' : level === 'optimal' ? 'var(--ok)' : 'var(--warn)';
       const pct = Math.min(100, (current / max) * 100);
       const minPct = Math.min(100, (min / max) * 100); // tick where green starts
 
-      return `<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px'>
-        <div style='font-size:12px;font-weight:600;width:60px;text-transform:capitalize;display:flex;align-items:center;gap:4px'>
-          ${MNAME[muscle]}
-          ${isOverworked ? '<span style="font-size:10px;color:var(--warn)">⚠️</span>' : ''}
+      // The bar's length is carried as --w rather than as an inline width, so
+      // the reveal can hold it at 0 and hand it back on scroll-in; an inline
+      // width would win over both and the bar would simply never animate.
+      return `<div class='mrv-row' style='--i:${rowIdx}'>
+        <div class='mrv-name'>${MNAME[muscle]}${isOverworked ? '<span style="font-size:10px;color:var(--warn)">⚠️</span>' : ''}</div>
+        <div class='mrv-track'>
+          <div class='mrv-fill' style='background:${color};--w:${pct}%'></div>
+          <div class='mrv-tick' style='left:${minPct}%'></div>
         </div>
-        <div style='flex:1;background:var(--surf2);border-radius:4px;height:12px;position:relative'>
-          <div style='background:${color};height:100%;width:${pct}%;border-radius:4px'></div>
-          <div style='position:absolute;top:-1px;bottom:-1px;left:${minPct}%;width:2px;background:var(--ok);opacity:.5;border-radius:1px'></div>
-        </div>
-        <div style='font-size:11px;color:${color};min-width:40px;text-align:right'>
-          ${current}/${max}
-        </div>
+        <div class='mrv-val' style='color:${color}'>${current}/${max}</div>
       </div>`;
     }).join('');
 
   const fatigued=[...getFatiguedMuscles()].filter(m=>MNAME[m]);
   const fatigueNote=fatigued.length?`<div style='font-size:11px;color:var(--warn);margin-top:8px'>🔋 Recovering: ${fatigued.map(m=>MNAME[m]).join(', ')} — volume ceiling reduced 15% for 72h after your hard session</div>`:'';
-  return `<div class='card' data-action='view-mrv-breakdown' style='cursor:pointer'>
+  return `<div class='card reveal' data-action='view-mrv-breakdown' style='cursor:pointer'>
     <div style='font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px'>
       📊 Weekly Set Volume (MRV)
       <span style='font-size:10px;color:var(--mut);font-weight:400'>🟡 under · 🟢 optimal · 🔴 over · ⚠️ recent external</span>
@@ -5282,20 +5555,20 @@ function renderMRVBreakdown(){
         ${srcBadge.scheduled}
       </div>`).join('');
     const pct=lim?Math.min(100,(b.committed/lim.max)*100):0;
-    return`<div class='card'>
+    return`<div class='card reveal'>
       <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px'>
         <span style='width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0'></span>
         <strong style='font-size:15px'>${MNAME[m]||m}</strong>
         <span style='margin-left:auto;font-size:13px;color:var(--mut)'><strong style='color:var(--txt)'>${b.committed}</strong>${lim?` / ${lim.max} sets`:' sets'}${b.projected?` · +${b.projected} upcoming`:''}</span>
       </div>
-      <div style='background:var(--surf2);border-radius:4px;height:8px;margin-bottom:10px'>
-        <div style='background:${color};height:100%;width:${pct}%;border-radius:4px'></div>
+      <div class='bd-track'>
+        <div class='bd-fill' style='background:${color};--w:${pct}%'></div>
       </div>
       ${committedRows||`<div style='font-size:12px;color:var(--mut);padding:4px 0'>No sets counted yet this week.</div>`}
       ${projRows}
     </div>`;
   }).join('');
-  return`<div class='view'>
+  return`<div class='view rag v-mrv'>
     <button class='s-back' data-action='back-to-dash' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
     </button>
@@ -7519,7 +7792,7 @@ function renderPlan(){
   const endVal=calGoal.endDate||nextSunday();
   const calVal=calGoal.cals||'';
 
-  return`<div class='view'>
+  return`<div class='view rag v-plan'>
     <button class='s-back' data-action='plan-back' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
     </button>
@@ -7686,6 +7959,21 @@ function renderSetup(){
 // RENDER – DASHBOARD
 // ─────────────────────────────────────────────
 function renderDash(){
+  // Bento hero (OR-11): the two habit cards and the cardio action are laid
+  // out as one asymmetric grid instead of three stacked full-width cards.
+  // A cell whose card returns '' (the push-up habit set to 0/day) is dropped
+  // and the grid re-flows to two cells — an empty tile would read as a bug.
+  const _sleepHTML=renderSleepCard();
+  const _pushHTML=renderPushupCard();
+  const bentoHTML=`<div class='bento${_pushHTML?'':' bento-2'}'>
+      <div class='bento-cell bento-sleep'>${_sleepHTML}</div>
+      ${_pushHTML?`<div class='bento-cell bento-push'>${_pushHTML}</div>`:''}
+      <div class='bento-cell bento-act'>
+        <button class='btn bento-cardio' data-action='open-log-cardio'>
+          <span class='bc-ico'>🏃</span><span class='bc-txt'>Log Cardio</span>
+        </button>
+      </div>
+    </div>`;
   const today=todayDay();const dow=todayDow();const isSunday=dow===0;
   const missed=getMissedDays();
   const completedDows=getCompletedDows();
@@ -7948,13 +8236,13 @@ function renderDash(){
       <button class='done-btn' data-action='delete-log' data-id='${l.id}' title='Delete workout' style='background:var(--bad2);color:var(--bad);flex-shrink:0'>🗑️</button>
     </div>`).join('');
 
-  return`<div class='view'>
-    <div class='hdg'>My Program</div>
-    <div class='sec-lbl'>This Week</div>
+  return`<div class='view rag v-dash'>
+    <div class='masthead'>
+      <div class='mh-title'><span class='mh-l1'>My</span><span class='mh-l2'>Program</span></div>
+      <span class='mh-side'>This Week</span>
+    </div>
     <div class='wk-grid'>${wkGrid}</div>
-    ${renderSleepCard()}
-    ${renderPushupCard()}
-    <button class='btn btn-g btn-sm' data-action='open-log-cardio' style='width:100%;margin-bottom:14px'>🏃 Log Cardio Activity</button>
+    ${bentoHTML}
     ${renderRecoveryBanner()}
     ${todayHTML}
     ${planCard}
@@ -8665,7 +8953,7 @@ function renderReviewWorkout(){
     </div>`;
   }).join('');
 
-  return `<div class='view'>
+  return `<div class='view rag v-page'>
     <button class='s-back' data-action='back-to-dash' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
     </button>
@@ -9496,7 +9784,7 @@ function renderCustomSession(){
     </div>`
     :`<div style='font-size:12px;color:var(--mut);margin-bottom:16px'>No saved templates yet — build a session and tap "Save as template" to reuse it.</div>`;
 
-  return `<div class='view'>
+  return `<div class='view rag v-build'>
     <button class='s-back' data-action='cs-cancel' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Cancel
     </button>
@@ -9593,7 +9881,7 @@ function renderCustomWorkoutLog(){
     </div>
   `;}).join('');
 
-  return `<div class='view'>
+  return `<div class='view rag v-build'>
     <button class='s-back' data-action='cancel-custom-workout' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Cancel
     </button>
@@ -9713,7 +10001,7 @@ function renderProgram(){
       :`<div style='font-size:13px;color:var(--mut)'>Strength ~${cardio.strengthCals} cal · Need ${cardio.cardioCalsNeeded} more from cardio · ${cardio.calsPerDay} cal/day · ${cardio.daysLeft} days left</div>`}
   </div>`:'';
 
-  return`<div class='view'>
+  return`<div class='view rag v-program'>
     <div class='hdg'>Weekly Program</div>
     <div class='sub'>Every movement for the week. Combo days show both the lunch and after-work sessions. Skipped days show as rest. Missed days shown in red. Set your goal and plan from the Home tab.</div>
     <button class='btn btn-g btn-sm' data-action='build-custom-session' style='width:100%;margin-bottom:16px'>&#128296; Build My Own Workout</button>
@@ -9757,7 +10045,7 @@ function renderLogEdit(){
       ${hdr}${rows}
     </div>`;
   }).join('');
-  return`<div class='view'>
+  return`<div class='view rag v-history'>
     <button class='s-back' data-action='cancel-log-edit' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
     </button>
@@ -9909,7 +10197,7 @@ function renderDeletedSection(){
 
 function renderHistory(){
   const pastBtn=`<button class='btn btn-s btn-sm' data-action='log-past-workout' style='margin-bottom:14px'>📅 Log a Past Workout</button>`;
-  if(!S.logs.length)return`<div class='view'>
+  if(!S.logs.length)return`<div class='view rag v-history'>
     <div class='hdg'>History</div>
     ${pastBtn}
     <div class='empty'><span style='font-size:48px;display:block;margin-bottom:12px'>📋</span>No workouts logged yet.<br>Complete your first session to start tracking progress.</div>
@@ -9939,7 +10227,7 @@ function renderHistory(){
     </div>`;
   }).join('');
 
-  return`<div class='view'>
+  return`<div class='view rag v-history'>
     <div class='hdg'>Workout History</div>
     ${pastBtn}
     ${items}
@@ -12213,7 +12501,7 @@ function renderCloudCard(){
 function renderCloudSetup(){
   const existing=getStoredFbConfig();
   const val=existing?JSON.stringify(existing,null,2):'';
-  return`<div class='view'>
+  return`<div class='view rag v-page'>
     <button class='s-back' data-action='plan-back' style='margin-bottom:20px;margin-top:0'>
       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg> Back
     </button>
@@ -12242,12 +12530,46 @@ function renderCloudSetup(){
 }
 
 // ─────────────────────────────────────────────
+// SCROLL REVEALS
+// ─────────────────────────────────────────────
+// The weekly volume bars and the per-muscle breakdown grow from zero as
+// their card scrolls into view. Three properties are load-bearing:
+//  · It fires ONCE per element. A bar that re-animates every time you scroll
+//    past it stops reading as data and starts reading as decoration — and
+//    this screen gets checked mid-session, where a chart that keeps moving is
+//    worse than one that never moved at all.
+//  · It is armed after EVERY render, not once at load. The app replaces
+//    #root wholesale on every state change, so anything observed before a
+//    render is a detached node holding a stale animation. A MutationObserver
+//    on #root's child list catches every path — render(), the cloud-sync
+//    re-render, an undo — without render() needing to know this exists.
+//  · Without IntersectionObserver the charts are shown at full length rather
+//    than left invisible. The reveal is polish; the data is not.
+const _revealIO = ('IntersectionObserver' in window)
+  ? new IntersectionObserver((entries,obs)=>{
+      entries.forEach(en=>{
+        if(!en.isIntersecting)return;
+        en.target.classList.add('in');
+        obs.unobserve(en.target);
+      });
+    },{rootMargin:'0px 0px -10% 0px',threshold:0})
+  : null;
+function armReveals(){
+  const els=document.querySelectorAll('.reveal:not(.in)');
+  if(!_revealIO){els.forEach(el=>el.classList.add('in'));return;}
+  els.forEach(el=>_revealIO.observe(el));
+}
+
+// ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
 load();
 const _fbCfg=getStoredFbConfig();
 if(_fbCfg)initFirebase(_fbCfg);
 render();
+armReveals();
+const _rootEl=document.getElementById('root');
+if(_rootEl&&'MutationObserver' in window)new MutationObserver(armReveals).observe(_rootEl,{childList:true});
 
 // Register service worker for PWA functionality
 if ('serviceWorker' in navigator) {

@@ -1541,6 +1541,87 @@ the Foundation Five guarantee bypasses the caps outright. Warning daily about
 something "space them out" can't fix is the same failure this pass just removed
 for legs, so it stays off until the underlying scheduling question is settled.
 
+## OFF-RAIL — the visual base direction (2026-09-03)
+
+Sam asked for asymmetry, unusual negative space and grid breaks, then for the
+result to become one consolidated "base direction" applied to every route, with
+"the exact same typography, card styles and aesthetic language" so the app reads
+as one thing. It is a **single CSS layer** at the end of the `<style>` block plus
+a handful of markup edits — the scheduler, the ledgers and the estimator are
+untouched, and the case-study harness proves it: all 7 scenarios are
+**byte-identical to `git show HEAD:index.html` through the same harness** (the
+committed `analysis/case-study-data.json` is STALE and differs from both — the
+meaningful comparison is a fresh baseline run, not that file).
+
+Ten named components, `OR-1`…`OR-13`, each documented in place and each
+independently removable — the header block in `index.html` lists them. What
+matters here is the reasoning that isn't obvious from the CSS:
+
+- **The route class is `.rag`, not a per-view class.** Every browsing route
+  (`v-dash`/`v-program`/`v-history`/`v-plan`/`v-build`/`v-mrv`/`v-page`) carries
+  `view rag <route>`; the shared language keys off `.rag` and only the few
+  genuinely view-specific pieces key off the route class. Writing the ragged
+  rules as a seven-way selector list was the alternative, and it guarantees the
+  seven drift apart the first time one is edited.
+- **The in-session workout screen deliberately has NO `.rag`.** It keeps OR-4
+  (corners) and OR-10 (reveals) so it is visibly the same application, and opts
+  out of the rail, the bleeds and the uneven rhythm. Mid-set, a card edge running
+  off-screen and an irregular gap are cost, not character. The render smoke test
+  asserts this both ways — `renderWorkout()` must contain `class='view'` and must
+  NOT contain `class='view rag`.
+- **Buttons and labels are excluded from the bleed** (`:not(.btn,.sec-lbl,…)`).
+  A tap target that runs off the right edge is a worse button, and a label that
+  drifts from what it labels reads as a bug rather than a decision. The exclusion
+  list is the reason the raggedness looks intentional.
+- **OR-3's `nth-child` pattern is deterministic but content-blind**, and that is
+  the point: which blocks indent and which bleed depends on how many cards the
+  day produced, so the page rags differently on a century day than on a lifting
+  day without anything computing that.
+- **OR-9 replaced two DEAD rules, and this is the CSS twin of the EX-ordering
+  trap.** The first pass styled `.plan-days` and `.opts`: `.plan-days` has no
+  markup anywhere in the app, and `.opts` renders only in the setup flow and the
+  fatigue-rating card — neither of which has a `.v-plan`/`.v-build` ancestor. **A
+  grid break aimed at a selector that never matches looks identical to one that
+  works.** Caught by asserting on rendered output, not by reading the CSS. The
+  rules that replaced them (`.plan-slot-checks`, and the set list's weight/reps
+  split going 1fr/1fr → 1.18fr/.82fr) both demonstrably render.
+- **`.sets-hdr` and `.set-row` must be changed in ONE declaration.** They share
+  the same `${rowGrid}` inline override, so a CSS change to only one of them puts
+  the header out of alignment with its own numbers on every weighted lift.
+- **The `--w` custom property is what makes the reveal possible.** The volume
+  bars used to carry `width:${pct}%` inline, which beats any class rule — the
+  reveal could hold it at 0 and the bar would simply never animate. The length
+  now rides `--w` and the `.reveal`/`.reveal.in` pair owns `width`.
+- **`armReveals` is armed by a MutationObserver on `#root`'s child list**, not
+  from inside `render()`. The app replaces `#root` wholesale on every state
+  change, so anything observed before a render is a detached node; the observer
+  catches every path (`render()`, the cloud-sync re-render, an undo) without
+  `render()` needing to know the reveal exists. It fires **once per element** —
+  a chart that re-animates every time you scroll past stops reading as data —
+  and falls back to showing everything at full length where
+  `IntersectionObserver` is missing, because the reveal is polish and the data
+  is not.
+- **A real bug this pass introduced and fixed**: `.wkt-prog` set as a
+  wide-tracked caps label is WIDER than the sentence case it replaced, and
+  `.wkt-hdr` is a space-between flex row with a long day name beside two
+  buttons — **Quit was pushed off the right edge**, on the one screen you cannot
+  leave any other way. Fixed with an explicit shrink/no-shrink split rather than
+  by shrinking the type back.
+- **The rag scales with the screen** (`@media (max-width:380px)`). At 360px a
+  28px indent plus an 18px bleed spends 13% of the width and the hero card wraps
+  mid-phrase. Everything scales together; nothing is switched off.
+- `:not()` with a **selector list** is Level 4 (Chrome 88+, Safari 16.4+). On
+  anything older the whole rule is dropped and the cards fall back to their own
+  margins — a graceful loss of the rag, not a broken screen.
+
+Verified: the syntax gate, an **18-assertion render smoke test** over every route
+(both bento states, the `.rag` opt-out, no `undefined`/`NaN`/`[object Object]`
+in any output), the case-study harness against a fresh HEAD baseline, and live
+screenshots of every route at 440px and 360px. **Re-run the render smoke test
+after touching `renderDash`, `renderMRVWidget` or `renderMRVBreakdown`** — the
+bento and the `--w` bars are interpolated identifiers, and a ReferenceError
+inside a template literal is invisible to the syntax check.
+
 ## Training constraints (why the code is shaped this way)
 
 - Left hip has FAI history (`hipCaution`): no HARD-landing/impact plyos, no
