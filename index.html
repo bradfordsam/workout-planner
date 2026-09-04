@@ -6886,13 +6886,30 @@ const prepFocus=(it)=>(it&&it.f&&it.f.length)?it.f:['hip'];
 const prepIsLeg=(it)=>prepFocus(it).some(t=>PREP_LEG_TISSUES.includes(t));
 const prepIsDesk=(it)=>prepFocus(it).some(t=>PREP_DESK_TISSUES.includes(t));
 
-// ── THE PT HIP PROGRAM (2026-08-05) ──
-// Thirteen movements Sam's physio prescribed by name. They get their OWN block
-// rather than being scattered through HIP_POOL for two reasons: a 26-entry pool
-// showing 4 items a session would surface any given PT movement about once a
-// fortnight, which is not a rehab dose; and the provenance matters — this is
-// the physio's prescription, not the app's opinion, so it should be labelled as
-// such and not quietly reshuffled.
+// ── THE PT HIP PROGRAM (2026-08-05, updated 2026-09-03) ──
+// Fifteen movements Sam's physio (Josh Reid, TherapySouth) prescribed by name.
+// They get their OWN block rather than being scattered through HIP_POOL for two
+// reasons: a 26-entry pool showing 4 items a session would surface any given PT
+// movement about once a fortnight, which is not a rehab dose; and the
+// provenance matters — this is the physio's prescription, not the app's
+// opinion, so it should be labelled as such and not quietly reshuffled.
+//
+// 2026-09-03 sheet (access code KWLTQEFW) added five movements; two are true
+// duplicates of ones already covered elsewhere and were deliberately NOT
+// re-added, same rule as the 2026-08-05 Clamshells move below:
+//   - Butterfly Groin Stretch === HIP_POOL's 'Butterfly Stretch' (identical
+//     setup/movement/tip, 30–45s soles-together seated stretch).
+//   - Supine Figure 4 Piriformis Stretch === HIP_POOL's 'Figure 4 Stretch'
+//     (identical supine ankle-on-knee stretch).
+//   - Quadruped Fire Hydrant is the same movement as this pool's existing
+//     'Fire Hydrants' entry, just re-dosed by the newer sheet (3×10 vs.
+//     12 reps/side) — the dose below was updated in place rather than adding
+//     a second entry for the same movement.
+// The two genuinely new ones — Side Plank with Clam, Single Leg Bridge — are
+// core/glute stability work in the flexion+abduction-adjacent quadrant, so
+// they carry the same stop-at-the-pinch review as the rest of the flexion
+// work in this pool; neither is a hard end-range hip rotation under load, so
+// hip-caution clearance follows the same reasoning as the rest of the file.
 //
 // NOT ADDED TO `EX`, following the DAILY_SPINE_MINIMUMS / FOUNDATION_FIVE plank
 // precedent: `hips` is not one of dayTemplate's MUSCLES, so an EX entry there
@@ -6900,13 +6917,13 @@ const prepIsDesk=(it)=>prepFocus(it).some(t=>PREP_DESK_TISSUES.includes(t));
 // actually delivers hip work. A fixed per-session dose is also a stronger
 // guarantee than a slot that competes on merit.
 //
-// HIP-CAUTION REVIEW: all thirteen are bodyweight or light band, and every
+// HIP-CAUTION REVIEW: all fifteen are bodyweight or light band, and every
 // range is SELF-SELECTED — the same reasoning that lets hip_airplane and
 // hip_cars run under hipCaution. The FAI constraint is no LOADED end-range
-// rotation and no hard-landing impact; none of these are either. The three that
+// rotation and no hard-landing impact; none of these are either. The four that
 // work in the flexion+abduction quadrant (fire hydrants, seated spreads, the
-// quadruped work) carry an explicit stop-at-the-pinch cue, which is the same
-// safety mechanism tricep_dips' depth cap relies on.
+// quadruped work, side plank with clam) carry an explicit stop-at-the-pinch
+// cue, which is the same safety mechanism tricep_dips' depth cap relies on.
 //
 // `band:true` marks the ones that need a mini/loop band. The last recorded
 // state of the kit was "no band" (2026-07-15, which is why band pull-aparts and
@@ -6915,7 +6932,9 @@ const prepIsDesk=(it)=>prepFocus(it).some(t=>PREP_DESK_TISSUES.includes(t));
 // bandless fallback wherever the movement survives without it.
 const PT_HIP_POOL=[
   {n:'Clamshells',d:'12 reps/side · side-lying, hips stacked and knees bent ~45°, heels together — open the top knee without letting the pelvis roll back. Pause 1s at the top. Band above the knees if you have one',f:['hip','glute'],band:false},
-  {n:'Fire Hydrants',d:'12 reps/side · quadruped, knee bent 90°, lift the knee out to the side keeping the hips square — stop the moment you feel a pinch at the front of the left hip; height is not the point, the glute is',f:['hip','glute']},
+  {n:'Fire Hydrants',d:'3 sets of 10 reps/side · quadruped, hands under shoulders and knees under hips, lift the knee out to the side keeping the hips square — stop the moment you feel a pinch at the front of the left hip; height is not the point, the glute is',f:['hip','glute']},
+  {n:'Side Plank with Clam',d:'3 sets of 10 reps/side · side-lying, knees bent ~90° and resting on your forearm — brace and lift the hips into a kneeling side plank, keeping head, hips and knees in one line. From there lift the top knee like a clamshell, hold briefly, then relax and repeat without letting the hips roll forward or back',f:['hip','glute']},
+  {n:'Single Leg Bridge',d:'3 sets of 10 reps/side · on your back, both knees bent, feet on the floor — straighten one leg in line with the other, brace the abs, then lift the hips into a bridge and lower back down without letting the hips rotate',f:['glute','hip']},
   {n:'Donkey Kickbacks',d:'12 reps/side · quadruped, drive one heel straight back and up with the knee bent 90°, squeezing the glute at the top — ribs down, no lower-back arch. The range comes from the hip, not the spine',f:['glute','hip']},
   {n:'Hip Thrust Kicks',d:'10 reps/side · shoulders on a bench or floor, drive to a full glute bridge and HOLD it there, then extend one knee out straight and back without letting that hip drop. The held bridge is the exercise; the kick is the test',f:['glute','hip']},
   {n:'Seated Leg Spreads',d:'15 reps · seated tall, knees bent, band above the knees (or press your own hands against the outside of both knees) — spread the knees apart, pause 1s, return slowly. Sit UP; if the front of the left hip pinches, lean the torso back a few degrees',f:['hip','glute'],band:true},
