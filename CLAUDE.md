@@ -1787,6 +1787,13 @@ inside a template literal is invisible to the syntax check.
     hypertrophy work already is, and "reps" is repurposed to hold the piece's
     calorie count, the same convention timed carries already use for seconds).
     All 7 case-study scenarios byte-identical to baseline.
+  - **`sandbag_carry` shipped without `isTimed`**, and Sam caught it same-day:
+    a carry is measured in time or distance, never weight × reps, and the app
+    has no distance unit at all — only reps or `isTimed` seconds. Fixed to
+    `isTimed:true`, matching `suitcase_carry`'s sibling entry exactly (bilateral
+    load, so no "per side" — one continuous carry). The cue tells him to log
+    the elapsed TIME even when a card states a distance ("100m"), since seconds
+    is the only unit this pool actually has for ground covered.
 - Leg training goal (updated 2026-07-14): multi-directional force handling,
   high eccentric loading, and movement resilience — heavy 1–5 @ 85–95% squat/
   hinge/single-leg strength plus eccentric/decel/lateral work; still no
