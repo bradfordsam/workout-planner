@@ -1750,6 +1750,43 @@ inside a template literal is invisible to the syntax check.
     case-study scenarios byte-identical to baseline — it can never be selected
     by anything the generator touches, so there's nothing for the sim to see
     move.
+  - **Clarified same day: this is for LOGGING a movement he actually did, not
+    for the generator.** No further gating needed beyond what's above — the
+    ask was scope, not a new mechanism.
+  - **"Gauge scaling weight progressions for other similar movements"** turned
+    out to need no new code at all — the step-3b comparability estimator
+    (`loadComparability`/`loadBridge`, above `MOVEMENT_CLASS`) already does this
+    automatically from `muscle`+`type`+`eq`+tags, and correct tagging is what
+    makes it work in BOTH directions. Verified: before he's ever logged it,
+    `estimateStartingWeight('db_hang_clean_jerk',...)` resolves from
+    `db_push_press` (same muscle/type/loadClass, shared `power` pattern tag,
+    bilateral→unilateral bridge applied) rather than the cold-start default —
+    and once logged, it becomes the top-scoring anchor for a hypothetical
+    future similar movement (a single-arm DB power lift) ahead of every other
+    candidate in the pool. No hand-authored `MOVEMENT_CLASS` row needed;
+    tagging it `type:'compound'`, `eq:['dumbbells']`, `tags:['power','unilateral']`
+    was sufficient.
+  - **A screenshot of an actual CrossFit workout (2026-09-05)** surfaced six
+    more movements missing from the directory in the same request — Sam: "make
+    sure all of the movements are in the exercise directory." Added as ordinary
+    pool entries, since none of them carry a documented injury conflict the way
+    the hang clean's overhead finish does:
+    `box_jump_over` (legs, `tags:['plyometric','conditioning']` — no
+    `lowImpact:true`, so hip caution already excludes it from auto-generation
+    the same way every other true impact plyo is, no new mechanism needed),
+    `burpee_pullup` (back — the pull-up is the limiting half, matching how
+    plain `pullups` is classed), `sandbag_carry` (core, next to
+    `suitcase_carry` but bilateral rather than offset — drops the
+    anti-rotation/lateral/unilateral tags that describe the SUITCASE's specific
+    demand, and uses `eq:['other']` since no equipment preset owns a sandbag,
+    the same honest token Custom Session's synthesized movements use),
+    `medball_situp_over_box` (core, next to plain `situps`/`crunches`, weight
+    logged off the ball same as `med_ball_chest_pass`), and `cal_row`/`cal_bike`
+    (both legs, `tags:['conditioning']` only — no `LEG_EMPHASIS_TAGS` entry, so
+    `legAutoOK` excludes them from auto-generation the same way plain leg
+    hypertrophy work already is, and "reps" is repurposed to hold the piece's
+    calorie count, the same convention timed carries already use for seconds).
+    All 7 case-study scenarios byte-identical to baseline.
 - Leg training goal (updated 2026-07-14): multi-directional force handling,
   high eccentric loading, and movement resilience — heavy 1–5 @ 85–95% squat/
   hinge/single-leg strength plus eccentric/decel/lateral work; still no
