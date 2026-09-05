@@ -624,6 +624,16 @@ const EX = [
   {id:'seated_db_press',name:'Seated DB Shoulder Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'Start at ear height, press up and slightly in. Full lockout. Control descent back to ear height.'},
   {id:'push_press',name:'Push Press',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'Bar racked at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch the bar overhead in one motion to lockout. Lower under control back to the shoulders. The leg drive lets you overload the press beyond strict-press weights while training total-body explosiveness — the classic athlete\'s overhead lift.'},
   {id:'db_push_press',name:'DB Push Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'A dumbbell in each hand at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch both DBs overhead in one motion to lockout. Each arm stabilizes its own dumbbell independently, so this runs noticeably lighter per hand than half your barbell push press — don\'t chase the same number. Lower under control back to the shoulders.'},
+  // standingPressRisk (2026-08-31): a hang clean finishes in a JERK, which is a
+  // standing overhead press — the same mechanism ohp/push_press/db_push_press/
+  // thrusters are all on the avoid list for (lower back). Unlike those four,
+  // this one stays OUT of avoidExercises on purpose: Sam asked for it to remain
+  // pickable from the swap list and Build My Own Workout, just never something
+  // the generator reaches for on its own. See standingPressRisk's gate in
+  // pickEx/canPlaceFoundation — unconditional, no caution toggle, matching how
+  // this constraint has always worked (the other four have never been
+  // toggle-gated either).
+  {id:'db_hang_clean_jerk',name:'Alternating Single-Arm DB Hang Clean & Jerk',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:3,rMax:5,rest:150,standingPressRisk:true,tags:['power','unilateral'],cue:'STANDING OVERHEAD PRESS — flagged for the lower back, same as Push Press. One DB hangs at arm\'s length in front of the thighs. Hinge slightly, then explode up through the hips and shrug the DB to the shoulder in one motion (the "clean"), rotating the elbow under and catching it racked at the shoulder, wrist straight. Without resetting, dip the knees a few inches and drive them straight up, punching the DB to lockout overhead (the "jerk"). Lower back to the shoulder, then to the hang, and alternate arms every rep. Full-body power expression — legs and hips do almost all the work in both the clean and the jerk; the arm is along for the ride, not lifting it. Land the catch soft in both positions, and stop the set the moment the catch gets sloppy.'},
   {id:'arnold_press',name:'Arnold Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Seated on a bench with back support. Start palms facing you, rotate to facing out as you press. All three delt heads involved. Control the descent.'},
   {id:'db_lateral',name:'DB Lateral Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Standing, slight forward lean, lead with elbows. Imagine "scraping the wall" with your knuckles as you raise — keeps the path in the scapular plane. Pause at top. Slow 2-count negative. Lateral delts respond well to higher reps.'},
   {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Standing, cross-body cable. "Scrape the wall" with your hand on the way up to keep the arm path in the scapular plane. Constant tension throughout ROM. Resist the weight on the way down — don\'t let it snap back.'},
@@ -949,6 +959,7 @@ const FEELS={
   seated_db_press:'Delts working through the whole arc — side delts light up at the midpoint.',
   push_press:'Legs snap, then the delts catch and finish — power transferring up through the trunk.',
   db_push_press:'Legs snap, then each delt independently catches and stabilizes its own DB — more balance demand than the barbell version.',
+  db_hang_clean_jerk:'One continuous whip from the hips — the DB should feel like it arrives at the shoulder on its own, then the legs alone punch it overhead. If the arm is doing visible work at either catch, the timing is off, not the weight.',
   arnold_press:'Delts loaded through the rotation — front delts at the start, side delts as the arms open.',
   db_lateral:'The side delt lifting the elbow — a burn on the outside cap of the shoulder, traps quiet.',
   cable_lateral:'Constant side-delt tension through the whole arc — especially the bottom third where dumbbells go slack.',
@@ -3580,6 +3591,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     legGateOK(e) &&
     !(S.cfg.hipCaution && e.hipRisk) &&
     !(S.cfg.shoulderCaution && e.shoulderRisk) &&
+    !e.standingPressRisk &&
     !plyoHidden(e) &&
     !userAvoids(e) &&
     dragonFlagUnlocked(e.id) &&
@@ -4168,6 +4180,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       if(!def)return false;
       return (def.eq||[]).some(q=>eqSet.has(q))
         &&!(S.cfg.hipCaution&&def.hipRisk)&&!(S.cfg.shoulderCaution&&def.shoulderRisk)
+        &&!def.standingPressRisk
         &&!plyoHidden(def)&&!userAvoids(def)
         &&!kneeCautionBlocks(def)&&dragonFlagUnlocked(def.id)
         &&!(isLunch&&def.highSweat);
@@ -9144,6 +9157,7 @@ function customExWarnings(ex,opts){
   if(userAvoids(ex))add('&#9940;',`On your avoid list — you took this one off the program on purpose. It'll still run if you mean it.`);
   if(S.cfg.hipCaution&&ex.hipRisk)add('&#9888;&#65039;',`Flagged for the left hip (FAI history) — loaded end-range rotation or hard landings.`);
   if(S.cfg.shoulderCaution&&ex.shoulderRisk)add('&#9888;&#65039;',`Flagged for the left shoulder — ballistic anterior loading, which no cue makes safe.`);
+  if(ex.standingPressRisk)add('&#9888;&#65039;',`Standing overhead press — flagged for the lower back, same reason OHP/Push Press/Thrusters are on the avoid list. Never programmed automatically, but it's your call here.`);
   if(plyoHidden(ex))add('&#9888;&#65039;',`Impact plyo — the generator hides these under hip caution; only the low-impact subset is cleared.`);
   if(S.cfg.kneeCaution&&ex.muscle==='legs'&&!KNEE_SAFE_IDS.has(ex.id))add('&#9888;&#65039;',`Outside the knee-safe list that Knee Caution mode whitelists.`);
   if(!dragonFlagUnlocked(ex.id))add('&#128274;',`The earlier tier of this progression isn't logged at 10 reps yet.`);

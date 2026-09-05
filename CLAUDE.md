@@ -1729,7 +1729,27 @@ inside a template literal is invisible to the syntax check.
   `thrusters` are all on `avoidExercises`. Seated overhead pressing
   (`seated_db_press`, `arnold_press`) is fine and keeps the shoulders pool
   supplied with a compound. Don't add new standing overhead press variants
-  (jerks, standing landmine/Z-press, overhead carries under load).
+  (jerks, standing landmine/Z-press, overhead carries under load) **the way
+  the first four were handled** — `avoidExercises` hides a movement from the
+  swap list too, not just the generator.
+  - **`db_hang_clean_jerk` (2026-08-31)** is the one deliberate exception, and
+    it's handled differently on purpose. Sam asked for it by name, was shown
+    this exact constraint, and chose: add it for real, keep it out of anything
+    the generator reaches for on its own, but leave it pickable from the swap
+    list and Build My Own Workout rather than hidden the way `avoidExercises`
+    would hide it. New flag `standingPressRisk:true` does that — checked
+    alongside `hipRisk`/`shoulderRisk` in `pickEx`'s `baseFor` and in
+    `canPlaceFoundation`, but **unconditionally**, no caution toggle, matching
+    how this constraint has always worked (the other four have never been
+    toggle-gated either). Deliberately NOT reusing `shoulderRisk` even though
+    Sam described it that way informally — `customExWarnings`' shoulder message
+    is hardcoded to say "left shoulder," which would be actively wrong here;
+    `standingPressRisk` gets its own warning line naming the real reason.
+    Verified not auto-generated on any of the three schedule profiles, and
+    reachable from both the swap list and Custom Session's name search. All 7
+    case-study scenarios byte-identical to baseline — it can never be selected
+    by anything the generator touches, so there's nothing for the sim to see
+    move.
 - Leg training goal (updated 2026-07-14): multi-directional force handling,
   high eccentric loading, and movement resilience — heavy 1–5 @ 85–95% squat/
   hinge/single-leg strength plus eccentric/decel/lateral work; still no
