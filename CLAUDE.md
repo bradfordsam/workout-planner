@@ -628,6 +628,117 @@ strip it before other debugging.
     from all four of Sam's cards, in both column layouts, plus OCR noise and garbage
     input. All four new movements and the archer/side-to-side rename resolve
     correctly. The other three suites and all 7 case-study scenarios are unchanged.
+- **Strength balance — skewing the program toward the weaker groups (2026-09-06,
+  `strengthBalance` / `strengthSkewMap` / `skewOrder` / `strengthBalanceHTML`)** —
+  Sam: *"based on the weight I am doing for exercises, determine which muscle
+  groups are weaker than others, and then to make sure to skew the programming in
+  favor of those weaker groups so I have a more balanced body."*
+  - **Raw logged weight is not comparable across muscles**, and the comparability
+    engine above refuses to bridge gaps that wide on purpose (`loadBridge`: "a
+    coefficient invented to paper over a mismatch is how 290 lb calf raises
+    happen"). So this never compares weights to each other. It scores each lift
+    against **what this app already expects that lift to be** — `coldStartWeight`'s
+    per-muscle × per-type × per-implement fraction of bodyweight — which turns five
+    incompatible scales into one dimensionless number. Bodyweight and the
+    experience multiplier are global factors in every denominator and **cancel out
+    of the ranking completely**; the per-muscle fractions do not, and they ARE the
+    standard being leaned on, which is the whole reason to reuse the app's own
+    numbers rather than invent a strength table. The skew is then driven by
+    distance from **Sam's own median**, not from 1.0, so a table that is uniformly
+    optimistic still ranks correctly.
+  - **Aggregate by BEST ESTABLISHED lift, never by mean or median across a
+    muscle's movements.** The first cut used a median and it inverted the answer:
+    a 315 lb trap bar indexes 1.98 while a 60 lb leg curl indexes 0.62 — both
+    legs, both legitimate — so the median calls a 315 lb deadlifter's legs
+    mediocre, and simply ADDING accessory variety drags a muscle's score down
+    while doing nothing but more work. In the case-study harness (every set logged
+    at a flat 50 lb) it flipped the ranking outright and pushed volume at exactly
+    the wrong groups. A muscle's strength is its best expression, which is also how
+    every strength standard is written. `STRENGTH_MIN_SESSIONS`(=2 distinct days)
+    is what stops one mistyped set defining a group.
+  - **`strengthIndexOf` returns null for anything without meaningful external
+    load** — `noWeight`, unloaded timed holds, and anything `loadClass` calls
+    bodyweight. Those log a weight of 0, which would read as catastrophic weakness
+    rather than as "this question doesn't apply". Single most important gate here.
+  - **THE SKEW HAD TO GO AT ANCHOR SELECTION, and measurement is the only thing
+    that showed it.** First version put it beside `PAIR_BONUS` in `rest2`, on the
+    reasoning that it should compete for the slots filled AFTER the anchor is
+    chosen and never for the anchor itself. That is inert code: `muscleSlots` is
+    `max(1,limit-1)`, and a 40-min lunch and a 60-min evening **both** resolve to
+    limit 2 — so **muscleSlots is ONE on every session, every day, on all three
+    schedule profiles**. The day trains the anchor plus the reserved core slot,
+    full stop; `rest2`, the pairing bonus, `breadthCap` and depth-over-breadth only
+    start doing work at limit≥3 (a 75-minute evening). Verified by forcing a
+    full-size skew and A/B-ing 8 simulated weeks: **zero sets moved on all three
+    profiles.** Worth remembering generally — a good deal of `dayTemplate`'s
+    downstream machinery is dormant at the session lengths Sam actually trains.
+  - **But a bare skew inside `byDebt` costs the mandates**, which is why the naive
+    version is wrong too: the pattern guarantees hang off the ANCHOR's slots — a
+    back day is what creates the slot the horizontal/rear-delt accents get tagged
+    onto, a leg day is what creates the heavy 1–5 strength slot — so any reordering
+    that takes an anchor day from back or legs takes the mandate with it. Measured
+    on the full schedule: **horizontal fulfilled 3 → 1, rear_delt slots 9 → 6.**
+    The balance audit above already records those accents as the scarcest thing in
+    the program.
+  - **`SKEW_EXEMPT_MUSCLES=['legs','back']` resolves it.** `skewOrder` permutes
+    ONLY the non-exempt muscles, among the positions they already occupy in the
+    `byDebt` ordering; legs and back keep their exact positions, so a lagging
+    accessory can take a day from another accessory and can never take one from a
+    mandate. Consequence, stated rather than discovered later: **if legs or back is
+    the lagging group the skew does nothing for it** — the right trade, since those
+    two are the only muscles already holding unconditional weekly slots and so the
+    two that cannot be starved. The readout says so in words rather than showing a
+    promise the scheduler won't keep.
+  - **`underSkew`, and why the permutation spans BOTH volume tiers.** Confining it
+    within a tier (so a green muscle could never jump a yellow one) left the skew
+    almost inert for a specific and predictable reason: the muscle most likely to
+    lag is TRICEPS, and triceps is exactly the muscle that reaches its weekly
+    minimum **without ever being programmed**, because `SECONDARY_CREDIT_RULES`
+    books it half a set for every chest and shoulder compound. It sits green while
+    everything else is yellow, so the tier gate excluded it before the ordering was
+    ever consulted. `STRENGTH_SKEW_MIN_BOOST`(=0.35) raises a lagging muscle's
+    weekly MINIMUM for skew purposes only, so it stays "under" longer — a bigger
+    weekly target, which is the currency this scheduler already speaks, not a raw
+    queue-jump. It is a SECOND field and deliberately not a change to `under`,
+    because `under` drives `byDebt` and `byDebt` is what pins legs and back.
+  - **With every skew at 0, `skewOrder` is provably the identity** — `underSkew`
+    collapses to `under` and the sort key collapses to byDebt's own (under, hrs
+    desc, MUSCLES order). That is what makes it safe to run unconditionally, and
+    it is why six of the seven case-study scenarios come back untouched.
+  - **Magnitude saturates.** `STRENGTH_SKEW_MAX_HOURS` is 36 (PAIR_BONUS's scale);
+    forcing 60 or 84 produced identical results, so the number is not load-bearing
+    past ~48h.
+  - **Measured, forced full-size skew on triceps, 8 simulated weeks vs the same
+    source with the skew zeroed:** on **lunch+3-evening (the main schedule)
+    triceps 22 → 32 sets**, drawn from chest (−6) and back (−3), legs +2.
+    **lunch-only and 3-evening-only move by zero, and that is correct rather than
+    a gap**: on both, every muscle is under its band all week (the structural
+    under-fill this file already documents), the ordering is a pure starvation
+    rotation with 120–336h gaps, and there is no surplus anywhere to reallocate.
+    The skew only has purchase on a schedule that produces enough sessions for some
+    muscles to actually be in band.
+  - **Case-study regression, fresh HEAD baseline through the same harness:**
+    `mandates`, `goal`, `foundation`, `century`, `calf` and all lockout violation
+    counts are **identical on all 7 scenarios**; six of seven are byte-identical
+    outright. S6 (missed sessions) shifts one chest session in one week.
+  - **The readout is on the Weekly Volume Breakdown screen (`v-mrv`), not the
+    dashboard.** Sam has cut three cards off the home screen for clutter, and the
+    standing rule from that is: anything the scheduler already enforces gets no
+    dashboard space to report on itself. The skew IS enforced, in `dayTemplate`.
+    The card shows its WORKING — the best lift read for each muscle, and the index
+    as a percentage of his own median — rather than a verdict, because the whole
+    answer rests on `coldStartWeight`'s fractions and he should be able to see when
+    one of them is flattering or punishing a group.
+  - **Re-run the strength sweep after editing `coldStartWeight`'s table or an EX
+    entry's `muscle`/`type`/`eq`** — those are the denominator, so a change there
+    silently re-ranks the muscles.
+  - Verified: syntax gate, a **33-assertion** strength-balance render test (empty
+    state, realistic history, the exempt-muscle wording, the full `v-mrv` screen,
+    and three degenerate cases — one muscle, all-stale logs, bodyweight-only), a
+    44-assertion route sweep matching baseline exactly, `--smoke`, and the full
+    case-study harness. One real bug caught by the render test and not by
+    inspection: `strengthBalance`'s `ranked` rows never carried `best`, so the
+    card's "best: …" line rendered `undefined`.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

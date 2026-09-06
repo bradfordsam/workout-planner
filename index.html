@@ -3817,6 +3817,10 @@ function genProgram(cfg,av,workoutHistoryLog){
       .map(l=>new Date(l.date).getDay())
   );
   const oldWeek=S.program?.week;
+  // Muscle -> hours of virtual debt for lagging behind Sam's own median lift
+  // (see strengthSkewMap). Computed ONCE per run rather than per day: it reads
+  // the whole log and nothing inside the week can change it mid-generation.
+  const strengthSkew=strengthSkewMap();
 
   // MRV budget: start from sets already committed this week (logged + planned
   // custom workouts) and consume headroom as we assign sessions, so the week
@@ -3930,7 +3934,15 @@ function genProgram(cfg,av,workoutHistoryLog){
       // are redundant against it, which is the whole point of
       // SECONDARY_CREDIT_RULES.
       const patternVol=m==='back'?vol-((budget.centuryVol&&budget.centuryVol[m])||0):vol;
-      return{m,hrs,rested,headroom:max-vol,under:patternVol<min,patternUnder:patternVol<min&&patternVol<vol};
+      // `underSkew` is the strength skew's OWN version of the under-range test:
+      // a lagging muscle is treated as owing a proportionally higher weekly
+      // minimum. It is deliberately a SECOND field rather than a change to
+      // `under` — `under` drives byDebt, and byDebt is what fixes where legs and
+      // back sit in the day's ordering. See the skewOrder note below.
+      const skewH=strengthSkew[m]||0;
+      const skewMin=min*(1+STRENGTH_SKEW_MIN_BOOST*(skewH/STRENGTH_SKEW_MAX_HOURS));
+      return{m,hrs,rested,headroom:max-vol,under:patternVol<min,underSkew:patternVol<skewMin,
+        patternUnder:patternVol<min&&patternVol<vol,skew:skewH};
     });
     // Eligible = rested with weekly MRV headroom. Priority: under-range
     // ("yellow") muscles first — get every group to its weekly minimum before
@@ -3941,6 +3953,8 @@ function genProgram(cfg,av,workoutHistoryLog){
     // the yellow one resumes as soon as it's recovered. Muscles over range
     // ("red") have no headroom and are never intentionally prescribed. If
     // headroom rules everything out, fall back to rested-only.
+    // NOTE: the strength skew is deliberately NOT in here — see the note on
+    // rest2 below for what it cost when it was.
     const byDebt=(a,b)=>(b.under?1:0)-(a.under?1:0)||b.hrs-a.hrs||MUSCLES.indexOf(a.m)-MUSCLES.indexOf(b.m);
     // `patternUnder` overrides the headroom filter, and ONLY it can: it is true
     // only for a muscle whose weekly minimum is unmet once century volume is set
@@ -3953,8 +3967,58 @@ function genProgram(cfg,av,workoutHistoryLog){
     // submaximal pull-up reps, so overshooting on paper is much the smaller
     // error. pickEx's mandate exemption is the other half of this — without it
     // the slot would be created and then refused.
-    let elig=rows.filter(r=>r.rested&&(r.headroom>=2||r.patternUnder)).sort(byDebt);
-    if(!elig.length)elig=rows.filter(r=>r.rested).sort(byDebt);
+    // ── STRENGTH SKEW, ANCHOR LEVEL (2026-09-06) ──
+    // Sam asked for the programming to be skewed toward the muscles his own
+    // logged weights say are lagging. At the session lengths he actually
+    // trains, that HAS to happen here, at anchor selection, and measurement is
+    // what settled it: `muscleSlots` is max(1,limit-1), and a 40-min lunch and
+    // a 60-min evening both resolve to limit 2 — so muscleSlots is ONE on every
+    // session, every day, on all three schedule profiles. The day trains the
+    // ANCHOR and a core slot, full stop. Everything downstream of the anchor
+    // (rest2, the pairing bonus, breadthCap, depth-over-breadth) only starts
+    // doing work at limit>=3, i.e. a 75-minute evening. A skew placed there was
+    // measured over 8 simulated weeks with a FORCED full-size nudge and moved
+    // exactly zero sets on all three profiles — correct-looking, inert code.
+    //
+    // But a bare skew inside byDebt was measured too, and it cost real
+    // guarantees — see SKEW_EXEMPT_MUSCLES for what and why. So the skew
+    // reorders only among the muscles NOT on that list: legs and back keep
+    // their exact positions here, and chest / shoulders / biceps / triceps are
+    // permuted among the positions they already occupy. A lagging muscle can
+    // take a day from another accessory muscle and can never take one from a
+    // mandate.
+    //
+    // The permutation deliberately spans BOTH volume tiers, and that was the
+    // second thing measurement forced. Confining it within a tier — so a green
+    // muscle could never jump a yellow one — left the skew almost inert: the
+    // muscle most likely to be lagging is TRICEPS, and triceps is exactly the
+    // muscle that reaches its weekly minimum without ever being programmed,
+    // because SECONDARY_CREDIT_RULES books it half a set for every chest and
+    // shoulder compound. It sits in the green tier while everything else is
+    // yellow, so the tier gate excluded it before the ordering was ever
+    // consulted. `underSkew` is the answer: a lagging muscle owes a higher
+    // weekly minimum, so it stays "under" for longer, and it is that raised
+    // target — not a raw queue-jump — that lets it out of the green tier. The
+    // tier is still absolute for the mandate muscles, whose positions never
+    // move at all.
+    //
+    // With every skew at 0 this is provably the IDENTITY: underSkew collapses
+    // to under and the sort key collapses to byDebt's own (under, hrs desc,
+    // MUSCLES order), so the non-mandate entries come back in the positions
+    // they already held. That is what makes it safe to run unconditionally.
+    const skewOrder=list=>{
+      if(!list.some(r=>r.skew>0))return list;
+      const pos=[];
+      list.forEach((r,i)=>{if(!SKEW_EXEMPT_MUSCLES.includes(r.m))pos.push(i);});
+      if(pos.length<2)return list;
+      const out=list.slice();
+      const picks=pos.map(i=>list[i]).sort((a,b)=>(b.underSkew?1:0)-(a.underSkew?1:0)
+        ||(b.hrs+b.skew)-(a.hrs+a.skew)||MUSCLES.indexOf(a.m)-MUSCLES.indexOf(b.m));
+      pos.forEach((i,k)=>{out[i]=picks[k];});
+      return out;
+    };
+    let elig=skewOrder(rows.filter(r=>r.rested&&(r.headroom>=2||r.patternUnder)).sort(byDebt));
+    if(!elig.length)elig=skewOrder(rows.filter(r=>r.rested).sort(byDebt));
     if(!elig.length)return null; // nothing adequately rested → rest/recovery day
     // Weekly heavy-strength guarantee, two halves (verified by simulation:
     // without them, 0 strength sessions fired in 490 with lunches present).
@@ -3994,7 +4058,13 @@ function genProgram(cfg,av,workoutHistoryLog){
     const ag=GROUP[anchor.m];
     // Pairing bonus applies WITHIN a volume tier — an in-range (green) muscle
     // sharing the anchor's group never jumps ahead of an under-range (yellow) one.
-    const rest2=elig.slice(1).map(r=>({r,score:r.hrs+(GROUP[r.m]===ag?PAIR_BONUS:0)})).sort((a,b)=>(b.r.under?1:0)-(a.r.under?1:0)||b.score-a.score).map(o=>o.r);
+    // The strength skew rides here as well as at the anchor, so that on a long
+    // enough evening (limit>=3, where muscleSlots finally exceeds 1) a lagging
+    // muscle also wins the day's REMAINING slots. It is inert at the session
+    // lengths Sam currently trains — see the measurement in the skewOrder note
+    // above, which is exactly why the anchor-level version had to exist — but
+    // it costs nothing and it is the right behaviour on a 75-minute night.
+    const rest2=elig.slice(1).map(r=>({r,score:r.hrs+r.skew+(GROUP[r.m]===ag?PAIR_BONUS:0)})).sort((a,b)=>(b.r.under?1:0)-(a.r.under?1:0)||b.score-a.score).map(o=>o.r);
     // ── DEPTH OVER BREADTH (2026-08-03) ──
     // A 60-min evening is EX_LIMIT[60]=4 exercises → muscleSlots=3, which
     // exactly matched the 3-muscle breadth below. Every chosen muscle therefore
@@ -5580,6 +5650,58 @@ function renderMRVWidget(){
 // ─────────────────────────────────────────────
 // RENDER – MRV BREAKDOWN (volume attribution)
 // ─────────────────────────────────────────────
+// The READOUT half of the strength-balance feature: which groups are lagging,
+// what says so, and what the program is doing about it.
+//
+// It lives on the Weekly Volume Breakdown screen and NOT on the dashboard, on
+// purpose. Sam has cut three cards off the home screen for clutter (the
+// Fundamentals box, the Body Score card, the Foundation/Century coverage rows),
+// and the standing rule from that is: anything the scheduler already enforces
+// gets no dashboard space to report on itself. The skew IS enforced, in
+// dayTemplate. This screen is where he already comes to ask "what is the
+// program doing with my volume", which is the same question.
+//
+// It shows its WORKING rather than a verdict — the best lift it read for each
+// muscle, and the index as a percentage of his own median — because the whole
+// answer rests on coldStartWeight's per-muscle fractions, and he should be able
+// to see when one of them is flattering or punishing a group.
+function strengthBalanceHTML(){
+  const bal=strengthBalance();
+  if(!bal.median){
+    return `<div class='card reveal'>
+      <div class='sec-lbl' style='margin-bottom:8px'>⚖️ Strength balance</div>
+      <div style='font-size:13px;color:var(--mut)'>Not enough logged weight yet — two muscle groups each need a loaded movement logged on ${STRENGTH_MIN_SESSIONS}+ separate days within the last ${STRENGTH_WINDOW_DAYS/7} weeks before they can be compared.</div>
+    </div>`;
+  }
+  const skew=strengthSkewMap();
+  const rows=bal.ranked.map(r=>{
+    const rel=r.index/bal.median;                 // 1.00 = exactly your own median
+    const pct=Math.max(4,Math.min(100,rel*66.7)); // median sits at two-thirds width
+    const lagging=(skew[r.m]||0)>0;
+    const col=lagging?'var(--warn)':(MCOL[r.m]||'var(--acc)');
+    // A lagging muscle that carries pattern mandates is reported honestly rather
+    // than promised a skew it never gets — see SKEW_EXEMPT_MUSCLES.
+    const note=!lagging?''
+      :SKEW_EXEMPT_MUSCLES.includes(r.m)?` · <span style='color:var(--warn)'>lagging — already guaranteed weekly slots</span>`
+      :` · <span style='color:var(--warn)'>lagging — favoured in scheduling</span>`;
+    return `<div style='padding:7px 0;border-bottom:1px solid var(--bdr)'>
+      <div style='display:flex;align-items:center;gap:8px;font-size:13px'>
+        <span style='width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0'></span>
+        <strong>${MNAME[r.m]||r.m}</strong>
+        <span style='margin-left:auto;color:var(--mut)'>${Math.round(rel*100)}% of your median</span>
+      </div>
+      <div class='bd-track' style='margin:5px 0 4px'>
+        <div class='bd-fill' style='background:${col};--w:${pct}%'></div>
+      </div>
+      <div style='font-size:11px;color:var(--mut)'>best: ${r.best||'—'} · ${r.n} movement${r.n===1?'':'s'} counted${note}</div>
+    </div>`;
+  }).join('');
+  return `<div class='card reveal'>
+    <div class='sec-lbl' style='margin-bottom:4px'>⚖️ Strength balance</div>
+    <div style='font-size:12px;color:var(--mut);margin-bottom:10px'>Each group's best established lift, scored against what this app expects that lift to be at your bodyweight, then set beside your own median. A group more than ${Math.round(STRENGTH_SKEW_DEADBAND*100)}% below the median wins the day's session more often until it catches up.</div>
+    ${rows}
+  </div>`;
+}
 function renderMRVBreakdown(){
   const bd=getMRVBreakdown();
   const limits=getMRVLimits();
@@ -5628,6 +5750,7 @@ function renderMRVBreakdown(){
     </button>
     <div class='hdg'>Weekly Volume Breakdown</div>
     <div class='sub'>Every exercise feeding this week's MRV totals, grouped by muscle. Solid rows are counted (logged sessions + planned custom workouts); dimmed rows are upcoming scheduled sessions not yet counted.</div>
+    ${strengthBalanceHTML()}
     ${cards||`<div class='empty'><span style='font-size:48px;display:block;margin-bottom:12px'>📊</span>Nothing logged or scheduled this week yet.</div>`}
   </div>${renderNav('dash')}`;
 }
@@ -6152,6 +6275,165 @@ function coldStartWeight(def,bodyLbs,exp){
   const mult=exp==='advanced'?1.6:exp==='intermediate'?1.3:1.0;
   const floor=load==='db'?5:10;
   return Math.max(r5(bodyLbs*frac*mult),floor);
+}
+
+// ─────────────────────────────────────────────
+// STRENGTH BALANCE — which muscle groups are lagging
+// ─────────────────────────────────────────────
+// Sam (2026-09-06): "based on the weight I am doing for exercises, determine
+// which muscle groups are weaker than others, and then skew the programming in
+// favour of those weaker groups so I have a more balanced body."
+//
+// THE HARD PART is that raw logged weight is not comparable across muscles. A
+// 155 lb row and a 35 lb lateral raise say nothing about each other, and the
+// comparability engine above refuses to bridge gaps like that on purpose (see
+// loadBridge: "a coefficient invented to paper over a mismatch is how 290 lb
+// calf raises happen"). So this does NOT compare weights to each other. It
+// compares each lift against what THIS APP ALREADY EXPECTS that lift to be —
+// coldStartWeight's table, a per-muscle x per-type x per-implement fraction of
+// bodyweight. Actual / expected turns five incompatible scales into one
+// dimensionless number that can honestly be ranked.
+//
+// What cancels and what doesn't, stated plainly because it decides how much to
+// trust this:
+//   - BODYWEIGHT and the EXPERIENCE multiplier are global factors in every
+//     denominator, so they cancel out of the RANKING completely. Getting either
+//     wrong moves every muscle together and changes nothing about who is last.
+//   - The per-muscle FRACTIONS do not cancel — they ARE the standard being
+//     leaned on. They are the app's own existing numbers rather than a strength
+//     table invented for this feature, which is the entire reason to reuse them.
+// The skew is then driven by each muscle's distance from SAM'S OWN median, not
+// from 1.0, so a table that is uniformly optimistic or pessimistic still ranks
+// correctly — only its muscle-to-muscle relativities matter.
+const STRENGTH_WINDOW_DAYS=56;      // 8 weeks — current form, not career history
+// A movement counts only once it's ESTABLISHED: logged in at least this many
+// distinct sessions inside the window. A lift performed once is either a first
+// attempt at its conservative estimateStartingWeight opener or a typo, and
+// neither is evidence about a muscle group.
+const STRENGTH_MIN_SESSIONS=2;
+const STRENGTH_SKEW_DEADBAND=0.10;  // within 10% of your own median IS balanced
+// Hours of virtual recovery debt a fully-lagging muscle gets. Deliberately the
+// same scale as PAIR_BONUS(36), and applied at the same point, because it is the
+// same KIND of thing: a nudge inside the existing priority tiers, not an
+// override. A clearly-more-overdue muscle still wins, `under` still wins, and
+// `rested` still wins — see byDebt.
+const STRENGTH_SKEW_MAX_HOURS=36;
+const STRENGTH_SKEW_FULL_AT=0.40;   // 40% below your own median earns the full nudge
+// How much a fully-lagging muscle's weekly MRV MINIMUM is raised for the
+// purposes of the skew ordering only (never for the dashboard bands, never for
+// the ceiling). This is what `skew the programming in favour of` actually means
+// in the currency this scheduler already speaks: a bigger weekly target, so the
+// muscle keeps ranking as owed work for longer. 35% of a minimum is roughly one
+// extra exercise a week at the band sizes in MRV_TABLE — a nudge, not a rewrite.
+const STRENGTH_SKEW_MIN_BOOST=0.35;
+// Muscles the skew must never REORDER, and the reason is the mandates. The
+// pattern guarantees hang off the day's ANCHOR: a back day is what creates the
+// slot the horizontal/rear-delt accents get tagged onto, a leg day is what
+// creates the heavy 1–5 strength slot. Measured when the skew was allowed to
+// touch anchor order freely: horizontal fulfilled 3 -> 1, rear_delt slots
+// 9 -> 6 on the full schedule. Strength balance is a preference; a pattern
+// guarantee is not, and CLAUDE.md's balance audit already records those accents
+// as the scarcest thing in the program.
+// Consequence, stated rather than discovered later: if LEGS or BACK is the
+// lagging group, the skew does nothing for it. That is the right trade — those
+// two are the only muscles that already hold unconditional weekly slots (heavy
+// strength / hinge / hamstring, and the century plus its accents), so they are
+// the two that cannot be starved in the first place. The readout says so in
+// words rather than showing a promise the scheduler won't keep.
+const SKEW_EXEMPT_MUSCLES=['legs','back'];
+
+// Actual / expected for one logged set, or null when the movement carries no
+// meaningful external load. Bodyweight and unloaded holds log a weight of 0 (or
+// vest-only), which would read as catastrophic weakness rather than as "this
+// question doesn't apply" — the single most important gate here.
+function strengthIndexOf(def,weight,reps){
+  if(!def||!(weight>0)||!(reps>0))return null;
+  if(def.noWeight)return null;
+  if(def.isTimed&&!timedLoaded(def))return null;
+  if(loadClass(def)==='bw')return null;
+  const expected=coldStartWeight(def,S.cfg?.bodyLbs||175,experienceLevel());
+  if(!(expected>0))return null;
+  // Normalise the set to the movement's own top-of-range, exactly the way
+  // estimateStartingWeight's anchor step does (Epley in, rep-target out), so a
+  // heavy triple and a light twelve are read on one scale.
+  return (epley1RM(weight,reps)/(1+(def.rMax||12)/30))/expected;
+}
+
+// Per-muscle strength index, from logged sets inside the window.
+// Returns {byMuscle:{m:{index,n,best}}, median, ranked:[{m,index,ratio}]}.
+// Empty (median null) until at least two muscles qualify — a ranking against
+// nothing to rank against is worse than no ranking.
+function strengthBalance(){
+  const since=addDays(todayStr(),-STRENGTH_WINDOW_DAYS);
+  // BEST index per movement, not latest: a deload week or one bad session
+  // shouldn't read as the muscle getting weaker, and the question here is
+  // capability, not freshness.
+  const perEx={};
+  (S.logs||[]).forEach(l=>{
+    if(!l||l.isCardio||logDay(l.date)<since)return;
+    const day=logDay(l.date);
+    (l.exercises||[]).forEach(e=>{
+      if(!e||!e.id)return;
+      const def=exFull(e);
+      if(!def||!def.muscle)return;
+      (e.sets||[]).forEach(s=>{
+        const idx=strengthIndexOf(def,s&&s.weight,s&&s.reps);
+        if(idx==null)return;
+        const p=perEx[e.id]||(perEx[e.id]={muscle:def.muscle,index:0,name:def.name||e.name,days:new Set()});
+        p.days.add(day);
+        if(idx>p.index)p.index=idx;
+      });
+    });
+  });
+  // AGGREGATE BY BEST ESTABLISHED LIFT, NOT BY AVERAGE OR MEDIAN.
+  //
+  // The first cut took the median across a muscle's movements and it was wrong
+  // in a way that inverted the whole answer. Measured: a 315 lb trap bar
+  // deadlift indexes 1.98 while a 60 lb leg curl indexes 0.62 — both legs, both
+  // legitimate. Median across them calls a 315 lb deadlifter's legs mediocre,
+  // and worse, simply ADDING accessory variety to a muscle drags its score down
+  // while doing nothing but more work. In the case-study harness (which logs
+  // every set at a flat 50 lb) it flipped the ranking outright: the muscles with
+  // the HIGHEST expectations — legs, chest, the big compounds — scored worst,
+  // and the skew pushed volume at exactly the wrong groups.
+  //
+  // A muscle's strength is its best expression, which is also how every strength
+  // standard is written: you compare a best bench to a best squat, never an
+  // average across every accessory you've dabbled in. So: max over the movements
+  // that are ESTABLISHED, and the establishment gate is what keeps a single
+  // mistyped set from defining a muscle group.
+  const out={};
+  Object.values(perEx).forEach(v=>{
+    if(v.days.size<STRENGTH_MIN_SESSIONS)return;   // not established yet
+    if(!out[v.muscle]||v.index>out[v.muscle].index)out[v.muscle]={index:v.index,n:0,best:v.name};
+  });
+  Object.values(perEx).forEach(v=>{
+    if(v.days.size<STRENGTH_MIN_SESSIONS||!out[v.muscle])return;
+    out[v.muscle].n++;
+  });
+  const idxs=Object.values(out).map(o=>o.index).sort((a,b)=>a-b);
+  if(idxs.length<2)return{byMuscle:out,median:null,ranked:[]};
+  const med=median(idxs);
+  const ranked=Object.keys(out)
+    .map(m=>({m,index:out[m].index,n:out[m].n,best:out[m].best,ratio:med/out[m].index}))
+    .sort((a,b)=>b.ratio-a.ratio);
+  return{byMuscle:out,median:med,ranked};
+}
+
+// muscle -> hours of virtual debt, 0 when balanced or unknown. Bounded by
+// STRENGTH_SKEW_MAX_HOURS and zero inside the deadband, so noise in one logged
+// set can never reshape a week.
+function strengthSkewMap(){
+  const bal=strengthBalance();
+  const out={};
+  if(!bal.median)return out;
+  const span=STRENGTH_SKEW_FULL_AT-STRENGTH_SKEW_DEADBAND;
+  bal.ranked.forEach(r=>{
+    const over=r.ratio-1-STRENGTH_SKEW_DEADBAND;   // how far past the deadband
+    if(over<=0)return;
+    out[r.m]=Math.round(STRENGTH_SKEW_MAX_HOURS*Math.min(1,over/span));
+  });
+  return out;
 }
 
 // Core engine — see CONTRACT above. ALWAYS returns {weight,source,confidence}
