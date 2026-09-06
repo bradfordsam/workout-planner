@@ -222,7 +222,7 @@ strip it before other debugging.
     entirely. `pickCalfTopUp` applies the same safety gates
     `canPlaceFoundation` does (equipment, hip/shoulder caution, plyo, avoid
     list, knee caution) via the same helper functions.
-  - **Priced like a small McGill block, not a full lift**
+  - **Priced like a small spine block, not a full lift**
     (`CALF_TOPUP_MINS=2`), charged into `eveningLifts`/`lunchBudget`'s fixed
     cost BEFORE the lift count is sized — same reasoning as the century/
     finisher, and the reason it must NOT be counted in `sessionPlan`'s "N
@@ -780,29 +780,29 @@ strip it before other debugging.
   - `DESK_REVERSAL` (chin tucks + pelvic tilts) and `HIP_DECOMPRESSION` are
     FIXED blocks — never rotated, never budget-trimmed. Desk reversal now shows
     at lunch too; it used to be evening-only, which had it backwards.
-- `MCGILL_BIG3` + `mcgillHTML()` (2026-08-03, Sam asked for it by name): McGill's
-  modified curl-up / side bridge / bird dog, rendered in the same three places as
-  `DAILY_SPINE_MINIMUMS` (dashboard, rest card, evening cool-down). That pairing
-  is the point — the spine minimums are the mobility/decompression side, this is
-  the STABILITY side. Doses are ~10s holds with reps DESCENDING 6→4→2, because
-  the protocol targets trunk-muscle ENDURANCE, and high-rep/high-load trunk work
-  is what aggravates a cranky back rather than sparing it.
-  - **NOT folded into `DAILY_SPINE_MINIMUMS`, and NOT charged to
-    `LUNCH_LEDGER.spineMins`** — the deciding number, since "it's only 6 minutes"
-    is exactly the reasoning the lunch ledger exists to refute: spine 5 → 11 min
-    turns an ordinary lunch from `floor((40−5)/11)`=3 lifts into
-    `floor((40−11)/11)`=2. A third of his lunch lifting is too much to pay for
-    floor work that needs no gym, so the card says morning-or-evening instead.
-    **If it ever moves into the lunch box, `spineMins` must move with it.**
-  - **NOT in `EX`**, following the plank's precedent in `FOUNDATION_FIVE`: a fixed
-    daily dose is a stronger guarantee than a weekly slot, and adding these to the
-    core pool would double-program the same three movements.
-  - `mcgillHTML(holds)` — the dashboard/rest callers must pass falsy, since
-    `start-hold` → `startRest` writes to `S.active`, which is null outside a
-    workout. Same trap `dailySpineHTML` already documents.
-  - Note the tension it creates with the Pyramid's 400-sit-up rung, which McGill
-    would specifically argue against. Flagged in that rung's cue rather than
-    silently resolved; Sam's call either way.
+- **`MCGILL_BIG3` — REMOVED 2026-09-06** (Sam: "remove the mcgill big 3
+  entirely"). Was McGill's modified curl-up / side bridge / bird dog, the
+  STABILITY half alongside `DAILY_SPINE_MINIMUMS`'s mobility/decompression side.
+  Fully deleted rather than hidden behind a flag — the array, `mcgillHTML()`,
+  the `S.mcgill` timer draft and its cloud-sync fields, `mcgillMins()` /
+  `mcgillDefaultMins()` / `mcgillLogs()` / `mcgillDraft()` / `mcgillDoneToday()`,
+  the `sessionPlan`/`eveningLifts`/`lunchBudget` line items and its slot in
+  `SHED_ORDER`, the in-workout timer buttons and the `mcgill-start`/`mcgill-done`
+  action handlers. Historical log entries (`mcgill:true`) are left alone, same as
+  every other retired-feature precedent in this file (`cfg.bodyScore`, etc.) —
+  they're just old records now, nothing reads the flag going forward.
+  **Never scheduled by the generator**, so removing it touched no scheduling
+  logic at all — the full case-study harness against a fresh HEAD baseline came
+  back with all 7 scenarios identical. The Pyramid's 400-sit-up cue, which used
+  to note it "sits oddly next to the Big 3 you now do daily," had that clause
+  removed since it's no longer true; the cue's core warning (McGill argues
+  against loaded flexion for a symptomatic back) stands on its own regardless of
+  whether the Big 3 is actually being done.
+  Verified: syntax gate, `--smoke`, the case-study harness, and a 36-assertion
+  render sweep (dashboard, rest-card, full `v-mrv`/`v-program`/`v-plan` routes,
+  `sessionPlan`, `lunchBudgetHTML`, and a real `startWorkout` run through to the
+  cool-down block) confirming no route mentions McGill and the cool-down /
+  spine-minimums blocks still render correctly with it gone.
 - `hip_airplane` (2026-08-03, asked for by name): in `EX` as a `hips`/`mobility`
   entry beside `hip_cars`, and in the rotating pre-lift `HIP_POOL` which is what
   actually delivers hip work (`hips` is NOT one of `dayTemplate`'s `MUSCLES`, so
@@ -1374,41 +1374,30 @@ strip it before other debugging.
     mandates go from 1-of-7 and 1-of-1 landed to 0-of-2 and 0-of-3 over ten weeks.
     Lunch-only weeks are already documented as structurally under-band and the back
     accents already capped there; three fewer lunch slots is the direct cause.
-- `sessionPlan` / `TRANSITION_BUFFER_SECS` / `mcgillMins` (2026-08-18): Sam asked
-  for the WHOLE routine — century, Big 3, stretching, spine holds, finisher —
-  scheduled inside the one session that starts when he opens it, with the century
-  and Big 3 timed from his own medians and a fixed buffer between movements. So
-  the session is now itemised by ONE function that both the ledgers and the
-  workout screen read: `sessionPlan` returns `{items,deferred,total,over,spare}`
-  and renders as the "This session · N min of M" card above exercise 1.
+- `sessionPlan` / `TRANSITION_BUFFER_SECS` (2026-08-18, `mcgillMins` since
+  removed with the Big 3 — see that entry): Sam asked for the WHOLE routine —
+  century, stretching, spine holds, finisher — scheduled inside the one session
+  that starts when he opens it, with the century timed from its own median and a
+  fixed buffer between movements. So the session is now itemised by ONE function
+  that both the ledgers and the workout screen read: `sessionPlan` returns
+  `{items,deferred,total,over,spare}` and renders as the "This session · N min of
+  M" card above exercise 1.
   - **The ledgers size the lifting FROM it, so `lifts` is an input, not an
     output** — computing it inside would be circular. `eveningLifts` and
     `lunchBudget` decide the count, then hand it back in for display.
-  - **`mcgillMins()` is the median of the last 5 TIMED Big 3 logs**, exactly like
-    `centuryMins()`, falling back to `prepBlockMins(MCGILL_BIG3)` when there is
-    no history — an unmeasured session must never poison the median, which is
-    why `mcgill-done` writes `timedMins` separately from `duration` and
-    `mcgillLogs()` filters on `timedMins>0`. The Big 3 log carries
-    `isCardio:true` with an empty `exercises` array, so it is invisible to
-    session bookkeeping the way the century log is.
   - **SHED_ORDER is the priority contract, and `eveningLifts` must agree with
-    it.** Order is cool-down → Big 3 → spine holds → century, i.e. LIFTING
-    OUTRANKS all the floor work, because that work needs no gym and a lift does.
-    So `eveningLifts` charges only the pieces that can never be shed — prep, the
-    century when this evening hosts it, the finisher, and the transition buffer.
-    Charging the sheddable three as well was the two halves disagreeing with each
-    other, and it showed: a 60-minute evening was billed 16 minutes for blocks
-    the plan then deferred anyway and came out at ONE lift with six minutes
-    spare.
+    it.** Order is cool-down → spine holds → century (the Big 3 held a middle
+    slot here before its removal), i.e. LIFTING OUTRANKS all the floor work,
+    because that work needs no gym and a lift does. So `eveningLifts` charges
+    only the pieces that can never be shed — prep, the century when this evening
+    hosts it, the finisher, and the transition buffer. Charging the sheddable
+    ones as well was the two halves disagreeing with each other, and it showed:
+    a 60-minute evening was billed 16 minutes for blocks the plan then deferred
+    anyway and came out at ONE lift with six minutes spare.
   - **The century is the exception in SHED_ORDER**: it is last, and when it does
     reach the front the card says the day is TOO SHORT for it rather than
     pretending it was skipped — a ~30 min century cannot fit a 45-min evening
     alongside prep and a lift, and that is a scheduling answer, not a trim.
-  - **The Big 3 still is NOT on the lunch ledger.** Same arithmetic MCGILL_BIG3
-    already records: six minutes is a whole lift out of a 40-minute box. It is
-    listed on a lunch plan as `deferred` with `byDesign:true` so the card says
-    "morning or evening" instead of "didn't fit today". If it ever DOES move into
-    the box, `LUNCH_LEDGER.spineMins` moves with it.
   - **The transition buffer is charged at two different counts on purpose.**
     `sessionPlan` bills `transitionMins(kept.length)` — what the session actually
     costs. `eveningLifts` bills `transitionMins(4)`, the pieces guaranteed to be

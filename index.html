@@ -1731,8 +1731,6 @@ let S={
   // In-progress Cindy tally {date,rounds,startedAt,touchedAt}; same stamped-draft
   // sync as century/pyramid (see mergeStampedDraft).
   cindy:null,cindyOpen:false,
-  // Big 3 timer {date,startedAt}; measured so mcgillMins() has a real median.
-  mcgill:null,
 };
 let timerIv=null;
 
@@ -1772,7 +1770,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1780,7 +1778,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // Paired sets shipped 2026-08-30; a cfg stored before that has no key at
       // all, and `pairedSetsOn` tests === true, so the migration is only about
       // making the Plan-screen checkbox render in a known state.
@@ -2036,7 +2034,7 @@ function foundationCoveredThisWeek(){
 // retire it — only one actually LOGGED does — and a daily replan keeps
 // offering it on every session until it's really been done.
 const CALF_WEEKLY_TARGET_SETS=2;
-// Priced like a small McGill/spine block, not a full lift: 2 sets at ~90s
+// Priced like a small spine block, not a full lift: 2 sets at ~90s
 // rest is a couple of minutes, nowhere near EVENING_EX_MINS/lunchExMins()'s
 // per-lift rate — charging the full rate for it would be the exact "prep
 // smeared across every exercise" mistake the lunch ledger was built to fix.
@@ -2687,7 +2685,7 @@ const PYRAMID_LADDER=[
   ]},
   {mult:4,pattern:'core',options:[
     {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,secsPerRep:2,
-     cue:'Curl up leading with the chest, exhale at the top, lower under control — never yank on the neck. NOTE: at the top peak this rung is 400 reps of loaded spinal flexion, which is the one part of this session your lower back has a stated history with — and it is the exact movement McGill argues against for a symptomatic back, so it sits oddly next to the Big 3 you now do daily. Nothing here forces you to keep it: put `situps` on the avoid list and the ladder re-resolves around it, dropping to four rungs. If you want the rung but not the flexion, sub in dead bugs or side planks for the same count.'},
+     cue:'Curl up leading with the chest, exhale at the top, lower under control — never yank on the neck. NOTE: at the top peak this rung is 400 reps of loaded spinal flexion, which is the one part of this session your lower back has a stated history with — and it is a movement McGill specifically argues against for a symptomatic back. Nothing here forces you to keep it: put `situps` on the avoid list and the ladder re-resolves around it, dropping to four rungs. If you want the rung but not the flexion, sub in dead bugs or side planks for the same count.'},
   ]},
   {mult:5,pattern:'squat',options:[
     {id:'bw_squat',name:'Bodyweight Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,secsPerRep:1.8,
@@ -3112,8 +3110,8 @@ function cindyPrescription(){
 // a plain property would hit the temporal dead zone at module-eval time.
 // ─── SESSION TIME MODEL ───
 // Everything prescribed for a day belongs to ONE session that starts when the
-// workout is opened — the century, the McGill Big 3, the daily spine holds, the
-// stretching and any finisher included, not as separate cards to find later.
+// workout is opened — the century, the daily spine holds, the stretching and
+// any finisher included, not as separate cards to find later.
 // That only works if each piece is actually costed, so the lifting can shrink
 // to fit rather than the session quietly running long.
 //
@@ -3131,24 +3129,6 @@ const COOLDOWN_MINS=5;
 // evenings have no comparable clean signal yet, so this stays an estimate.
 const EVENING_EX_MINS=12;
 const transitionMins=(pieces)=>Math.round(pieces*TRANSITION_BUFFER_SECS/60);
-// Derived, not invented: the Big 3's own prescribed holds priced the same way
-// every other fixed block is (prepItemSecs parses each entry's stated dose).
-function mcgillDefaultMins(){return Math.max(4,prepBlockMins(MCGILL_BIG3));}
-function mcgillLogs(){return (S.logs||[]).filter(l=>l&&l.mcgill&&l.timedMins>0);}
-// Median of the last 5 MEASURED Big 3 sessions, same rule as centuryMins():
-// median rather than mean so one interrupted session can't skew the budget,
-// and only genuinely timed sessions count — an estimate fed back in as if it
-// were a measurement is the circularity the century's timing note warns about.
-function mcgillMins(){
-  const t=mcgillLogs().slice(-5).map(l=>l.timedMins).sort((a,b)=>a-b);
-  return t.length?t[Math.floor(t.length/2)]:mcgillDefaultMins();
-}
-function mcgillDraft(){
-  if(!S.mcgill||S.mcgill.date!==todayStr())return{date:todayStr(),startedAt:null};
-  return S.mcgill;
-}
-function mcgillDoneToday(){return (S.logs||[]).find(l=>l&&l.mcgill&&logDay(l.date)===todayStr())||null;}
-
 const LUNCH_LEDGER={
   get spineMins(){return prepBlockMins(DAILY_SPINE_MINIMUMS);},  // the four fixed holds
   get prepMins(){return PREP_BUDGET_MINS.lunch;},                // a CAP, and prepPlan fills to it
@@ -3337,19 +3317,12 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   // today happened to run long — the ledger already stopped charging for them.
   if(centuryLunch)items.push({key:'spine',label:'Daily spine minimums',mins:prepBlockMins(DAILY_SPINE_MINIMUMS),note:'morning or evening — the hundred is the whole box',deferred:true,byDesign:true});
   else push('spine','Daily spine minimums',prepBlockMins(DAILY_SPINE_MINIMUMS));
-  const mcgillNote=mcgillLogs().length?'median of your timed sessions':'from its prescribed holds';
-  if(isLunch){
-    // Listed but never charged, and never performed here — see the lunch
-    // ledger. Showing it deferred is the honest version of a rule the box has
-    // always had: at 40 minutes the Big 3 costs a lift.
-    items.push({key:'mcgill',label:'McGill Big 3',mins:mcgillMins(),note:'morning or evening — the 40-min box buys it with a lift',deferred:true,byDesign:true});
-  }else push('mcgill','McGill Big 3',mcgillMins(),mcgillNote);
   if(!isLunch)push('cooldown','Cool-down stretching',COOLDOWN_MINS);
   // If it doesn't all fit, SHED rather than silently overrun — the whole point
   // is a routine that fits the duration actually stated. Order is cheapest-to-
   // lose first, and every one of these is a block that genuinely can happen
   // away from the gym later:
-  //   cool-down stretching -> the Big 3 -> the spine holds.
+  //   cool-down stretching -> the spine holds.
   // Prep is never shed (it's the injury-prevention half), the lifts are already
   // floored at one by the ledgers, and the century isn't dropped because on a
   // century day it IS the session's headline prescription.
@@ -3357,7 +3330,7 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   // cannot fit a 40-min lunch or a 45-min evening alongside prep and a lift, so
   // when it reaches the front of this queue the honest message is that this
   // session is too short for it — not that it was quietly skipped.
-  const SHED_ORDER=['cooldown','mcgill','spine','century'];
+  const SHED_ORDER=['cooldown','spine','century'];
   const cost=()=>items.filter(i=>!i.deferred).reduce((a,i)=>a+i.mins,0)
     +transitionMins(items.filter(i=>!i.deferred).length);
   for(const key of SHED_ORDER){
@@ -3469,14 +3442,6 @@ function lunchBudget(dow,av,boxMins,centuryOverride){
   // The transition buffer joins the box for the same reason the spine holds and
   // prep already had: it happens inside this session, so pretending it's free is
   // how a 40-minute lunch became a 43-minute one.
-  //
-  // The Big 3 deliberately does NOT join it. That is the decision MCGILL_BIG3
-  // already records and the arithmetic hasn't changed: six minutes is a whole
-  // lift out of a 40-minute box, so half his lunch lifting would be paying for
-  // floor work that needs no gym and can be done at home. It stays a
-  // morning-or-evening job — sessionPlan lists it on a lunch as deferred, with
-  // that reason, rather than dropping it silently. If it ever DOES move into
-  // the box, LUNCH_LEDGER.spineMins has to move with it.
   //
   // The calf top-up (see CALF_WEEKLY_TARGET_SETS) is skipped on a century
   // lunch for the same reason the spine holds are: that box has no room for
@@ -7039,43 +7004,6 @@ const DAILY_SPINE_MINIMUMS=[
   {n:'Plank',d:'60 sec, split as needed · elbows under shoulders, glutes squeezed, ribs down — core stiffness is what protects the spine and holds posture',hold:60},
   {n:'Downward Dog',d:'60 sec · hips high, heels reaching, soft knees are fine — stretches the whole back line and gets blood moving',hold:60},
 ];
-// ─────────────────────────────────────────────
-// McGILL BIG 3
-// ─────────────────────────────────────────────
-// Stuart McGill's spine-sparing core protocol (2026-08-03, Sam asked for it by
-// name). It is the standard-of-care answer for a lower back that's symptomatic
-// but not injured — which is exactly this back: standing overhead pressing hurts,
-// nothing else does. DAILY_SPINE_MINIMUMS is the mobility/decompression side of
-// that; this is the STABILITY side, and the two are complements rather than
-// alternatives. The shared principle: endurance, not strength. Holds are ~10s
-// and reps descend, because trunk-muscle ENDURANCE is what correlates with
-// spared backs, and high-rep or high-load trunk work is what aggravates them.
-//
-// Two McGill rules built into the cues rather than left to be looked up:
-//  1) The lumbar spine does NOT move. Every one of the three is a braced hold
-//     with movement happening somewhere else. If the low back is moving, the
-//     exercise has become the thing it's meant to replace.
-//  2) Not in the first hour after waking. Discs are at peak hydration overnight,
-//     so loaded spine flexion right out of bed carries the most risk of the day.
-//
-// NOT ADDED TO DAILY_SPINE_MINIMUMS, and deliberately NOT charged to
-// LUNCH_LEDGER.spineMins — this is a floor protocol that needs no gym, and the
-// lunch arithmetic makes the cost of pretending otherwise concrete: adding 6 min
-// of floor work to a box that already pays for the spine minimums and the prep
-// block costs another lift outright. Paying that for work he can do on a rug at
-// home would be a bad trade, so the card says morning or evening instead. If it
-// ever DOES move into the lunch box, spineMins must move with it.
-//
-// Also deliberately NOT in EX, following the plank's precedent in FOUNDATION_FIVE:
-// a fixed daily dose is a stronger guarantee than a weekly slot, and adding these
-// to the core pool would double-program the same movements.
-const MCGILL_BIG3=[
-  {n:'Modified Curl-up',d:'Hands stacked under the low back, ONE knee bent and one leg straight. Tuck the chin slightly and lift the head, neck and shoulders as a single unit only an inch or two — the low back stays pressed on your hands and does not flatten or arch. Hold 10s, breathe. 6 reps, then 4, then 2, swapping which knee is bent between sets.',hold:10},
-  {n:'Side Bridge',d:'On your side, elbow under the shoulder, knees bent (or legs straight to progress). Lift the hips into a straight line from knee to shoulder and brace — no sagging, no rolling forward. Hold 10s per side. 6 reps, then 4, then 2, each side.',hold:10},
-  {n:'Bird Dog',d:'Quadruped, spine neutral and ribs down. Extend the opposite arm and leg to horizontal without letting the low back arch or the hips tip — a broomstick on your back shouldn\'t roll off. Hold 10s, then sweep the hand and knee along the floor to reset rather than standing down. 6 reps, then 4, then 2, each side.',hold:10},
-];
-// Dashboard/rest-day card version — plain text, NO hold-timer buttons: the
-// rest overlay writes to S.active, which is null outside a workout.
 // Where the 40 minutes actually goes. Shown on lunch days because the box is
 // the binding constraint there and, until it was itemised, an overrun looked
 // like "the workout took too long" rather than "three things are being charged
@@ -7107,23 +7035,6 @@ function dailySpineHTML(){
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:6px'>🧘 Daily Spine Minimums · ~5 min</div>
     ${DAILY_SPINE_MINIMUMS.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>Fixed daily doses — these never rotate. A few minutes every day keeps the spine decompressed, the core protective, and posture honest. Evening training days fold them into the cool-down; otherwise do them any time.</div>
-  </div>
-  ${mcgillHTML()}`;
-}
-
-// The Big 3, rendered wherever the daily spine work is (see MCGILL_BIG3 for why
-// it's a separate block and not folded into DAILY_SPINE_MINIMUMS). `holds`
-// controls the timer buttons: the dashboard and rest cards must pass false,
-// because startRest writes to S.active, which is null outside a workout.
-function mcgillHTML(holds){
-  const row=(it)=>`<div style='font-size:12px;color:var(--mut);line-height:1.7;display:flex;gap:8px;align-items:flex-start'>
-    <span>•</span><span style='flex:1'><strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</span>
-    ${holds&&it.hold?`<button data-action='start-hold' data-secs='${it.hold}' style='flex-shrink:0;font-size:11px;font-weight:600;color:#c084fc;background:rgba(192,132,252,.12);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>${it.hold}s</button>`:''}
-  </div>`;
-  return`<div style='margin-top:10px;padding:14px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:12px;text-align:left'>
-    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:6px'>🦴 McGill Big 3 · ~6 min</div>
-    ${MCGILL_BIG3.map(row).join('')}
-    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>The stability half of the spine work, done <strong style='color:var(--txt)'>daily</strong>. Endurance is the goal, not strength — that's why the holds are short and the reps come DOWN rather than up, and why you never take these near failure. Two rules that matter more than the reps: the <strong style='color:var(--txt)'>low back doesn't move</strong> in any of the three, and skip them in the first hour after waking (discs are at their most swollen overnight). Morning or evening on a rug — deliberately not part of the 40-minute lunch, which needs its minutes for lifting.</div>
   </div>`;
 }
 
@@ -9135,19 +9046,6 @@ function renderWorkout(){
     <div class='wu-title' style='color:#c084fc;margin-top:14px'>🧘 Daily Spine Minimums · ~5 min · these never rotate</div>
     ${DAILY_SPINE_MINIMUMS.map(wuRow).join('')}
     <div class='wu-note'>Fixed daily doses, every day: 60s child's pose (knees wide — hip-friendly), 2 min of cobra split into a few holds, 60s plank, 60s down dog. Knocking them out here checks off today's minimums, so there's nothing left to do at home.</div>
-    <div class='wu-title' style='color:var(--acc);margin-top:14px'>🦴 McGill Big 3 · ~${mcgillMins()} min · the stability half</div>
-    ${MCGILL_BIG3.map(wuRow).join('')}
-    ${(()=>{
-      // Timing it is what gives mcgillMins() a real median to budget from —
-      // otherwise the session plan is forever guessing at its own prescription.
-      const done=mcgillDoneToday();
-      if(done)return`<div class='prog-hint' style='margin-top:6px'>✅ Logged${done.timedMins?` — ${done.timedMins} min`:''}</div>`;
-      const d=mcgillDraft();
-      return d.startedAt
-        ?`<button class='btn btn-ok btn-sm' data-action='mcgill-done' style='margin-top:8px;width:100%'>✓ Done — log the time</button>`
-        :`<button class='btn btn-g btn-sm' data-action='mcgill-start' style='margin-top:8px;width:100%'>▶ Start Big 3 (times it)</button>`;
-    })()}
-    <div class='wu-note'>Braced holds, ~10s each, reps descending 6 → 4 → 2. Endurance is the target, not strength, so none of these go near failure. In all three the LOW BACK DOESN'T MOVE — if it's moving, the exercise has turned into the thing it exists to replace. Doing them here means they're done for the day.</div>
   </div>`:'';
   const nextBtn=allDone
     ?`<button class='btn ${isLast?'btn-ok':'btn-p'}' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`
@@ -11894,22 +11792,6 @@ document.addEventListener('click',e=>{
   }
   // ── The Pyramid ladder (see PYRAMID_LADDER) ──
   if(a==='pyramid-toggle'){S.pyramidOpen=!S.pyramidOpen;render();return;}
-  if(a==='mcgill-start'){
-    S.mcgill={date:todayStr(),startedAt:new Date().toISOString()};
-    save();render();return;
-  }
-  if(a==='mcgill-done'){
-    const d=mcgillDraft();
-    // Measured start -> finish. Without a start stamp we log nothing timed
-    // rather than guess: mcgillMins() filters on timedMins>0, so an unmeasured
-    // session is skipped instead of poisoning the median (same rule as the
-    // century's timing).
-    const timedMins=d.startedAt?Math.max(1,Math.round((Date.now()-new Date(d.startedAt).getTime())/60000)):0;
-    S.logs.push({id:Date.now().toString(),date:new Date().toISOString(),dayName:'McGill Big 3',
-      isCardio:true,mcgill:true,duration:timedMins||mcgillDefaultMins(),timedMins,exercises:[]});
-    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
-    S.mcgill=null;save();render();return;
-  }
   if(a==='emom-toggle'){S.emomOpen=!S.emomOpen;render();return;}
   if(a==='emom-round'){
     const d=emomDraft();
@@ -12582,7 +12464,7 @@ async function saveToCloud(){
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
