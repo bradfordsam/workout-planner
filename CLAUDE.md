@@ -739,6 +739,47 @@ strip it before other debugging.
     case-study harness. One real bug caught by the render test and not by
     inspection: `strengthBalance`'s `ranked` rows never carried `best`, so the
     card's "best: …" line rendered `undefined`.
+- **Week-at-a-glance strip on the availability grid (2026-09-08,
+  `renderAvailGrid`)** — Sam: *"why is my Tuesday workout currently not
+  triggering?"* Root cause, confirmed by replaying his exact sequence in the
+  headless harness: the Lunch/Eve controls in `renderAvailGrid` are BLIND
+  TOGGLES (`toggle-avail-lunch` etc. just flip whatever the value already is),
+  and every weekday starts pre-checked — `defaultAvailability()` sets
+  `lunch:true` for Mon–Fri, and `reset-program`'s mid-week path leaves
+  already-correct days untouched rather than blanking them. Sam hit
+  "Reset & reconfigure" on a **Monday** (the full-reset branch, fresh
+  `defaultAvailability()`), correctly tapped Monday's box off, and ALSO tapped
+  Tuesday's box "to confirm it" — since it was already `true`, that tap flipped
+  it to `false`. Nothing in the UI showed the mistake; it only surfaced days
+  later as an unexplained "Rest Day 😴" on Tuesday. Reproduced exactly in the
+  harness: same two taps, same resulting week (Mon+Tue rest, Wed–Fri lifting).
+  - **Deliberately did NOT change the toggle semantics or the defaults.** A
+    blind toggle is still the right control for editing one day on the Program
+    tab, and defaulting every weekday to on is the right ergonomics for the
+    common case (most weeks train most days) — the bug is that a stray
+    confirming tap on an already-correct day is invisible, not that toggles
+    exist. Changing `reset-program` to blank every remaining day (forcing an
+    explicit tap for every single day, every time) would trade a rare
+    single-tap mistake for guaranteed extra taps on the common path, and
+    still wouldn't stop the same mistake happening on an ordinary Program-tab
+    edit outside of any reset.
+  - **The fix is visibility, not a semantics change**: `renderAvailGrid` now
+    renders a live 7-chip strip (S M T W T F S, matching the day-letter
+    convention the dashboard's own week row already uses) derived straight
+    from `av` — green means a session is on for that day RIGHT NOW. It sits
+    above the checkboxes in BOTH call sites (`renderSetup` step 1 and
+    `renderPlan`), so a stray tap is visible immediately, at the moment it
+    happens, instead of only being discoverable days later as an unexplained
+    rest day. `dowOnAtAGlance` is the one place that decides "on" (lunch OR
+    eve for weekdays, `d.on` for the weekend pair), so it can't drift from what
+    `genProgram`'s own slot-building actually reads.
+  - Verified: syntax gate, a 17-assertion render test — the setup wizard's
+    fresh-defaults state, then flipping Monday and Tuesday off and asserting
+    the exact two chips (and only those two) go from on to off, reproducing
+    the reported bug becoming visible in the strip — plus confirming the strip
+    also renders on the editable Plan screen. The case-study harness is
+    untouched: this is pure additive markup in a setup screen, no scheduling
+    logic changed, and all 7 scenarios come back byte-identical.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

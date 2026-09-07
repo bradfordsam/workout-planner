@@ -7931,7 +7931,31 @@ function renderAvailGrid(av,inSetup){
       </div>`:''}
     </div>`;
   };
-  return`<div class='sec-lbl'>Weekday Sessions</div>
+  // AT-A-GLANCE WEEK STRIP (2026-09-08). Sam hit a real trap: the lunch/eve
+  // checkboxes below are blind TOGGLES, not explicit on/off buttons, and every
+  // weekday starts pre-checked (defaultAvailability, or whatever survived a
+  // reset). Going through the list tapping each day "to set it" flips an
+  // already-correct day OFF with no visual warning — reproduced exactly: a
+  // Monday full reset defaults every weekday to lunch:true, tapping Monday off
+  // (correct) and Tuesday "to confirm it" (already true) silently dropped
+  // Tuesday too, and the day quietly became a rest day a week later with
+  // nothing in the UI ever having shown the mistake. Rather than change the
+  // checkboxes' semantics (a toggle is still the right control for editing one
+  // day), this renders the CURRENT on/off state of all seven days derived live
+  // from `av`, so a stray tap is visible immediately, right where it happens,
+  // instead of only being discoverable days later as an unexplained rest day.
+  const dowOnAtAGlance=(dow)=>{
+    const d=av[dow]||{};
+    return(dow===0||dow===6)?!!d.on:(d.lunch!==false||!!d.eve?.on);
+  };
+  const weekStrip=`<div style='display:flex;gap:5px;margin-bottom:14px'>
+    ${[0,1,2,3,4,5,6].map(dow=>{
+      const on=dowOnAtAGlance(dow);
+      return`<div style='flex:1;text-align:center;padding:7px 0;border-radius:8px;font-size:11px;font-weight:700;background:${on?'var(--ok2)':'var(--surf2)'};color:${on?'var(--ok)':'var(--mut)'};border:1px solid ${on?'transparent':'var(--bdr)'}'>${DOW[dow][0]}</div>`;
+    }).join('')}
+  </div>
+  <div style='font-size:11px;color:var(--mut);margin-bottom:12px;margin-top:-8px'>Green = a session is on for that day right now. Check this before generating — a tap below flips whatever a day already is.</div>`;
+  return`${weekStrip}<div class='sec-lbl'>Weekday Sessions</div>
     ${wkdayRow(1,'Monday')}${wkdayRow(2,'Tuesday')}${wkdayRow(3,'Wednesday')}${wkdayRow(4,'Thursday')}${wkdayRow(5,'Friday')}
     <div class='sec-lbl' style='margin-top:16px'>Weekend Sessions</div>
     ${wkndRow(6,'Saturday')}${wkndRow(0,'Sunday')}`;
