@@ -780,6 +780,51 @@ strip it before other debugging.
     also renders on the editable Plan screen. The case-study harness is
     untouched: this is pure additive markup in a setup screen, no scheduling
     logic changed, and all 7 scenarios come back byte-identical.
+- **Century days were invisible on every week view except the today card
+  (2026-09-08, `renderProgram` / `renderDash`'s `wkGrid`)** — Sam, twice:
+  *"why is my Tuesday workout currently not triggering?"* then *"it is still
+  not generating a workout for Tuesday."* It WAS generating one: 100 pull-ups.
+  - **The scheduling was correct and is unchanged.** Four lunch days (Mon off)
+    → `cap=min(maxDays,trainingDayCount−1)`=3, then `CENTURY_KEEP_LIFTING_DAYS`
+    allows exactly ONE century, and the Tue/Thu/Sat preference lands it on
+    **Tuesday**. `centuryChargeFor` bills 32 of the 40 minutes, `lunchBudget`
+    returns **0 lifts** (`minLifts` waived on a century lunch, by design), and
+    `buildSession` returns null on `limit<=0` — so the day reaches the week
+    array as `rest:true`. All of that is the documented 2026-08-19 behaviour.
+  - **The defect was purely reporting, and it was a HALF-APPLIED fix.**
+    `centuryOnlyDow` exists exactly so such a day doesn't read as forgotten —
+    that note's own words: "a day that silently drops out of the schedule looks
+    like the app forgot, not like it heard him." But it was only ever wired
+    into `renderDash`'s TODAY card. The **Program tab printed the literal word
+    "Rest"**, and the dashboard's **7-day dot strip drew the same grey dot as a
+    genuine rest day**. Sam was looking at the week from a Monday, so every
+    surface he could see said "nothing here." **A guarantee that only announces
+    itself on the day it fires is invisible to anyone planning ahead.**
+  - Fixed in both: the Program tab renders a purple 🎯 Pull-up Century row
+    (prescription, minutes, and why there's no lifting) in place of the Rest
+    row, and the dot strip draws century-only days in the century's own
+    `#c084fc`. The century check runs BEFORE the `d.rest` branch in both, for
+    the same reason `isCompleted` already does — the day is `rest:true` but is
+    not a rest day. A day that KEEPS its lifting while hosting a century now
+    says so too (the Program tab never mentioned centuries at all).
+  - **`centuryMins()` is flagged as an ESTIMATE when nothing is timed yet**, and
+    this is the part worth remembering: with no timed century logged it returns
+    `centuryDefaultMins()`=**32**, derived from a cold `best`=0 prescription —
+    and it is that GUESS which deletes the day's lifting. Measured sensitivity:
+    ≤22 min keeps a lift, ≥24 min takes the session. The whole century-timing
+    design is built on "measure, don't guess" (`timedMins` separate from
+    `duration`, unmeasured sessions excluded from the median), so the one place
+    an unmeasured default makes the most destructive call in the system should
+    at least say that it is unmeasured. The card now does, and names the ~22 min
+    threshold.
+  - Deliberately did NOT change `CENTURY_KEEP_LIFTING_DAYS`, the Tue/Thu/Sat
+    preference, or the `minLifts` waiver — the trade (3 lifting days + 1 century
+    out of 4) is the documented intent, and it was never the thing that was
+    wrong. Verified: 28-assertion render test driving Sam's exact week (century
+    row present, Tue dot purple while Mon stays grey and Wed stays amber, the
+    estimate flag appearing and then disappearing once a fast century is timed),
+    plus the two earlier render suites and the full case-study harness — all 7
+    scenarios identical, since no scheduling logic was touched.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

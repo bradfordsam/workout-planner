@@ -8277,7 +8277,14 @@ function renderDash(){
     // even though it was actually trained; the log (behind isCompleted) is
     // the source of truth and always wins over the plan's current shape.
     let dot;
+    // A century-only day is checked BEFORE d.rest, for the same reason
+    // isCompleted is: it arrives here as rest:true (buildSession returns null
+    // when the hundred fills the whole box) but it is a scheduled session, not
+    // an empty day. Drawn in the century's own purple so it reads as
+    // "something is happening here" at a glance — grey said the opposite, and
+    // that is exactly how a scheduled Tuesday looked like a forgotten one.
     if(isCompleted)dot='background:var(--ok)';
+    else if(d.rest&&centuryOnlyDow(i))dot='background:#c084fc';
     else if(d.rest)dot='background:var(--bdr)';
     else if(isMissed)dot='background:var(--bad)';
     else if(isToday)dot='background:var(--ok)';
@@ -10209,6 +10216,28 @@ function renderProgram(){
   const cardio=calcWeekCardio();
   const missed=getMissedDays();
   const completedDows=getCompletedDows();
+  // CENTURY DAYS ON THE WEEK VIEW (2026-09-08). Sam: "it is still not
+  // generating a workout for Tuesday." It was generating one — 100 pull-ups —
+  // and every view he was actually looking at called it "Rest".
+  //
+  // A century lunch is a DIFFERENT session, not a shorter one: at the measured
+  // (or, with no history yet, ESTIMATED) ~30 min the hundred fills the
+  // 40-minute box on its own, lunchBudget returns zero lifts, and buildSession
+  // deliberately returns null rather than an empty session — so the day arrives
+  // here as `rest:true`. centuryOnlyDow exists precisely to say what that day
+  // actually is, and the 2026-08-19 note that introduced it is explicit about
+  // why: "a day that silently drops out of the schedule looks like the app
+  // forgot, not like it heard him." But that label was only ever wired into the
+  // dashboard's TODAY card. The Program tab printed the word "Rest", and the
+  // dashboard's 7-day dot strip drew the same grey dot as a genuine rest day —
+  // so from Monday, looking ahead at Tuesday, the app said "nothing here."
+  // Same reasoning, now applied everywhere the week is drawn.
+  const centuryWeekDows=centuryDows();
+  const centuryMinsNow=centuryMins();
+  // Whether that figure is MEASURED or still a cold-start guess is worth saying
+  // out loud on the one screen where it costs a whole session: with no timed
+  // century logged, this number is what deletes the day's lifting.
+  const centuryMeasured=centuryLogs().some(l=>l&&l.timedMins>0);
   const cardioBlurb=cardio&&cardio.calsPerDay>0
     ?cardio.options.slice(0,3).map(o=>`${o.icon} ${o.name}: ${o.min} min${o.dist&&o.dist!=='—'?' · '+o.dist:''}`).join(' · ')
     :'';
@@ -10231,6 +10260,18 @@ function renderProgram(){
         cn=`<div style='margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)'>
           <div style='font-size:11px;color:var(--warn);font-weight:700;margin-bottom:4px'>+ Daily Cardio · ${cardio.calsPerDay} cal</div>
           <div style='font-size:11px;color:var(--mut)'>${cardioBlurb}</div>
+        </div>`;
+      }
+      // A century-only day is NOT a rest day — it is the day's whole session.
+      if(!isSkipped&&centuryOnlyDow(d.dow)){
+        return`<div class='pg-day${isToday?' today-day':''}' style='border-color:rgba(192,132,252,.35)'>
+          <div class='pg-dh'>
+            <div><div class='pg-dn' style='display:flex;align-items:center;gap:4px;flex-wrap:wrap'>🎯 Pull-up Century <span class='badge' style='background:rgba(192,132,252,.15);color:#c084fc'>${centuryMinsNow} min${centuryMeasured?'':' est.'}</span></div><div class='pg-dd'>${DOW[d.dow]}</div></div>
+            ${isToday?`<span style='font-size:11px;font-weight:700;color:var(--acc);background:var(--acc2);padding:3px 8px;border-radius:20px'>TODAY</span>`:''}
+          </div>
+          <div class='pg-ex'><div class='pg-dot' style='background:#c084fc'></div>100 pull-ups <span style='color:var(--mut);font-size:12px'>· any number of sets</span></div>
+          <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>No lifting programmed today — at ~${centuryMinsNow} min the hundred fills the 40-minute lunch on its own, so none is promised and then dropped.${centuryMeasured?'':` That figure is an ESTIMATE until you time one; if yours comes in under ~22 min this day keeps a lift.`}</div>
+          ${cn}
         </div>`;
       }
       return`<div class='pg-day${isToday?' today-day':''}${isSkipped?' pg-skip':''}'>
@@ -10268,6 +10309,10 @@ function renderProgram(){
         ${isToday?`<span style='font-size:11px;font-weight:700;color:var(--acc);background:var(--acc2);padding:3px 8px;border-radius:20px'>TODAY</span>`:''}
       </div>
       <div>${exList}</div>
+      ${centuryWeekDows.includes(d.dow)?`<div style='margin-top:8px;padding-top:8px;border-top:1px solid rgba(192,132,252,.25)'>
+        <div style='font-size:11px;color:#c084fc;font-weight:700'>🎯 Pull-up Century · 100 reps · ~${centuryMinsNow} min${centuryMeasured?'':' est.'}</div>
+        <div style='font-size:11px;color:var(--mut);margin-top:2px'>Charged to ${centuryHostSession(d.dow)==='eve'?'the after-work session':'this lunch'} — the lifting above is already sized around it.</div>
+      </div>`:''}
       ${eveBlock}
       ${cn}
     </div>`;
