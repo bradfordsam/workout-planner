@@ -1703,7 +1703,7 @@ let S={
     pairedSets:false,
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},noBarLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},noBarLog:{},ptLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
   // CUSTOM SESSION (2026-08-29). The in-progress builder draft for a workout Sam
   // picks himself — see the CUSTOM SESSION block. Transient, never synced: it is
@@ -1770,7 +1770,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1778,7 +1778,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},ptLog:d.ptLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // Paired sets shipped 2026-08-30; a cfg stored before that has no key at
       // all, and `pairedSetsOn` tests === true, so the migration is only about
       // making the Plan-screen checkbox render in a known state.
@@ -3387,9 +3387,9 @@ function eveningLifts(mins,dow,av,equipmentKey){
     if(f)finisher=f.mins||8;
   }
   // Only the blocks that CANNOT be shed are charged here. sessionPlan drops the
-  // cool-down, then the Big 3, then the spine holds before it would touch the
-  // lifting (see SHED_ORDER), so charging those three against the lift count is
-  // the two halves disagreeing with each other — and it showed: a 60-minute
+  // cool-down, then the spine holds before it would touch the lifting (see
+  // SHED_ORDER), so charging those against the lift count is the two halves
+  // disagreeing with each other — and it showed: a 60-minute
   // evening was billed for 16 minutes of work the plan then deferred anyway and
   // came out at ONE lift with six minutes spare. All three are floor work that
   // genuinely can happen at home; a lift can't.
@@ -3434,9 +3434,9 @@ function lunchBudget(dow,av,boxMins,centuryOverride){
   // session doesn't exist yet when this runs — reserving the cap is the only
   // non-circular answer, and prepPlan guarantees it never exceeds it.
   const prep=hostsCentury?PREP_BUDGET_MINS.centuryLunch:LUNCH_LEDGER.prepMins;
-  // The spine holds come off a century lunch for the same reason the Big 3 never
-  // went on it: six minutes of floor work that needs no gym, against a box that
-  // can no longer even afford one lift. sessionPlan lists them as deferred.
+  // The spine holds come off a century lunch for the same reason floor work
+  // never joins it: six minutes that needs no gym, against a box that can no
+  // longer even afford one lift. sessionPlan lists them as deferred.
   const spine=hostsCentury?0:LUNCH_LEDGER.spineMins;
   const per=perLiftMinsFor(lunchExMins());
   // The transition buffer joins the box for the same reason the spine holds and
@@ -7026,16 +7026,55 @@ function lunchBudgetHTML(dow){
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:6px'>⏱ The ${b.box}-minute lunch</div>
     ${rows.map(r=>`<div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9'><span style='color:var(--mut)'>${r[0]}</span><span style='font-weight:700'>${r[1]} min</span></div>`).join('')}
     <div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9;border-top:1px solid var(--bdr);margin-top:4px;padding-top:4px'><span style='color:var(--mut)'>Slack</span><span style='font-weight:700;color:${b.left<0?'var(--warn)':'var(--ok)'}'>${b.left} min</span></div>
-    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${b.hostsCentury&&!b.lifts?` Today the century is the session — it leaves no room for a lift, so none is programmed, and the spine holds and Big 3 move to this morning or tonight.`:''}${eveHosts?` Today's century isn't on this ledger — it's charged to tonight's session instead, since that's where you do it. Change that on the Plan screen.`:''}${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${b.hostsCentury&&!b.lifts?` Today the century is the session — it leaves no room for a lift, so none is programmed, and the spine holds move to this morning or tonight.`:''}${eveHosts?` Today's century isn't on this ledger — it's charged to tonight's session instead, since that's where you do it. Change that on the Plan screen.`:''}${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
   </div>`;
 }
 
+// Renders one PT_PRESCRIBED row: dose, this-week progress, a catch-up note
+// when behind pace, and a log/undo control. `todayCount` is shown because the
+// catch-up math can ask for MORE than one session today — the button has to
+// stay usable after the first tap rather than looking "done" and hiding.
+function ptPrescribedRowHTML(ex){
+  const done=ptDoneThisWeek(ex.id);
+  const today=ptDoneOn(ex.id,todayStr());
+  const neededToday=ptSessionsNeededToday(ex);
+  const metWeek=done>=ex.weeklyFreq;
+  const pct=Math.min(100,(done/ex.weeklyFreq)*100);
+  return`<div style='padding:8px 0;border-bottom:1px solid var(--bdr)'>
+    <div style='display:flex;align-items:center;gap:8px;font-size:12px'>
+      <strong style='flex:1;color:var(--txt)'>${ex.n}</strong>
+      <span style='color:var(--mut)'>${done}/${ex.weeklyFreq} this week</span>
+    </div>
+    <div class='bd-track' style='margin:5px 0 4px'><div class='bd-fill' style='background:${metWeek?'var(--ok)':'#c084fc'};--w:${pct}%'></div></div>
+    <div style='font-size:11px;color:var(--mut);line-height:1.5'>${ex.d}</div>
+    <div style='display:flex;align-items:center;gap:8px;margin-top:6px'>
+      <span style='font-size:11px;color:var(--mut);flex:1'>${ptDoseText(ex)}${neededToday>1?` · <span style='color:#c084fc;font-weight:700'>do ${neededToday}× today to catch up</span>`:(metWeek?' · <span style="color:var(--ok);font-weight:700">week done</span>':'')}</div>
+      ${today>0?`<button class='btn btn-g btn-sm' data-action='pt-undo-done' data-id='${ex.id}' style='padding:4px 10px;font-size:11px'>↩ ${today}</button>`:''}
+      <button class='btn ${today>0?'btn-ok':'btn-p'} btn-sm' data-action='pt-log-done' data-id='${ex.id}' style='padding:4px 12px;font-size:11px'>${today>0?'✓ Log another':'✓ Done'}</button>
+    </div>
+  </div>`;
+}
+// The physio's home program (see PT_PRESCRIBED above for why this is separate
+// from PT_HIP_POOL/HIP_POOL). Shown alongside the daily spine minimums for the
+// same reason: it needs to be visible and loggable every day regardless of
+// whether a workout happens, not just inside a session. `ptSessionsNeededToday`
+// is what implements "if I miss a day, add the work to the next day" — it
+// re-derives from logs on every render, so it self-corrects the moment a
+// session is logged and needs nothing else to keep it honest.
+function ptPrescribedHTML(){
+  return`<div style='margin-top:10px;padding:14px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.2);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:2px'>🩺 PT Home Program</div>
+    <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>From your physio's sheet — logged separately from lifting, tracked against its own weekly target.</div>
+    ${PT_PRESCRIBED.map(ptPrescribedRowHTML).join('')}
+  </div>`;
+}
 function dailySpineHTML(){
   return`<div style='margin-top:10px;padding:14px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.2);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:6px'>🧘 Daily Spine Minimums · ~5 min</div>
     ${DAILY_SPINE_MINIMUMS.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>Fixed daily doses — these never rotate. A few minutes every day keeps the spine decompressed, the core protective, and posture honest. Evening training days fold them into the cool-down; otherwise do them any time.</div>
-  </div>`;
+  </div>
+  ${ptPrescribedHTML()}`;
 }
 
 // ─────────────────────────────────────────────
@@ -7150,9 +7189,17 @@ const prepIsDesk=(it)=>prepFocus(it).some(t=>PREP_DESK_TISSUES.includes(t));
 // bandless fallback wherever the movement survives without it.
 const PT_HIP_POOL=[
   {n:'Clamshells',d:'12 reps/side · side-lying, hips stacked and knees bent ~45°, heels together — open the top knee without letting the pelvis roll back. Pause 1s at the top. Band above the knees if you have one',f:['hip','glute'],band:false},
-  {n:'Fire Hydrants',d:'3 sets of 10 reps/side · quadruped, hands under shoulders and knees under hips, lift the knee out to the side keeping the hips square — stop the moment you feel a pinch at the front of the left hip; height is not the point, the glute is',f:['hip','glute']},
-  {n:'Side Plank with Clam',d:'3 sets of 10 reps/side · side-lying, knees bent ~90° and resting on your forearm — brace and lift the hips into a kneeling side plank, keeping head, hips and knees in one line. From there lift the top knee like a clamshell, hold briefly, then relax and repeat without letting the hips roll forward or back',f:['hip','glute']},
-  {n:'Single Leg Bridge',d:'3 sets of 10 reps/side · on your back, both knees bent, feet on the floor — straighten one leg in line with the other, brace the abs, then lift the hips into a bridge and lower back down without letting the hips rotate',f:['glute','hip']},
+  // Fire Hydrants, Side Plank with Clam and Single Leg Bridge moved OUT of this
+  // casual rotation 2026-09-09, to PT_PRESCRIBED below — the physio's sheet
+  // gives each an explicit weekly FREQUENCY (3x/week), and a fixed quota
+  // cannot share a queue with a variety pool: whichever entry this round-robin
+  // happens to reach first still "counts" as much as any other, so a specific
+  // weekly guarantee living in here is exactly the CALF_WEEKLY_TARGET_SETS
+  // mistake (a real prescription competing inside a rotation-for-variety pool
+  // and quietly losing). Leaving them here TOO would also mean doing one
+  // during pre-lift prep doesn't register as done — this pool has no
+  // completion logging at all — so the weekly tracker would keep asking for
+  // work that was, in fact, already performed.
   {n:'Donkey Kickbacks',d:'12 reps/side · quadruped, drive one heel straight back and up with the knee bent 90°, squeezing the glute at the top — ribs down, no lower-back arch. The range comes from the hip, not the spine',f:['glute','hip']},
   {n:'Hip Thrust Kicks',d:'10 reps/side · shoulders on a bench or floor, drive to a full glute bridge and HOLD it there, then extend one knee out straight and back without letting that hip drop. The held bridge is the exercise; the kick is the test',f:['glute','hip']},
   {n:'Seated Leg Spreads',d:'15 reps · seated tall, knees bent, band above the knees (or press your own hands against the outside of both knees) — spread the knees apart, pause 1s, return slowly. Sit UP; if the front of the left hip pinches, lean the torso back a few degrees',f:['hip','glute'],band:true},
@@ -7165,6 +7212,97 @@ const PT_HIP_POOL=[
   {n:'Monster Walks',d:'10 steps each way · band above the knees, sink to a quarter-squat and walk forward with wide, deliberate steps pushing the knees OUT against the band — then walk it back. Feet never come closer than shoulder width',f:['glute','hip'],band:true},
   {n:'Banded Defensive Slides',d:'10 steps each way · band above the knees, athletic stance — chest up, hips back, hands ready — and shuffle sideways without the feet clicking together. Push off the trailing leg, land wide, stay low the whole way',f:['glute','hip','adductor'],band:true},
 ];
+
+// ── PT PRESCRIBED PROGRAM (2026-09-09) ──
+// Sam's physio issued a home program with an explicit prescription — sets,
+// reps (or hold time), and how many DAYS a week each one is due — for five
+// movements: "make sure the frequency and set counts and rep counts... are
+// included in my workout programming... if I miss any days make sure to add
+// the work to the next day to make sure I get my weekly sets and reps in."
+// This is a different ask than PT_HIP_POOL/HIP_POOL: those are ROTATE-FOR-
+// VARIETY pools with no fixed quota, and all five of these movements already
+// lived in one or the other (the 2026-09-03 entry above catalogued them). A
+// real weekly frequency target cannot be satisfied by round-robin variety —
+// it needs its OWN tracked completion count against its OWN target, which is
+// exactly what CALF_WEEKLY_TARGET_SETS already proved: a specific weekly
+// guarantee sharing a queue with general-purpose rotation just loses to
+// whatever else is ahead of it. So these five graduate out of their casual
+// pools (see the removal comments above) into a dedicated list with real
+// completion logging, and nowhere else.
+//
+// Descriptions and safety cautions are carried over VERBATIM from wherever
+// each movement already lived, not retyped from the physio's plainer paper
+// text — the FAI-specific cues ("stop the moment you feel a pinch at the
+// front of the left hip") are this app's own additions from the original PT
+// visit and are not boilerplate to be silently dropped. Dose numbers match
+// the new sheet exactly; where a movement already carried the identical dose
+// (Fire Hydrant / Side Plank with Clam / Single Leg Bridge, all "3 sets of 10
+// reps/side" since the 2026-09-03 update) nothing about the exercise itself
+// changed — only the tracking did.
+const PT_PRESCRIBED=[
+  {id:'pt_butterfly_groin',n:'Butterfly Groin Stretch',
+   d:'Sit upright, knees bent, soles of the feet together. Using your arms, gently pull your heels toward your body until you feel a stretch in the groin, and hold. Keep the low back tall — do not let it slouch.',
+   sets:1,reps:3,holdSecs:30,weeklyFreq:7},
+  {id:'pt_figure4_piriformis',n:'Supine Figure-4 Piriformis Stretch',
+   d:'Lying on your back with both knees bent and feet on the floor, lift one leg and rest that ankle on the opposite knee. Apply gentle pressure to the bent knee with your hand until you feel a stretch in the buttock. Keep the low back flat on the floor throughout.',
+   sets:1,reps:3,holdSecs:30,weeklyFreq:7},
+  {id:'pt_side_plank_clam',n:'Side Plank with Clam',
+   d:'Side-lying, knees bent ~90° and resting on your forearm — brace and lift the hips into a kneeling side plank, keeping head, hips and knees in one line. From there lift the top knee like a clamshell, hold briefly, then relax and repeat without letting the hips roll forward or back.',
+   sets:3,reps:10,perSide:true,weeklyFreq:3},
+  {id:'pt_single_leg_bridge',n:'Single Leg Bridge',
+   d:'On your back, both knees bent, feet on the floor — straighten one leg in line with the other, brace the abs, then lift the hips into a bridge and lower back down without letting the hips rotate.',
+   sets:3,reps:10,perSide:true,weeklyFreq:3},
+  {id:'pt_fire_hydrant',n:'Quadruped Fire Hydrant',
+   d:'Quadruped, hands under shoulders and knees under hips — lift one leg out to the side keeping the hips square, then return and repeat. Stop the moment you feel a pinch at the front of the left hip; height is not the point, the glute is.',
+   sets:3,reps:10,perSide:true,weeklyFreq:3},
+];
+function ptDoseText(ex){
+  const sxr=`${ex.sets} set${ex.sets===1?'':'s'} × ${ex.reps} reps${ex.perSide?'/side':''}`;
+  return ex.holdSecs?`${sxr}, hold ${ex.holdSecs}s each`:sxr;
+}
+// A flat `id|date` key, matching pushupLog/noBarLog's plain date-map shape
+// rather than nesting {id:{date:count}} — a shallow `{...cloud,...local}`
+// merge (this file's standing "local wins on conflict" rule for habit logs)
+// only merges at the TOP level of the object; nesting would silently let one
+// device's cloud copy overwrite another device's SAME-DAY count for a
+// DIFFERENT exercise instead of merging per-exercise-per-date entries.
+function ptLogKey(id,date){return id+'|'+date;}
+function ptDoneOn(id,date){return (S.ptLog||{})[ptLogKey(id,date)]||0;}
+// Sessions logged since Monday. Matches calfSetsThisWeek's week boundary
+// (thisMonday()/+7 days) so "this week" means the same thing everywhere in
+// the app.
+function ptDoneThisWeek(id){
+  const mon=thisMonday(),end=addDays(mon,7);
+  const log=S.ptLog||{};
+  let n=0;
+  Object.keys(log).forEach(k=>{
+    if(!k.startsWith(id+'|'))return;
+    const d=k.slice(id.length+1);
+    if(d>=mon&&d<end)n+=log[k]||0;
+  });
+  return n;
+}
+// Inclusive of today — Monday has 7 days left, Sunday has 1.
+function ptDaysLeftInWeek(){return daysBetween(todayStr(),nextSunday())+1;}
+// THE CATCH-UP FORMULA. Computed from what was owed BEFORE today (not
+// today's own count), spread evenly over the days remaining INCLUDING today —
+// that spread is what "add the work to the next day" means in numbers: a
+// target missed on Monday doesn't just move to Tuesday, it raises every
+// remaining day's ask by the same amount until it's paid off or the week runs
+// out. `todaysQuota` is deliberately computed from yesterday's-end state so it
+// doesn't shift under you as you log sessions today — it names a stable number
+// ("2 today") and counts down against what you've actually logged, rather than
+// recomputing from a smaller total after every tap and never admitting you'd
+// already met today's share. Self-correcting like every other weekly quota in
+// this file: log nothing all week and the last day asks for all of it at
+// once, which is the honest answer, not a silently dropped rep.
+function ptSessionsNeededToday(ex){
+  const doneToday=ptDoneOn(ex.id,todayStr());
+  const owedBeforeToday=Math.max(0,ex.weeklyFreq-(ptDoneThisWeek(ex.id)-doneToday));
+  if(owedBeforeToday<=0)return 0;
+  const todaysQuota=Math.max(1,Math.ceil(owedBeforeToday/ptDaysLeftInWeek()));
+  return Math.max(0,todaysQuota-doneToday);
+}
 
 // ── HIP DECOMPRESSION ──
 // Left-hip anterior impingement (2026-07-16): flexion + rotation jams the
@@ -7199,13 +7337,19 @@ const HIP_POOL=[
   {n:'Cat-Cow',d:'8 slow reps · thoracic extension',f:['spine']},
   {n:'90/90 Hip Stretch',d:'30 sec/side · breathe into it',f:['hip']},
   {n:'Half-Kneeling Hip Flexor Stretch',d:'30 sec/side · tuck pelvis first',f:['hip']},
-  {n:'Figure 4 Stretch',d:'30 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch',f:['hip','glute']},
+  // Figure 4 Stretch moved OUT 2026-09-09, to PT_PRESCRIBED below, alongside
+  // Butterfly Stretch — same reasoning as the PT_HIP_POOL removals above: the
+  // physio's sheet prescribes both DAILY with a fixed dose, and this casual
+  // pool has no completion logging, so leaving a copy here would let a
+  // pre-lift rep count as "not done" in the weekly tracker's eyes even after
+  // being performed. COOLDOWN_POOL's own copies of these two names are
+  // untouched — that pool is ordinary post-workout flexibility, a genuinely
+  // separate concern from PT compliance, not a duplicate of this feature.
   {n:'Hip CARs',d:'5 circles/side · slow, full range',f:['hip']},
   // Sits next to Hip CARs on purpose — same active-rotation idea, one leg and
   // loaded by bodyweight. Pool order is mobilize → activate and this is the
   // activation end of rotation work, so it comes after the passive stretches.
   {n:'Hip Airplanes',d:'5 cycles/side · hand on a wall, hinge until torso and free leg are one horizontal line, then rotate the pelvis over the stance hip — open UP toward the ceiling, pause, slowly back under. Torso stays still; only the stance hip moves. Slow enough to stop anywhere. Left hip: open up further than you rotate under, and back off at any pinch in the front',f:['hip']},
-  {n:'Butterfly Stretch',d:'30–45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch',f:['adductor']},
   {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back',f:['hip','spine']},
   {n:'Knee-to-Chest Lie',d:'45 sec · on your back, hug BOTH knees to your chest, gently rocking side to side if it feels good — decompresses the lower back and opens the hips',f:['spine','hip']},
   {n:'Kneeling Diamond Sit',d:'45 sec · kneel with the knees wide and big toes touching behind you, sit back onto the heels with a tall spine — hips, inner thighs, and ankles together (hip-friendly, like wide-knee child\'s pose)',f:['hip','adductor']},
@@ -7525,7 +7669,7 @@ function centuryPrepHTML(){
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:${b.color}'>${b.title}</div>
       ${b.items.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.6'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
     </div>`).join('')}
-    <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>Abbreviated on purpose — the hundred takes ~${centuryMins()} min of a 40-minute lunch, so this is the short version rather than the usual ${PREP_BUDGET_MINS.lunch}. Spine holds and the Big 3 move to this morning or tonight; they need no gym.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>Abbreviated on purpose — the hundred takes ~${centuryMins()} min of a 40-minute lunch, so this is the short version rather than the usual ${PREP_BUDGET_MINS.lunch}. Spine holds move to this morning or tonight; they need no gym.</div>
   </div>`;
 }
 
@@ -9107,7 +9251,7 @@ function renderWorkout(){
     ${(()=>{
       // The whole session, itemised, shown once at the top. The clock is
       // already running (S.active.startTime is stamped on open), so this is
-      // what that clock is buying — century, spine work, Big 3, stretching and
+      // what that clock is buying — century, spine work, stretching and
       // finisher included, not a lifting-only estimate with the rest bolted on
       // afterwards.
       if(exIdx!==0)return'';
@@ -9128,7 +9272,7 @@ function renderWorkout(){
         <div class='wu-title'>⏱️ This session · ${plan.total} min of ${S.active.sessionMins}</div>
         ${rows}
         <div class='wu-note'>${plan.deferred.some(i=>i.key==='century')
-          ?`⚠ ${S.active.sessionMins} min isn't enough for the Century (${centuryMins()} min) on top of prep and a lift — move it to a longer day, or plan to run over. ${plan.deferred.filter(i=>i.key!=='century').length?'Spine work and the Big 3 need no gym — do those at home.':''}`
+          ?`⚠ ${S.active.sessionMins} min isn't enough for the Century (${centuryMins()} min) on top of prep and a lift — move it to a longer day, or plan to run over. ${plan.deferred.filter(i=>i.key!=='century').length?'Spine work needs no gym — do it at home.':''}`
           :plan.deferred.filter(i=>!i.byDesign).length
           ?`Doesn't all fit today — ${listWords(plan.deferred.filter(i=>!i.byDesign).map(i=>i.label.toLowerCase()))} moved out of the session. No gym needed for those, so do them at home tonight.`
           :plan.deferred.length
@@ -11296,6 +11440,26 @@ document.addEventListener('click',e=>{
     else S.pushupLog[t]=S.cfg?.dailyPushups||0;
     save();render();return;
   }
+  // PT_PRESCRIBED completion — a COUNT, not a toggle like toggle-pushups,
+  // because ptSessionsNeededToday can legitimately ask for more than one
+  // session on the same day once a week has fallen behind (see the catch-up
+  // note on that function). Undo only decrements — it never removes the day
+  // entirely on one tap, so logging twice and correcting a mis-tap doesn't
+  // require remembering how many taps you're undoing.
+  if(a==='pt-log-done'){
+    const id=btn.dataset.id;
+    S.ptLog=S.ptLog||{};
+    const k=ptLogKey(id,todayStr());
+    S.ptLog[k]=(S.ptLog[k]||0)+1;
+    save();render();return;
+  }
+  if(a==='pt-undo-done'){
+    const id=btn.dataset.id;
+    S.ptLog=S.ptLog||{};
+    const k=ptLogKey(id,todayStr());
+    if(S.ptLog[k]>1)S.ptLog[k]--;else delete S.ptLog[k];
+    save();render();return;
+  }
   if(a==='log-sleep'){
     S.sleepLog=S.sleepLog||{};
     S.sleepLog[todayStr()]=parseFloat(btn.dataset.hours);
@@ -12524,6 +12688,7 @@ async function saveToCloud(){
         S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
         S.pushupLog={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
         S.noBarLog={...(cloud.noBarLog||{}),...(S.noBarLog||{})};
+        S.ptLog={...(cloud.ptLog||{}),...(S.ptLog||{})};
         // AFTER the log merge above: the draft merges ask whether today's
         // session is already finished, and the log that says so may have
         // arrived from the other device in this very read.
@@ -12533,7 +12698,7 @@ async function saveToCloud(){
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -12694,6 +12859,7 @@ async function loadFromCloud(){
       const sleep={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
       const pushl={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
       const noBar={...(cloud.noBarLog||{}),...(S.noBarLog||{})};
+      const ptl={...(cloud.ptLog||{}),...(S.ptLog||{})};
       // Singleton state (cfg/program/weekPlan/...) adopted PER FIELD, by each
       // field's own change stamp. The old comparison used one global
       // updatedAt, so any unrelated save on this device (a sleep log, a
@@ -12719,7 +12885,7 @@ async function loadFromCloud(){
         const fu={...lf};Object.keys(cf).forEach(k=>{if(!fu[k]||cf[k]>fu[k])fu[k]=cf[k];});
         S.fieldUpdated=fu;
       }
-      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,noBarLog:noBar,customExercises:customEx,customTemplates:customTpl});
+      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,noBarLog:noBar,ptLog:ptl,customExercises:customEx,customTemplates:customTpl});
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
       // device must not ride back in through this device's stale copy.
       S.logs=filterTombstoned(merged).slice(-LOG_KEEP);

@@ -825,6 +825,89 @@ strip it before other debugging.
     estimate flag appearing and then disappearing once a fast century is timed),
     plus the two earlier render suites and the full case-study harness — all 7
     scenarios identical, since no scheduling logic was touched.
+- **`PT_PRESCRIBED` — a real weekly quota with catch-up, not a rotation
+  (2026-09-09, `ptDoneThisWeek` / `ptSessionsNeededToday` / `ptPrescribedHTML`)**
+  — Sam typed out his physio's sheet in full: five movements, each with an
+  explicit sets/reps (or hold time) AND a weekly frequency, and *"if I miss any
+  days make sure to add the work to the next day to make sure I get my weekly
+  sets and reps in."* All five movements were ALREADY in the app — three in
+  `PT_HIP_POOL` (Fire Hydrant / Side Plank with Clam / Single Leg Bridge,
+  already dosed 3×10 as of the 2026-09-03 update) and two in `HIP_POOL`
+  (Figure 4 Stretch / Butterfly Stretch) — but only as ROTATE-FOR-VARIETY pool
+  entries with no fixed quota and, critically, **no completion logging at
+  all**. This is a fundamentally different ask than "make sure the movement is
+  in the directory": a weekly frequency target needs its own tracked count
+  against its own target, which a round-robin pool cannot provide.
+  - **Graduated out of both pools, not left duplicated.** Same lesson
+    `CALF_WEEKLY_TARGET_SETS` already learned — a specific weekly guarantee
+    sharing a queue with general-purpose rotation loses to whatever else is
+    ahead of it — but the sharper reason here is that PT_HIP_POOL/HIP_POOL have
+    NO done-tracking UI at all. Leaving a copy in the casual pool would let
+    "did it during warm-up" not count toward the weekly target the new card is
+    the only thing tracking, which is worse than redundancy — it's a silent
+    double standard. COOLDOWN_POOL's own copies of Figure 4 Stretch / Butterfly
+    Stretch are untouched: that's ordinary post-workout flexibility, a
+    genuinely separate concern, not a duplicate of PT compliance.
+  - **Descriptions and safety cautions carried over VERBATIM**, not retyped
+    from the physio's plainer paper text. The FAI-specific cue on Fire
+    Hydrant/Side Plank/Single Leg Bridge ("stop the moment you feel a pinch at
+    the front of the left hip") is this app's own addition from the original
+    PT visit, not the physio's own wording — dropping it to match the new
+    sheet's plainer phrasing would have quietly deleted a safety instruction.
+  - **The catch-up formula is computed from what was owed BEFORE today, not
+    from today's own running count** — this was a real bug caught by the
+    render test, not by inspection. The first version recomputed
+    `ceil(owed/daysLeft)` fresh on every render, which meant logging a session
+    could make the "needed today" number go UP relative to what you'd already
+    done, or asked you to do a phantom extra one after you'd already met the
+    day's share, because `owed` itself was shrinking as you logged and the
+    ceiling doesn't fall smoothly. Fixed to freeze `todaysQuota` from
+    `weeklyFreq − (doneThisWeek − doneToday)` — i.e. the state as of yesterday
+    — spread over `ptDaysLeftInWeek()`, then subtract `doneToday` from THAT
+    fixed number. The result is a stable "do N today" that counts down as you
+    log, rather than a moving target.
+  - **A missed day raises every remaining day's ask by the same amount, and a
+    week left entirely undone asks for everything on the last day** — the
+    literal meaning of "add the work to the next day," expressed as
+    `ceil(owed/daysRemaining)` rather than a fixed daily reminder that quietly
+    drops what a missed day cost. Verified: Wednesday with nothing done and 5
+    days left asks for 1/day (on pace); the same zero-progress state discovered
+    on Saturday (2 days left, weeklyFreq 3) asks for 2 that day.
+  - **A COUNT, not a toggle** (`S.ptLog[id|date] = n`), unlike `toggle-pushups`
+    — the catch-up math can genuinely ask for more than one session in a day,
+    so the log button has to stay usable after the first tap rather than
+    flipping to a "done" state that hides it. Undo decrements rather than
+    clearing outright, so correcting a double-tap doesn't erase a session
+    logged five minutes earlier by mistake.
+  - **Flat `id|date` string key, not a nested `{id:{date:n}}` map** — this
+    file's standing "local wins on conflict" rule for simple habit logs
+    (`pushupLog`, `noBarLog`) is a SHALLOW `{...cloud,...local}` spread, which
+    only merges at the top level. Nesting would let one device's cloud copy
+    silently overwrite another device's same-day count for a completely
+    different exercise. Wired through both localStorage save/load and both
+    cloud merge points, same four call sites `pushupLog`/`noBarLog` already
+    touch.
+  - **Rendered inside `dailySpineHTML()`**, not a separate call site — same
+    reasoning as the removed `mcgillHTML()` append: it needs to be visible and
+    loggable every day regardless of whether a workout happens, and that
+    function is already the single place both the dashboard/rest-card and the
+    in-workout cool-down pull from.
+  - **Two stale "Big 3" strings survived the 2026-09-06 McGill removal and
+    were fixed here on the way** — `lunchBudgetHTML`'s and `centuryPrepHTML`'s
+    user-visible text still said "the spine holds and Big 3 move to this
+    morning or tonight" months after the feature was deleted, plus one
+    reference in the workout screen's over-budget warning and two stale
+    code comments. Caught by a route sweep that greps rendered output for the
+    literal string, not by re-reading the removal diff.
+  - Verified: syntax gate, a 54-assertion test (list contents and pool
+    removals, dose-text formatting, the catch-up formula across a normal week,
+    a from-scratch Saturday catch-up scenario, week rollover resetting the
+    count, full render output at multiple weekly-progress states, and the
+    click-handler dispatch for both log and undo), a 63-assertion route sweep
+    across every screen plus a real `startWorkout` run to the cool-down block,
+    and the full case-study harness — all 7 scenarios byte-identical, since
+    this touches no scheduling logic (`dayTemplate` doesn't know these
+    movements exist, same as `PT_HIP_POOL`/`DAILY_SPINE_MINIMUMS` before it).
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
