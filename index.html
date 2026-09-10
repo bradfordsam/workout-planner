@@ -1567,6 +1567,23 @@ const CONDITIONING_FINISHERS=[
   {name:'Block Jump Capacity',jumpDurability:true,desc:'6 sets × 12–20 continuous block jumps (hands up the whole time, submaximal height), 60s rest. On SAND or grass if at all possible. Trains the thing that actually fails late in a set: holding jump height with incomplete recovery. End any set the moment height drops or the feet start slapping — the number of QUALITY jumps is the score, and it should climb week to week.',icon:'\ud83c\udfd0',mins:14},
   {name:'Bounce Foundation',desc:'Tendon-stiffness isometrics — pick 3: Split Squat Hold 3×45s/leg · Single-Leg Wall Sit 3×45s/leg · Wall Sit 3×45s · Reverse Nordic Iso 3×30s · Calf Raise Iso Hold 3×45s',icon:'🦶',mins:10,lunchOK:true},
   {name:'Bounce Protocol',desc:'Reactive jump work, full recovery between sets, quality over quantity — pick 3: Pogo Hops 3×15 · Line Hops 3×20 · Plate Hops 3×10 · Chair Jumps 3×5 · Lunge Hops 3×6/side · U Hops 3×8 · Depth Jumps 3×5 · ATG Jump Squats 3×6 · JAPAP Jumps 3×5. Stop any drill the moment height or crispness drops.',icon:'🦘',mins:12,plyo:true},
+  // The Combat Fitness Test's own events minus the running, so the style of work
+  // shows up in ORDINARY weeks rather than only on the fortnightly benchmark —
+  // the same reasoning that put repeat-jump capacity in this pool instead of
+  // carving it a leg slot: loaded carries and odd-object work are
+  // finisher-shaped, and legs only get ~2 slots a week with both mandated.
+  //
+  // THE SANDBAG STOPS AT THE SHOULDER HERE, and that is the one deliberate
+  // difference from the test itself. getFinisher AUTO-PRESCRIBES from this pool
+  // — Sam never opts in — so the overhead finish that the test card flags and
+  // lets him decide about must not appear in something the app chooses on his
+  // behalf. Same line db_hang_clean_jerk draws: reachable when he picks it,
+  // never generated for him.
+  //
+  // Ungated on purpose. The 40 m carry matches Carry & Crawl Medley, which has
+  // no needsRunway either, and the shuttle needs about 10 m — far less than the
+  // measured lane the sprint entries require.
+  {name:'Combat Events Medley',desc:'3 rounds, 90s between: Sandbag Clean to SHOULDER × 8 (40 lb — shoulder height, never overhead) · Farmer Carry 40 m with two 40 lb cans/KBs · Dead-Stop Push-ups × 10 (hands on low blocks if the left shoulder is talking) · 5-10-5 shuttle × 2. The Combat Fitness Test\'s events minus the miles — rehearse the kit and the transitions so test day is only about the clock.',icon:'\ud83c\udf96\ufe0f',mins:14},
 ];
 // ─── AEROBIC ENGINE PROTOCOLS (non-lunch sessions) ───
 // Progressive conditioning overload, fully isolated from lifting: these logs
@@ -1722,6 +1739,10 @@ let S={
   // Today's in-progress EMOM 20 round counter — same stamped-draft shape as
   // `cindy`, and synced by the same merge for the same reason.
   emom:null,emomOpen:false,
+  // Today's in-progress Combat Fitness Test, {date,event,...} — `event` counts
+  // COMPLETED events, so the tracker is one number, matching how the session is
+  // actually run. Same stamped-draft sync as century/pyramid/cindy.
+  combatTest:null,combatTestOpen:false,
   century:null,
   // Today's in-progress Pyramid ladder, {date,rung,...} — see PYRAMID_LADDER.
   // Synced by the same stamped-draft merge as `century`.
@@ -1770,7 +1791,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,combatTest:S.combatTest||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1778,7 +1799,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},ptLog:d.ptLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},ptLog:d.ptLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,combatTest:d.combatTest||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // Paired sets shipped 2026-08-30; a cfg stored before that has no key at
       // all, and `pairedSetsOn` tests === true, so the migration is only about
       // making the Plan-screen checkbox render in a known state.
@@ -2982,6 +3003,10 @@ const PYRAMID_PRESCRIBE_MINS=Math.min(...Object.keys(EX_LIMIT).map(Number).filte
 // lifting template stays available underneath as the alternative.
 function pyramidPrescription(){
   if(pyramidDoneToday())return null;
+  // Yields to the Combat Fitness Test — see the scarcity note in
+  // combatTestPrescription. This gate (anywhere but the YMCA or a hotel, with
+  // 75+ min) is a superset of the nights that test can run at all.
+  if(typeof combatTestPrescription==='function'&&combatTestPrescription())return null;
   const eve=pyramidEveSlot();
   if(!eve.on)return null;// no evening slot tonight — nowhere to put it
   const gym=pyramidGymKey();
@@ -3056,6 +3081,7 @@ function cindyDue(){return cindyDaysSince()>=CINDY_EVERY_DAYS;}
 function cindyPrescription(){
   if(cindyDoneToday())return null;
   if(!cindyDue())return null;
+  if(typeof combatTestPrescription==='function'&&combatTestPrescription())return null;
   const eve=pyramidEveSlot();
   if(!eve.on)return null;
   const gym=pyramidGymKey();
@@ -3067,6 +3093,160 @@ function cindyPrescription(){
   const needed=CINDY_MINS+10+LUNCH_LEDGER.spineMins;
   if(mins<needed)return null;
   return{gym,gymName:EQUIPMENT_PRESETS[gym].name,mins,needed};
+}
+
+// ─────────────────────────────────────────────
+// COMBAT FITNESS TEST (seven events, one clock)
+// ─────────────────────────────────────────────
+// Sam, from a news summary of the Army's combat-arms fitness test: "I want to
+// add training like this to the workout prescriptions." Seven events, in
+// order, inside a 30-minute cap, in a combat uniform and boots.
+//
+// Filed as a BENCHMARK on the CINDY pattern, not as a lifting session, because
+// it is the same shape as Cindy and the Pyramid: a fixed named session with a
+// progress counter, a spacing rule, and a card that only prescribes itself
+// when it can be run honestly. NEVER SCHEDULED BY THE GENERATOR — dayTemplate
+// knows nothing about it, same rule as the other three.
+//
+// SELF-SCALING in the Century's sense, which is what makes it worth having:
+// the standard NEVER moves — 30 push-ups, 16 sandbag lifts, 40 lb cans, two
+// miles — and the TIME is the score. So it never needs rewriting as he gets
+// fitter, exactly like the Century's fixed hundred.
+//
+// TWO EVENTS COLLIDE WITH DOCUMENTED INJURY CONSTRAINTS and both are FLAGGED
+// rather than silently rewritten — the same call the Pyramid's 400-sit-up rung
+// records ("flagged in that rung's cue rather than silently resolved; Sam's
+// call either way"). Silently softening a published test standard would make
+// the score meaningless; silently prescribing the standard would ignore his own
+// file. So the card prints the standard AND the accommodation, and he picks:
+//   - Dead-stop push-ups finish CHEST ON THE DECK with the hands lifted. That
+//     bottom position is the one this app's own push-up cue exists to prevent
+//     ("chest to about fist height rather than flat to the deck — the bottom
+//     position is the one the left shoulder objects to under load"). The
+//     accommodation ELEVATES THE HANDS rather than cutting the range, because
+//     the hand-release is the whole point of the event and a higher deck is the
+//     only way to keep the release while raising the bottom position — the same
+//     mechanical-stop logic that makes floor_press lead the chest block.
+//   - A 40 lb sandbag onto a 65" platform finishes ABOVE SHOULDER HEIGHT, i.e.
+//     the standing-overhead position his lower back has a stated history with
+//     (`ohp`/`push_press`/`db_push_press`/`thrusters` are all on avoidExercises
+//     for exactly this, and db_hang_clean_jerk carries standingPressRisk). The
+//     load is trivially light for him; the FINISH is the issue, so the
+//     accommodation lowers the platform rather than the bag.
+// The movement drill is NOT flagged, because the source doesn't specify one —
+// so the drill written here is chosen hip-safely from the start (cuts, shuffles
+// and sprints, no repeated get-up/get-down, which is deep flexion under speed
+// and the FAI provocation position) rather than prescribed and then warned
+// about.
+const COMBAT_TEST_CAP_MINS=30;
+// A max-effort test in boots, so it is spaced like Cindy rather than run
+// weekly — "run weekly it stops being a measurement and just becomes a lot of
+// sloppy volume". Two weeks matches EMOM_EVERY_DAYS; the medley finisher below
+// is what carries this style of work in the weeks between.
+const COMBAT_TEST_EVERY_DAYS=14;
+// `log` is what the session books when the event is completed. The two runs and
+// the sprint deliberately carry NONE — they are conditioning inside the
+// session, and the aerobic protocols already set the precedent that running
+// logs no muscle sets. `mrvSets` states a cost directly for the events whose
+// dose is a DISTANCE rather than reps (a 50 m loaded carry is about one hard
+// set of loaded carry, and the ungated Carry & Crawl finisher books nothing at
+// all, so one set is already the generous reading); everything with a real rep
+// count prices through pyramidMrvSets off the same Century anchor as every
+// other benchmark, so the numbers reconcile across all four.
+const COMBAT_TEST_EVENTS=[
+  {key:'run1',n:'1-Mile Run (opening)',
+   d:'Timed mile to open. This one sets the heart rate for everything after it — run it honestly, but the score is the WHOLE test, so blowing the doors off here and limping through the middle five is the classic way to post a slow total.',
+   kit:'Any measured mile — track, loop, or out-and-back.'},
+  {key:'pushups',n:'30 Dead-Stop Push-ups',
+   d:'Chest to the deck, lift both hands completely clear of the floor, reset, press. The hand-release kills the stretch reflex, so every rep starts from dead — that is the event.',
+   kit:'Floor.',
+   flag:'STANDARD is chest flat to the deck, which is the bottom position your left shoulder objects to under load. YOUR VERSION: put the hands on two low plates or a pair of 6" blocks so the chest still reaches "deck" and the hands still release, but the shoulder never reaches end range. Take the flat-floor version only while the shoulder is quiet.',
+   log:{id:'bw_pushups',name:'Dead-Stop Push-ups',muscle:'chest',type:'compound',rMin:12,rMax:25,reps:30}},
+  {key:'sprint',n:'100 m Sprint',
+   d:'One maximal 100 m. Tall, relaxed, full turnover — you are already warm from the mile, so there is no build-up here.',
+   kit:'100 m of runway.'},
+  {key:'sandbag',n:'16 Sandbag Lifts',
+   d:'40 lb sandbag, 16 lifts onto a 65" platform. Hips drive it; the arms only guide. Reset the bag square each rep rather than wrestling it back.',
+   kit:'40 lb sandbag (any 40 lb odd object) + a 65" platform.',
+   flag:'STANDARD finishes the bag at 65", which is above shoulder height — the standing-overhead position your lower back has a stated history with, and the reason four press variants are on your avoid list. The bag is light; the finish is the problem. YOUR VERSION: a 45–48" platform, so the lift finishes at chest height and the back never has to stabilise a load overhead. Same 16 reps, same bag.',
+   log:{id:'ct_sandbag_lift',name:'Sandbag Lift to Platform',muscle:'shoulders',type:'compound',rMin:8,rMax:15,reps:16}},
+  {key:'cans',n:'50 m Water Can Carry',
+   d:'Two 40 lb water cans, 50 m unbroken if you can. Ribs down, shoulders packed, quick feet — this is a brace under load, not a stroll.',
+   kit:'Two 40 lb cans, or a 40 lb KB/DB per hand.',
+   log:{id:'ct_water_can_carry',name:'Water Can Carry (50 m)',muscle:'core',type:'compound',mrvSets:1}},
+  {key:'drill',n:'50 m Movement Drill',
+   d:'25 m out, 25 m back, changing mode every 12–15 m: sprint → lateral shuffle → backpedal → sprint. Brake with the legs and stay tall through every cut. Deliberately no crawling or repeated get-ups — that is deep hip flexion at speed, which is the one pattern the left hip will not forgive.',
+   kit:'50 m of open ground.',
+   log:{id:'ct_movement_drill',name:'50 m Movement Drill',muscle:'legs',type:'compound',mrvSets:1}},
+  {key:'run2',n:'1-Mile Run (final)',
+   d:'The same mile, on wrecked legs, with the clock still running. This is the event the whole test is really about — and the one that rewards having paced the opening mile.',
+   kit:'Same measured mile.'},
+];
+function combatTestLogs(){return (S.logs||[]).filter(l=>l&&l.combatTest);}
+function combatTestDraft(){
+  if(!S.combatTest||S.combatTest.date!==todayStr())return{date:todayStr(),event:0,startedAt:null,touchedAt:null};
+  return S.combatTest;
+}
+function combatTestDoneToday(){return combatTestLogs().find(l=>logDay(l.date)===todayStr())||null;}
+// BEST counts only COMPLETE tests — a time for three of seven events is not a
+// comparable result — while DAYS SINCE counts every attempt, complete or not,
+// because thirty minutes of maximal work in boots costs the same recovery
+// either way and the spacing rule exists for the recovery, not the score.
+function combatTestStats(){
+  const logs=combatTestLogs();
+  const full=logs.filter(l=>l.ctComplete&&l.timedMins>0);
+  return{count:logs.length,complete:full.length,
+    best:full.length?Math.min(...full.map(l=>l.timedMins)):0,
+    last:logs[logs.length-1]||null};
+}
+function combatTestDaysSince(){
+  const l=combatTestLogs();
+  return l.length?daysBetween(logDay(l[l.length-1].date),todayStr()):Infinity;
+}
+function combatTestDue(){return combatTestDaysSince()>=COMBAT_TEST_EVERY_DAYS;}
+// PRESCRIBED only when it can be run honestly. The gate that actually binds is
+// RUNWAY: the kit substitutes (any 40 lb object, any high platform, a KB per
+// hand) but two measured miles, a 100 m sprint and two 50 m lanes do not, and
+// SPRINT_LOCATIONS is already this app's answer to "somewhere he can actually
+// run". Everything else mirrors Cindy and EMOM — due, room in the evening, not
+// a Century day, and no other benchmark already owns the night.
+//
+// It is OFFERED everywhere regardless, as a collapsed card, because unlike the
+// other three this session is realistically done at a park or a track rather
+// than at any gym in EQUIPMENT_PRESETS — so a hard gate would make it
+// unrunnable rather than merely unstarred. Same "offered but never prescribed"
+// split the Pyramid uses for a ladder missing a rung.
+function combatTestPrescription(){
+  const dow=todayDow();
+  const d=S.program?.week?.[dow];
+  const dd=(d&&!d.rest)?d:null;
+  const sess=dd?.eveningSession||((dd&&!dd.isLunch)?dd:null);
+  if(!sess)return null;
+  if(!combatTestDue()||combatTestDoneToday())return null;
+  if(centuryDows(S.weekPlan?.availability).includes(dow))return null;
+  // FIRST CLAIM ON THE NIGHT, and the other three benchmarks defer to this one
+  // rather than the other way round. Not seniority — SCARCITY, which is the
+  // same argument PYRAMID_EXCLUDED_GYMS is already built on ("the YMCA is the
+  // only place the heavy 1-5 barbell mandate can happen, so spending that
+  // evening on bodyweight reps trades the scarce resource for the abundant
+  // one"). Apply that one level up: this test needs two measured miles, a
+  // 100 m sprint and two 50 m lanes, so SPRINT_LOCATIONS is the only place it
+  // can happen at all, while the Pyramid runs anywhere that isn't the YMCA or
+  // a hotel and Cindy and EMOM run essentially anywhere with a bar. Ordered the
+  // other way it was measured never to get the night at all: the Pyramid's gate
+  // (not YMCA/hotel + >=75 min) is a strict superset of this one's ideal
+  // evening, so it claimed every qualifying Westminster night first.
+  const key=sess.equipmentKey||'ymca';
+  if(!SPRINT_LOCATIONS.has(key))return null;
+  const needed=COMBAT_TEST_CAP_MINS+PREP_BUDGET_MINS.evening+LUNCH_LEDGER.spineMins;
+  if((sess.mins||60)<needed)return null;
+  return{gymName:EQUIPMENT_PRESETS[key]?.name||'this location',needed,key};
+}
+// Rep-priced off the Century anchor like every other benchmark, except where the
+// event's dose is a distance and states its own cost — see COMBAT_TEST_EVENTS.
+function combatTestMrvSets(ex,full){
+  if(ex&&ex.mrvSets!=null)return ex.mrvSets;
+  return pyramidMrvSets(full||exFull(ex),pyramidRepsOf(ex));
 }
 
 
@@ -4885,7 +5065,16 @@ function getWeeklySetVolumes(){
       });
       return;
     }
-    if(log.cindy||log.pyramid){
+    if(log.combatTest){
+      // Distance events state their own cost; rep events price off the same
+      // Century anchor as every other benchmark. See combatTestMrvSets.
+      (log.exercises||[]).forEach(ex=>{
+        const full=exFull(ex);
+        creditVolume(volumes,full,combatTestMrvSets(ex,full));
+      });
+      return;
+    }
+    if(log.cindy||log.pyramid||log.emom){
       // Same problem the century had, one order of magnitude worse: a peak-10
       // ladder is 19 rungs × 5 movements, so a set count would bill 95 sets of
       // 1–10 reps. Priced by REPS off the century anchor instead — see
@@ -5500,7 +5689,8 @@ function getMRVBreakdown(){
       // The same rep-priced century and pyramid costs getWeeklySetVolumes
       // charges, so the breakdown always reconciles with the widget totals.
       const sets=l.century?centuryMrvSets(centuryRepsOf(l))
-        :(l.pyramid||l.cindy)?pyramidMrvSets(exFull(ex),pyramidRepsOf(ex))
+        :l.combatTest?combatTestMrvSets(ex,exFull(ex))
+        :(l.pyramid||l.cindy||l.emom)?pyramidMrvSets(exFull(ex),pyramidRepsOf(ex))
         :raw;
       addWithSecondary(ex,sets,{dow,dayLabel:DOW[dow],source:l.isCustom?'custom':'logged',sessionName:l.dayName});
     });
@@ -6957,7 +7147,29 @@ function getFinisher(dow,isLunch,equipmentKey){
     const jd=pool.find(f=>f.jumpDurability);
     if(jd)return jd;
   }
-  return pool[dow%pool.length];
+  // ROTATE ON THE DATE, NOT THE DAY-OF-WEEK (2026-09-10). `pool[dow%pool.length]`
+  // could only ever produce indices 0-6, because dow IS 0-6 — so at any location
+  // whose filtered pool is longer than seven, every entry from index 7 on was
+  // UNREACHABLE. Measured before the fix: Westminster prescribed 7 of its 12
+  // finishers and never the other five (Med Ball Complex, Carry & Crawl Medley,
+  // Brace Circuit, Block Jump Capacity, Bounce Foundation); the apartment gym and
+  // the YMCA never reached Bounce Foundation.
+  //
+  // This is also the REAL mechanism behind the JUMP_DURABILITY note above, which
+  // recorded the symptom ("surfaced it on Saturdays at the YMCA and never at
+  // Westminster, where the sprint entries make the pool longer") but read it as
+  // the index landing elsewhere. It wasn't landing elsewhere — Block Jump
+  // Capacity sits past index 7 at Westminster and the plain rotation could not
+  // reach it at all. The eveningTrainedThisWeek() short-circuit above is what
+  // has been carrying it single-handed.
+  //
+  // Same failure family as the `domDay%2` back-accent aliasing: a modulo whose
+  // INPUT RANGE is narrower than the thing it is indexing. Keyed to the date
+  // instead, the index advances every day and the whole pool cycles — a week is
+  // a 7-step stride through a pool of 5, 8 or 12, and 7 is coprime with all
+  // three, so every entry comes up within `pool.length` weeks.
+  const dayNum=Math.floor(new Date(weekDateForDow(dow)+'T12:00:00').getTime()/86400000);
+  return pool[((dayNum%pool.length)+pool.length)%pool.length];
 }
 function finisherHTML(dow,compact,isLunch,equipmentKey){
   // At lunch the finisher has to be AFFORDABLE, not just low-sweat. Its minutes
@@ -7749,6 +7961,7 @@ function emomPrescription(){
   if(!sess)return null;
   if(!emomDue()||emomDoneToday())return null;
   if(centuryDows(S.weekPlan?.availability).includes(dow))return null;
+  if(typeof combatTestPrescription==='function'&&combatTestPrescription())return null;
   if(typeof pyramidPrescription==='function'&&pyramidPrescription())return null;
   if(typeof cindyPrescription==='function'&&cindyPrescription())return null;
   const key=sess.equipmentKey||'ymca';
@@ -7808,6 +8021,64 @@ function emomHTML(dd){
   </div>`;
 }
 
+// The seven-event card. Mirrors emomHTML's three states — logged / collapsed
+// offer / open — with the progress counter walking the event list instead of
+// counting rounds, because the events are ORDERED and the whole point is doing
+// them back to back on one clock.
+function combatTestHTML(dd){
+  const done=combatTestDoneToday();
+  const draft=combatTestDraft();
+  const started=!!draft.startedAt;
+  const rx=combatTestPrescription();
+  const st=combatTestStats();
+  const total=COMBAT_TEST_EVENTS.length;
+  if(done){
+    return`<div style='margin-top:10px;padding:12px 14px;background:var(--surf2);border:1px solid rgba(74,222,128,.3);border-radius:12px;text-align:left'>
+      <div style='font-size:13px;font-weight:700;color:var(--ok)'>&#9989; Combat Fitness Test logged — ${done.ctEvents||0} of ${total} events${done.timedMins?` in ${done.timedMins} min`:''}</div>
+      ${done.ctComplete&&done.timedMins?`<div style='font-size:11px;color:var(--mut);margin-top:4px'>${done.timedMins<=COMBAT_TEST_CAP_MINS?`Inside the ${COMBAT_TEST_CAP_MINS}-minute cap.`:`${done.timedMins-COMBAT_TEST_CAP_MINS} min over the ${COMBAT_TEST_CAP_MINS}-minute cap.`}${st.best&&st.best<done.timedMins?` Best is ${st.best} min.`:''}</div>`:''}
+    </div>`;
+  }
+  if(!S.combatTestOpen&&!started&&!rx){
+    return`<div style='margin-top:10px;padding:10px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;display:flex;align-items:center;gap:10px'>
+      <div style='flex:1;font-size:12px;color:var(--mut)'><strong style='color:var(--txt)'>&#9876;&#65039; Combat Fitness Test</strong> — seven events, ${COMBAT_TEST_CAP_MINS}-minute cap, boots on.${combatTestDaysSince()===Infinity?' Never tested.':` Last run ${combatTestDaysSince()} days ago.`}</div>
+      <button class='btn btn-g btn-sm' data-action='ct-toggle' style='width:auto;flex-shrink:0'>Open</button>
+    </div>`;
+  }
+  const rows=COMBAT_TEST_EVENTS.map((ev,i)=>{
+    const doneEv=i<draft.event;
+    const next=i===draft.event;
+    return`<div style='padding:7px 0;border-bottom:1px solid var(--bdr);${doneEv?'opacity:.45':''}'>
+      <div style='display:flex;align-items:baseline;gap:8px;font-size:12px'>
+        <span style='width:20px;flex-shrink:0;color:${next?'var(--acc)':'var(--mut)'};font-weight:700'>${doneEv?'&#10003;':i+1}</span>
+        <strong style='flex:1;color:var(--txt)'>${ev.n}</strong>
+        ${next?`<span style='font-size:10px;font-weight:700;color:var(--acc);background:var(--acc2);padding:2px 7px;border-radius:20px;flex-shrink:0'>NEXT</span>`:''}
+      </div>
+      <div style='font-size:11px;color:var(--mut);line-height:1.55;margin-left:28px'>${ev.d}</div>
+      <div style='font-size:10px;color:var(--mut);margin-left:28px;margin-top:2px;opacity:.8'>&#128295; ${ev.kit}</div>
+      ${ev.flag?`<div style='font-size:11px;color:var(--warn);line-height:1.55;margin-left:28px;margin-top:4px'>&#9888; ${ev.flag}</div>`:''}
+    </div>`;
+  }).join('');
+  const rxNote=rx?`<div style='font-size:11px;color:var(--acc);margin-top:8px;line-height:1.6'>&#11088; <strong>Tonight's call.</strong> ${combatTestDaysSince()===Infinity?'You have never run it':`It has been ${combatTestDaysSince()} days`} — due every ${COMBAT_TEST_EVERY_DAYS}. ${rx.gymName} has the ground for the runs and the evening has the ${rx.needed} min it needs.</div>`:'';
+  const score=st.complete
+    ?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>Best complete test: <strong style='color:var(--txt)'>${st.best} min</strong> across ${st.complete} run${st.complete===1?'':'s'}. The standard never moves — the clock is the score, so the only thing to beat is that number.</div>`
+    :`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First time out, treat the ${COMBAT_TEST_CAP_MINS} minutes as a cap and not a target — finish all seven, note the time, and that becomes the number to beat. Pace the opening mile; the final one is where the test is won or lost.</div>`;
+  return`<div style='margin-top:10px;padding:12px 14px;background:var(--surf2);border:1px solid ${rx?'rgba(129,140,248,.45)':'var(--bdr)'};border-radius:12px;text-align:left'>
+    <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
+      <div style='flex:1;font-size:13px;font-weight:800'>&#9876;&#65039; Combat Fitness Test &middot; ${COMBAT_TEST_CAP_MINS} min cap</div>
+      ${started?'':`<button class='btn btn-g btn-sm' data-action='ct-toggle' style='width:auto;flex-shrink:0'>Hide</button>`}
+    </div>
+    <div style='font-size:12px;color:var(--mut);line-height:1.6;margin-bottom:8px'>Seven events, in this order, on one clock — combat uniform and boots. Tap each one off as you finish it; the time runs from the first tap to the last.</div>
+    ${rows}
+    ${rxNote}
+    ${score}
+    <div style='display:flex;align-items:center;gap:8px;margin-top:10px'>
+      <div style='flex:1;font-size:13px'><strong>${draft.event}</strong> / ${total} events</div>
+      ${started?`<button class='btn btn-g btn-sm' data-action='ct-undo-event' style='width:auto'>&minus;1</button>`:''}
+      ${draft.event<total?`<button class='btn btn-p btn-sm' data-action='ct-event' style='width:auto'>&#10003; ${COMBAT_TEST_EVENTS[draft.event].n.replace(/ \(.*\)$/,'')}</button>`:''}
+      ${draft.event>0?`<button class='btn btn-ok btn-sm' data-action='ct-finish' style='width:auto'>Log it</button>`:''}
+    </div>
+  </div>`;
+}
 function cindyHTML(dd){
   const done=cindyDoneToday();
   const draft=cindyDraft();
@@ -8585,6 +8856,7 @@ function renderDash(){
       ${isActualToday?pyramidHTML(dd):''}
       ${isActualToday?cindyHTML(dd):''}
       ${isActualToday?emomHTML(dd):''}
+      ${isActualToday?combatTestHTML(dd):''}
       ${isActualToday?dailySpineHTML():''}
     </div>`;
   }
@@ -12062,6 +12334,52 @@ document.addEventListener('click',e=>{
     S.emom=null;S.emomOpen=false;
     recalcLastWeights();replanCurrentWeek();save();render();return;
   }
+  if(a==='ct-toggle'){S.combatTestOpen=!S.combatTestOpen;render();return;}
+  if(a==='ct-event'){
+    const d=combatTestDraft();
+    if(d.event>=COMBAT_TEST_EVENTS.length)return;
+    // Clock starts on the FIRST completed event, not at render — the card sits
+    // on the dashboard all day (same reasoning as the century's startedAt).
+    S.combatTest={date:d.date,event:d.event+1,startedAt:d.startedAt||new Date().toISOString(),touchedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='ct-undo-event'){
+    const d=combatTestDraft();
+    const event=Math.max(0,d.event-1);
+    S.combatTest={date:d.date,event,startedAt:event?d.startedAt:null,touchedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='ct-finish'){
+    const d=combatTestDraft();
+    if(!d.event)return;
+    // Measured first event -> last event, never to the Log tap: the card sits on
+    // the dashboard, so the gap before you remember to tap is unbounded — the
+    // same reading error "I forgot to stop my century today" produced.
+    const timedMins=(d.startedAt&&d.touchedAt)
+      ?Math.max(1,Math.round((new Date(d.touchedAt).getTime()-new Date(d.startedAt).getTime())/60000)):0;
+    const complete=d.event>=COMBAT_TEST_EVENTS.length;
+    // A REAL session (no isCardio), like Cindy, EMOM and the Pyramid: thirty
+    // minutes of running, carrying and pressing IS the day's training, so it
+    // marks the day complete, feeds recovery and books MRV. Only the events
+    // ACTUALLY COMPLETED are booked — a test stopped at event three must not
+    // bill the week for the four that never happened, the same rule the
+    // century's partial pricing exists for.
+    const exercises=COMBAT_TEST_EVENTS.slice(0,d.event).filter(ev=>ev.log).map(ev=>({
+      id:ev.log.id,name:ev.log.name,muscle:ev.log.muscle,type:ev.log.type,
+      rMin:ev.log.rMin,rMax:ev.log.rMax,mrvSets:ev.log.mrvSets,
+      sets:[{weight:0,reps:ev.log.reps||1}],
+    }));
+    S.logs.push({
+      id:Date.now().toString(),date:new Date().toISOString(),
+      dayName:`Combat Fitness Test · ${d.event} of ${COMBAT_TEST_EVENTS.length} events`,
+      combatTest:true,ctEvents:d.event,ctComplete:complete,
+      duration:timedMins||COMBAT_TEST_CAP_MINS,timedMins,measured:!!timedMins,
+      exercises,
+    });
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    S.combatTest=null;S.combatTestOpen=false;
+    recalcLastWeights();replanCurrentWeek();save();render();return;
+  }
   if(a==='cindy-toggle'){S.cindyOpen=!S.cindyOpen;render();return;}
   if(a==='cindy-round'){
     const d=cindyDraft();
@@ -12695,10 +13013,12 @@ async function saveToCloud(){
         S.century=mergeCentury(S.century,cloud.century);
         S.pyramid=mergePyramid(S.pyramid,cloud.pyramid);
         S.cindy=mergeCindy(S.cindy,cloud.cindy);
+        S.emom=mergeEmom(S.emom,cloud.emom);
+        S.combatTest=mergeCombatTest(S.combatTest,cloud.combatTest);
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,combatTest:S.combatTest||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -12815,6 +13135,21 @@ function mergePyramid(local,cloud){
   return mergeStampedDraft(local,cloud,!!pyramidDoneToday(),
     c=>typeof c.rung==='number'&&c.rung>=0);
 }
+// EMOM had NO merge at all until 2026-09-10, which was a live cross-device bug
+// and strictly worse than the case the century's note documents: `emom` was
+// written into the cloud doc and read back by nobody, and it is not in
+// SINGLETON_FIELDS either, so whichever device saved last silently overwrote
+// the other's in-progress draft with no stamp comparison — on a card that has
+// an undo button, which is exactly the shape that note says a merge has to be
+// able to express.
+function mergeEmom(local,cloud){
+  return mergeStampedDraft(local,cloud,!!emomDoneToday(),
+    c=>typeof c.rounds==='number'&&c.rounds>=0);
+}
+function mergeCombatTest(local,cloud){
+  return mergeStampedDraft(local,cloud,!!combatTestDoneToday(),
+    c=>typeof c.event==='number'&&c.event>=0);
+}
 
 // Post-merge consistency: another device may have logged a planned workout
 // (program here still carries planned flags → MRV would count the muscle
@@ -12894,7 +13229,9 @@ async function loadFromCloud(){
       // than resurrect the session that was just completed.
       S.century=mergeCentury(S.century,cloud.century);
       S.pyramid=mergePyramid(S.pyramid,cloud.pyramid);
-        S.cindy=mergeCindy(S.cindy,cloud.cindy);
+      S.cindy=mergeCindy(S.cindy,cloud.cindy);
+      S.emom=mergeEmom(S.emom,cloud.emom);
+      S.combatTest=mergeCombatTest(S.combatTest,cloud.combatTest);
       reconcileProgramWithLogs();
       recalcLastWeights();
       lastCloudMergeRead=Date.now();// this WAS a full merge — saveToCloud can skip its read

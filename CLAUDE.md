@@ -908,6 +908,142 @@ strip it before other debugging.
     and the full case-study harness — all 7 scenarios byte-identical, since
     this touches no scheduling logic (`dayTemplate` doesn't know these
     movements exist, same as `PT_HIP_POOL`/`DAILY_SPINE_MINIMUMS` before it).
+- **`COMBAT_TEST_EVENTS` — the seven-event combat fitness test (2026-09-10,
+  `combatTestPrescription` / `combatTestHTML` / `combatTestMrvSets`)** — Sam, from
+  a news summary of the Army's combat-arms test: *"I want to add training like
+  this to the workout prescriptions. I'll let you decide the best way to
+  implement it based on current rules."* Seven events on one clock, 30-minute
+  cap, boots on.
+  - **Filed as a BENCHMARK on the Cindy pattern**, not as a lifting session,
+    because it is the same shape: a fixed named session with a progress counter,
+    a spacing rule, and a card that only prescribes itself when it can be run
+    honestly. NEVER SCHEDULED BY THE GENERATOR — `dayTemplate` knows nothing
+    about it, same rule as the Pyramid, Cindy and EMOM. Logged as a REAL session
+    (no `isCardio`): thirty minutes of running, carrying and pressing IS the
+    day's training, so it marks the day complete, feeds recovery and books MRV.
+  - **Self-scaling in the Century's sense**, which is what makes it worth
+    keeping: the standard NEVER moves (30 push-ups, 16 sandbag lifts, 40 lb
+    cans, two miles) and the TIME is the score, so it never needs rewriting as
+    he gets fitter.
+  - **"Training like this" is delivered TWICE, because the ask was for
+    programming and a fortnightly card is not programming.** The test is the
+    benchmark; `Combat Events Medley` in `CONDITIONING_FINISHERS` is the same
+    events minus the miles, so the style shows up in ordinary weeks. Same split
+    JUMP_DURABILITY already documents — loaded carries and odd-object work are
+    finisher-shaped, and legs only get ~2 slots a week with both mandated.
+  - **TWO EVENTS COLLIDE WITH DOCUMENTED CONSTRAINTS, and both are FLAGGED
+    rather than silently rewritten** — the call the Pyramid's 400-sit-up rung
+    already records. Silently softening a published standard makes the score
+    meaningless; silently prescribing it ignores his own file. So the card
+    prints the standard AND the accommodation and he picks:
+    - Dead-stop push-ups finish CHEST ON THE DECK with hands lifted — the exact
+      bottom position this app's own push-up cue exists to prevent ("chest to
+      about fist height rather than flat to the deck"). The accommodation
+      ELEVATES THE HANDS rather than cutting the range, because the hand-release
+      IS the event and a higher deck is the only way to keep the release while
+      raising the bottom position — the same mechanical-stop logic that makes
+      `floor_press` lead the chest block.
+    - A 40 lb sandbag onto a 65" platform finishes ABOVE SHOULDER HEIGHT, i.e.
+      the standing-overhead position four press variants are on `avoidExercises`
+      for. The bag is trivially light for him; the FINISH is the issue, so the
+      accommodation lowers the platform, not the bag.
+    - The movement drill is deliberately NOT flagged: the source doesn't specify
+      one, so the drill written here is chosen hip-safely from the start (cuts,
+      shuffles, sprints — no repeated get-ups, which is deep flexion at speed
+      and the FAI provocation position) rather than prescribed and then warned
+      about.
+  - **The runs and the sprint book NO muscle sets** — they are conditioning
+    inside the session, and the aerobic protocols already set that precedent.
+    Only the four resistance events book, and a PARTIAL test books only the
+    events actually completed, the same rule the century's partial pricing
+    exists for. Rep-priced off the same Century anchor as every other benchmark
+    (`combatTestMrvSets` → `pyramidMrvSets`), except the two DISTANCE events,
+    which state an explicit `mrvSets` because a 50 m carry has no rep count to
+    price. Measured: a full test books chest 1 / shoulders 1 / core 1 / legs 1.
+  - **BEST counts only COMPLETE tests; DAYS SINCE counts every attempt.** A time
+    for three of seven events is not a comparable result, but thirty minutes of
+    maximal work in boots costs the same recovery either way, and the spacing
+    rule exists for the recovery.
+  - **It takes FIRST CLAIM on the night and the other three benchmarks defer to
+    it — on SCARCITY, not seniority.** This is the argument
+    `PYRAMID_EXCLUDED_GYMS` is already built on ("the YMCA is the only place the
+    heavy 1–5 barbell mandate can happen, so spending that evening on bodyweight
+    reps trades the scarce resource for the abundant one"), applied one level up:
+    this test needs two measured miles, a 100 m sprint and two 50 m lanes, so
+    `SPRINT_LOCATIONS` is the only place it can run at all, while the Pyramid
+    runs anywhere but the YMCA/hotel and Cindy and EMOM run anywhere with a bar.
+    Ordered the other way it was **measured never to get the night**: the
+    Pyramid's gate (not YMCA/hotel + ≥75 min) is a strict superset of this one's
+    ideal evening. The deference is ONE-DIRECTIONAL (the other three call
+    `combatTestPrescription`, it calls none of them) or the four would recurse.
+  - **OFFERED everywhere, PRESCRIBED only with a runway.** Unlike the other
+    three this is realistically done at a park or a track rather than any gym in
+    `EQUIPMENT_PRESETS`, so a hard gate would make it unrunnable rather than
+    merely unstarred — the kit substitutes (any 40 lb object, any high surface,
+    a KB per hand), the ground does not. Same "offered but never prescribed"
+    split the Pyramid uses for a ladder missing a rung.
+  - **The medley's sandbag stops at the SHOULDER, and that is the one deliberate
+    difference from the test.** `getFinisher` AUTO-PRESCRIBES from that pool —
+    Sam never opts in — so the overhead finish the test card flags and lets him
+    decide about must not appear in something the app chooses on his behalf.
+    Same line `db_hang_clean_jerk` draws: reachable when he picks it, never
+    generated for him.
+- **`getFinisher`'s rotation could only ever reach the first SEVEN entries
+  (2026-09-10)** — found while checking whether the new medley would ever be
+  picked, and much worse than the JUMP_DURABILITY note that half-diagnosed it.
+  `pool[dow%pool.length]` takes `dow`, which is 0–6, so at any location whose
+  filtered pool is longer than seven **every entry from index 7 on was
+  unreachable, permanently.** Measured over 16 simulated weeks with the jump
+  guarantee disabled (it short-circuits every evening and hides this):
+  **Westminster prescribed 7 of its 12 finishers and never the other five** —
+  Med Ball Complex, Carry & Crawl Medley, Brace Circuit, **Block Jump Capacity**
+  and Bounce Foundation; the apartment gym and the YMCA never reached Bounce
+  Foundation. That JUMP_DURABILITY note reads the symptom as the index landing
+  elsewhere at Westminster; it wasn't landing elsewhere, it was unreachable, and
+  the `eveningTrainedThisWeek()` short-circuit has been carrying Block Jump
+  Capacity single-handed ever since.
+  - Same failure family as the `domDay%2` back-accent aliasing: **a modulo whose
+    INPUT RANGE is narrower than the thing it indexes.** Fixed by keying the
+    index to the DATE rather than the day-of-week, so it advances daily and the
+    pool cycles — a week is a 7-step stride, and 7 is coprime with 5, 8, 9, 12
+    and 13, so every entry comes up within `pool.length` weeks. After: **every
+    finisher at every location is reached, dead entries 0.**
+  - **This moves real scheduling, because a finisher's `mins` feeds the
+    ledgers** — the exact reason that section warns "any check on the finisher
+    must sweep every dow on every profile". Measured against a fresh HEAD
+    baseline: **six of seven case-study scenarios byte-identical**, and S3
+    (efficiency 3-day) improves — **core 0 → 2.7 sets/week, 0% → 89% in band**
+    (a shorter finisher frees the minutes that were dropping the reserved core
+    slot, the same `slice(0,limit)` mechanism the lunch-only note documents) and
+    chest 33% → 44%. Mandate FULFILMENT is unchanged (horizontal and rear_delt
+    were both 0-fulfilled on that profile before and after — documented as
+    structural); the two accents merely traded one slot, 3+2 → 2+3.
+- **EMOM had TWO silent bugs, both fixed here (2026-09-10)** — found by reading
+  the precedent before copying it, which is the only reason they surfaced:
+  - **No cloud merge at all.** `emom` was written into the cloud doc and read
+    back by nobody — no `mergeEmom`, and it isn't in `SINGLETON_FIELDS` either,
+    so whichever device saved last silently overwrote the other's in-progress
+    draft with no stamp comparison. Strictly worse than the case the century's
+    note documents, and on a card that has an undo button — exactly the shape
+    that note says a merge has to be able to express. Now merged by the shared
+    `mergeStampedDraft`, like the other three.
+  - **Never rep-priced for MRV.** `getWeeklySetVolumes` and `getMRVBreakdown`
+    branch on `log.cindy||log.pyramid`; EMOM stores one set entry per movement
+    holding TOTAL reps *exactly like Cindy* but was never added to that branch,
+    so it fell through and billed **1 set per movement for a 20-minute
+    full-body session**. Its own finish handler's comment predicted the failure
+    in the other direction ("would be counted as N working sets by anything that
+    doesn't know about the emom flag") — nothing knew about the flag here
+    either, so it under-counted instead. Measured after the fix: 5 rounds now
+    books legs 3 / chest 1 / back 1 / biceps 1 / triceps 1 instead of 1 each.
+  - Verified: syntax gate, a **72-assertion** combat-test suite (event shape,
+    all three card states, both safety flags rendering, walking and undoing the
+    event counter, a PARTIAL test booking only completed events, the full test's
+    time and best, MRV pricing against the shared anchor in both directions, the
+    prescription gate with and without a runway, the Pyramid yielding the night,
+    and both EMOM fixes), the finisher coverage sweep above, the 54- and
+    63-assertion suites from the PT and McGill passes, `--smoke`, and the full
+    case-study harness.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
