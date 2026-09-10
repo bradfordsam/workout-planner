@@ -226,7 +226,7 @@ strip it before other debugging.
     entirely. `pickCalfTopUp` applies the same safety gates
     `canPlaceFoundation` does (equipment, hip/shoulder caution, plyo, avoid
     list, knee caution) via the same helper functions.
-  - **Priced like a small McGill block, not a full lift**
+  - **Priced like a small spine block, not a full lift**
     (`CALF_TOPUP_MINS=2`), charged into `eveningLifts`/`lunchBudget`'s fixed
     cost BEFORE the lift count is sized — same reasoning as the century/
     finisher, and the reason it must NOT be counted in `sessionPlan`'s "N
@@ -632,6 +632,433 @@ strip it before other debugging.
     from all four of Sam's cards, in both column layouts, plus OCR noise and garbage
     input. All four new movements and the archer/side-to-side rename resolve
     correctly. The other three suites and all 7 case-study scenarios are unchanged.
+- **Strength balance — skewing the program toward the weaker groups (2026-09-06,
+  `strengthBalance` / `strengthSkewMap` / `skewOrder` / `strengthBalanceHTML`)** —
+  Sam: *"based on the weight I am doing for exercises, determine which muscle
+  groups are weaker than others, and then to make sure to skew the programming in
+  favor of those weaker groups so I have a more balanced body."*
+  - **Raw logged weight is not comparable across muscles**, and the comparability
+    engine above refuses to bridge gaps that wide on purpose (`loadBridge`: "a
+    coefficient invented to paper over a mismatch is how 290 lb calf raises
+    happen"). So this never compares weights to each other. It scores each lift
+    against **what this app already expects that lift to be** — `coldStartWeight`'s
+    per-muscle × per-type × per-implement fraction of bodyweight — which turns five
+    incompatible scales into one dimensionless number. Bodyweight and the
+    experience multiplier are global factors in every denominator and **cancel out
+    of the ranking completely**; the per-muscle fractions do not, and they ARE the
+    standard being leaned on, which is the whole reason to reuse the app's own
+    numbers rather than invent a strength table. The skew is then driven by
+    distance from **Sam's own median**, not from 1.0, so a table that is uniformly
+    optimistic still ranks correctly.
+  - **Aggregate by BEST ESTABLISHED lift, never by mean or median across a
+    muscle's movements.** The first cut used a median and it inverted the answer:
+    a 315 lb trap bar indexes 1.98 while a 60 lb leg curl indexes 0.62 — both
+    legs, both legitimate — so the median calls a 315 lb deadlifter's legs
+    mediocre, and simply ADDING accessory variety drags a muscle's score down
+    while doing nothing but more work. In the case-study harness (every set logged
+    at a flat 50 lb) it flipped the ranking outright and pushed volume at exactly
+    the wrong groups. A muscle's strength is its best expression, which is also how
+    every strength standard is written. `STRENGTH_MIN_SESSIONS`(=2 distinct days)
+    is what stops one mistyped set defining a group.
+  - **`strengthIndexOf` returns null for anything without meaningful external
+    load** — `noWeight`, unloaded timed holds, and anything `loadClass` calls
+    bodyweight. Those log a weight of 0, which would read as catastrophic weakness
+    rather than as "this question doesn't apply". Single most important gate here.
+  - **THE SKEW HAD TO GO AT ANCHOR SELECTION, and measurement is the only thing
+    that showed it.** First version put it beside `PAIR_BONUS` in `rest2`, on the
+    reasoning that it should compete for the slots filled AFTER the anchor is
+    chosen and never for the anchor itself. That is inert code: `muscleSlots` is
+    `max(1,limit-1)`, and a 40-min lunch and a 60-min evening **both** resolve to
+    limit 2 — so **muscleSlots is ONE on every session, every day, on all three
+    schedule profiles**. The day trains the anchor plus the reserved core slot,
+    full stop; `rest2`, the pairing bonus, `breadthCap` and depth-over-breadth only
+    start doing work at limit≥3 (a 75-minute evening). Verified by forcing a
+    full-size skew and A/B-ing 8 simulated weeks: **zero sets moved on all three
+    profiles.** Worth remembering generally — a good deal of `dayTemplate`'s
+    downstream machinery is dormant at the session lengths Sam actually trains.
+  - **But a bare skew inside `byDebt` costs the mandates**, which is why the naive
+    version is wrong too: the pattern guarantees hang off the ANCHOR's slots — a
+    back day is what creates the slot the horizontal/rear-delt accents get tagged
+    onto, a leg day is what creates the heavy 1–5 strength slot — so any reordering
+    that takes an anchor day from back or legs takes the mandate with it. Measured
+    on the full schedule: **horizontal fulfilled 3 → 1, rear_delt slots 9 → 6.**
+    The balance audit above already records those accents as the scarcest thing in
+    the program.
+  - **`SKEW_EXEMPT_MUSCLES=['legs','back']` resolves it.** `skewOrder` permutes
+    ONLY the non-exempt muscles, among the positions they already occupy in the
+    `byDebt` ordering; legs and back keep their exact positions, so a lagging
+    accessory can take a day from another accessory and can never take one from a
+    mandate. Consequence, stated rather than discovered later: **if legs or back is
+    the lagging group the skew does nothing for it** — the right trade, since those
+    two are the only muscles already holding unconditional weekly slots and so the
+    two that cannot be starved. The readout says so in words rather than showing a
+    promise the scheduler won't keep.
+  - **`underSkew`, and why the permutation spans BOTH volume tiers.** Confining it
+    within a tier (so a green muscle could never jump a yellow one) left the skew
+    almost inert for a specific and predictable reason: the muscle most likely to
+    lag is TRICEPS, and triceps is exactly the muscle that reaches its weekly
+    minimum **without ever being programmed**, because `SECONDARY_CREDIT_RULES`
+    books it half a set for every chest and shoulder compound. It sits green while
+    everything else is yellow, so the tier gate excluded it before the ordering was
+    ever consulted. `STRENGTH_SKEW_MIN_BOOST`(=0.35) raises a lagging muscle's
+    weekly MINIMUM for skew purposes only, so it stays "under" longer — a bigger
+    weekly target, which is the currency this scheduler already speaks, not a raw
+    queue-jump. It is a SECOND field and deliberately not a change to `under`,
+    because `under` drives `byDebt` and `byDebt` is what pins legs and back.
+  - **With every skew at 0, `skewOrder` is provably the identity** — `underSkew`
+    collapses to `under` and the sort key collapses to byDebt's own (under, hrs
+    desc, MUSCLES order). That is what makes it safe to run unconditionally, and
+    it is why six of the seven case-study scenarios come back untouched.
+  - **Magnitude saturates.** `STRENGTH_SKEW_MAX_HOURS` is 36 (PAIR_BONUS's scale);
+    forcing 60 or 84 produced identical results, so the number is not load-bearing
+    past ~48h.
+  - **Measured, forced full-size skew on triceps, 8 simulated weeks vs the same
+    source with the skew zeroed:** on **lunch+3-evening (the main schedule)
+    triceps 22 → 32 sets**, drawn from chest (−6) and back (−3), legs +2.
+    **lunch-only and 3-evening-only move by zero, and that is correct rather than
+    a gap**: on both, every muscle is under its band all week (the structural
+    under-fill this file already documents), the ordering is a pure starvation
+    rotation with 120–336h gaps, and there is no surplus anywhere to reallocate.
+    The skew only has purchase on a schedule that produces enough sessions for some
+    muscles to actually be in band.
+  - **Case-study regression, fresh HEAD baseline through the same harness:**
+    `mandates`, `goal`, `foundation`, `century`, `calf` and all lockout violation
+    counts are **identical on all 7 scenarios**; six of seven are byte-identical
+    outright. S6 (missed sessions) shifts one chest session in one week.
+  - **The readout is on the Weekly Volume Breakdown screen (`v-mrv`), not the
+    dashboard.** Sam has cut three cards off the home screen for clutter, and the
+    standing rule from that is: anything the scheduler already enforces gets no
+    dashboard space to report on itself. The skew IS enforced, in `dayTemplate`.
+    The card shows its WORKING — the best lift read for each muscle, and the index
+    as a percentage of his own median — rather than a verdict, because the whole
+    answer rests on `coldStartWeight`'s fractions and he should be able to see when
+    one of them is flattering or punishing a group.
+  - **Re-run the strength sweep after editing `coldStartWeight`'s table or an EX
+    entry's `muscle`/`type`/`eq`** — those are the denominator, so a change there
+    silently re-ranks the muscles.
+  - Verified: syntax gate, a **33-assertion** strength-balance render test (empty
+    state, realistic history, the exempt-muscle wording, the full `v-mrv` screen,
+    and three degenerate cases — one muscle, all-stale logs, bodyweight-only), a
+    44-assertion route sweep matching baseline exactly, `--smoke`, and the full
+    case-study harness. One real bug caught by the render test and not by
+    inspection: `strengthBalance`'s `ranked` rows never carried `best`, so the
+    card's "best: …" line rendered `undefined`.
+- **Week-at-a-glance strip on the availability grid (2026-09-08,
+  `renderAvailGrid`)** — Sam: *"why is my Tuesday workout currently not
+  triggering?"* Root cause, confirmed by replaying his exact sequence in the
+  headless harness: the Lunch/Eve controls in `renderAvailGrid` are BLIND
+  TOGGLES (`toggle-avail-lunch` etc. just flip whatever the value already is),
+  and every weekday starts pre-checked — `defaultAvailability()` sets
+  `lunch:true` for Mon–Fri, and `reset-program`'s mid-week path leaves
+  already-correct days untouched rather than blanking them. Sam hit
+  "Reset & reconfigure" on a **Monday** (the full-reset branch, fresh
+  `defaultAvailability()`), correctly tapped Monday's box off, and ALSO tapped
+  Tuesday's box "to confirm it" — since it was already `true`, that tap flipped
+  it to `false`. Nothing in the UI showed the mistake; it only surfaced days
+  later as an unexplained "Rest Day 😴" on Tuesday. Reproduced exactly in the
+  harness: same two taps, same resulting week (Mon+Tue rest, Wed–Fri lifting).
+  - **Deliberately did NOT change the toggle semantics or the defaults.** A
+    blind toggle is still the right control for editing one day on the Program
+    tab, and defaulting every weekday to on is the right ergonomics for the
+    common case (most weeks train most days) — the bug is that a stray
+    confirming tap on an already-correct day is invisible, not that toggles
+    exist. Changing `reset-program` to blank every remaining day (forcing an
+    explicit tap for every single day, every time) would trade a rare
+    single-tap mistake for guaranteed extra taps on the common path, and
+    still wouldn't stop the same mistake happening on an ordinary Program-tab
+    edit outside of any reset.
+  - **The fix is visibility, not a semantics change**: `renderAvailGrid` now
+    renders a live 7-chip strip (S M T W T F S, matching the day-letter
+    convention the dashboard's own week row already uses) derived straight
+    from `av` — green means a session is on for that day RIGHT NOW. It sits
+    above the checkboxes in BOTH call sites (`renderSetup` step 1 and
+    `renderPlan`), so a stray tap is visible immediately, at the moment it
+    happens, instead of only being discoverable days later as an unexplained
+    rest day. `dowOnAtAGlance` is the one place that decides "on" (lunch OR
+    eve for weekdays, `d.on` for the weekend pair), so it can't drift from what
+    `genProgram`'s own slot-building actually reads.
+  - Verified: syntax gate, a 17-assertion render test — the setup wizard's
+    fresh-defaults state, then flipping Monday and Tuesday off and asserting
+    the exact two chips (and only those two) go from on to off, reproducing
+    the reported bug becoming visible in the strip — plus confirming the strip
+    also renders on the editable Plan screen. The case-study harness is
+    untouched: this is pure additive markup in a setup screen, no scheduling
+    logic changed, and all 7 scenarios come back byte-identical.
+- **Century days were invisible on every week view except the today card
+  (2026-09-08, `renderProgram` / `renderDash`'s `wkGrid`)** — Sam, twice:
+  *"why is my Tuesday workout currently not triggering?"* then *"it is still
+  not generating a workout for Tuesday."* It WAS generating one: 100 pull-ups.
+  - **The scheduling was correct and is unchanged.** Four lunch days (Mon off)
+    → `cap=min(maxDays,trainingDayCount−1)`=3, then `CENTURY_KEEP_LIFTING_DAYS`
+    allows exactly ONE century, and the Tue/Thu/Sat preference lands it on
+    **Tuesday**. `centuryChargeFor` bills 32 of the 40 minutes, `lunchBudget`
+    returns **0 lifts** (`minLifts` waived on a century lunch, by design), and
+    `buildSession` returns null on `limit<=0` — so the day reaches the week
+    array as `rest:true`. All of that is the documented 2026-08-19 behaviour.
+  - **The defect was purely reporting, and it was a HALF-APPLIED fix.**
+    `centuryOnlyDow` exists exactly so such a day doesn't read as forgotten —
+    that note's own words: "a day that silently drops out of the schedule looks
+    like the app forgot, not like it heard him." But it was only ever wired
+    into `renderDash`'s TODAY card. The **Program tab printed the literal word
+    "Rest"**, and the dashboard's **7-day dot strip drew the same grey dot as a
+    genuine rest day**. Sam was looking at the week from a Monday, so every
+    surface he could see said "nothing here." **A guarantee that only announces
+    itself on the day it fires is invisible to anyone planning ahead.**
+  - Fixed in both: the Program tab renders a purple 🎯 Pull-up Century row
+    (prescription, minutes, and why there's no lifting) in place of the Rest
+    row, and the dot strip draws century-only days in the century's own
+    `#c084fc`. The century check runs BEFORE the `d.rest` branch in both, for
+    the same reason `isCompleted` already does — the day is `rest:true` but is
+    not a rest day. A day that KEEPS its lifting while hosting a century now
+    says so too (the Program tab never mentioned centuries at all).
+  - **`centuryMins()` is flagged as an ESTIMATE when nothing is timed yet**, and
+    this is the part worth remembering: with no timed century logged it returns
+    `centuryDefaultMins()`=**32**, derived from a cold `best`=0 prescription —
+    and it is that GUESS which deletes the day's lifting. Measured sensitivity:
+    ≤22 min keeps a lift, ≥24 min takes the session. The whole century-timing
+    design is built on "measure, don't guess" (`timedMins` separate from
+    `duration`, unmeasured sessions excluded from the median), so the one place
+    an unmeasured default makes the most destructive call in the system should
+    at least say that it is unmeasured. The card now does, and names the ~22 min
+    threshold.
+  - Deliberately did NOT change `CENTURY_KEEP_LIFTING_DAYS`, the Tue/Thu/Sat
+    preference, or the `minLifts` waiver — the trade (3 lifting days + 1 century
+    out of 4) is the documented intent, and it was never the thing that was
+    wrong. Verified: 28-assertion render test driving Sam's exact week (century
+    row present, Tue dot purple while Mon stays grey and Wed stays amber, the
+    estimate flag appearing and then disappearing once a fast century is timed),
+    plus the two earlier render suites and the full case-study harness — all 7
+    scenarios identical, since no scheduling logic was touched.
+- **`PT_PRESCRIBED` — a real weekly quota with catch-up, not a rotation
+  (2026-09-09, `ptDoneThisWeek` / `ptSessionsNeededToday` / `ptPrescribedHTML`)**
+  — Sam typed out his physio's sheet in full: five movements, each with an
+  explicit sets/reps (or hold time) AND a weekly frequency, and *"if I miss any
+  days make sure to add the work to the next day to make sure I get my weekly
+  sets and reps in."* All five movements were ALREADY in the app — three in
+  `PT_HIP_POOL` (Fire Hydrant / Side Plank with Clam / Single Leg Bridge,
+  already dosed 3×10 as of the 2026-09-03 update) and two in `HIP_POOL`
+  (Figure 4 Stretch / Butterfly Stretch) — but only as ROTATE-FOR-VARIETY pool
+  entries with no fixed quota and, critically, **no completion logging at
+  all**. This is a fundamentally different ask than "make sure the movement is
+  in the directory": a weekly frequency target needs its own tracked count
+  against its own target, which a round-robin pool cannot provide.
+  - **Graduated out of both pools, not left duplicated.** Same lesson
+    `CALF_WEEKLY_TARGET_SETS` already learned — a specific weekly guarantee
+    sharing a queue with general-purpose rotation loses to whatever else is
+    ahead of it — but the sharper reason here is that PT_HIP_POOL/HIP_POOL have
+    NO done-tracking UI at all. Leaving a copy in the casual pool would let
+    "did it during warm-up" not count toward the weekly target the new card is
+    the only thing tracking, which is worse than redundancy — it's a silent
+    double standard. COOLDOWN_POOL's own copies of Figure 4 Stretch / Butterfly
+    Stretch are untouched: that's ordinary post-workout flexibility, a
+    genuinely separate concern, not a duplicate of PT compliance.
+  - **Descriptions and safety cautions carried over VERBATIM**, not retyped
+    from the physio's plainer paper text. The FAI-specific cue on Fire
+    Hydrant/Side Plank/Single Leg Bridge ("stop the moment you feel a pinch at
+    the front of the left hip") is this app's own addition from the original
+    PT visit, not the physio's own wording — dropping it to match the new
+    sheet's plainer phrasing would have quietly deleted a safety instruction.
+  - **The catch-up formula is computed from what was owed BEFORE today, not
+    from today's own running count** — this was a real bug caught by the
+    render test, not by inspection. The first version recomputed
+    `ceil(owed/daysLeft)` fresh on every render, which meant logging a session
+    could make the "needed today" number go UP relative to what you'd already
+    done, or asked you to do a phantom extra one after you'd already met the
+    day's share, because `owed` itself was shrinking as you logged and the
+    ceiling doesn't fall smoothly. Fixed to freeze `todaysQuota` from
+    `weeklyFreq − (doneThisWeek − doneToday)` — i.e. the state as of yesterday
+    — spread over `ptDaysLeftInWeek()`, then subtract `doneToday` from THAT
+    fixed number. The result is a stable "do N today" that counts down as you
+    log, rather than a moving target.
+  - **A missed day raises every remaining day's ask by the same amount, and a
+    week left entirely undone asks for everything on the last day** — the
+    literal meaning of "add the work to the next day," expressed as
+    `ceil(owed/daysRemaining)` rather than a fixed daily reminder that quietly
+    drops what a missed day cost. Verified: Wednesday with nothing done and 5
+    days left asks for 1/day (on pace); the same zero-progress state discovered
+    on Saturday (2 days left, weeklyFreq 3) asks for 2 that day.
+  - **A COUNT, not a toggle** (`S.ptLog[id|date] = n`), unlike `toggle-pushups`
+    — the catch-up math can genuinely ask for more than one session in a day,
+    so the log button has to stay usable after the first tap rather than
+    flipping to a "done" state that hides it. Undo decrements rather than
+    clearing outright, so correcting a double-tap doesn't erase a session
+    logged five minutes earlier by mistake.
+  - **Flat `id|date` string key, not a nested `{id:{date:n}}` map** — this
+    file's standing "local wins on conflict" rule for simple habit logs
+    (`pushupLog`, `noBarLog`) is a SHALLOW `{...cloud,...local}` spread, which
+    only merges at the top level. Nesting would let one device's cloud copy
+    silently overwrite another device's same-day count for a completely
+    different exercise. Wired through both localStorage save/load and both
+    cloud merge points, same four call sites `pushupLog`/`noBarLog` already
+    touch.
+  - **Rendered inside `dailySpineHTML()`**, not a separate call site — same
+    reasoning as the removed `mcgillHTML()` append: it needs to be visible and
+    loggable every day regardless of whether a workout happens, and that
+    function is already the single place both the dashboard/rest-card and the
+    in-workout cool-down pull from.
+  - **Two stale "Big 3" strings survived the 2026-09-06 McGill removal and
+    were fixed here on the way** — `lunchBudgetHTML`'s and `centuryPrepHTML`'s
+    user-visible text still said "the spine holds and Big 3 move to this
+    morning or tonight" months after the feature was deleted, plus one
+    reference in the workout screen's over-budget warning and two stale
+    code comments. Caught by a route sweep that greps rendered output for the
+    literal string, not by re-reading the removal diff.
+  - Verified: syntax gate, a 54-assertion test (list contents and pool
+    removals, dose-text formatting, the catch-up formula across a normal week,
+    a from-scratch Saturday catch-up scenario, week rollover resetting the
+    count, full render output at multiple weekly-progress states, and the
+    click-handler dispatch for both log and undo), a 63-assertion route sweep
+    across every screen plus a real `startWorkout` run to the cool-down block,
+    and the full case-study harness — all 7 scenarios byte-identical, since
+    this touches no scheduling logic (`dayTemplate` doesn't know these
+    movements exist, same as `PT_HIP_POOL`/`DAILY_SPINE_MINIMUMS` before it).
+- **`COMBAT_TEST_EVENTS` — the seven-event combat fitness test (2026-09-10,
+  `combatTestPrescription` / `combatTestHTML` / `combatTestMrvSets`)** — Sam, from
+  a news summary of the Army's combat-arms test: *"I want to add training like
+  this to the workout prescriptions. I'll let you decide the best way to
+  implement it based on current rules."* Seven events on one clock, 30-minute
+  cap, boots on.
+  - **Filed as a BENCHMARK on the Cindy pattern**, not as a lifting session,
+    because it is the same shape: a fixed named session with a progress counter,
+    a spacing rule, and a card that only prescribes itself when it can be run
+    honestly. NEVER SCHEDULED BY THE GENERATOR — `dayTemplate` knows nothing
+    about it, same rule as the Pyramid, Cindy and EMOM. Logged as a REAL session
+    (no `isCardio`): thirty minutes of running, carrying and pressing IS the
+    day's training, so it marks the day complete, feeds recovery and books MRV.
+  - **Self-scaling in the Century's sense**, which is what makes it worth
+    keeping: the standard NEVER moves (30 push-ups, 16 sandbag lifts, 40 lb
+    cans, two miles) and the TIME is the score, so it never needs rewriting as
+    he gets fitter.
+  - **"Training like this" is delivered TWICE, because the ask was for
+    programming and a fortnightly card is not programming.** The test is the
+    benchmark; `Combat Events Medley` in `CONDITIONING_FINISHERS` is the same
+    events minus the miles, so the style shows up in ordinary weeks. Same split
+    JUMP_DURABILITY already documents — loaded carries and odd-object work are
+    finisher-shaped, and legs only get ~2 slots a week with both mandated.
+  - **TWO EVENTS COLLIDE WITH DOCUMENTED CONSTRAINTS, and both are FLAGGED
+    rather than silently rewritten** — the call the Pyramid's 400-sit-up rung
+    already records. Silently softening a published standard makes the score
+    meaningless; silently prescribing it ignores his own file. So the card
+    prints the standard AND the accommodation and he picks:
+    - Dead-stop push-ups finish CHEST ON THE DECK with hands lifted — the exact
+      bottom position this app's own push-up cue exists to prevent ("chest to
+      about fist height rather than flat to the deck"). The accommodation
+      ELEVATES THE HANDS rather than cutting the range, because the hand-release
+      IS the event and a higher deck is the only way to keep the release while
+      raising the bottom position — the same mechanical-stop logic that makes
+      `floor_press` lead the chest block.
+    - A 40 lb sandbag onto a 65" platform finishes ABOVE SHOULDER HEIGHT, i.e.
+      the standing-overhead position four press variants are on `avoidExercises`
+      for. The bag is trivially light for him; the FINISH is the issue, so the
+      accommodation lowers the platform, not the bag.
+    - The movement drill is deliberately NOT flagged: the source doesn't specify
+      one, so the drill written here is chosen hip-safely from the start (cuts,
+      shuffles, sprints — no repeated get-ups, which is deep flexion at speed
+      and the FAI provocation position) rather than prescribed and then warned
+      about.
+  - **The runs and the sprint book NO muscle sets** — they are conditioning
+    inside the session, and the aerobic protocols already set that precedent.
+    Only the four resistance events book, and a PARTIAL test books only the
+    events actually completed, the same rule the century's partial pricing
+    exists for. Rep-priced off the same Century anchor as every other benchmark
+    (`combatTestMrvSets` → `pyramidMrvSets`), except the two DISTANCE events,
+    which state an explicit `mrvSets` because a 50 m carry has no rep count to
+    price. Measured: a full test books chest 1 / shoulders 1 / core 1 / legs 1.
+  - **BEST counts only COMPLETE tests; DAYS SINCE counts every attempt.** A time
+    for three of seven events is not a comparable result, but thirty minutes of
+    maximal work in boots costs the same recovery either way, and the spacing
+    rule exists for the recovery.
+  - **It takes FIRST CLAIM on the night and the other three benchmarks defer to
+    it — on SCARCITY, not seniority.** This is the argument
+    `PYRAMID_EXCLUDED_GYMS` is already built on ("the YMCA is the only place the
+    heavy 1–5 barbell mandate can happen, so spending that evening on bodyweight
+    reps trades the scarce resource for the abundant one"), applied one level up:
+    this test needs two measured miles, a 100 m sprint and two 50 m lanes, so
+    `SPRINT_LOCATIONS` is the only place it can run at all, while the Pyramid
+    runs anywhere but the YMCA/hotel and Cindy and EMOM run anywhere with a bar.
+    Ordered the other way it was **measured never to get the night**: the
+    Pyramid's gate (not YMCA/hotel + ≥75 min) is a strict superset of this one's
+    ideal evening. The deference is ONE-DIRECTIONAL (the other three call
+    `combatTestPrescription`, it calls none of them) or the four would recurse.
+  - **OFFERED everywhere, PRESCRIBED only with a runway.** Unlike the other
+    three this is realistically done at a park or a track rather than any gym in
+    `EQUIPMENT_PRESETS`, so a hard gate would make it unrunnable rather than
+    merely unstarred — the kit substitutes (any 40 lb object, any high surface,
+    a KB per hand), the ground does not. Same "offered but never prescribed"
+    split the Pyramid uses for a ladder missing a rung.
+  - **The medley's sandbag stops at the SHOULDER, and that is the one deliberate
+    difference from the test.** `getFinisher` AUTO-PRESCRIBES from that pool —
+    Sam never opts in — so the overhead finish the test card flags and lets him
+    decide about must not appear in something the app chooses on his behalf.
+    Same line `db_hang_clean_jerk` draws: reachable when he picks it, never
+    generated for him.
+- **`getFinisher`'s rotation could only ever reach the first SEVEN entries
+  (2026-09-10)** — found while checking whether the new medley would ever be
+  picked, and much worse than the JUMP_DURABILITY note that half-diagnosed it.
+  `pool[dow%pool.length]` takes `dow`, which is 0–6, so at any location whose
+  filtered pool is longer than seven **every entry from index 7 on was
+  unreachable, permanently.** Measured over 16 simulated weeks with the jump
+  guarantee disabled (it short-circuits every evening and hides this):
+  **Westminster prescribed 7 of its 12 finishers and never the other five** —
+  Med Ball Complex, Carry & Crawl Medley, Brace Circuit, **Block Jump Capacity**
+  and Bounce Foundation; the apartment gym and the YMCA never reached Bounce
+  Foundation. That JUMP_DURABILITY note reads the symptom as the index landing
+  elsewhere at Westminster; it wasn't landing elsewhere, it was unreachable, and
+  the `eveningTrainedThisWeek()` short-circuit has been carrying Block Jump
+  Capacity single-handed ever since.
+  - Same failure family as the `domDay%2` back-accent aliasing: **a modulo whose
+    INPUT RANGE is narrower than the thing it indexes.** Fixed by keying the
+    index to the DATE rather than the day-of-week, so it advances daily and the
+    pool cycles — a week is a 7-step stride, and 7 is coprime with 5, 8, 9, 12
+    and 13, so every entry comes up within `pool.length` weeks. After: **every
+    finisher at every location is reached, dead entries 0.**
+  - **This moves real scheduling, because a finisher's `mins` feeds the
+    ledgers** — the exact reason that section warns "any check on the finisher
+    must sweep every dow on every profile". Measured against a fresh HEAD
+    baseline: **six of seven case-study scenarios byte-identical**, and S3
+    (efficiency 3-day) improves — **core 0 → 2.7 sets/week, 0% → 89% in band**
+    (a shorter finisher frees the minutes that were dropping the reserved core
+    slot, the same `slice(0,limit)` mechanism the lunch-only note documents) and
+    chest 33% → 44%. Mandate FULFILMENT is unchanged (horizontal and rear_delt
+    were both 0-fulfilled on that profile before and after — documented as
+    structural); the two accents merely traded one slot, 3+2 → 2+3.
+- **EMOM had TWO silent bugs, both fixed here (2026-09-10)** — found by reading
+  the precedent before copying it, which is the only reason they surfaced:
+  - **No cloud merge at all.** `emom` was written into the cloud doc and read
+    back by nobody — no `mergeEmom`, and it isn't in `SINGLETON_FIELDS` either,
+    so whichever device saved last silently overwrote the other's in-progress
+    draft with no stamp comparison. Strictly worse than the case the century's
+    note documents, and on a card that has an undo button — exactly the shape
+    that note says a merge has to be able to express. Now merged by the shared
+    `mergeStampedDraft`, like the other three.
+  - **Never rep-priced for MRV.** `getWeeklySetVolumes` and `getMRVBreakdown`
+    branch on `log.cindy||log.pyramid`; EMOM stores one set entry per movement
+    holding TOTAL reps *exactly like Cindy* but was never added to that branch,
+    so it fell through and billed **1 set per movement for a 20-minute
+    full-body session**. Its own finish handler's comment predicted the failure
+    in the other direction ("would be counted as N working sets by anything that
+    doesn't know about the emom flag") — nothing knew about the flag here
+    either, so it under-counted instead. Measured after the fix: 5 rounds now
+    books legs 3 / chest 1 / back 1 / biceps 1 / triceps 1 instead of 1 each.
+  - Verified: syntax gate, a **72-assertion** combat-test suite (event shape,
+    all three card states, both safety flags rendering, walking and undoing the
+    event counter, a PARTIAL test booking only completed events, the full test's
+    time and best, MRV pricing against the shared anchor in both directions, the
+    prescription gate with and without a runway, the Pyramid yielding the night,
+    and both EMOM fixes), the finisher coverage sweep above, the 54- and
+    63-assertion suites from the PT and McGill passes, `--smoke`, and the full
+    case-study harness.
+  - **Composes with the training block below, in three places** (2026-09-10).
+    `SKEW_EXEMPT_MUSCLES` is `[legs,back]`, so an emphasis on SHOULDERS — the
+    block default — sits squarely inside the permuted set, and a lagging triceps
+    could have taken its day straight back. Emphasis is therefore a key in
+    `skewOrder`'s own `picks` sort as well as in `byDebt` and `rest2`, ranking
+    after `underSkew` and after the starvation floor. The rule deciding which
+    wins is not arbitrary: **the skew is an automatic nudge, the block is an
+    explicit multi-month decision**, so the block outranks it — and a muscle with
+    nothing banked this week outranks both, because neither feature is allowed to
+    delete a muscle from the week.
+
 - **Training principles pass (2026-09-10)** — Sam handed over a list of training
   ideologies (block periodization, staple movements, lead with heavy compounds,
   sequence across muscle lengths, mechanical tension over the pump, strength as
@@ -811,29 +1238,29 @@ strip it before other debugging.
   - `DESK_REVERSAL` (chin tucks + pelvic tilts) and `HIP_DECOMPRESSION` are
     FIXED blocks — never rotated, never budget-trimmed. Desk reversal now shows
     at lunch too; it used to be evening-only, which had it backwards.
-- `MCGILL_BIG3` + `mcgillHTML()` (2026-08-03, Sam asked for it by name): McGill's
-  modified curl-up / side bridge / bird dog, rendered in the same three places as
-  `DAILY_SPINE_MINIMUMS` (dashboard, rest card, evening cool-down). That pairing
-  is the point — the spine minimums are the mobility/decompression side, this is
-  the STABILITY side. Doses are ~10s holds with reps DESCENDING 6→4→2, because
-  the protocol targets trunk-muscle ENDURANCE, and high-rep/high-load trunk work
-  is what aggravates a cranky back rather than sparing it.
-  - **NOT folded into `DAILY_SPINE_MINIMUMS`, and NOT charged to
-    `LUNCH_LEDGER.spineMins`** — the deciding number, since "it's only 6 minutes"
-    is exactly the reasoning the lunch ledger exists to refute: spine 5 → 11 min
-    turns an ordinary lunch from `floor((40−5)/11)`=3 lifts into
-    `floor((40−11)/11)`=2. A third of his lunch lifting is too much to pay for
-    floor work that needs no gym, so the card says morning-or-evening instead.
-    **If it ever moves into the lunch box, `spineMins` must move with it.**
-  - **NOT in `EX`**, following the plank's precedent in `FOUNDATION_FIVE`: a fixed
-    daily dose is a stronger guarantee than a weekly slot, and adding these to the
-    core pool would double-program the same three movements.
-  - `mcgillHTML(holds)` — the dashboard/rest callers must pass falsy, since
-    `start-hold` → `startRest` writes to `S.active`, which is null outside a
-    workout. Same trap `dailySpineHTML` already documents.
-  - Note the tension it creates with the Pyramid's 400-sit-up rung, which McGill
-    would specifically argue against. Flagged in that rung's cue rather than
-    silently resolved; Sam's call either way.
+- **`MCGILL_BIG3` — REMOVED 2026-09-06** (Sam: "remove the mcgill big 3
+  entirely"). Was McGill's modified curl-up / side bridge / bird dog, the
+  STABILITY half alongside `DAILY_SPINE_MINIMUMS`'s mobility/decompression side.
+  Fully deleted rather than hidden behind a flag — the array, `mcgillHTML()`,
+  the `S.mcgill` timer draft and its cloud-sync fields, `mcgillMins()` /
+  `mcgillDefaultMins()` / `mcgillLogs()` / `mcgillDraft()` / `mcgillDoneToday()`,
+  the `sessionPlan`/`eveningLifts`/`lunchBudget` line items and its slot in
+  `SHED_ORDER`, the in-workout timer buttons and the `mcgill-start`/`mcgill-done`
+  action handlers. Historical log entries (`mcgill:true`) are left alone, same as
+  every other retired-feature precedent in this file (`cfg.bodyScore`, etc.) —
+  they're just old records now, nothing reads the flag going forward.
+  **Never scheduled by the generator**, so removing it touched no scheduling
+  logic at all — the full case-study harness against a fresh HEAD baseline came
+  back with all 7 scenarios identical. The Pyramid's 400-sit-up cue, which used
+  to note it "sits oddly next to the Big 3 you now do daily," had that clause
+  removed since it's no longer true; the cue's core warning (McGill argues
+  against loaded flexion for a symptomatic back) stands on its own regardless of
+  whether the Big 3 is actually being done.
+  Verified: syntax gate, `--smoke`, the case-study harness, and a 36-assertion
+  render sweep (dashboard, rest-card, full `v-mrv`/`v-program`/`v-plan` routes,
+  `sessionPlan`, `lunchBudgetHTML`, and a real `startWorkout` run through to the
+  cool-down block) confirming no route mentions McGill and the cool-down /
+  spine-minimums blocks still render correctly with it gone.
 - `hip_airplane` (2026-08-03, asked for by name): in `EX` as a `hips`/`mobility`
   entry beside `hip_cars`, and in the rotating pre-lift `HIP_POOL` which is what
   actually delivers hip work (`hips` is NOT one of `dayTemplate`'s `MUSCLES`, so
@@ -1405,41 +1832,30 @@ strip it before other debugging.
     mandates go from 1-of-7 and 1-of-1 landed to 0-of-2 and 0-of-3 over ten weeks.
     Lunch-only weeks are already documented as structurally under-band and the back
     accents already capped there; three fewer lunch slots is the direct cause.
-- `sessionPlan` / `TRANSITION_BUFFER_SECS` / `mcgillMins` (2026-08-18): Sam asked
-  for the WHOLE routine — century, Big 3, stretching, spine holds, finisher —
-  scheduled inside the one session that starts when he opens it, with the century
-  and Big 3 timed from his own medians and a fixed buffer between movements. So
-  the session is now itemised by ONE function that both the ledgers and the
-  workout screen read: `sessionPlan` returns `{items,deferred,total,over,spare}`
-  and renders as the "This session · N min of M" card above exercise 1.
+- `sessionPlan` / `TRANSITION_BUFFER_SECS` (2026-08-18, `mcgillMins` since
+  removed with the Big 3 — see that entry): Sam asked for the WHOLE routine —
+  century, stretching, spine holds, finisher — scheduled inside the one session
+  that starts when he opens it, with the century timed from its own median and a
+  fixed buffer between movements. So the session is now itemised by ONE function
+  that both the ledgers and the workout screen read: `sessionPlan` returns
+  `{items,deferred,total,over,spare}` and renders as the "This session · N min of
+  M" card above exercise 1.
   - **The ledgers size the lifting FROM it, so `lifts` is an input, not an
     output** — computing it inside would be circular. `eveningLifts` and
     `lunchBudget` decide the count, then hand it back in for display.
-  - **`mcgillMins()` is the median of the last 5 TIMED Big 3 logs**, exactly like
-    `centuryMins()`, falling back to `prepBlockMins(MCGILL_BIG3)` when there is
-    no history — an unmeasured session must never poison the median, which is
-    why `mcgill-done` writes `timedMins` separately from `duration` and
-    `mcgillLogs()` filters on `timedMins>0`. The Big 3 log carries
-    `isCardio:true` with an empty `exercises` array, so it is invisible to
-    session bookkeeping the way the century log is.
   - **SHED_ORDER is the priority contract, and `eveningLifts` must agree with
-    it.** Order is cool-down → Big 3 → spine holds → century, i.e. LIFTING
-    OUTRANKS all the floor work, because that work needs no gym and a lift does.
-    So `eveningLifts` charges only the pieces that can never be shed — prep, the
-    century when this evening hosts it, the finisher, and the transition buffer.
-    Charging the sheddable three as well was the two halves disagreeing with each
-    other, and it showed: a 60-minute evening was billed 16 minutes for blocks
-    the plan then deferred anyway and came out at ONE lift with six minutes
-    spare.
+    it.** Order is cool-down → spine holds → century (the Big 3 held a middle
+    slot here before its removal), i.e. LIFTING OUTRANKS all the floor work,
+    because that work needs no gym and a lift does. So `eveningLifts` charges
+    only the pieces that can never be shed — prep, the century when this evening
+    hosts it, the finisher, and the transition buffer. Charging the sheddable
+    ones as well was the two halves disagreeing with each other, and it showed:
+    a 60-minute evening was billed 16 minutes for blocks the plan then deferred
+    anyway and came out at ONE lift with six minutes spare.
   - **The century is the exception in SHED_ORDER**: it is last, and when it does
     reach the front the card says the day is TOO SHORT for it rather than
     pretending it was skipped — a ~30 min century cannot fit a 45-min evening
     alongside prep and a lift, and that is a scheduling answer, not a trim.
-  - **The Big 3 still is NOT on the lunch ledger.** Same arithmetic MCGILL_BIG3
-    already records: six minutes is a whole lift out of a 40-minute box. It is
-    listed on a lunch plan as `deferred` with `byDesign:true` so the card says
-    "morning or evening" instead of "didn't fit today". If it ever DOES move into
-    the box, `LUNCH_LEDGER.spineMins` moves with it.
   - **The transition buffer is charged at two different counts on purpose.**
     `sessionPlan` bills `transitionMins(kept.length)` — what the session actually
     costs. `eveningLifts` bills `transitionMins(4)`, the pieces guaranteed to be
@@ -1871,7 +2287,71 @@ inside a template literal is invisible to the syntax check.
   `thrusters` are all on `avoidExercises`. Seated overhead pressing
   (`seated_db_press`, `arnold_press`) is fine and keeps the shoulders pool
   supplied with a compound. Don't add new standing overhead press variants
-  (jerks, standing landmine/Z-press, overhead carries under load).
+  (jerks, standing landmine/Z-press, overhead carries under load) **the way
+  the first four were handled** — `avoidExercises` hides a movement from the
+  swap list too, not just the generator.
+  - **`db_hang_clean_jerk` (2026-08-31)** is the one deliberate exception, and
+    it's handled differently on purpose. Sam asked for it by name, was shown
+    this exact constraint, and chose: add it for real, keep it out of anything
+    the generator reaches for on its own, but leave it pickable from the swap
+    list and Build My Own Workout rather than hidden the way `avoidExercises`
+    would hide it. New flag `standingPressRisk:true` does that — checked
+    alongside `hipRisk`/`shoulderRisk` in `pickEx`'s `baseFor` and in
+    `canPlaceFoundation`, but **unconditionally**, no caution toggle, matching
+    how this constraint has always worked (the other four have never been
+    toggle-gated either). Deliberately NOT reusing `shoulderRisk` even though
+    Sam described it that way informally — `customExWarnings`' shoulder message
+    is hardcoded to say "left shoulder," which would be actively wrong here;
+    `standingPressRisk` gets its own warning line naming the real reason.
+    Verified not auto-generated on any of the three schedule profiles, and
+    reachable from both the swap list and Custom Session's name search. All 7
+    case-study scenarios byte-identical to baseline — it can never be selected
+    by anything the generator touches, so there's nothing for the sim to see
+    move.
+  - **Clarified same day: this is for LOGGING a movement he actually did, not
+    for the generator.** No further gating needed beyond what's above — the
+    ask was scope, not a new mechanism.
+  - **"Gauge scaling weight progressions for other similar movements"** turned
+    out to need no new code at all — the step-3b comparability estimator
+    (`loadComparability`/`loadBridge`, above `MOVEMENT_CLASS`) already does this
+    automatically from `muscle`+`type`+`eq`+tags, and correct tagging is what
+    makes it work in BOTH directions. Verified: before he's ever logged it,
+    `estimateStartingWeight('db_hang_clean_jerk',...)` resolves from
+    `db_push_press` (same muscle/type/loadClass, shared `power` pattern tag,
+    bilateral→unilateral bridge applied) rather than the cold-start default —
+    and once logged, it becomes the top-scoring anchor for a hypothetical
+    future similar movement (a single-arm DB power lift) ahead of every other
+    candidate in the pool. No hand-authored `MOVEMENT_CLASS` row needed;
+    tagging it `type:'compound'`, `eq:['dumbbells']`, `tags:['power','unilateral']`
+    was sufficient.
+  - **A screenshot of an actual CrossFit workout (2026-09-05)** surfaced six
+    more movements missing from the directory in the same request — Sam: "make
+    sure all of the movements are in the exercise directory." Added as ordinary
+    pool entries, since none of them carry a documented injury conflict the way
+    the hang clean's overhead finish does:
+    `box_jump_over` (legs, `tags:['plyometric','conditioning']` — no
+    `lowImpact:true`, so hip caution already excludes it from auto-generation
+    the same way every other true impact plyo is, no new mechanism needed),
+    `burpee_pullup` (back — the pull-up is the limiting half, matching how
+    plain `pullups` is classed), `sandbag_carry` (core, next to
+    `suitcase_carry` but bilateral rather than offset — drops the
+    anti-rotation/lateral/unilateral tags that describe the SUITCASE's specific
+    demand, and uses `eq:['other']` since no equipment preset owns a sandbag,
+    the same honest token Custom Session's synthesized movements use),
+    `medball_situp_over_box` (core, next to plain `situps`/`crunches`, weight
+    logged off the ball same as `med_ball_chest_pass`), and `cal_row`/`cal_bike`
+    (both legs, `tags:['conditioning']` only — no `LEG_EMPHASIS_TAGS` entry, so
+    `legAutoOK` excludes them from auto-generation the same way plain leg
+    hypertrophy work already is, and "reps" is repurposed to hold the piece's
+    calorie count, the same convention timed carries already use for seconds).
+    All 7 case-study scenarios byte-identical to baseline.
+  - **`sandbag_carry` shipped without `isTimed`**, and Sam caught it same-day:
+    a carry is measured in time or distance, never weight × reps, and the app
+    has no distance unit at all — only reps or `isTimed` seconds. Fixed to
+    `isTimed:true`, matching `suitcase_carry`'s sibling entry exactly (bilateral
+    load, so no "per side" — one continuous carry). The cue tells him to log
+    the elapsed TIME even when a card states a distance ("100m"), since seconds
+    is the only unit this pool actually has for ground covered.
 - Leg training goal (updated 2026-07-14): multi-directional force handling,
   high eccentric loading, and movement resilience — heavy 1–5 @ 85–95% squat/
   hinge/single-leg strength plus eccentric/decel/lateral work; still no

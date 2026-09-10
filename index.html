@@ -636,6 +636,16 @@ const EX = [
   {id:'seated_db_press',name:'Seated DB Shoulder Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'Start at ear height, press up and slightly in. Full lockout. Control descent back to ear height.'},
   {id:'push_press',name:'Push Press',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'Bar racked at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch the bar overhead in one motion to lockout. Lower under control back to the shoulders. The leg drive lets you overload the press beyond strict-press weights while training total-body explosiveness — the classic athlete\'s overhead lift.'},
   {id:'db_push_press',name:'DB Push Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'A dumbbell in each hand at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch both DBs overhead in one motion to lockout. Each arm stabilizes its own dumbbell independently, so this runs noticeably lighter per hand than half your barbell push press — don\'t chase the same number. Lower under control back to the shoulders.'},
+  // standingPressRisk (2026-08-31): a hang clean finishes in a JERK, which is a
+  // standing overhead press — the same mechanism ohp/push_press/db_push_press/
+  // thrusters are all on the avoid list for (lower back). Unlike those four,
+  // this one stays OUT of avoidExercises on purpose: Sam asked for it to remain
+  // pickable from the swap list and Build My Own Workout, just never something
+  // the generator reaches for on its own. See standingPressRisk's gate in
+  // pickEx/canPlaceFoundation — unconditional, no caution toggle, matching how
+  // this constraint has always worked (the other four have never been
+  // toggle-gated either).
+  {id:'db_hang_clean_jerk',name:'Alternating Single-Arm DB Hang Clean & Jerk',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:3,rMax:5,rest:150,standingPressRisk:true,tags:['power','unilateral'],cue:'STANDING OVERHEAD PRESS — flagged for the lower back, same as Push Press. One DB hangs at arm\'s length in front of the thighs. Hinge slightly, then explode up through the hips and shrug the DB to the shoulder in one motion (the "clean"), rotating the elbow under and catching it racked at the shoulder, wrist straight. Without resetting, dip the knees a few inches and drive them straight up, punching the DB to lockout overhead (the "jerk"). Lower back to the shoulder, then to the hang, and alternate arms every rep. Full-body power expression — legs and hips do almost all the work in both the clean and the jerk; the arm is along for the ride, not lifting it. Land the catch soft in both positions, and stop the set the moment the catch gets sloppy.'},
   {id:'arnold_press',name:'Arnold Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Seated on a bench with back support. Start palms facing you, rotate to facing out as you press. All three delt heads involved. Control the descent.'},
   {id:'db_lateral',name:'DB Lateral Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Hinge the torso forward to about 70° from vertical — a real lean, not a nod. That lean is what moves the side delt into line with gravity and takes the traps off the job; standing bolt upright hands half the set to the traps. Let the arms travel FORWARD about 45° from your sides rather than straight out to the side, which is where the shoulder blade actually points (the scapular plane) and where the joint has room. Lead with the elbows and REACH the hands away from you as you rise, as if scraping them up a wall — reaching keeps the resistance arm long so the delt keeps working instead of the arm folding in. Stop at shoulder height, pause a beat, then take 3 counts down. Go light: if the shoulders shrug up toward the ears, the weight has already won.'},
   {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Low pulley, cable running across the body, working arm on the far side. Lean the torso AWAY from the stack to about 70° from vertical and let that lean stay put for the whole set — it is what lines the side delt up with the cable and keeps the traps out. Arm travels forward about 45°, not straight out to the side. Reach the hand away from you the whole way up, as if scraping it up a wall, and stop at shoulder height. The cable holds tension at the BOTTOM where a dumbbell goes slack, which is the reason to pick this over the dumbbell version, so resist all the way down instead of letting it snap back.'},
@@ -802,6 +812,7 @@ const EX = [
   {id:'med_ball_slam',name:'Med Ball Slam',muscle:'core',type:'rotational',eq:['medball'],rMin:6,rMax:10,rest:90,startW:15,highSweat:true,tags:['power','anti-extension','conditioning'],cue:'Ball overhead at full stretch, up on the toes — then slam it into the floor as violently as you can, folding through the core (not just the arms). Log the ball\'s weight so moving up in balls is tracked. Catch the rebound or pick it up, reset tall, repeat with full intent. Power work: if a heavier ball visibly slows the slam, drop back down. Total-body power expressed through the trunk.'},
   {id:'med_ball_rot_throw',name:'Med Ball Rotational Throw',muscle:'core',type:'rotational',eq:['medball_wall'],rMin:5,rMax:8,rest:90,startW:10,highSweat:true,tags:['power','rotation'],cue:'Stand side-on to a solid wall, ball at the back hip. Log the ball\'s weight so moving up in balls is tracked. Load into the rear hip, then snap the hips through and fire the ball into the wall — the power comes from the ground up through the hips; the arms just deliver it. Catch or collect, reset, repeat. Count per side. Power work: rotational throws reward speed over load — stay with a ball you can throw violently. The purest expression of rotational athletic power.'},
   {id:'suitcase_carry',name:'Suitcase Carry',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:30,rMax:45,rest:90,isTimed:true,tags:['carry','anti-rotation','lateral','unilateral'],cue:'One heavy dumbbell at your side like a suitcase. Walk tall — shoulders and hips level, ribs stacked, zero lean toward or away from the load. The offset weight forces the lateral core and grip to fight the whole time. Count seconds per side. The most athletic "abs" exercise there is.'},
+  {id:'sandbag_carry',name:'Sandbag Carry',muscle:'core',type:'rotational',eq:['other'],rMin:30,rMax:60,rest:90,isTimed:true,tags:['carry'],cue:'Sandbag hugged to the chest or across the shoulders, load centered rather than offset like the DB suitcase carry. Brace hard, walk tall, don\'t let the bag pull you into a lean. Count seconds — if the workout prescribes a distance instead (e.g. "100m"), just log how long that distance actually took you.'},
   {id:'woodchop',name:'Cable Woodchop',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Rotate from thoracic spine, diagonal plane. Arms stay relatively straight. Count per side.',tags:['rotation']},
   {id:'half_kneel_press',name:'Half-kneeling Press',muscle:'core',type:'rotational',eq:['dumbbells','cables'],rMin:10,rMax:15,rest:90,cue:'Down knee is the loaded side. Tall posture. Press without leaning — core fights lateral forces. Per side.',tags:['asymmetrical']},
   {id:'sa_cable_row',name:'Single-arm Cable Row',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:12,rest:90,cue:'Core resists rotation as you row. Back AND anti-rotation in one. Count per side.',tags:['unilateral']},
@@ -825,6 +836,7 @@ const EX = [
   // the estimate carried the set instead of the number. decline_situps was
   // already weight-enabled, which is what made the inconsistency visible.
   {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,cue:'Lie on your back, knees bent, feet flat (anchor them if needed). Curl up through a full range until your torso is upright, leading with the chest — don\'t yank on your neck. Exhale at the top, then lower under control all the way down. Cross arms on the chest to regress, or hold a plate at the chest to add load.',tags:['flexion']},
+  {id:'medball_situp_over_box',name:'Med Ball Sit-up Over Box',muscle:'core',type:'isolation',eq:['medball'],startW:14,rMin:10,rMax:20,rest:60,tags:['flexion','conditioning'],highSweat:true,cue:'Same starting position as a sit-up, holding a med ball at the chest. Curl all the way up and pass or throw the ball over a box to a partner (or over the box to yourself if training solo) as you finish the rep — catch on the way down and reset for the next one. Log the ball\'s weight (printed on it). Keep the curl clean even as the throw gets rushed under fatigue.'},
   {id:'hanging_leg_raise',name:'Hanging Leg Raise',muscle:'core',type:'isolation',eq:['pullup_bar','bodyweight'],rMin:8,rMax:15,rest:90,noWeight:true,cue:'Hang from a bar with shoulders active (slight pull-down, not a loose dead hang). Curl your PELVIS up toward your ribs — don\'t just lift the legs from the hips. No swinging or momentum: pause briefly at the top, lower under control (2–3 counts). Bend the knees to regress, keep legs straighter to progress. Considered the elite movement for full core training.',tags:['flexion','anti-extension']},
   {id:'incline_leg_raise',name:'Incline Elevated Leg Raises',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:10,rMax:20,rest:75,noWeight:true,cue:'Set the bench to a 30–40° incline (~58–84% grade), head-up, gripping the top pad behind your head for an anchor. Keeping legs fairly straight, curl the pelvis and raise the legs up toward vertical — drive from the lower abs, not momentum. Lower under control without letting the feet touch down between reps to keep tension on the abs. Bend the knees to regress.',tags:['flexion']},
   {id:'body_v',name:'Body V (V-Ups)',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:8,rMax:15,rest:75,noWeight:true,cue:'Lie flat on your back, arms extended overhead, legs straight. Simultaneously lift the torso and legs, reaching the hands toward the feet so the body folds into a "V" balanced on the glutes. Exhale and squeeze the abs hard at the top, then lower both halves under control without slamming down. Bend the knees or do tuck-ups to regress.',tags:['flexion']},
@@ -876,6 +888,7 @@ const EX = [
 
   // Athletic/Performance focused exercises
   {id:'burpees',name:'Burpees',muscle:'core',type:'compound',eq:['bodyweight'],noWeight:true,rMin:8,rMax:15,rest:120,cue:'Drop to push-up, jump feet back in, explosive jump up with hands overhead. Full-body power endurance. Focus on smooth transitions and explosive jump.',tags:['plyometric','conditioning'],highSweat:true},
+  {id:'burpee_pullup',name:'Burpee Pull-up',muscle:'back',type:'compound',eq:['bodyweight','pullup_bar'],noWeight:true,rMin:5,rMax:15,rest:90,tags:['conditioning'],highSweat:true,cue:'Burpee directly under the bar — chest to the floor, feet back in, stand — then jump up and pull, chin clearing the bar, before dropping straight back into the next burpee. The pull-up is the limiter here; keep it a real rep (full hang, chin over) even as the burpee gets sloppy under fatigue.'},
   {id:'mountain_climbers',name:'Mountain Climbers',muscle:'core',type:'compound',eq:['bodyweight'],noWeight:true,rMin:20,rMax:40,rest:90,cue:'High plank position, drive knees to chest alternating rapidly. Keep hips level, core tight. Think sprinting in plank position. Count total reps (both legs).',tags:['conditioning','anti-extension'],highSweat:true},
   {id:'jump_squats',name:'Jump Squats',muscle:'legs',type:'compound',eq:['bodyweight'],noWeight:true,rMin:8,rMax:12,rest:120,cue:'Squat down, then explode up into a jump. Land softly, immediately into next rep. Focus on rate of force development. Each rep should be max effort.',tags:['plyometric','quad','power'],highSweat:true},
   {id:'lateral_bounds',name:'Lateral Bounds',muscle:'legs',type:'compound',eq:['bodyweight'],noWeight:true,rMin:6,rMax:10,rest:120,cue:'Single-leg lateral jump, stick the landing on one foot, then bound back to other side. Focus on distance and landing control. Athletic power in frontal plane. Count per side.',tags:['plyometric','unilateral','lateral'],highSweat:true},
@@ -935,7 +948,10 @@ const EX = [
 
   // Circuit Training Exercises
   {id:'burpee_to_jump',name:'Burpee to Jump Squat',muscle:'legs',type:'compound',eq:['bodyweight'],noWeight:true,rMin:8,rMax:12,rest:60,cue:'Burpee down, jump feet in, explosive jump squat up with arms overhead. Land softly, immediately into next rep. High-intensity circuit finisher.',tags:['circuit','plyometric','conditioning'],highSweat:true,circuit:true},
+  {id:'box_jump_over',name:'Box Jump Over',muscle:'legs',type:'compound',eq:['bodyweight'],noWeight:true,rMin:8,rMax:15,rest:60,tags:['plyometric','conditioning'],highSweat:true,cue:'Two-foot jump up and OVER a box (not onto it) — land soft on the far side, immediately turn and repeat back the other way, or continue in one direction if there\'s room. Bend the knees on landing to absorb it. Height comes from the jump, not from tucking the knees to clear the box.'},
   {id:'kb_swings_circuit',name:'KB/DB Swings',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:15,rMax:20,rest:60,cue:'Hip hinge power movement. Drive hips forward explosively, weight rises to chest height. High-rep circuit style with continuous movement.',tags:['circuit','power','conditioning'],highSweat:true,circuit:true},
+  {id:'cal_row',name:'Rowing Machine (Cal)',muscle:'legs',type:'compound',eq:['cardio_machine'],noWeight:true,rMin:8,rMax:20,rest:60,tags:['conditioning'],highSweat:true,cue:'Log the piece\'s total calories in the reps field, not a rep count. Legs drive first, then hips, then arms finish the pull — reverse the order on the way back up the slide. Pace it for the stated piece rather than the first 10 strokes.'},
+  {id:'cal_bike',name:'Assault Bike (Cal)',muscle:'legs',type:'compound',eq:['cardio_machine'],noWeight:true,rMin:15,rMax:35,rest:60,tags:['conditioning'],highSweat:true,cue:'Log the piece\'s total calories in the reps field, not a rep count. Arms and legs both drive the fan the whole time — an easy piece to coast on with the arms only, which is where the calories actually go missing.'},
   {id:'thrusters',name:'DB Thrusters',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:10,rMax:15,rest:60,cue:'Front squat into overhead press in one fluid motion. Shoulders, legs, and cardio all in one. Keep moving between reps.',tags:['circuit','conditioning','full-body'],highSweat:true,circuit:true},
   {id:'man_makers',name:'Man Makers',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:60,cue:'Push-up with DBs, row each arm, jump feet in, thruster up. Full-body circuit exercise. Rest briefly between reps but keep moving.',tags:['circuit','conditioning','full-body'],highSweat:true,circuit:true},
   {id:'battle_ropes',name:'Battle Ropes (Alternating)',muscle:'core',type:'compound',eq:['bodyweight'],rMin:30,rMax:60,rest:60,isTimed:true,cue:'Alternating arm waves. Keep core tight, generate power from shoulders. High-intensity interval exercise. Count seconds.',tags:['circuit','conditioning','cardio'],highSweat:true,circuit:true},
@@ -984,6 +1000,13 @@ const FEELS={
   seated_db_press:'Delts working through the whole arc — side delts light up at the midpoint.',
   push_press:'Legs snap, then the delts catch and finish — power transferring up through the trunk.',
   db_push_press:'Legs snap, then each delt independently catches and stabilizes its own DB — more balance demand than the barbell version.',
+  db_hang_clean_jerk:'One continuous whip from the hips — the DB should feel like it arrives at the shoulder on its own, then the legs alone punch it overhead. If the arm is doing visible work at either catch, the timing is off, not the weight.',
+  medball_situp_over_box:'The curl finishes exactly as the ball leaves your hands — a clean sit-up with a throw stapled to the top, not a throw that happens to follow a sit-up.',
+  box_jump_over:'All the effort is in the jump itself — the landing on the far side should feel like it happens to you, not something you\'re still working for.',
+  burpee_pullup:'The burpee is just transport to the bar — the only rep that counts is the pull, chin clearing clean every time.',
+  sandbag_carry:'A dead, shifting weight trying to peel you forward — the brace is constant, not just at the pickup.',
+  cal_row:'Legs first, then hips, then arms — reverse it on the recovery. The number climbing is the only feedback that matters.',
+  cal_bike:'Both the arms and the legs paying for every calorie — the moment either one coasts, the number stalls.',
   arnold_press:'Delts loaded through the rotation — front delts at the start, side delts as the arms open.',
   db_lateral:'The side delt lifting the elbow — a burn on the outside cap of the shoulder, traps quiet.',
   cable_lateral:'Constant side-delt tension through the whole arc — especially the bottom third where dumbbells go slack.',
@@ -1648,6 +1671,23 @@ const CONDITIONING_FINISHERS=[
   {name:'Block Jump Capacity',jumpDurability:true,desc:'6 sets × 12–20 continuous block jumps (hands up the whole time, submaximal height), 60s rest. On SAND or grass if at all possible. Trains the thing that actually fails late in a set: holding jump height with incomplete recovery. End any set the moment height drops or the feet start slapping — the number of QUALITY jumps is the score, and it should climb week to week.',icon:'\ud83c\udfd0',mins:14},
   {name:'Bounce Foundation',desc:'Tendon-stiffness isometrics — pick 3: Split Squat Hold 3×45s/leg · Single-Leg Wall Sit 3×45s/leg · Wall Sit 3×45s · Reverse Nordic Iso 3×30s · Calf Raise Iso Hold 3×45s',icon:'🦶',mins:10,lunchOK:true},
   {name:'Bounce Protocol',desc:'Reactive jump work, full recovery between sets, quality over quantity — pick 3: Pogo Hops 3×15 · Line Hops 3×20 · Plate Hops 3×10 · Chair Jumps 3×5 · Lunge Hops 3×6/side · U Hops 3×8 · Depth Jumps 3×5 · ATG Jump Squats 3×6 · JAPAP Jumps 3×5. Stop any drill the moment height or crispness drops.',icon:'🦘',mins:12,plyo:true},
+  // The Combat Fitness Test's own events minus the running, so the style of work
+  // shows up in ORDINARY weeks rather than only on the fortnightly benchmark —
+  // the same reasoning that put repeat-jump capacity in this pool instead of
+  // carving it a leg slot: loaded carries and odd-object work are
+  // finisher-shaped, and legs only get ~2 slots a week with both mandated.
+  //
+  // THE SANDBAG STOPS AT THE SHOULDER HERE, and that is the one deliberate
+  // difference from the test itself. getFinisher AUTO-PRESCRIBES from this pool
+  // — Sam never opts in — so the overhead finish that the test card flags and
+  // lets him decide about must not appear in something the app chooses on his
+  // behalf. Same line db_hang_clean_jerk draws: reachable when he picks it,
+  // never generated for him.
+  //
+  // Ungated on purpose. The 40 m carry matches Carry & Crawl Medley, which has
+  // no needsRunway either, and the shuttle needs about 10 m — far less than the
+  // measured lane the sprint entries require.
+  {name:'Combat Events Medley',desc:'3 rounds, 90s between: Sandbag Clean to SHOULDER × 8 (40 lb — shoulder height, never overhead) · Farmer Carry 40 m with two 40 lb cans/KBs · Dead-Stop Push-ups × 10 (hands on low blocks if the left shoulder is talking) · 5-10-5 shuttle × 2. The Combat Fitness Test\'s events minus the miles — rehearse the kit and the transitions so test day is only about the clock.',icon:'\ud83c\udf96\ufe0f',mins:14},
 ];
 // ─── AEROBIC ENGINE PROTOCOLS (non-lunch sessions) ───
 // Progressive conditioning overload, fully isolated from lifting: these logs
@@ -1789,7 +1829,7 @@ let S={
     stapleLock:true,
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},noBarLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},noBarLog:{},ptLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
   // CUSTOM SESSION (2026-08-29). The in-progress builder draft for a workout Sam
   // picks himself — see the CUSTOM SESSION block. Transient, never synced: it is
@@ -1808,6 +1848,10 @@ let S={
   // Today's in-progress EMOM 20 round counter — same stamped-draft shape as
   // `cindy`, and synced by the same merge for the same reason.
   emom:null,emomOpen:false,
+  // Today's in-progress Combat Fitness Test, {date,event,...} — `event` counts
+  // COMPLETED events, so the tracker is one number, matching how the session is
+  // actually run. Same stamped-draft sync as century/pyramid/cindy.
+  combatTest:null,combatTestOpen:false,
   century:null,
   // Today's in-progress Pyramid ladder, {date,rung,...} — see PYRAMID_LADDER.
   // Synced by the same stamped-draft merge as `century`.
@@ -1817,8 +1861,6 @@ let S={
   // In-progress Cindy tally {date,rounds,startedAt,touchedAt}; same stamped-draft
   // sync as century/pyramid (see mergeStampedDraft).
   cindy:null,cindyOpen:false,
-  // Big 3 timer {date,startedAt}; measured so mcgillMins() has a real median.
-  mcgill:null,
 };
 let timerIv=null;
 
@@ -1858,7 +1900,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,combatTest:S.combatTest||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1866,7 +1908,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,mcgill:d.mcgill||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},ptLog:d.ptLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,combatTest:d.combatTest||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // Paired sets shipped 2026-08-30; a cfg stored before that has no key at
       // all, and `pairedSetsOn` tests === true, so the migration is only about
       // making the Plan-screen checkbox render in a known state.
@@ -2131,7 +2173,7 @@ function foundationCoveredThisWeek(){
 // retire it — only one actually LOGGED does — and a daily replan keeps
 // offering it on every session until it's really been done.
 const CALF_WEEKLY_TARGET_SETS=2;
-// Priced like a small McGill/spine block, not a full lift: 2 sets at ~90s
+// Priced like a small spine block, not a full lift: 2 sets at ~90s
 // rest is a couple of minutes, nowhere near EVENING_EX_MINS/lunchExMins()'s
 // per-lift rate — charging the full rate for it would be the exact "prep
 // smeared across every exercise" mistake the lunch ledger was built to fix.
@@ -2782,7 +2824,7 @@ const PYRAMID_LADDER=[
   ]},
   {mult:4,pattern:'core',options:[
     {id:'situps',name:'Sit-ups',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,secsPerRep:2,
-     cue:'Curl up leading with the chest, exhale at the top, lower under control — never yank on the neck. NOTE: at the top peak this rung is 400 reps of loaded spinal flexion, which is the one part of this session your lower back has a stated history with — and it is the exact movement McGill argues against for a symptomatic back, so it sits oddly next to the Big 3 you now do daily. Nothing here forces you to keep it: put `situps` on the avoid list and the ladder re-resolves around it, dropping to four rungs. If you want the rung but not the flexion, sub in dead bugs or side planks for the same count.'},
+     cue:'Curl up leading with the chest, exhale at the top, lower under control — never yank on the neck. NOTE: at the top peak this rung is 400 reps of loaded spinal flexion, which is the one part of this session your lower back has a stated history with — and it is a movement McGill specifically argues against for a symptomatic back. Nothing here forces you to keep it: put `situps` on the avoid list and the ladder re-resolves around it, dropping to four rungs. If you want the rung but not the flexion, sub in dead bugs or side planks for the same count.'},
   ]},
   {mult:5,pattern:'squat',options:[
     {id:'bw_squat',name:'Bodyweight Squats',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:20,rMax:40,secsPerRep:1.8,
@@ -3079,6 +3121,10 @@ const PYRAMID_PRESCRIBE_MINS=Math.min(...Object.keys(EX_LIMIT).map(Number).filte
 // lifting template stays available underneath as the alternative.
 function pyramidPrescription(){
   if(pyramidDoneToday())return null;
+  // Yields to the Combat Fitness Test — see the scarcity note in
+  // combatTestPrescription. This gate (anywhere but the YMCA or a hotel, with
+  // 75+ min) is a superset of the nights that test can run at all.
+  if(typeof combatTestPrescription==='function'&&combatTestPrescription())return null;
   const eve=pyramidEveSlot();
   if(!eve.on)return null;// no evening slot tonight — nowhere to put it
   const gym=pyramidGymKey();
@@ -3153,6 +3199,7 @@ function cindyDue(){return cindyDaysSince()>=CINDY_EVERY_DAYS;}
 function cindyPrescription(){
   if(cindyDoneToday())return null;
   if(!cindyDue())return null;
+  if(typeof combatTestPrescription==='function'&&combatTestPrescription())return null;
   const eve=pyramidEveSlot();
   if(!eve.on)return null;
   const gym=pyramidGymKey();
@@ -3164,6 +3211,160 @@ function cindyPrescription(){
   const needed=CINDY_MINS+10+LUNCH_LEDGER.spineMins;
   if(mins<needed)return null;
   return{gym,gymName:EQUIPMENT_PRESETS[gym].name,mins,needed};
+}
+
+// ─────────────────────────────────────────────
+// COMBAT FITNESS TEST (seven events, one clock)
+// ─────────────────────────────────────────────
+// Sam, from a news summary of the Army's combat-arms fitness test: "I want to
+// add training like this to the workout prescriptions." Seven events, in
+// order, inside a 30-minute cap, in a combat uniform and boots.
+//
+// Filed as a BENCHMARK on the CINDY pattern, not as a lifting session, because
+// it is the same shape as Cindy and the Pyramid: a fixed named session with a
+// progress counter, a spacing rule, and a card that only prescribes itself
+// when it can be run honestly. NEVER SCHEDULED BY THE GENERATOR — dayTemplate
+// knows nothing about it, same rule as the other three.
+//
+// SELF-SCALING in the Century's sense, which is what makes it worth having:
+// the standard NEVER moves — 30 push-ups, 16 sandbag lifts, 40 lb cans, two
+// miles — and the TIME is the score. So it never needs rewriting as he gets
+// fitter, exactly like the Century's fixed hundred.
+//
+// TWO EVENTS COLLIDE WITH DOCUMENTED INJURY CONSTRAINTS and both are FLAGGED
+// rather than silently rewritten — the same call the Pyramid's 400-sit-up rung
+// records ("flagged in that rung's cue rather than silently resolved; Sam's
+// call either way"). Silently softening a published test standard would make
+// the score meaningless; silently prescribing the standard would ignore his own
+// file. So the card prints the standard AND the accommodation, and he picks:
+//   - Dead-stop push-ups finish CHEST ON THE DECK with the hands lifted. That
+//     bottom position is the one this app's own push-up cue exists to prevent
+//     ("chest to about fist height rather than flat to the deck — the bottom
+//     position is the one the left shoulder objects to under load"). The
+//     accommodation ELEVATES THE HANDS rather than cutting the range, because
+//     the hand-release is the whole point of the event and a higher deck is the
+//     only way to keep the release while raising the bottom position — the same
+//     mechanical-stop logic that makes floor_press lead the chest block.
+//   - A 40 lb sandbag onto a 65" platform finishes ABOVE SHOULDER HEIGHT, i.e.
+//     the standing-overhead position his lower back has a stated history with
+//     (`ohp`/`push_press`/`db_push_press`/`thrusters` are all on avoidExercises
+//     for exactly this, and db_hang_clean_jerk carries standingPressRisk). The
+//     load is trivially light for him; the FINISH is the issue, so the
+//     accommodation lowers the platform rather than the bag.
+// The movement drill is NOT flagged, because the source doesn't specify one —
+// so the drill written here is chosen hip-safely from the start (cuts, shuffles
+// and sprints, no repeated get-up/get-down, which is deep flexion under speed
+// and the FAI provocation position) rather than prescribed and then warned
+// about.
+const COMBAT_TEST_CAP_MINS=30;
+// A max-effort test in boots, so it is spaced like Cindy rather than run
+// weekly — "run weekly it stops being a measurement and just becomes a lot of
+// sloppy volume". Two weeks matches EMOM_EVERY_DAYS; the medley finisher below
+// is what carries this style of work in the weeks between.
+const COMBAT_TEST_EVERY_DAYS=14;
+// `log` is what the session books when the event is completed. The two runs and
+// the sprint deliberately carry NONE — they are conditioning inside the
+// session, and the aerobic protocols already set the precedent that running
+// logs no muscle sets. `mrvSets` states a cost directly for the events whose
+// dose is a DISTANCE rather than reps (a 50 m loaded carry is about one hard
+// set of loaded carry, and the ungated Carry & Crawl finisher books nothing at
+// all, so one set is already the generous reading); everything with a real rep
+// count prices through pyramidMrvSets off the same Century anchor as every
+// other benchmark, so the numbers reconcile across all four.
+const COMBAT_TEST_EVENTS=[
+  {key:'run1',n:'1-Mile Run (opening)',
+   d:'Timed mile to open. This one sets the heart rate for everything after it — run it honestly, but the score is the WHOLE test, so blowing the doors off here and limping through the middle five is the classic way to post a slow total.',
+   kit:'Any measured mile — track, loop, or out-and-back.'},
+  {key:'pushups',n:'30 Dead-Stop Push-ups',
+   d:'Chest to the deck, lift both hands completely clear of the floor, reset, press. The hand-release kills the stretch reflex, so every rep starts from dead — that is the event.',
+   kit:'Floor.',
+   flag:'STANDARD is chest flat to the deck, which is the bottom position your left shoulder objects to under load. YOUR VERSION: put the hands on two low plates or a pair of 6" blocks so the chest still reaches "deck" and the hands still release, but the shoulder never reaches end range. Take the flat-floor version only while the shoulder is quiet.',
+   log:{id:'bw_pushups',name:'Dead-Stop Push-ups',muscle:'chest',type:'compound',rMin:12,rMax:25,reps:30}},
+  {key:'sprint',n:'100 m Sprint',
+   d:'One maximal 100 m. Tall, relaxed, full turnover — you are already warm from the mile, so there is no build-up here.',
+   kit:'100 m of runway.'},
+  {key:'sandbag',n:'16 Sandbag Lifts',
+   d:'40 lb sandbag, 16 lifts onto a 65" platform. Hips drive it; the arms only guide. Reset the bag square each rep rather than wrestling it back.',
+   kit:'40 lb sandbag (any 40 lb odd object) + a 65" platform.',
+   flag:'STANDARD finishes the bag at 65", which is above shoulder height — the standing-overhead position your lower back has a stated history with, and the reason four press variants are on your avoid list. The bag is light; the finish is the problem. YOUR VERSION: a 45–48" platform, so the lift finishes at chest height and the back never has to stabilise a load overhead. Same 16 reps, same bag.',
+   log:{id:'ct_sandbag_lift',name:'Sandbag Lift to Platform',muscle:'shoulders',type:'compound',rMin:8,rMax:15,reps:16}},
+  {key:'cans',n:'50 m Water Can Carry',
+   d:'Two 40 lb water cans, 50 m unbroken if you can. Ribs down, shoulders packed, quick feet — this is a brace under load, not a stroll.',
+   kit:'Two 40 lb cans, or a 40 lb KB/DB per hand.',
+   log:{id:'ct_water_can_carry',name:'Water Can Carry (50 m)',muscle:'core',type:'compound',mrvSets:1}},
+  {key:'drill',n:'50 m Movement Drill',
+   d:'25 m out, 25 m back, changing mode every 12–15 m: sprint → lateral shuffle → backpedal → sprint. Brake with the legs and stay tall through every cut. Deliberately no crawling or repeated get-ups — that is deep hip flexion at speed, which is the one pattern the left hip will not forgive.',
+   kit:'50 m of open ground.',
+   log:{id:'ct_movement_drill',name:'50 m Movement Drill',muscle:'legs',type:'compound',mrvSets:1}},
+  {key:'run2',n:'1-Mile Run (final)',
+   d:'The same mile, on wrecked legs, with the clock still running. This is the event the whole test is really about — and the one that rewards having paced the opening mile.',
+   kit:'Same measured mile.'},
+];
+function combatTestLogs(){return (S.logs||[]).filter(l=>l&&l.combatTest);}
+function combatTestDraft(){
+  if(!S.combatTest||S.combatTest.date!==todayStr())return{date:todayStr(),event:0,startedAt:null,touchedAt:null};
+  return S.combatTest;
+}
+function combatTestDoneToday(){return combatTestLogs().find(l=>logDay(l.date)===todayStr())||null;}
+// BEST counts only COMPLETE tests — a time for three of seven events is not a
+// comparable result — while DAYS SINCE counts every attempt, complete or not,
+// because thirty minutes of maximal work in boots costs the same recovery
+// either way and the spacing rule exists for the recovery, not the score.
+function combatTestStats(){
+  const logs=combatTestLogs();
+  const full=logs.filter(l=>l.ctComplete&&l.timedMins>0);
+  return{count:logs.length,complete:full.length,
+    best:full.length?Math.min(...full.map(l=>l.timedMins)):0,
+    last:logs[logs.length-1]||null};
+}
+function combatTestDaysSince(){
+  const l=combatTestLogs();
+  return l.length?daysBetween(logDay(l[l.length-1].date),todayStr()):Infinity;
+}
+function combatTestDue(){return combatTestDaysSince()>=COMBAT_TEST_EVERY_DAYS;}
+// PRESCRIBED only when it can be run honestly. The gate that actually binds is
+// RUNWAY: the kit substitutes (any 40 lb object, any high platform, a KB per
+// hand) but two measured miles, a 100 m sprint and two 50 m lanes do not, and
+// SPRINT_LOCATIONS is already this app's answer to "somewhere he can actually
+// run". Everything else mirrors Cindy and EMOM — due, room in the evening, not
+// a Century day, and no other benchmark already owns the night.
+//
+// It is OFFERED everywhere regardless, as a collapsed card, because unlike the
+// other three this session is realistically done at a park or a track rather
+// than at any gym in EQUIPMENT_PRESETS — so a hard gate would make it
+// unrunnable rather than merely unstarred. Same "offered but never prescribed"
+// split the Pyramid uses for a ladder missing a rung.
+function combatTestPrescription(){
+  const dow=todayDow();
+  const d=S.program?.week?.[dow];
+  const dd=(d&&!d.rest)?d:null;
+  const sess=dd?.eveningSession||((dd&&!dd.isLunch)?dd:null);
+  if(!sess)return null;
+  if(!combatTestDue()||combatTestDoneToday())return null;
+  if(centuryDows(S.weekPlan?.availability).includes(dow))return null;
+  // FIRST CLAIM ON THE NIGHT, and the other three benchmarks defer to this one
+  // rather than the other way round. Not seniority — SCARCITY, which is the
+  // same argument PYRAMID_EXCLUDED_GYMS is already built on ("the YMCA is the
+  // only place the heavy 1-5 barbell mandate can happen, so spending that
+  // evening on bodyweight reps trades the scarce resource for the abundant
+  // one"). Apply that one level up: this test needs two measured miles, a
+  // 100 m sprint and two 50 m lanes, so SPRINT_LOCATIONS is the only place it
+  // can happen at all, while the Pyramid runs anywhere that isn't the YMCA or
+  // a hotel and Cindy and EMOM run essentially anywhere with a bar. Ordered the
+  // other way it was measured never to get the night at all: the Pyramid's gate
+  // (not YMCA/hotel + >=75 min) is a strict superset of this one's ideal
+  // evening, so it claimed every qualifying Westminster night first.
+  const key=sess.equipmentKey||'ymca';
+  if(!SPRINT_LOCATIONS.has(key))return null;
+  const needed=COMBAT_TEST_CAP_MINS+PREP_BUDGET_MINS.evening+LUNCH_LEDGER.spineMins;
+  if((sess.mins||60)<needed)return null;
+  return{gymName:EQUIPMENT_PRESETS[key]?.name||'this location',needed,key};
+}
+// Rep-priced off the Century anchor like every other benchmark, except where the
+// event's dose is a distance and states its own cost — see COMBAT_TEST_EVENTS.
+function combatTestMrvSets(ex,full){
+  if(ex&&ex.mrvSets!=null)return ex.mrvSets;
+  return pyramidMrvSets(full||exFull(ex),pyramidRepsOf(ex));
 }
 
 
@@ -3207,8 +3408,8 @@ function cindyPrescription(){
 // a plain property would hit the temporal dead zone at module-eval time.
 // ─── SESSION TIME MODEL ───
 // Everything prescribed for a day belongs to ONE session that starts when the
-// workout is opened — the century, the McGill Big 3, the daily spine holds, the
-// stretching and any finisher included, not as separate cards to find later.
+// workout is opened — the century, the daily spine holds, the stretching and
+// any finisher included, not as separate cards to find later.
 // That only works if each piece is actually costed, so the lifting can shrink
 // to fit rather than the session quietly running long.
 //
@@ -3226,24 +3427,6 @@ const COOLDOWN_MINS=5;
 // evenings have no comparable clean signal yet, so this stays an estimate.
 const EVENING_EX_MINS=12;
 const transitionMins=(pieces)=>Math.round(pieces*TRANSITION_BUFFER_SECS/60);
-// Derived, not invented: the Big 3's own prescribed holds priced the same way
-// every other fixed block is (prepItemSecs parses each entry's stated dose).
-function mcgillDefaultMins(){return Math.max(4,prepBlockMins(MCGILL_BIG3));}
-function mcgillLogs(){return (S.logs||[]).filter(l=>l&&l.mcgill&&l.timedMins>0);}
-// Median of the last 5 MEASURED Big 3 sessions, same rule as centuryMins():
-// median rather than mean so one interrupted session can't skew the budget,
-// and only genuinely timed sessions count — an estimate fed back in as if it
-// were a measurement is the circularity the century's timing note warns about.
-function mcgillMins(){
-  const t=mcgillLogs().slice(-5).map(l=>l.timedMins).sort((a,b)=>a-b);
-  return t.length?t[Math.floor(t.length/2)]:mcgillDefaultMins();
-}
-function mcgillDraft(){
-  if(!S.mcgill||S.mcgill.date!==todayStr())return{date:todayStr(),startedAt:null};
-  return S.mcgill;
-}
-function mcgillDoneToday(){return (S.logs||[]).find(l=>l&&l.mcgill&&logDay(l.date)===todayStr())||null;}
-
 const LUNCH_LEDGER={
   get spineMins(){return prepBlockMins(DAILY_SPINE_MINIMUMS);},  // the four fixed holds
   get prepMins(){return PREP_BUDGET_MINS.lunch;},                // a CAP, and prepPlan fills to it
@@ -3432,19 +3615,12 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   // today happened to run long — the ledger already stopped charging for them.
   if(centuryLunch)items.push({key:'spine',label:'Daily spine minimums',mins:prepBlockMins(DAILY_SPINE_MINIMUMS),note:'morning or evening — the hundred is the whole box',deferred:true,byDesign:true});
   else push('spine','Daily spine minimums',prepBlockMins(DAILY_SPINE_MINIMUMS));
-  const mcgillNote=mcgillLogs().length?'median of your timed sessions':'from its prescribed holds';
-  if(isLunch){
-    // Listed but never charged, and never performed here — see the lunch
-    // ledger. Showing it deferred is the honest version of a rule the box has
-    // always had: at 40 minutes the Big 3 costs a lift.
-    items.push({key:'mcgill',label:'McGill Big 3',mins:mcgillMins(),note:'morning or evening — the 40-min box buys it with a lift',deferred:true,byDesign:true});
-  }else push('mcgill','McGill Big 3',mcgillMins(),mcgillNote);
   if(!isLunch)push('cooldown','Cool-down stretching',COOLDOWN_MINS);
   // If it doesn't all fit, SHED rather than silently overrun — the whole point
   // is a routine that fits the duration actually stated. Order is cheapest-to-
   // lose first, and every one of these is a block that genuinely can happen
   // away from the gym later:
-  //   cool-down stretching -> the Big 3 -> the spine holds.
+  //   cool-down stretching -> the spine holds.
   // Prep is never shed (it's the injury-prevention half), the lifts are already
   // floored at one by the ledgers, and the century isn't dropped because on a
   // century day it IS the session's headline prescription.
@@ -3452,7 +3628,7 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   // cannot fit a 40-min lunch or a 45-min evening alongside prep and a lift, so
   // when it reaches the front of this queue the honest message is that this
   // session is too short for it — not that it was quietly skipped.
-  const SHED_ORDER=['cooldown','mcgill','spine','century'];
+  const SHED_ORDER=['cooldown','spine','century'];
   const cost=()=>items.filter(i=>!i.deferred).reduce((a,i)=>a+i.mins,0)
     +transitionMins(items.filter(i=>!i.deferred).length);
   for(const key of SHED_ORDER){
@@ -3509,9 +3685,9 @@ function eveningLifts(mins,dow,av,equipmentKey){
     if(f)finisher=f.mins||8;
   }
   // Only the blocks that CANNOT be shed are charged here. sessionPlan drops the
-  // cool-down, then the Big 3, then the spine holds before it would touch the
-  // lifting (see SHED_ORDER), so charging those three against the lift count is
-  // the two halves disagreeing with each other — and it showed: a 60-minute
+  // cool-down, then the spine holds before it would touch the lifting (see
+  // SHED_ORDER), so charging those against the lift count is the two halves
+  // disagreeing with each other — and it showed: a 60-minute
   // evening was billed for 16 minutes of work the plan then deferred anyway and
   // came out at ONE lift with six minutes spare. All three are floor work that
   // genuinely can happen at home; a lift can't.
@@ -3556,22 +3732,14 @@ function lunchBudget(dow,av,boxMins,centuryOverride){
   // session doesn't exist yet when this runs — reserving the cap is the only
   // non-circular answer, and prepPlan guarantees it never exceeds it.
   const prep=hostsCentury?PREP_BUDGET_MINS.centuryLunch:LUNCH_LEDGER.prepMins;
-  // The spine holds come off a century lunch for the same reason the Big 3 never
-  // went on it: six minutes of floor work that needs no gym, against a box that
-  // can no longer even afford one lift. sessionPlan lists them as deferred.
+  // The spine holds come off a century lunch for the same reason floor work
+  // never joins it: six minutes that needs no gym, against a box that can no
+  // longer even afford one lift. sessionPlan lists them as deferred.
   const spine=hostsCentury?0:LUNCH_LEDGER.spineMins;
   const per=perLiftMinsFor(lunchExMins());
   // The transition buffer joins the box for the same reason the spine holds and
   // prep already had: it happens inside this session, so pretending it's free is
   // how a 40-minute lunch became a 43-minute one.
-  //
-  // The Big 3 deliberately does NOT join it. That is the decision MCGILL_BIG3
-  // already records and the arithmetic hasn't changed: six minutes is a whole
-  // lift out of a 40-minute box, so half his lunch lifting would be paying for
-  // floor work that needs no gym and can be done at home. It stays a
-  // morning-or-evening job — sessionPlan lists it on a lunch as deferred, with
-  // that reason, rather than dropping it silently. If it ever DOES move into
-  // the box, LUNCH_LEDGER.spineMins has to move with it.
   //
   // The calf top-up (see CALF_WEEKLY_TARGET_SETS) is skipped on a century
   // lunch for the same reason the spine holds are: that box has no room for
@@ -3698,6 +3866,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     legGateOK(e) &&
     !(S.cfg.hipCaution && e.hipRisk) &&
     !(S.cfg.shoulderCaution && e.shoulderRisk) &&
+    !e.standingPressRisk &&
     !plyoHidden(e) &&
     !userAvoids(e) &&
     dragonFlagUnlocked(e.id) &&
@@ -3946,6 +4115,10 @@ function genProgram(cfg,av,workoutHistoryLog){
       .map(l=>new Date(l.date).getDay())
   );
   const oldWeek=S.program?.week;
+  // Muscle -> hours of virtual debt for lagging behind Sam's own median lift
+  // (see strengthSkewMap). Computed ONCE per run rather than per day: it reads
+  // the whole log and nothing inside the week can change it mid-generation.
+  const strengthSkew=strengthSkewMap();
 
   // MRV budget: start from sets already committed this week (logged + planned
   // custom workouts) and consume headroom as we assign sessions, so the week
@@ -4059,7 +4232,16 @@ function genProgram(cfg,av,workoutHistoryLog){
       // are redundant against it, which is the whole point of
       // SECONDARY_CREDIT_RULES.
       const patternVol=m==='back'?vol-((budget.centuryVol&&budget.centuryVol[m])||0):vol;
-      return{m,vol,hrs,rested,headroom:max-vol,under:patternVol<min,patternUnder:patternVol<min&&patternVol<vol};
+      // `underSkew` is the strength skew's OWN version of the under-range test:
+      // a lagging muscle is treated as owing a proportionally higher weekly
+      // minimum. It is deliberately a SECOND field rather than a change to
+      // `under` — `under` drives byDebt, and byDebt is what fixes where legs and
+      // back sit in the day's ordering. See the skewOrder note below.
+      const skewH=strengthSkew[m]||0;
+      const skewMin=min*(1+STRENGTH_SKEW_MIN_BOOST*(skewH/STRENGTH_SKEW_MAX_HOURS));
+      // `vol` is exposed for the training block's starvation floor — see byDebt.
+      return{m,vol,hrs,rested,headroom:max-vol,under:patternVol<min,underSkew:patternVol<skewMin,
+        patternUnder:patternVol<min&&patternVol<vol,skew:skewH};
     });
     // Eligible = rested with weekly MRV headroom. Priority: under-range
     // ("yellow") muscles first — get every group to its weekly minimum before
@@ -4070,6 +4252,11 @@ function genProgram(cfg,av,workoutHistoryLog){
     // the yellow one resumes as soon as it's recovered. Muscles over range
     // ("red") have no headroom and are never intentionally prescribed. If
     // headroom rules everything out, fall back to rested-only.
+    // NOTE: the strength skew is deliberately NOT in here — see the note on
+    // rest2 below for what it cost when it was. The training block's emphasis IS
+    // here, and the difference is not inconsistency: the skew is an automatic
+    // nudge that must not disturb where legs and back sit, while emphasis is an
+    // explicit multi-month decision about exactly which muscles should win days.
     // ── BLOCK EMPHASIS IS A SORT KEY (2026-09-10), and it has to be ──
     // Raising an emphasis muscle's weekly FLOOR was the first design, and it was
     // measured inert on two of the three profiles and worth −0.2 sets on the
@@ -4117,8 +4304,59 @@ function genProgram(cfg,av,workoutHistoryLog){
     // submaximal pull-up reps, so overshooting on paper is much the smaller
     // error. pickEx's mandate exemption is the other half of this — without it
     // the slot would be created and then refused.
-    let elig=rows.filter(r=>r.rested&&(r.headroom>=2||r.patternUnder)).sort(byDebt);
-    if(!elig.length)elig=rows.filter(r=>r.rested).sort(byDebt);
+    // ── STRENGTH SKEW, ANCHOR LEVEL (2026-09-06) ──
+    // Sam asked for the programming to be skewed toward the muscles his own
+    // logged weights say are lagging. At the session lengths he actually
+    // trains, that HAS to happen here, at anchor selection, and measurement is
+    // what settled it: `muscleSlots` is max(1,limit-1), and a 40-min lunch and
+    // a 60-min evening both resolve to limit 2 — so muscleSlots is ONE on every
+    // session, every day, on all three schedule profiles. The day trains the
+    // ANCHOR and a core slot, full stop. Everything downstream of the anchor
+    // (rest2, the pairing bonus, breadthCap, depth-over-breadth) only starts
+    // doing work at limit>=3, i.e. a 75-minute evening. A skew placed there was
+    // measured over 8 simulated weeks with a FORCED full-size nudge and moved
+    // exactly zero sets on all three profiles — correct-looking, inert code.
+    //
+    // But a bare skew inside byDebt was measured too, and it cost real
+    // guarantees — see SKEW_EXEMPT_MUSCLES for what and why. So the skew
+    // reorders only among the muscles NOT on that list: legs and back keep
+    // their exact positions here, and chest / shoulders / biceps / triceps are
+    // permuted among the positions they already occupy. A lagging muscle can
+    // take a day from another accessory muscle and can never take one from a
+    // mandate.
+    //
+    // The permutation deliberately spans BOTH volume tiers, and that was the
+    // second thing measurement forced. Confining it within a tier — so a green
+    // muscle could never jump a yellow one — left the skew almost inert: the
+    // muscle most likely to be lagging is TRICEPS, and triceps is exactly the
+    // muscle that reaches its weekly minimum without ever being programmed,
+    // because SECONDARY_CREDIT_RULES books it half a set for every chest and
+    // shoulder compound. It sits in the green tier while everything else is
+    // yellow, so the tier gate excluded it before the ordering was ever
+    // consulted. `underSkew` is the answer: a lagging muscle owes a higher
+    // weekly minimum, so it stays "under" for longer, and it is that raised
+    // target — not a raw queue-jump — that lets it out of the green tier. The
+    // tier is still absolute for the mandate muscles, whose positions never
+    // move at all.
+    //
+    // With every skew at 0 this is provably the IDENTITY: underSkew collapses
+    // to under and the sort key collapses to byDebt's own (under, hrs desc,
+    // MUSCLES order), so the non-mandate entries come back in the positions
+    // they already held. That is what makes it safe to run unconditionally.
+    const skewOrder=list=>{
+      if(!list.some(r=>r.skew>0))return list;
+      const pos=[];
+      list.forEach((r,i)=>{if(!SKEW_EXEMPT_MUSCLES.includes(r.m))pos.push(i);});
+      if(pos.length<2)return list;
+      const out=list.slice();
+      const picks=pos.map(i=>list[i]).sort((a,b)=>(b.underSkew?1:0)-(a.underSkew?1:0)
+        ||starvedRank(b)-starvedRank(a)||emphRank(b.m)-emphRank(a.m)
+        ||(b.hrs+b.skew)-(a.hrs+a.skew)||MUSCLES.indexOf(a.m)-MUSCLES.indexOf(b.m));
+      pos.forEach((i,k)=>{out[i]=picks[k];});
+      return out;
+    };
+    let elig=skewOrder(rows.filter(r=>r.rested&&(r.headroom>=2||r.patternUnder)).sort(byDebt));
+    if(!elig.length)elig=skewOrder(rows.filter(r=>r.rested).sort(byDebt));
     if(!elig.length)return null; // nothing adequately rested → rest/recovery day
     // Weekly heavy-strength guarantee, two halves (verified by simulation:
     // without them, 0 strength sessions fired in 490 with lunches present).
@@ -4158,10 +4396,17 @@ function genProgram(cfg,av,workoutHistoryLog){
     const ag=GROUP[anchor.m];
     // Pairing bonus applies WITHIN a volume tier — an in-range (green) muscle
     // sharing the anchor's group never jumps ahead of an under-range (yellow) one.
-    // Same three-key order as byDebt above — the pairing bonus is a nudge on
-    // RECENCY, so it must not be able to outrank the block's emphasis any more
-    // than it can outrank an under-range muscle.
-    const rest2=elig.slice(1).map(r=>({r,score:r.hrs+(GROUP[r.m]===ag?PAIR_BONUS:0)})).sort((a,b)=>(b.r.under?1:0)-(a.r.under?1:0)||starvedRank(b.r)-starvedRank(a.r)||emphRank(b.r.m)-emphRank(a.r.m)||b.score-a.score).map(o=>o.r);
+    // The strength skew rides here as well as at the anchor, so that on a long
+    // enough evening (limit>=3, where muscleSlots finally exceeds 1) a lagging
+    // muscle also wins the day's REMAINING slots. It is inert at the session
+    // lengths Sam currently trains — see the measurement in the skewOrder note
+    // above, which is exactly why the anchor-level version had to exist — but
+    // it costs nothing and it is the right behaviour on a 75-minute night.
+    // The block's two keys sit AHEAD of that score, in the same order they take
+    // in byDebt: the pairing bonus and the skew are both nudges on RECENCY, and
+    // neither may outrank an explicit emphasis any more than it may outrank an
+    // under-range muscle.
+    const rest2=elig.slice(1).map(r=>({r,score:r.hrs+r.skew+(GROUP[r.m]===ag?PAIR_BONUS:0)})).sort((a,b)=>(b.r.under?1:0)-(a.r.under?1:0)||starvedRank(b.r)-starvedRank(a.r)||emphRank(b.r.m)-emphRank(a.r.m)||b.score-a.score).map(o=>o.r);
     // ── DEPTH OVER BREADTH (2026-08-03) ──
     // A 60-min evening is EX_LIMIT[60]=4 exercises → muscleSlots=3, which
     // exactly matched the 3-muscle breadth below. Every chosen muscle therefore
@@ -4359,6 +4604,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       if(!def)return false;
       return (def.eq||[]).some(q=>eqSet.has(q))
         &&!(S.cfg.hipCaution&&def.hipRisk)&&!(S.cfg.shoulderCaution&&def.shoulderRisk)
+        &&!def.standingPressRisk
         &&!plyoHidden(def)&&!userAvoids(def)
         &&!kneeCautionBlocks(def)&&dragonFlagUnlocked(def.id)
         &&!(isLunch&&def.highSweat);
@@ -5016,7 +5262,16 @@ function getWeeklySetVolumes(){
       });
       return;
     }
-    if(log.cindy||log.pyramid){
+    if(log.combatTest){
+      // Distance events state their own cost; rep events price off the same
+      // Century anchor as every other benchmark. See combatTestMrvSets.
+      (log.exercises||[]).forEach(ex=>{
+        const full=exFull(ex);
+        creditVolume(volumes,full,combatTestMrvSets(ex,full));
+      });
+      return;
+    }
+    if(log.cindy||log.pyramid||log.emom){
       // Same problem the century had, one order of magnitude worse: a peak-10
       // ladder is 19 rungs × 5 movements, so a set count would bill 95 sets of
       // 1–10 reps. Priced by REPS off the century anchor instead — see
@@ -5863,7 +6118,8 @@ function getMRVBreakdown(){
       // The same rep-priced century and pyramid costs getWeeklySetVolumes
       // charges, so the breakdown always reconciles with the widget totals.
       const sets=l.century?centuryMrvSets(centuryRepsOf(l))
-        :(l.pyramid||l.cindy)?pyramidMrvSets(exFull(ex),pyramidRepsOf(ex))
+        :l.combatTest?combatTestMrvSets(ex,exFull(ex))
+        :(l.pyramid||l.cindy||l.emom)?pyramidMrvSets(exFull(ex),pyramidRepsOf(ex))
         :raw;
       addWithSecondary(ex,sets,{dow,dayLabel:DOW[dow],source:l.isCustom?'custom':'logged',sessionName:l.dayName});
     });
@@ -5978,6 +6234,58 @@ function renderMRVWidget(){
 // ─────────────────────────────────────────────
 // RENDER – MRV BREAKDOWN (volume attribution)
 // ─────────────────────────────────────────────
+// The READOUT half of the strength-balance feature: which groups are lagging,
+// what says so, and what the program is doing about it.
+//
+// It lives on the Weekly Volume Breakdown screen and NOT on the dashboard, on
+// purpose. Sam has cut three cards off the home screen for clutter (the
+// Fundamentals box, the Body Score card, the Foundation/Century coverage rows),
+// and the standing rule from that is: anything the scheduler already enforces
+// gets no dashboard space to report on itself. The skew IS enforced, in
+// dayTemplate. This screen is where he already comes to ask "what is the
+// program doing with my volume", which is the same question.
+//
+// It shows its WORKING rather than a verdict — the best lift it read for each
+// muscle, and the index as a percentage of his own median — because the whole
+// answer rests on coldStartWeight's per-muscle fractions, and he should be able
+// to see when one of them is flattering or punishing a group.
+function strengthBalanceHTML(){
+  const bal=strengthBalance();
+  if(!bal.median){
+    return `<div class='card reveal'>
+      <div class='sec-lbl' style='margin-bottom:8px'>⚖️ Strength balance</div>
+      <div style='font-size:13px;color:var(--mut)'>Not enough logged weight yet — two muscle groups each need a loaded movement logged on ${STRENGTH_MIN_SESSIONS}+ separate days within the last ${STRENGTH_WINDOW_DAYS/7} weeks before they can be compared.</div>
+    </div>`;
+  }
+  const skew=strengthSkewMap();
+  const rows=bal.ranked.map(r=>{
+    const rel=r.index/bal.median;                 // 1.00 = exactly your own median
+    const pct=Math.max(4,Math.min(100,rel*66.7)); // median sits at two-thirds width
+    const lagging=(skew[r.m]||0)>0;
+    const col=lagging?'var(--warn)':(MCOL[r.m]||'var(--acc)');
+    // A lagging muscle that carries pattern mandates is reported honestly rather
+    // than promised a skew it never gets — see SKEW_EXEMPT_MUSCLES.
+    const note=!lagging?''
+      :SKEW_EXEMPT_MUSCLES.includes(r.m)?` · <span style='color:var(--warn)'>lagging — already guaranteed weekly slots</span>`
+      :` · <span style='color:var(--warn)'>lagging — favoured in scheduling</span>`;
+    return `<div style='padding:7px 0;border-bottom:1px solid var(--bdr)'>
+      <div style='display:flex;align-items:center;gap:8px;font-size:13px'>
+        <span style='width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0'></span>
+        <strong>${MNAME[r.m]||r.m}</strong>
+        <span style='margin-left:auto;color:var(--mut)'>${Math.round(rel*100)}% of your median</span>
+      </div>
+      <div class='bd-track' style='margin:5px 0 4px'>
+        <div class='bd-fill' style='background:${col};--w:${pct}%'></div>
+      </div>
+      <div style='font-size:11px;color:var(--mut)'>best: ${r.best||'—'} · ${r.n} movement${r.n===1?'':'s'} counted${note}</div>
+    </div>`;
+  }).join('');
+  return `<div class='card reveal'>
+    <div class='sec-lbl' style='margin-bottom:4px'>⚖️ Strength balance</div>
+    <div style='font-size:12px;color:var(--mut);margin-bottom:10px'>Each group's best established lift, scored against what this app expects that lift to be at your bodyweight, then set beside your own median. A group more than ${Math.round(STRENGTH_SKEW_DEADBAND*100)}% below the median wins the day's session more often until it catches up.</div>
+    ${rows}
+  </div>`;
+}
 function renderMRVBreakdown(){
   const bd=getMRVBreakdown();
   const limits=getMRVLimits();
@@ -6026,6 +6334,7 @@ function renderMRVBreakdown(){
     </button>
     <div class='hdg'>Weekly Volume Breakdown</div>
     <div class='sub'>Every exercise feeding this week's MRV totals, grouped by muscle. Solid rows are counted (logged sessions + planned custom workouts); dimmed rows are upcoming scheduled sessions not yet counted.</div>
+    ${strengthBalanceHTML()}
     ${cards||`<div class='empty'><span style='font-size:48px;display:block;margin-bottom:12px'>📊</span>Nothing logged or scheduled this week yet.</div>`}
   </div>${renderNav('dash')}`;
 }
@@ -6550,6 +6859,165 @@ function coldStartWeight(def,bodyLbs,exp){
   const mult=exp==='advanced'?1.6:exp==='intermediate'?1.3:1.0;
   const floor=load==='db'?5:10;
   return Math.max(r5(bodyLbs*frac*mult),floor);
+}
+
+// ─────────────────────────────────────────────
+// STRENGTH BALANCE — which muscle groups are lagging
+// ─────────────────────────────────────────────
+// Sam (2026-09-06): "based on the weight I am doing for exercises, determine
+// which muscle groups are weaker than others, and then skew the programming in
+// favour of those weaker groups so I have a more balanced body."
+//
+// THE HARD PART is that raw logged weight is not comparable across muscles. A
+// 155 lb row and a 35 lb lateral raise say nothing about each other, and the
+// comparability engine above refuses to bridge gaps like that on purpose (see
+// loadBridge: "a coefficient invented to paper over a mismatch is how 290 lb
+// calf raises happen"). So this does NOT compare weights to each other. It
+// compares each lift against what THIS APP ALREADY EXPECTS that lift to be —
+// coldStartWeight's table, a per-muscle x per-type x per-implement fraction of
+// bodyweight. Actual / expected turns five incompatible scales into one
+// dimensionless number that can honestly be ranked.
+//
+// What cancels and what doesn't, stated plainly because it decides how much to
+// trust this:
+//   - BODYWEIGHT and the EXPERIENCE multiplier are global factors in every
+//     denominator, so they cancel out of the RANKING completely. Getting either
+//     wrong moves every muscle together and changes nothing about who is last.
+//   - The per-muscle FRACTIONS do not cancel — they ARE the standard being
+//     leaned on. They are the app's own existing numbers rather than a strength
+//     table invented for this feature, which is the entire reason to reuse them.
+// The skew is then driven by each muscle's distance from SAM'S OWN median, not
+// from 1.0, so a table that is uniformly optimistic or pessimistic still ranks
+// correctly — only its muscle-to-muscle relativities matter.
+const STRENGTH_WINDOW_DAYS=56;      // 8 weeks — current form, not career history
+// A movement counts only once it's ESTABLISHED: logged in at least this many
+// distinct sessions inside the window. A lift performed once is either a first
+// attempt at its conservative estimateStartingWeight opener or a typo, and
+// neither is evidence about a muscle group.
+const STRENGTH_MIN_SESSIONS=2;
+const STRENGTH_SKEW_DEADBAND=0.10;  // within 10% of your own median IS balanced
+// Hours of virtual recovery debt a fully-lagging muscle gets. Deliberately the
+// same scale as PAIR_BONUS(36), and applied at the same point, because it is the
+// same KIND of thing: a nudge inside the existing priority tiers, not an
+// override. A clearly-more-overdue muscle still wins, `under` still wins, and
+// `rested` still wins — see byDebt.
+const STRENGTH_SKEW_MAX_HOURS=36;
+const STRENGTH_SKEW_FULL_AT=0.40;   // 40% below your own median earns the full nudge
+// How much a fully-lagging muscle's weekly MRV MINIMUM is raised for the
+// purposes of the skew ordering only (never for the dashboard bands, never for
+// the ceiling). This is what `skew the programming in favour of` actually means
+// in the currency this scheduler already speaks: a bigger weekly target, so the
+// muscle keeps ranking as owed work for longer. 35% of a minimum is roughly one
+// extra exercise a week at the band sizes in MRV_TABLE — a nudge, not a rewrite.
+const STRENGTH_SKEW_MIN_BOOST=0.35;
+// Muscles the skew must never REORDER, and the reason is the mandates. The
+// pattern guarantees hang off the day's ANCHOR: a back day is what creates the
+// slot the horizontal/rear-delt accents get tagged onto, a leg day is what
+// creates the heavy 1–5 strength slot. Measured when the skew was allowed to
+// touch anchor order freely: horizontal fulfilled 3 -> 1, rear_delt slots
+// 9 -> 6 on the full schedule. Strength balance is a preference; a pattern
+// guarantee is not, and CLAUDE.md's balance audit already records those accents
+// as the scarcest thing in the program.
+// Consequence, stated rather than discovered later: if LEGS or BACK is the
+// lagging group, the skew does nothing for it. That is the right trade — those
+// two are the only muscles that already hold unconditional weekly slots (heavy
+// strength / hinge / hamstring, and the century plus its accents), so they are
+// the two that cannot be starved in the first place. The readout says so in
+// words rather than showing a promise the scheduler won't keep.
+const SKEW_EXEMPT_MUSCLES=['legs','back'];
+
+// Actual / expected for one logged set, or null when the movement carries no
+// meaningful external load. Bodyweight and unloaded holds log a weight of 0 (or
+// vest-only), which would read as catastrophic weakness rather than as "this
+// question doesn't apply" — the single most important gate here.
+function strengthIndexOf(def,weight,reps){
+  if(!def||!(weight>0)||!(reps>0))return null;
+  if(def.noWeight)return null;
+  if(def.isTimed&&!timedLoaded(def))return null;
+  if(loadClass(def)==='bw')return null;
+  const expected=coldStartWeight(def,S.cfg?.bodyLbs||175,experienceLevel());
+  if(!(expected>0))return null;
+  // Normalise the set to the movement's own top-of-range, exactly the way
+  // estimateStartingWeight's anchor step does (Epley in, rep-target out), so a
+  // heavy triple and a light twelve are read on one scale.
+  return (epley1RM(weight,reps)/(1+(def.rMax||12)/30))/expected;
+}
+
+// Per-muscle strength index, from logged sets inside the window.
+// Returns {byMuscle:{m:{index,n,best}}, median, ranked:[{m,index,ratio}]}.
+// Empty (median null) until at least two muscles qualify — a ranking against
+// nothing to rank against is worse than no ranking.
+function strengthBalance(){
+  const since=addDays(todayStr(),-STRENGTH_WINDOW_DAYS);
+  // BEST index per movement, not latest: a deload week or one bad session
+  // shouldn't read as the muscle getting weaker, and the question here is
+  // capability, not freshness.
+  const perEx={};
+  (S.logs||[]).forEach(l=>{
+    if(!l||l.isCardio||logDay(l.date)<since)return;
+    const day=logDay(l.date);
+    (l.exercises||[]).forEach(e=>{
+      if(!e||!e.id)return;
+      const def=exFull(e);
+      if(!def||!def.muscle)return;
+      (e.sets||[]).forEach(s=>{
+        const idx=strengthIndexOf(def,s&&s.weight,s&&s.reps);
+        if(idx==null)return;
+        const p=perEx[e.id]||(perEx[e.id]={muscle:def.muscle,index:0,name:def.name||e.name,days:new Set()});
+        p.days.add(day);
+        if(idx>p.index)p.index=idx;
+      });
+    });
+  });
+  // AGGREGATE BY BEST ESTABLISHED LIFT, NOT BY AVERAGE OR MEDIAN.
+  //
+  // The first cut took the median across a muscle's movements and it was wrong
+  // in a way that inverted the whole answer. Measured: a 315 lb trap bar
+  // deadlift indexes 1.98 while a 60 lb leg curl indexes 0.62 — both legs, both
+  // legitimate. Median across them calls a 315 lb deadlifter's legs mediocre,
+  // and worse, simply ADDING accessory variety to a muscle drags its score down
+  // while doing nothing but more work. In the case-study harness (which logs
+  // every set at a flat 50 lb) it flipped the ranking outright: the muscles with
+  // the HIGHEST expectations — legs, chest, the big compounds — scored worst,
+  // and the skew pushed volume at exactly the wrong groups.
+  //
+  // A muscle's strength is its best expression, which is also how every strength
+  // standard is written: you compare a best bench to a best squat, never an
+  // average across every accessory you've dabbled in. So: max over the movements
+  // that are ESTABLISHED, and the establishment gate is what keeps a single
+  // mistyped set from defining a muscle group.
+  const out={};
+  Object.values(perEx).forEach(v=>{
+    if(v.days.size<STRENGTH_MIN_SESSIONS)return;   // not established yet
+    if(!out[v.muscle]||v.index>out[v.muscle].index)out[v.muscle]={index:v.index,n:0,best:v.name};
+  });
+  Object.values(perEx).forEach(v=>{
+    if(v.days.size<STRENGTH_MIN_SESSIONS||!out[v.muscle])return;
+    out[v.muscle].n++;
+  });
+  const idxs=Object.values(out).map(o=>o.index).sort((a,b)=>a-b);
+  if(idxs.length<2)return{byMuscle:out,median:null,ranked:[]};
+  const med=median(idxs);
+  const ranked=Object.keys(out)
+    .map(m=>({m,index:out[m].index,n:out[m].n,best:out[m].best,ratio:med/out[m].index}))
+    .sort((a,b)=>b.ratio-a.ratio);
+  return{byMuscle:out,median:med,ranked};
+}
+
+// muscle -> hours of virtual debt, 0 when balanced or unknown. Bounded by
+// STRENGTH_SKEW_MAX_HOURS and zero inside the deadband, so noise in one logged
+// set can never reshape a week.
+function strengthSkewMap(){
+  const bal=strengthBalance();
+  const out={};
+  if(!bal.median)return out;
+  const span=STRENGTH_SKEW_FULL_AT-STRENGTH_SKEW_DEADBAND;
+  bal.ranked.forEach(r=>{
+    const over=r.ratio-1-STRENGTH_SKEW_DEADBAND;   // how far past the deadband
+    if(over<=0)return;
+    out[r.m]=Math.round(STRENGTH_SKEW_MAX_HOURS*Math.min(1,over/span));
+  });
+  return out;
 }
 
 // Core engine — see CONTRACT above. ALWAYS returns {weight,source,confidence}
@@ -7119,7 +7587,29 @@ function getFinisher(dow,isLunch,equipmentKey){
     const jd=pool.find(f=>f.jumpDurability);
     if(jd)return jd;
   }
-  return pool[dow%pool.length];
+  // ROTATE ON THE DATE, NOT THE DAY-OF-WEEK (2026-09-10). `pool[dow%pool.length]`
+  // could only ever produce indices 0-6, because dow IS 0-6 — so at any location
+  // whose filtered pool is longer than seven, every entry from index 7 on was
+  // UNREACHABLE. Measured before the fix: Westminster prescribed 7 of its 12
+  // finishers and never the other five (Med Ball Complex, Carry & Crawl Medley,
+  // Brace Circuit, Block Jump Capacity, Bounce Foundation); the apartment gym and
+  // the YMCA never reached Bounce Foundation.
+  //
+  // This is also the REAL mechanism behind the JUMP_DURABILITY note above, which
+  // recorded the symptom ("surfaced it on Saturdays at the YMCA and never at
+  // Westminster, where the sprint entries make the pool longer") but read it as
+  // the index landing elsewhere. It wasn't landing elsewhere — Block Jump
+  // Capacity sits past index 7 at Westminster and the plain rotation could not
+  // reach it at all. The eveningTrainedThisWeek() short-circuit above is what
+  // has been carrying it single-handed.
+  //
+  // Same failure family as the `domDay%2` back-accent aliasing: a modulo whose
+  // INPUT RANGE is narrower than the thing it is indexing. Keyed to the date
+  // instead, the index advances every day and the whole pool cycles — a week is
+  // a 7-step stride through a pool of 5, 8 or 12, and 7 is coprime with all
+  // three, so every entry comes up within `pool.length` weeks.
+  const dayNum=Math.floor(new Date(weekDateForDow(dow)+'T12:00:00').getTime()/86400000);
+  return pool[((dayNum%pool.length)+pool.length)%pool.length];
 }
 function finisherHTML(dow,compact,isLunch,equipmentKey){
   // At lunch the finisher has to be AFFORDABLE, not just low-sweat. Its minutes
@@ -7166,43 +7656,6 @@ const DAILY_SPINE_MINIMUMS=[
   {n:'Plank',d:'60 sec, split as needed · elbows under shoulders, glutes squeezed, ribs down — core stiffness is what protects the spine and holds posture',hold:60},
   {n:'Downward Dog',d:'60 sec · hips high, heels reaching, soft knees are fine — stretches the whole back line and gets blood moving',hold:60},
 ];
-// ─────────────────────────────────────────────
-// McGILL BIG 3
-// ─────────────────────────────────────────────
-// Stuart McGill's spine-sparing core protocol (2026-08-03, Sam asked for it by
-// name). It is the standard-of-care answer for a lower back that's symptomatic
-// but not injured — which is exactly this back: standing overhead pressing hurts,
-// nothing else does. DAILY_SPINE_MINIMUMS is the mobility/decompression side of
-// that; this is the STABILITY side, and the two are complements rather than
-// alternatives. The shared principle: endurance, not strength. Holds are ~10s
-// and reps descend, because trunk-muscle ENDURANCE is what correlates with
-// spared backs, and high-rep or high-load trunk work is what aggravates them.
-//
-// Two McGill rules built into the cues rather than left to be looked up:
-//  1) The lumbar spine does NOT move. Every one of the three is a braced hold
-//     with movement happening somewhere else. If the low back is moving, the
-//     exercise has become the thing it's meant to replace.
-//  2) Not in the first hour after waking. Discs are at peak hydration overnight,
-//     so loaded spine flexion right out of bed carries the most risk of the day.
-//
-// NOT ADDED TO DAILY_SPINE_MINIMUMS, and deliberately NOT charged to
-// LUNCH_LEDGER.spineMins — this is a floor protocol that needs no gym, and the
-// lunch arithmetic makes the cost of pretending otherwise concrete: adding 6 min
-// of floor work to a box that already pays for the spine minimums and the prep
-// block costs another lift outright. Paying that for work he can do on a rug at
-// home would be a bad trade, so the card says morning or evening instead. If it
-// ever DOES move into the lunch box, spineMins must move with it.
-//
-// Also deliberately NOT in EX, following the plank's precedent in FOUNDATION_FIVE:
-// a fixed daily dose is a stronger guarantee than a weekly slot, and adding these
-// to the core pool would double-program the same movements.
-const MCGILL_BIG3=[
-  {n:'Modified Curl-up',d:'Hands stacked under the low back, ONE knee bent and one leg straight. Tuck the chin slightly and lift the head, neck and shoulders as a single unit only an inch or two — the low back stays pressed on your hands and does not flatten or arch. Hold 10s, breathe. 6 reps, then 4, then 2, swapping which knee is bent between sets.',hold:10},
-  {n:'Side Bridge',d:'On your side, elbow under the shoulder, knees bent (or legs straight to progress). Lift the hips into a straight line from knee to shoulder and brace — no sagging, no rolling forward. Hold 10s per side. 6 reps, then 4, then 2, each side.',hold:10},
-  {n:'Bird Dog',d:'Quadruped, spine neutral and ribs down. Extend the opposite arm and leg to horizontal without letting the low back arch or the hips tip — a broomstick on your back shouldn\'t roll off. Hold 10s, then sweep the hand and knee along the floor to reset rather than standing down. 6 reps, then 4, then 2, each side.',hold:10},
-];
-// Dashboard/rest-day card version — plain text, NO hold-timer buttons: the
-// rest overlay writes to S.active, which is null outside a workout.
 // Where the 40 minutes actually goes. Shown on lunch days because the box is
 // the binding constraint there and, until it was itemised, an overrun looked
 // like "the workout took too long" rather than "three things are being charged
@@ -7225,33 +7678,55 @@ function lunchBudgetHTML(dow){
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:6px'>⏱ The ${b.box}-minute lunch</div>
     ${rows.map(r=>`<div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9'><span style='color:var(--mut)'>${r[0]}</span><span style='font-weight:700'>${r[1]} min</span></div>`).join('')}
     <div style='display:flex;justify-content:space-between;font-size:12px;line-height:1.9;border-top:1px solid var(--bdr);margin-top:4px;padding-top:4px'><span style='color:var(--mut)'>Slack</span><span style='font-weight:700;color:${b.left<0?'var(--warn)':'var(--ok)'}'>${b.left} min</span></div>
-    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${b.hostsCentury&&!b.lifts?` Today the century is the session — it leaves no room for a lift, so none is programmed, and the spine holds and Big 3 move to this morning or tonight.`:''}${eveHosts?` Today's century isn't on this ledger — it's charged to tonight's session instead, since that's where you do it. Change that on the Plan screen.`:''}${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>${b.per} min per exercise${measured?' — measured from your own logged lunches':' (starting estimate; recalibrates once you log a few timed, century-free lunches)'}, counted as the cost of ONE MORE lift once the fixed blocks above are paid for.${b.hostsCentury&&!b.lifts?` Today the century is the session — it leaves no room for a lift, so none is programmed, and the spine holds move to this morning or tonight.`:''}${eveHosts?` Today's century isn't on this ledger — it's charged to tonight's session instead, since that's where you do it. Change that on the Plan screen.`:''}${!b.finisher&&S.cfg?.conditioning?` No conditioning finisher today — there isn't room for one, so it isn't being pretended into the plan.`:''}</div>
   </div>`;
 }
 
+// Renders one PT_PRESCRIBED row: dose, this-week progress, a catch-up note
+// when behind pace, and a log/undo control. `todayCount` is shown because the
+// catch-up math can ask for MORE than one session today — the button has to
+// stay usable after the first tap rather than looking "done" and hiding.
+function ptPrescribedRowHTML(ex){
+  const done=ptDoneThisWeek(ex.id);
+  const today=ptDoneOn(ex.id,todayStr());
+  const neededToday=ptSessionsNeededToday(ex);
+  const metWeek=done>=ex.weeklyFreq;
+  const pct=Math.min(100,(done/ex.weeklyFreq)*100);
+  return`<div style='padding:8px 0;border-bottom:1px solid var(--bdr)'>
+    <div style='display:flex;align-items:center;gap:8px;font-size:12px'>
+      <strong style='flex:1;color:var(--txt)'>${ex.n}</strong>
+      <span style='color:var(--mut)'>${done}/${ex.weeklyFreq} this week</span>
+    </div>
+    <div class='bd-track' style='margin:5px 0 4px'><div class='bd-fill' style='background:${metWeek?'var(--ok)':'#c084fc'};--w:${pct}%'></div></div>
+    <div style='font-size:11px;color:var(--mut);line-height:1.5'>${ex.d}</div>
+    <div style='display:flex;align-items:center;gap:8px;margin-top:6px'>
+      <span style='font-size:11px;color:var(--mut);flex:1'>${ptDoseText(ex)}${neededToday>1?` · <span style='color:#c084fc;font-weight:700'>do ${neededToday}× today to catch up</span>`:(metWeek?' · <span style="color:var(--ok);font-weight:700">week done</span>':'')}</div>
+      ${today>0?`<button class='btn btn-g btn-sm' data-action='pt-undo-done' data-id='${ex.id}' style='padding:4px 10px;font-size:11px'>↩ ${today}</button>`:''}
+      <button class='btn ${today>0?'btn-ok':'btn-p'} btn-sm' data-action='pt-log-done' data-id='${ex.id}' style='padding:4px 12px;font-size:11px'>${today>0?'✓ Log another':'✓ Done'}</button>
+    </div>
+  </div>`;
+}
+// The physio's home program (see PT_PRESCRIBED above for why this is separate
+// from PT_HIP_POOL/HIP_POOL). Shown alongside the daily spine minimums for the
+// same reason: it needs to be visible and loggable every day regardless of
+// whether a workout happens, not just inside a session. `ptSessionsNeededToday`
+// is what implements "if I miss a day, add the work to the next day" — it
+// re-derives from logs on every render, so it self-corrects the moment a
+// session is logged and needs nothing else to keep it honest.
+function ptPrescribedHTML(){
+  return`<div style='margin-top:10px;padding:14px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.2);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:2px'>🩺 PT Home Program</div>
+    <div style='font-size:11px;color:var(--mut);margin-bottom:8px'>From your physio's sheet — logged separately from lifting, tracked against its own weekly target.</div>
+    ${PT_PRESCRIBED.map(ptPrescribedRowHTML).join('')}
+  </div>`;
+}
 function dailySpineHTML(){
   return`<div style='margin-top:10px;padding:14px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.2);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:6px'>🧘 Daily Spine Minimums · ~5 min</div>
     ${DAILY_SPINE_MINIMUMS.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>Fixed daily doses — these never rotate. A few minutes every day keeps the spine decompressed, the core protective, and posture honest. Evening training days fold them into the cool-down; otherwise do them any time.</div>
   </div>
-  ${mcgillHTML()}`;
-}
-
-// The Big 3, rendered wherever the daily spine work is (see MCGILL_BIG3 for why
-// it's a separate block and not folded into DAILY_SPINE_MINIMUMS). `holds`
-// controls the timer buttons: the dashboard and rest cards must pass false,
-// because startRest writes to S.active, which is null outside a workout.
-function mcgillHTML(holds){
-  const row=(it)=>`<div style='font-size:12px;color:var(--mut);line-height:1.7;display:flex;gap:8px;align-items:flex-start'>
-    <span>•</span><span style='flex:1'><strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</span>
-    ${holds&&it.hold?`<button data-action='start-hold' data-secs='${it.hold}' style='flex-shrink:0;font-size:11px;font-weight:600;color:#c084fc;background:rgba(192,132,252,.12);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>${it.hold}s</button>`:''}
-  </div>`;
-  return`<div style='margin-top:10px;padding:14px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:12px;text-align:left'>
-    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:6px'>🦴 McGill Big 3 · ~6 min</div>
-    ${MCGILL_BIG3.map(row).join('')}
-    <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>The stability half of the spine work, done <strong style='color:var(--txt)'>daily</strong>. Endurance is the goal, not strength — that's why the holds are short and the reps come DOWN rather than up, and why you never take these near failure. Two rules that matter more than the reps: the <strong style='color:var(--txt)'>low back doesn't move</strong> in any of the three, and skip them in the first hour after waking (discs are at their most swollen overnight). Morning or evening on a rug — deliberately not part of the 40-minute lunch, which needs its minutes for lifting.</div>
-  </div>`;
+  ${ptPrescribedHTML()}`;
 }
 
 // ─────────────────────────────────────────────
@@ -7366,9 +7841,17 @@ const prepIsDesk=(it)=>prepFocus(it).some(t=>PREP_DESK_TISSUES.includes(t));
 // bandless fallback wherever the movement survives without it.
 const PT_HIP_POOL=[
   {n:'Clamshells',d:'12 reps/side · side-lying, hips stacked and knees bent ~45°, heels together — open the top knee without letting the pelvis roll back. Pause 1s at the top. Band above the knees if you have one',f:['hip','glute'],band:false},
-  {n:'Fire Hydrants',d:'3 sets of 10 reps/side · quadruped, hands under shoulders and knees under hips, lift the knee out to the side keeping the hips square — stop the moment you feel a pinch at the front of the left hip; height is not the point, the glute is',f:['hip','glute']},
-  {n:'Side Plank with Clam',d:'3 sets of 10 reps/side · side-lying, knees bent ~90° and resting on your forearm — brace and lift the hips into a kneeling side plank, keeping head, hips and knees in one line. From there lift the top knee like a clamshell, hold briefly, then relax and repeat without letting the hips roll forward or back',f:['hip','glute']},
-  {n:'Single Leg Bridge',d:'3 sets of 10 reps/side · on your back, both knees bent, feet on the floor — straighten one leg in line with the other, brace the abs, then lift the hips into a bridge and lower back down without letting the hips rotate',f:['glute','hip']},
+  // Fire Hydrants, Side Plank with Clam and Single Leg Bridge moved OUT of this
+  // casual rotation 2026-09-09, to PT_PRESCRIBED below — the physio's sheet
+  // gives each an explicit weekly FREQUENCY (3x/week), and a fixed quota
+  // cannot share a queue with a variety pool: whichever entry this round-robin
+  // happens to reach first still "counts" as much as any other, so a specific
+  // weekly guarantee living in here is exactly the CALF_WEEKLY_TARGET_SETS
+  // mistake (a real prescription competing inside a rotation-for-variety pool
+  // and quietly losing). Leaving them here TOO would also mean doing one
+  // during pre-lift prep doesn't register as done — this pool has no
+  // completion logging at all — so the weekly tracker would keep asking for
+  // work that was, in fact, already performed.
   {n:'Donkey Kickbacks',d:'12 reps/side · quadruped, drive one heel straight back and up with the knee bent 90°, squeezing the glute at the top — ribs down, no lower-back arch. The range comes from the hip, not the spine',f:['glute','hip']},
   {n:'Hip Thrust Kicks',d:'10 reps/side · shoulders on a bench or floor, drive to a full glute bridge and HOLD it there, then extend one knee out straight and back without letting that hip drop. The held bridge is the exercise; the kick is the test',f:['glute','hip']},
   {n:'Seated Leg Spreads',d:'15 reps · seated tall, knees bent, band above the knees (or press your own hands against the outside of both knees) — spread the knees apart, pause 1s, return slowly. Sit UP; if the front of the left hip pinches, lean the torso back a few degrees',f:['hip','glute'],band:true},
@@ -7381,6 +7864,97 @@ const PT_HIP_POOL=[
   {n:'Monster Walks',d:'10 steps each way · band above the knees, sink to a quarter-squat and walk forward with wide, deliberate steps pushing the knees OUT against the band — then walk it back. Feet never come closer than shoulder width',f:['glute','hip'],band:true},
   {n:'Banded Defensive Slides',d:'10 steps each way · band above the knees, athletic stance — chest up, hips back, hands ready — and shuffle sideways without the feet clicking together. Push off the trailing leg, land wide, stay low the whole way',f:['glute','hip','adductor'],band:true},
 ];
+
+// ── PT PRESCRIBED PROGRAM (2026-09-09) ──
+// Sam's physio issued a home program with an explicit prescription — sets,
+// reps (or hold time), and how many DAYS a week each one is due — for five
+// movements: "make sure the frequency and set counts and rep counts... are
+// included in my workout programming... if I miss any days make sure to add
+// the work to the next day to make sure I get my weekly sets and reps in."
+// This is a different ask than PT_HIP_POOL/HIP_POOL: those are ROTATE-FOR-
+// VARIETY pools with no fixed quota, and all five of these movements already
+// lived in one or the other (the 2026-09-03 entry above catalogued them). A
+// real weekly frequency target cannot be satisfied by round-robin variety —
+// it needs its OWN tracked completion count against its OWN target, which is
+// exactly what CALF_WEEKLY_TARGET_SETS already proved: a specific weekly
+// guarantee sharing a queue with general-purpose rotation just loses to
+// whatever else is ahead of it. So these five graduate out of their casual
+// pools (see the removal comments above) into a dedicated list with real
+// completion logging, and nowhere else.
+//
+// Descriptions and safety cautions are carried over VERBATIM from wherever
+// each movement already lived, not retyped from the physio's plainer paper
+// text — the FAI-specific cues ("stop the moment you feel a pinch at the
+// front of the left hip") are this app's own additions from the original PT
+// visit and are not boilerplate to be silently dropped. Dose numbers match
+// the new sheet exactly; where a movement already carried the identical dose
+// (Fire Hydrant / Side Plank with Clam / Single Leg Bridge, all "3 sets of 10
+// reps/side" since the 2026-09-03 update) nothing about the exercise itself
+// changed — only the tracking did.
+const PT_PRESCRIBED=[
+  {id:'pt_butterfly_groin',n:'Butterfly Groin Stretch',
+   d:'Sit upright, knees bent, soles of the feet together. Using your arms, gently pull your heels toward your body until you feel a stretch in the groin, and hold. Keep the low back tall — do not let it slouch.',
+   sets:1,reps:3,holdSecs:30,weeklyFreq:7},
+  {id:'pt_figure4_piriformis',n:'Supine Figure-4 Piriformis Stretch',
+   d:'Lying on your back with both knees bent and feet on the floor, lift one leg and rest that ankle on the opposite knee. Apply gentle pressure to the bent knee with your hand until you feel a stretch in the buttock. Keep the low back flat on the floor throughout.',
+   sets:1,reps:3,holdSecs:30,weeklyFreq:7},
+  {id:'pt_side_plank_clam',n:'Side Plank with Clam',
+   d:'Side-lying, knees bent ~90° and resting on your forearm — brace and lift the hips into a kneeling side plank, keeping head, hips and knees in one line. From there lift the top knee like a clamshell, hold briefly, then relax and repeat without letting the hips roll forward or back.',
+   sets:3,reps:10,perSide:true,weeklyFreq:3},
+  {id:'pt_single_leg_bridge',n:'Single Leg Bridge',
+   d:'On your back, both knees bent, feet on the floor — straighten one leg in line with the other, brace the abs, then lift the hips into a bridge and lower back down without letting the hips rotate.',
+   sets:3,reps:10,perSide:true,weeklyFreq:3},
+  {id:'pt_fire_hydrant',n:'Quadruped Fire Hydrant',
+   d:'Quadruped, hands under shoulders and knees under hips — lift one leg out to the side keeping the hips square, then return and repeat. Stop the moment you feel a pinch at the front of the left hip; height is not the point, the glute is.',
+   sets:3,reps:10,perSide:true,weeklyFreq:3},
+];
+function ptDoseText(ex){
+  const sxr=`${ex.sets} set${ex.sets===1?'':'s'} × ${ex.reps} reps${ex.perSide?'/side':''}`;
+  return ex.holdSecs?`${sxr}, hold ${ex.holdSecs}s each`:sxr;
+}
+// A flat `id|date` key, matching pushupLog/noBarLog's plain date-map shape
+// rather than nesting {id:{date:count}} — a shallow `{...cloud,...local}`
+// merge (this file's standing "local wins on conflict" rule for habit logs)
+// only merges at the TOP level of the object; nesting would silently let one
+// device's cloud copy overwrite another device's SAME-DAY count for a
+// DIFFERENT exercise instead of merging per-exercise-per-date entries.
+function ptLogKey(id,date){return id+'|'+date;}
+function ptDoneOn(id,date){return (S.ptLog||{})[ptLogKey(id,date)]||0;}
+// Sessions logged since Monday. Matches calfSetsThisWeek's week boundary
+// (thisMonday()/+7 days) so "this week" means the same thing everywhere in
+// the app.
+function ptDoneThisWeek(id){
+  const mon=thisMonday(),end=addDays(mon,7);
+  const log=S.ptLog||{};
+  let n=0;
+  Object.keys(log).forEach(k=>{
+    if(!k.startsWith(id+'|'))return;
+    const d=k.slice(id.length+1);
+    if(d>=mon&&d<end)n+=log[k]||0;
+  });
+  return n;
+}
+// Inclusive of today — Monday has 7 days left, Sunday has 1.
+function ptDaysLeftInWeek(){return daysBetween(todayStr(),nextSunday())+1;}
+// THE CATCH-UP FORMULA. Computed from what was owed BEFORE today (not
+// today's own count), spread evenly over the days remaining INCLUDING today —
+// that spread is what "add the work to the next day" means in numbers: a
+// target missed on Monday doesn't just move to Tuesday, it raises every
+// remaining day's ask by the same amount until it's paid off or the week runs
+// out. `todaysQuota` is deliberately computed from yesterday's-end state so it
+// doesn't shift under you as you log sessions today — it names a stable number
+// ("2 today") and counts down against what you've actually logged, rather than
+// recomputing from a smaller total after every tap and never admitting you'd
+// already met today's share. Self-correcting like every other weekly quota in
+// this file: log nothing all week and the last day asks for all of it at
+// once, which is the honest answer, not a silently dropped rep.
+function ptSessionsNeededToday(ex){
+  const doneToday=ptDoneOn(ex.id,todayStr());
+  const owedBeforeToday=Math.max(0,ex.weeklyFreq-(ptDoneThisWeek(ex.id)-doneToday));
+  if(owedBeforeToday<=0)return 0;
+  const todaysQuota=Math.max(1,Math.ceil(owedBeforeToday/ptDaysLeftInWeek()));
+  return Math.max(0,todaysQuota-doneToday);
+}
 
 // ── HIP DECOMPRESSION ──
 // Left-hip anterior impingement (2026-07-16): flexion + rotation jams the
@@ -7415,13 +7989,19 @@ const HIP_POOL=[
   {n:'Cat-Cow',d:'8 slow reps · thoracic extension',f:['spine']},
   {n:'90/90 Hip Stretch',d:'30 sec/side · breathe into it',f:['hip']},
   {n:'Half-Kneeling Hip Flexor Stretch',d:'30 sec/side · tuck pelvis first',f:['hip']},
-  {n:'Figure 4 Stretch',d:'30 sec/side · on your back, ankle crossed over the opposite knee, pull that thigh toward your chest — deep glute/piriformis stretch',f:['hip','glute']},
+  // Figure 4 Stretch moved OUT 2026-09-09, to PT_PRESCRIBED below, alongside
+  // Butterfly Stretch — same reasoning as the PT_HIP_POOL removals above: the
+  // physio's sheet prescribes both DAILY with a fixed dose, and this casual
+  // pool has no completion logging, so leaving a copy here would let a
+  // pre-lift rep count as "not done" in the weekly tracker's eyes even after
+  // being performed. COOLDOWN_POOL's own copies of these two names are
+  // untouched — that pool is ordinary post-workout flexibility, a genuinely
+  // separate concern from PT compliance, not a duplicate of this feature.
   {n:'Hip CARs',d:'5 circles/side · slow, full range',f:['hip']},
   // Sits next to Hip CARs on purpose — same active-rotation idea, one leg and
   // loaded by bodyweight. Pool order is mobilize → activate and this is the
   // activation end of rotation work, so it comes after the passive stretches.
   {n:'Hip Airplanes',d:'5 cycles/side · hand on a wall, hinge until torso and free leg are one horizontal line, then rotate the pelvis over the stance hip — open UP toward the ceiling, pause, slowly back under. Torso stays still; only the stance hip moves. Slow enough to stop anywhere. Left hip: open up further than you rotate under, and back off at any pinch in the front',f:['hip']},
-  {n:'Butterfly Stretch',d:'30–45 sec · seated, soles of the feet together, knees dropped out to the sides — hands on ankles, tall spine, gently press the knees toward the floor with your elbows — deep inner-thigh/adductor stretch',f:['adductor']},
   {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back',f:['hip','spine']},
   {n:'Knee-to-Chest Lie',d:'45 sec · on your back, hug BOTH knees to your chest, gently rocking side to side if it feels good — decompresses the lower back and opens the hips',f:['spine','hip']},
   {n:'Kneeling Diamond Sit',d:'45 sec · kneel with the knees wide and big toes touching behind you, sit back onto the heels with a tall spine — hips, inner thighs, and ankles together (hip-friendly, like wide-knee child\'s pose)',f:['hip','adductor']},
@@ -7741,7 +8321,7 @@ function centuryPrepHTML(){
       <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:${b.color}'>${b.title}</div>
       ${b.items.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.6'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
     </div>`).join('')}
-    <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>Abbreviated on purpose — the hundred takes ~${centuryMins()} min of a 40-minute lunch, so this is the short version rather than the usual ${PREP_BUDGET_MINS.lunch}. Spine holds and the Big 3 move to this morning or tonight; they need no gym.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>Abbreviated on purpose — the hundred takes ~${centuryMins()} min of a 40-minute lunch, so this is the short version rather than the usual ${PREP_BUDGET_MINS.lunch}. Spine holds move to this morning or tonight; they need no gym.</div>
   </div>`;
 }
 
@@ -7821,6 +8401,7 @@ function emomPrescription(){
   if(!sess)return null;
   if(!emomDue()||emomDoneToday())return null;
   if(centuryDows(S.weekPlan?.availability).includes(dow))return null;
+  if(typeof combatTestPrescription==='function'&&combatTestPrescription())return null;
   if(typeof pyramidPrescription==='function'&&pyramidPrescription())return null;
   if(typeof cindyPrescription==='function'&&cindyPrescription())return null;
   const key=sess.equipmentKey||'ymca';
@@ -7880,6 +8461,64 @@ function emomHTML(dd){
   </div>`;
 }
 
+// The seven-event card. Mirrors emomHTML's three states — logged / collapsed
+// offer / open — with the progress counter walking the event list instead of
+// counting rounds, because the events are ORDERED and the whole point is doing
+// them back to back on one clock.
+function combatTestHTML(dd){
+  const done=combatTestDoneToday();
+  const draft=combatTestDraft();
+  const started=!!draft.startedAt;
+  const rx=combatTestPrescription();
+  const st=combatTestStats();
+  const total=COMBAT_TEST_EVENTS.length;
+  if(done){
+    return`<div style='margin-top:10px;padding:12px 14px;background:var(--surf2);border:1px solid rgba(74,222,128,.3);border-radius:12px;text-align:left'>
+      <div style='font-size:13px;font-weight:700;color:var(--ok)'>&#9989; Combat Fitness Test logged — ${done.ctEvents||0} of ${total} events${done.timedMins?` in ${done.timedMins} min`:''}</div>
+      ${done.ctComplete&&done.timedMins?`<div style='font-size:11px;color:var(--mut);margin-top:4px'>${done.timedMins<=COMBAT_TEST_CAP_MINS?`Inside the ${COMBAT_TEST_CAP_MINS}-minute cap.`:`${done.timedMins-COMBAT_TEST_CAP_MINS} min over the ${COMBAT_TEST_CAP_MINS}-minute cap.`}${st.best&&st.best<done.timedMins?` Best is ${st.best} min.`:''}</div>`:''}
+    </div>`;
+  }
+  if(!S.combatTestOpen&&!started&&!rx){
+    return`<div style='margin-top:10px;padding:10px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;display:flex;align-items:center;gap:10px'>
+      <div style='flex:1;font-size:12px;color:var(--mut)'><strong style='color:var(--txt)'>&#9876;&#65039; Combat Fitness Test</strong> — seven events, ${COMBAT_TEST_CAP_MINS}-minute cap, boots on.${combatTestDaysSince()===Infinity?' Never tested.':` Last run ${combatTestDaysSince()} days ago.`}</div>
+      <button class='btn btn-g btn-sm' data-action='ct-toggle' style='width:auto;flex-shrink:0'>Open</button>
+    </div>`;
+  }
+  const rows=COMBAT_TEST_EVENTS.map((ev,i)=>{
+    const doneEv=i<draft.event;
+    const next=i===draft.event;
+    return`<div style='padding:7px 0;border-bottom:1px solid var(--bdr);${doneEv?'opacity:.45':''}'>
+      <div style='display:flex;align-items:baseline;gap:8px;font-size:12px'>
+        <span style='width:20px;flex-shrink:0;color:${next?'var(--acc)':'var(--mut)'};font-weight:700'>${doneEv?'&#10003;':i+1}</span>
+        <strong style='flex:1;color:var(--txt)'>${ev.n}</strong>
+        ${next?`<span style='font-size:10px;font-weight:700;color:var(--acc);background:var(--acc2);padding:2px 7px;border-radius:20px;flex-shrink:0'>NEXT</span>`:''}
+      </div>
+      <div style='font-size:11px;color:var(--mut);line-height:1.55;margin-left:28px'>${ev.d}</div>
+      <div style='font-size:10px;color:var(--mut);margin-left:28px;margin-top:2px;opacity:.8'>&#128295; ${ev.kit}</div>
+      ${ev.flag?`<div style='font-size:11px;color:var(--warn);line-height:1.55;margin-left:28px;margin-top:4px'>&#9888; ${ev.flag}</div>`:''}
+    </div>`;
+  }).join('');
+  const rxNote=rx?`<div style='font-size:11px;color:var(--acc);margin-top:8px;line-height:1.6'>&#11088; <strong>Tonight's call.</strong> ${combatTestDaysSince()===Infinity?'You have never run it':`It has been ${combatTestDaysSince()} days`} — due every ${COMBAT_TEST_EVERY_DAYS}. ${rx.gymName} has the ground for the runs and the evening has the ${rx.needed} min it needs.</div>`:'';
+  const score=st.complete
+    ?`<div style='font-size:11px;color:var(--mut);margin-top:6px'>Best complete test: <strong style='color:var(--txt)'>${st.best} min</strong> across ${st.complete} run${st.complete===1?'':'s'}. The standard never moves — the clock is the score, so the only thing to beat is that number.</div>`
+    :`<div style='font-size:11px;color:var(--mut);margin-top:6px'>First time out, treat the ${COMBAT_TEST_CAP_MINS} minutes as a cap and not a target — finish all seven, note the time, and that becomes the number to beat. Pace the opening mile; the final one is where the test is won or lost.</div>`;
+  return`<div style='margin-top:10px;padding:12px 14px;background:var(--surf2);border:1px solid ${rx?'rgba(129,140,248,.45)':'var(--bdr)'};border-radius:12px;text-align:left'>
+    <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
+      <div style='flex:1;font-size:13px;font-weight:800'>&#9876;&#65039; Combat Fitness Test &middot; ${COMBAT_TEST_CAP_MINS} min cap</div>
+      ${started?'':`<button class='btn btn-g btn-sm' data-action='ct-toggle' style='width:auto;flex-shrink:0'>Hide</button>`}
+    </div>
+    <div style='font-size:12px;color:var(--mut);line-height:1.6;margin-bottom:8px'>Seven events, in this order, on one clock — combat uniform and boots. Tap each one off as you finish it; the time runs from the first tap to the last.</div>
+    ${rows}
+    ${rxNote}
+    ${score}
+    <div style='display:flex;align-items:center;gap:8px;margin-top:10px'>
+      <div style='flex:1;font-size:13px'><strong>${draft.event}</strong> / ${total} events</div>
+      ${started?`<button class='btn btn-g btn-sm' data-action='ct-undo-event' style='width:auto'>&minus;1</button>`:''}
+      ${draft.event<total?`<button class='btn btn-p btn-sm' data-action='ct-event' style='width:auto'>&#10003; ${COMBAT_TEST_EVENTS[draft.event].n.replace(/ \(.*\)$/,'')}</button>`:''}
+      ${draft.event>0?`<button class='btn btn-ok btn-sm' data-action='ct-finish' style='width:auto'>Log it</button>`:''}
+    </div>
+  </div>`;
+}
 function cindyHTML(dd){
   const done=cindyDoneToday();
   const draft=cindyDraft();
@@ -8147,7 +8786,31 @@ function renderAvailGrid(av,inSetup){
       </div>`:''}
     </div>`;
   };
-  return`<div class='sec-lbl'>Weekday Sessions</div>
+  // AT-A-GLANCE WEEK STRIP (2026-09-08). Sam hit a real trap: the lunch/eve
+  // checkboxes below are blind TOGGLES, not explicit on/off buttons, and every
+  // weekday starts pre-checked (defaultAvailability, or whatever survived a
+  // reset). Going through the list tapping each day "to set it" flips an
+  // already-correct day OFF with no visual warning — reproduced exactly: a
+  // Monday full reset defaults every weekday to lunch:true, tapping Monday off
+  // (correct) and Tuesday "to confirm it" (already true) silently dropped
+  // Tuesday too, and the day quietly became a rest day a week later with
+  // nothing in the UI ever having shown the mistake. Rather than change the
+  // checkboxes' semantics (a toggle is still the right control for editing one
+  // day), this renders the CURRENT on/off state of all seven days derived live
+  // from `av`, so a stray tap is visible immediately, right where it happens,
+  // instead of only being discoverable days later as an unexplained rest day.
+  const dowOnAtAGlance=(dow)=>{
+    const d=av[dow]||{};
+    return(dow===0||dow===6)?!!d.on:(d.lunch!==false||!!d.eve?.on);
+  };
+  const weekStrip=`<div style='display:flex;gap:5px;margin-bottom:14px'>
+    ${[0,1,2,3,4,5,6].map(dow=>{
+      const on=dowOnAtAGlance(dow);
+      return`<div style='flex:1;text-align:center;padding:7px 0;border-radius:8px;font-size:11px;font-weight:700;background:${on?'var(--ok2)':'var(--surf2)'};color:${on?'var(--ok)':'var(--mut)'};border:1px solid ${on?'transparent':'var(--bdr)'}'>${DOW[dow][0]}</div>`;
+    }).join('')}
+  </div>
+  <div style='font-size:11px;color:var(--mut);margin-bottom:12px;margin-top:-8px'>Green = a session is on for that day right now. Check this before generating — a tap below flips whatever a day already is.</div>`;
+  return`${weekStrip}<div class='sec-lbl'>Weekday Sessions</div>
     ${wkdayRow(1,'Monday')}${wkdayRow(2,'Tuesday')}${wkdayRow(3,'Wednesday')}${wkdayRow(4,'Thursday')}${wkdayRow(5,'Friday')}
     <div class='sec-lbl' style='margin-top:16px'>Weekend Sessions</div>
     ${wkndRow(6,'Saturday')}${wkndRow(0,'Sunday')}`;
@@ -8570,7 +9233,14 @@ function renderDash(){
     // even though it was actually trained; the log (behind isCompleted) is
     // the source of truth and always wins over the plan's current shape.
     let dot;
+    // A century-only day is checked BEFORE d.rest, for the same reason
+    // isCompleted is: it arrives here as rest:true (buildSession returns null
+    // when the hundred fills the whole box) but it is a scheduled session, not
+    // an empty day. Drawn in the century's own purple so it reads as
+    // "something is happening here" at a glance — grey said the opposite, and
+    // that is exactly how a scheduled Tuesday looked like a forgotten one.
     if(isCompleted)dot='background:var(--ok)';
+    else if(d.rest&&centuryOnlyDow(i))dot='background:#c084fc';
     else if(d.rest)dot='background:var(--bdr)';
     else if(isMissed)dot='background:var(--bad)';
     else if(isToday)dot='background:var(--ok)';
@@ -8727,6 +9397,7 @@ function renderDash(){
       ${isActualToday?pyramidHTML(dd):''}
       ${isActualToday?cindyHTML(dd):''}
       ${isActualToday?emomHTML(dd):''}
+      ${isActualToday?combatTestHTML(dd):''}
       ${isActualToday?dailySpineHTML():''}
     </div>`;
   }
@@ -9363,19 +10034,6 @@ function renderWorkout(){
     <div class='wu-title' style='color:#c084fc;margin-top:14px'>🧘 Daily Spine Minimums · ~5 min · these never rotate</div>
     ${DAILY_SPINE_MINIMUMS.map(wuRow).join('')}
     <div class='wu-note'>Fixed daily doses, every day: 60s child's pose (knees wide — hip-friendly), 2 min of cobra split into a few holds, 60s plank, 60s down dog. Knocking them out here checks off today's minimums, so there's nothing left to do at home.</div>
-    <div class='wu-title' style='color:var(--acc);margin-top:14px'>🦴 McGill Big 3 · ~${mcgillMins()} min · the stability half</div>
-    ${MCGILL_BIG3.map(wuRow).join('')}
-    ${(()=>{
-      // Timing it is what gives mcgillMins() a real median to budget from —
-      // otherwise the session plan is forever guessing at its own prescription.
-      const done=mcgillDoneToday();
-      if(done)return`<div class='prog-hint' style='margin-top:6px'>✅ Logged${done.timedMins?` — ${done.timedMins} min`:''}</div>`;
-      const d=mcgillDraft();
-      return d.startedAt
-        ?`<button class='btn btn-ok btn-sm' data-action='mcgill-done' style='margin-top:8px;width:100%'>✓ Done — log the time</button>`
-        :`<button class='btn btn-g btn-sm' data-action='mcgill-start' style='margin-top:8px;width:100%'>▶ Start Big 3 (times it)</button>`;
-    })()}
-    <div class='wu-note'>Braced holds, ~10s each, reps descending 6 → 4 → 2. Endurance is the target, not strength, so none of these go near failure. In all three the LOW BACK DOESN'T MOVE — if it's moving, the exercise has turned into the thing it exists to replace. Doing them here means they're done for the day.</div>
   </div>`:'';
   const nextBtn=allDone
     ?`<button class='btn ${isLast?'btn-ok':'btn-p'}' id='next-btn-${exIdx}' data-action='${isLast?'finish-workout':'next-ex'}' style='margin-top:10px'>${isLast?'🏁 Finish Workout':'Next Exercise →'}</button>`
@@ -9406,7 +10064,7 @@ function renderWorkout(){
     ${(()=>{
       // The whole session, itemised, shown once at the top. The clock is
       // already running (S.active.startTime is stamped on open), so this is
-      // what that clock is buying — century, spine work, Big 3, stretching and
+      // what that clock is buying — century, spine work, stretching and
       // finisher included, not a lifting-only estimate with the rest bolted on
       // afterwards.
       if(exIdx!==0)return'';
@@ -9427,7 +10085,7 @@ function renderWorkout(){
         <div class='wu-title'>⏱️ This session · ${plan.total} min of ${S.active.sessionMins}</div>
         ${rows}
         <div class='wu-note'>${plan.deferred.some(i=>i.key==='century')
-          ?`⚠ ${S.active.sessionMins} min isn't enough for the Century (${centuryMins()} min) on top of prep and a lift — move it to a longer day, or plan to run over. ${plan.deferred.filter(i=>i.key!=='century').length?'Spine work and the Big 3 need no gym — do those at home.':''}`
+          ?`⚠ ${S.active.sessionMins} min isn't enough for the Century (${centuryMins()} min) on top of prep and a lift — move it to a longer day, or plan to run over. ${plan.deferred.filter(i=>i.key!=='century').length?'Spine work needs no gym — do it at home.':''}`
           :plan.deferred.filter(i=>!i.byDesign).length
           ?`Doesn't all fit today — ${listWords(plan.deferred.filter(i=>!i.byDesign).map(i=>i.label.toLowerCase()))} moved out of the session. No gym needed for those, so do them at home tonight.`
           :plan.deferred.length
@@ -9680,6 +10338,7 @@ function customExWarnings(ex,opts){
   if(userAvoids(ex))add('&#9940;',`On your avoid list — you took this one off the program on purpose. It'll still run if you mean it.`);
   if(S.cfg.hipCaution&&ex.hipRisk)add('&#9888;&#65039;',`Flagged for the left hip (FAI history) — loaded end-range rotation or hard landings.`);
   if(S.cfg.shoulderCaution&&ex.shoulderRisk)add('&#9888;&#65039;',`Flagged for the left shoulder — ballistic anterior loading, which no cue makes safe.`);
+  if(ex.standingPressRisk)add('&#9888;&#65039;',`Standing overhead press — flagged for the lower back, same reason OHP/Push Press/Thrusters are on the avoid list. Never programmed automatically, but it's your call here.`);
   if(plyoHidden(ex))add('&#9888;&#65039;',`Impact plyo — the generator hides these under hip caution; only the low-impact subset is cleared.`);
   if(S.cfg.kneeCaution&&ex.muscle==='legs'&&!KNEE_SAFE_IDS.has(ex.id))add('&#9888;&#65039;',`Outside the knee-safe list that Knee Caution mode whitelists.`);
   if(!dragonFlagUnlocked(ex.id))add('&#128274;',`The earlier tier of this progression isn't logged at 10 reps yet.`);
@@ -10547,6 +11206,28 @@ function renderProgram(){
   const cardio=calcWeekCardio();
   const missed=getMissedDays();
   const completedDows=getCompletedDows();
+  // CENTURY DAYS ON THE WEEK VIEW (2026-09-08). Sam: "it is still not
+  // generating a workout for Tuesday." It was generating one — 100 pull-ups —
+  // and every view he was actually looking at called it "Rest".
+  //
+  // A century lunch is a DIFFERENT session, not a shorter one: at the measured
+  // (or, with no history yet, ESTIMATED) ~30 min the hundred fills the
+  // 40-minute box on its own, lunchBudget returns zero lifts, and buildSession
+  // deliberately returns null rather than an empty session — so the day arrives
+  // here as `rest:true`. centuryOnlyDow exists precisely to say what that day
+  // actually is, and the 2026-08-19 note that introduced it is explicit about
+  // why: "a day that silently drops out of the schedule looks like the app
+  // forgot, not like it heard him." But that label was only ever wired into the
+  // dashboard's TODAY card. The Program tab printed the word "Rest", and the
+  // dashboard's 7-day dot strip drew the same grey dot as a genuine rest day —
+  // so from Monday, looking ahead at Tuesday, the app said "nothing here."
+  // Same reasoning, now applied everywhere the week is drawn.
+  const centuryWeekDows=centuryDows();
+  const centuryMinsNow=centuryMins();
+  // Whether that figure is MEASURED or still a cold-start guess is worth saying
+  // out loud on the one screen where it costs a whole session: with no timed
+  // century logged, this number is what deletes the day's lifting.
+  const centuryMeasured=centuryLogs().some(l=>l&&l.timedMins>0);
   const cardioBlurb=cardio&&cardio.calsPerDay>0
     ?cardio.options.slice(0,3).map(o=>`${o.icon} ${o.name}: ${o.min} min${o.dist&&o.dist!=='—'?' · '+o.dist:''}`).join(' · ')
     :'';
@@ -10569,6 +11250,18 @@ function renderProgram(){
         cn=`<div style='margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr)'>
           <div style='font-size:11px;color:var(--warn);font-weight:700;margin-bottom:4px'>+ Daily Cardio · ${cardio.calsPerDay} cal</div>
           <div style='font-size:11px;color:var(--mut)'>${cardioBlurb}</div>
+        </div>`;
+      }
+      // A century-only day is NOT a rest day — it is the day's whole session.
+      if(!isSkipped&&centuryOnlyDow(d.dow)){
+        return`<div class='pg-day${isToday?' today-day':''}' style='border-color:rgba(192,132,252,.35)'>
+          <div class='pg-dh'>
+            <div><div class='pg-dn' style='display:flex;align-items:center;gap:4px;flex-wrap:wrap'>🎯 Pull-up Century <span class='badge' style='background:rgba(192,132,252,.15);color:#c084fc'>${centuryMinsNow} min${centuryMeasured?'':' est.'}</span></div><div class='pg-dd'>${DOW[d.dow]}</div></div>
+            ${isToday?`<span style='font-size:11px;font-weight:700;color:var(--acc);background:var(--acc2);padding:3px 8px;border-radius:20px'>TODAY</span>`:''}
+          </div>
+          <div class='pg-ex'><div class='pg-dot' style='background:#c084fc'></div>100 pull-ups <span style='color:var(--mut);font-size:12px'>· any number of sets</span></div>
+          <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>No lifting programmed today — at ~${centuryMinsNow} min the hundred fills the 40-minute lunch on its own, so none is promised and then dropped.${centuryMeasured?'':` That figure is an ESTIMATE until you time one; if yours comes in under ~22 min this day keeps a lift.`}</div>
+          ${cn}
         </div>`;
       }
       return`<div class='pg-day${isToday?' today-day':''}${isSkipped?' pg-skip':''}'>
@@ -10606,6 +11299,10 @@ function renderProgram(){
         ${isToday?`<span style='font-size:11px;font-weight:700;color:var(--acc);background:var(--acc2);padding:3px 8px;border-radius:20px'>TODAY</span>`:''}
       </div>
       <div>${exList}</div>
+      ${centuryWeekDows.includes(d.dow)?`<div style='margin-top:8px;padding-top:8px;border-top:1px solid rgba(192,132,252,.25)'>
+        <div style='font-size:11px;color:#c084fc;font-weight:700'>🎯 Pull-up Century · 100 reps · ~${centuryMinsNow} min${centuryMeasured?'':' est.'}</div>
+        <div style='font-size:11px;color:var(--mut);margin-top:2px'>Charged to ${centuryHostSession(d.dow)==='eve'?'the after-work session':'this lunch'} — the lifting above is already sized around it.</div>
+      </div>`:''}
       ${eveBlock}
       ${cn}
     </div>`;
@@ -11589,6 +12286,26 @@ document.addEventListener('click',e=>{
     else S.pushupLog[t]=S.cfg?.dailyPushups||0;
     save();render();return;
   }
+  // PT_PRESCRIBED completion — a COUNT, not a toggle like toggle-pushups,
+  // because ptSessionsNeededToday can legitimately ask for more than one
+  // session on the same day once a week has fallen behind (see the catch-up
+  // note on that function). Undo only decrements — it never removes the day
+  // entirely on one tap, so logging twice and correcting a mis-tap doesn't
+  // require remembering how many taps you're undoing.
+  if(a==='pt-log-done'){
+    const id=btn.dataset.id;
+    S.ptLog=S.ptLog||{};
+    const k=ptLogKey(id,todayStr());
+    S.ptLog[k]=(S.ptLog[k]||0)+1;
+    save();render();return;
+  }
+  if(a==='pt-undo-done'){
+    const id=btn.dataset.id;
+    S.ptLog=S.ptLog||{};
+    const k=ptLogKey(id,todayStr());
+    if(S.ptLog[k]>1)S.ptLog[k]--;else delete S.ptLog[k];
+    save();render();return;
+  }
   if(a==='log-sleep'){
     S.sleepLog=S.sleepLog||{};
     S.sleepLog[todayStr()]=parseFloat(btn.dataset.hours);
@@ -12199,22 +12916,6 @@ document.addEventListener('click',e=>{
   }
   // ── The Pyramid ladder (see PYRAMID_LADDER) ──
   if(a==='pyramid-toggle'){S.pyramidOpen=!S.pyramidOpen;render();return;}
-  if(a==='mcgill-start'){
-    S.mcgill={date:todayStr(),startedAt:new Date().toISOString()};
-    save();render();return;
-  }
-  if(a==='mcgill-done'){
-    const d=mcgillDraft();
-    // Measured start -> finish. Without a start stamp we log nothing timed
-    // rather than guess: mcgillMins() filters on timedMins>0, so an unmeasured
-    // session is skipped instead of poisoning the median (same rule as the
-    // century's timing).
-    const timedMins=d.startedAt?Math.max(1,Math.round((Date.now()-new Date(d.startedAt).getTime())/60000)):0;
-    S.logs.push({id:Date.now().toString(),date:new Date().toISOString(),dayName:'McGill Big 3',
-      isCardio:true,mcgill:true,duration:timedMins||mcgillDefaultMins(),timedMins,exercises:[]});
-    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
-    S.mcgill=null;save();render();return;
-  }
   if(a==='emom-toggle'){S.emomOpen=!S.emomOpen;render();return;}
   if(a==='emom-round'){
     const d=emomDraft();
@@ -12250,6 +12951,52 @@ document.addEventListener('click',e=>{
     });
     S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     S.emom=null;S.emomOpen=false;
+    recalcLastWeights();replanCurrentWeek();save();render();return;
+  }
+  if(a==='ct-toggle'){S.combatTestOpen=!S.combatTestOpen;render();return;}
+  if(a==='ct-event'){
+    const d=combatTestDraft();
+    if(d.event>=COMBAT_TEST_EVENTS.length)return;
+    // Clock starts on the FIRST completed event, not at render — the card sits
+    // on the dashboard all day (same reasoning as the century's startedAt).
+    S.combatTest={date:d.date,event:d.event+1,startedAt:d.startedAt||new Date().toISOString(),touchedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='ct-undo-event'){
+    const d=combatTestDraft();
+    const event=Math.max(0,d.event-1);
+    S.combatTest={date:d.date,event,startedAt:event?d.startedAt:null,touchedAt:new Date().toISOString()};
+    save();render();return;
+  }
+  if(a==='ct-finish'){
+    const d=combatTestDraft();
+    if(!d.event)return;
+    // Measured first event -> last event, never to the Log tap: the card sits on
+    // the dashboard, so the gap before you remember to tap is unbounded — the
+    // same reading error "I forgot to stop my century today" produced.
+    const timedMins=(d.startedAt&&d.touchedAt)
+      ?Math.max(1,Math.round((new Date(d.touchedAt).getTime()-new Date(d.startedAt).getTime())/60000)):0;
+    const complete=d.event>=COMBAT_TEST_EVENTS.length;
+    // A REAL session (no isCardio), like Cindy, EMOM and the Pyramid: thirty
+    // minutes of running, carrying and pressing IS the day's training, so it
+    // marks the day complete, feeds recovery and books MRV. Only the events
+    // ACTUALLY COMPLETED are booked — a test stopped at event three must not
+    // bill the week for the four that never happened, the same rule the
+    // century's partial pricing exists for.
+    const exercises=COMBAT_TEST_EVENTS.slice(0,d.event).filter(ev=>ev.log).map(ev=>({
+      id:ev.log.id,name:ev.log.name,muscle:ev.log.muscle,type:ev.log.type,
+      rMin:ev.log.rMin,rMax:ev.log.rMax,mrvSets:ev.log.mrvSets,
+      sets:[{weight:0,reps:ev.log.reps||1}],
+    }));
+    S.logs.push({
+      id:Date.now().toString(),date:new Date().toISOString(),
+      dayName:`Combat Fitness Test · ${d.event} of ${COMBAT_TEST_EVENTS.length} events`,
+      combatTest:true,ctEvents:d.event,ctComplete:complete,
+      duration:timedMins||COMBAT_TEST_CAP_MINS,timedMins,measured:!!timedMins,
+      exercises,
+    });
+    S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    S.combatTest=null;S.combatTestOpen=false;
     recalcLastWeights();replanCurrentWeek();save();render();return;
   }
   if(a==='cindy-toggle'){S.cindyOpen=!S.cindyOpen;render();return;}
@@ -12878,16 +13625,19 @@ async function saveToCloud(){
         S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
         S.pushupLog={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
         S.noBarLog={...(cloud.noBarLog||{}),...(S.noBarLog||{})};
+        S.ptLog={...(cloud.ptLog||{}),...(S.ptLog||{})};
         // AFTER the log merge above: the draft merges ask whether today's
         // session is already finished, and the log that says so may have
         // arrived from the other device in this very read.
         S.century=mergeCentury(S.century,cloud.century);
         S.pyramid=mergePyramid(S.pyramid,cloud.pyramid);
         S.cindy=mergeCindy(S.cindy,cloud.cindy);
+        S.emom=mergeEmom(S.emom,cloud.emom);
+        S.combatTest=mergeCombatTest(S.combatTest,cloud.combatTest);
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,mcgill:S.mcgill||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,combatTest:S.combatTest||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -13004,6 +13754,21 @@ function mergePyramid(local,cloud){
   return mergeStampedDraft(local,cloud,!!pyramidDoneToday(),
     c=>typeof c.rung==='number'&&c.rung>=0);
 }
+// EMOM had NO merge at all until 2026-09-10, which was a live cross-device bug
+// and strictly worse than the case the century's note documents: `emom` was
+// written into the cloud doc and read back by nobody, and it is not in
+// SINGLETON_FIELDS either, so whichever device saved last silently overwrote
+// the other's in-progress draft with no stamp comparison — on a card that has
+// an undo button, which is exactly the shape that note says a merge has to be
+// able to express.
+function mergeEmom(local,cloud){
+  return mergeStampedDraft(local,cloud,!!emomDoneToday(),
+    c=>typeof c.rounds==='number'&&c.rounds>=0);
+}
+function mergeCombatTest(local,cloud){
+  return mergeStampedDraft(local,cloud,!!combatTestDoneToday(),
+    c=>typeof c.event==='number'&&c.event>=0);
+}
 
 // Post-merge consistency: another device may have logged a planned workout
 // (program here still carries planned flags → MRV would count the muscle
@@ -13048,6 +13813,7 @@ async function loadFromCloud(){
       const sleep={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
       const pushl={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
       const noBar={...(cloud.noBarLog||{}),...(S.noBarLog||{})};
+      const ptl={...(cloud.ptLog||{}),...(S.ptLog||{})};
       // Singleton state (cfg/program/weekPlan/...) adopted PER FIELD, by each
       // field's own change stamp. The old comparison used one global
       // updatedAt, so any unrelated save on this device (a sleep log, a
@@ -13073,7 +13839,7 @@ async function loadFromCloud(){
         const fu={...lf};Object.keys(cf).forEach(k=>{if(!fu[k]||cf[k]>fu[k])fu[k]=cf[k];});
         S.fieldUpdated=fu;
       }
-      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,noBarLog:noBar,customExercises:customEx,customTemplates:customTpl});
+      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,noBarLog:noBar,ptLog:ptl,customExercises:customEx,customTemplates:customTpl});
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
       // device must not ride back in through this device's stale copy.
       S.logs=filterTombstoned(merged).slice(-LOG_KEEP);
@@ -13082,7 +13848,9 @@ async function loadFromCloud(){
       // than resurrect the session that was just completed.
       S.century=mergeCentury(S.century,cloud.century);
       S.pyramid=mergePyramid(S.pyramid,cloud.pyramid);
-        S.cindy=mergeCindy(S.cindy,cloud.cindy);
+      S.cindy=mergeCindy(S.cindy,cloud.cindy);
+      S.emom=mergeEmom(S.emom,cloud.emom);
+      S.combatTest=mergeCombatTest(S.combatTest,cloud.combatTest);
       reconcileProgramWithLogs();
       recalcLastWeights();
       lastCloudMergeRead=Date.now();// this WAS a full merge — saveToCloud can skip its read

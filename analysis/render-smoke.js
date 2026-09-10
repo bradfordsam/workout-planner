@@ -81,9 +81,11 @@ S.view='dash';
  ['renderHistory()','renderHistory'],['renderMRVWidget()','renderMRVWidget'],
  ['renderMRVBreakdown()','renderMRVBreakdown'],['centuryHTML()','centuryHTML'],
  ['lunchBudgetHTML(1)','lunchBudgetHTML'],['dailySpineHTML()','dailySpineHTML'],
- ['mcgillHTML(false)','mcgillHTML'],['pyramidHTML(todayDay())','pyramidHTML'],
+ ['pyramidHTML(todayDay())','pyramidHTML'],
  ['cindyHTML(todayDay())','cindyHTML'],['emomHTML(todayDay())','emomHTML'],
  ['centuryPrepHTML()','centuryPrepHTML'],['recoveryHTML(1)','recoveryHTML'],
+ ['strengthBalanceHTML()','strengthBalanceHTML'],['ptPrescribedHTML()','ptPrescribedHTML'],
+ ['combatTestHTML(todayDay())','combatTestHTML'],
 ].forEach(([expr,label])=>{const out=call(expr,label);if(out!==null)clean(out,label);});
 
 // ─── 2. The new Plan-screen cards, in every block state ───
