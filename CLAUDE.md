@@ -23,6 +23,10 @@ Run these gates in order; stop and report at the first failure.
      load check. **`git checkout -- analysis/case-study-data.json
      analysis/case-study-report.md` afterwards** unless the new numbers are
      meant to be committed; a full run rewrites both.
+   - `node analysis/render-smoke.js` — the committed render harness (237
+     assertions). `SMOKE_FILE=<path> node analysis/render-smoke.js` runs it
+     against a baseline copy for an A/B. Extend it when you add a render path;
+     what it does, and why the syntax check cannot replace it:
    - A **render smoke test**: load the script block into a `vm` sandbox (slice at
      the `// INIT` sentinel, mock `document`/`localStorage`, shim `Date` with a
      `SimDate`), fabricate an `S.active`, and call `renderWorkout()`,
@@ -628,6 +632,144 @@ strip it before other debugging.
     from all four of Sam's cards, in both column layouts, plus OCR noise and garbage
     input. All four new movements and the archer/side-to-side rename resolve
     correctly. The other three suites and all 7 case-study scenarios are unchanged.
+- **Training principles pass (2026-09-10)** — Sam handed over a list of training
+  ideologies (block periodization, staple movements, lead with heavy compounds,
+  sequence across muscle lengths, mechanical tension over the pump, strength as
+  the objective fatigue signal, X-frame proportion, minimum-effective-dose
+  cardio) and asked for them in the app's logic and knowledge. What landed, and
+  the two things that had to be measured before they were right:
+  - **`TRAINING_BLOCK` (`blockRoles` / `applyBlockRoles`)** — 3/4/6-month blocks
+    with EMPHASIS and MAINTENANCE muscles, on the Plan screen. **The mechanism is
+    the FLOOR and the SORT, never the ceiling.** `max` is the MRV, a recovery
+    limit; raising it for a pushed muscle would be the junk-volume mistake the
+    whole feature exists to avoid. So emphasis raises the band MINIMUM to the
+    band midpoint, and maintenance pulls a muscle's CEILING down to what used to
+    be its floor (`MAINTENANCE_FRACTION`=0.5, the top of the ~1/3–1/2
+    maintenance range — erring high keeps work rather than deleting it). What
+    emphasis is paid for out of is maintenance, not recovery.
+  - **The raised floor ALONE was measured inert, and that is the important
+    finding.** `under` is a BOOLEAN, and on a lunch-only or 3-evening week
+    essentially every muscle is already under its band — so every muscle is
+    already in the top priority tier and a higher floor buys nothing. Even on the
+    full schedule shoulders sat at ~5 sets against a base minimum of 8, already
+    yellow. Measured with floor-only: **zero change on two profiles and −0.2 sets
+    on the third.** Emphasis is therefore a SORT KEY in `dayTemplate`'s
+    `byDebt` (and in `rest2`'s sort, which must agree with it), ranking
+    immediately after `under` and ahead of recency. Deliberately NOT above
+    `under`: "every muscle reaches its weekly minimum first" is the rule the
+    whole ledger is built on.
+  - **That alone then STARVED CHEST TO ZERO** on two profiles — not maintenance,
+    deletion, and the junk-volume principle running backwards. Legs survived only
+    because they carry hard mandates; chest has none. Fixed with a **starvation
+    floor**: a muscle with nothing banked this week outranks the emphasis, and
+    once it has any work at all emphasis takes over again. **Gated on a block
+    actually running** (`blockEmph.size`), because without emphasis there is no
+    starvation to guard against — chest measured 2.2 sets/wk, not 0 — and an
+    unconditional key would change generation for a problem that doesn't exist.
+    That gate is what keeps all 7 case-study scenarios byte-identical.
+  - **A thin schedule still can't host two pushed muscles**, and the app says so
+    rather than silently starving one. `weeklyLiftSlots` reads the REAL ledgers
+    (`lunchBudget`/`eveningLifts`), not the `EX_LIMIT` tiers —
+    `weeklySetCapacity` prices an evening at `3 × exLimitFor(mins)`, which on
+    the 3-evening profile reads **12 lifts a week where the ledger affords 4**,
+    and a block sized against 12 starves whatever it didn't name. Threshold
+    `2 + 2×emphasis` is fitted to four measured points (a pushed muscle claims
+    ~2 slots: it anchors a day, and depth-over-breadth gives an under-range
+    anchor a second), listed inline at the check.
+  - Measured, 10 wks × daily replan × 3 profiles, block ON vs no block:
+    **lunch+3-evening** shoulders 5.3 → 10.7, back 4 → 5.8, chest 5.7 → 5.9,
+    biceps 4.9 → 2.6, legs 8 → 5; horizontal mandate 3 → 5 weeks of 10, rear_delt
+    4 → 5, strength 10/10 unchanged. **lunch-only** shoulders 2.1 → 4, back
+    1.3 → 3, chest 2.2 → 3. With NO block started, the case study is
+    **byte-identical to `git show HEAD:index.html`** on all 7 scenarios.
+  - Defaults (draft only — `start` is unset, so nothing moves until he taps
+    Start; a block that silently began on the day of an app update is not a
+    block): push **shoulders + back**, maintain **biceps + triceps**. Not
+    arbitrary: the delts and lats are what widen the frame, and both are
+    documented here as the hardest slots to fill, while
+    `SECONDARY_CREDIT_RULES` already shows biceps/triceps collect the largest
+    indirect load in the program.
+  - **`blockStapleIds` / `stapleLock`** — movement consistency, implemented as
+    a TIE-BREAK inside `pickEx`'s `leastUsed`, and where it sits is why it is
+    safe: `leastUsed` picks on ROLLING 7-DAY frequency and only falls through to
+    this on a tie, so it never suppresses variety inside a week — a movement used
+    this week already has a higher count and loses. It decides the week-to-week
+    churn only. **Mandate-tagged slots are exempt**: `strength` rotates squat /
+    trap bar / heavy RDL / heavy split squat and `horizontal`/`rear_delt`
+    alternate by design — those pools rotate across different PATTERNS, which is
+    coverage, not churn. Verified live: with three logged `machine_press`
+    sessions in the window, the chest slot returns `machine_press` with the lock
+    on and `floor_press` (EX order) with it off. **In pure auto-generation it is
+    a no-op** — the movement that gets logged repeatedly IS the array-order
+    default, so preferring it confirms the existing choice. What it actually buys
+    is that a HAND SWAP sticks instead of reverting next week.
+  - **Session sequencing, folded into `flagFirstWorkingSet`** (never a second
+    pass — pairing already depends on running after it): heavy `strength`-tagged
+    compound first, then accessories grouped by muscle and ordered
+    shortened → mid → lengthened (`lengthRank`), then postural prehab last
+    (`PREHAB_FINISH_IDS` — face pulls, rear-delt flyes, Y-raises). **The
+    lengthened list is READ OFF `LENGTHENED_PARTIAL_IDS` plus the `stretch`
+    tag rather than being a third opinion**, so a movement added to either place
+    is sequenced correctly with no second edit; `SHORTENED_BIAS_IDS` is the only
+    new judgement and nothing may appear in both (the smoke test asserts it —
+    `straight_pull` was caught that way).
+    **Measured: it reorders 0 of 112 generated sessions.** That is not dead code
+    and it matters to know why — generated sessions are 1–3 exercises, so
+    "compounds first" was already nearly the whole story, and the generator's own
+    slot order happens to satisfy the rest. It is a GUARANTEE, and the smoke test
+    asserts the invariant over the generated week so "never fires" and "broken"
+    can't look identical. Where it genuinely fires is the **custom builder and
+    the screenshot import**, which is where 5–8 movement sessions live.
+  - **`tensionNote` / `TENSION_ROW`** — one derived execution line per movement
+    (full ROM, 3–4 count eccentric, pause in the stretch, stop at TECHNICAL
+    failure, tension not pump) rather than 175 rewritten cue strings, the same
+    reasoning `cueBullets` uses. **Tempo is not universal**: `SPEED_TAGS`
+    (power/ballistic/plyometric/overcoming/decel) get a speed line instead — a
+    slow negative on a speed box squat makes the rep worse, the same reason those
+    tags already sit out of back-off and paired sets — the heavy 1–5 tier gets a
+    bar-speed-and-reserve line, and a timed hold gets nothing.
+  - **`strengthTrendDrops`** — strength as the objective over-fatigue signal,
+    surfaced through the existing read-only advisory banner. **The hard part is
+    not firing on noise**, and this file already records what a monitor that
+    fires on correct plans costs. A single top set's e1RM swings several percent
+    on sleep and food alone, so the per-movement threshold stays moderate (7%)
+    and the precision comes from **corroboration** — at least two movements down
+    in the same window. Systemic fatigue shows up everywhere at once. Guards:
+    session BEST e1RM (never an average — back-off sets would read as decline),
+    a 21-day window, and `STRENGTH_TREND_MAX_GAP_DAYS` so a drop after a layoff
+    reads as detraining, which `progression()` already handles, not fatigue.
+  - **New movements**, each placed so it displaces nothing established:
+    `incline_machine_press` (between the incline DB press and BOTH flat
+    variants — that position is the change: EX order decided ties, so the week's
+    second chest compound used to be flat every time; measured 3 of 112 sessions
+    flip from `flat_db_press`), `reverse_curl` + `forearm_curl` (brachialis,
+    wrist and GRIP — a soft grip leaks force out of every back pull; filed under
+    'biceps' because `dayTemplate`'s MUSCLES list is fixed at six and a
+    'forearms' bucket could never be slot-scheduled), and
+    `seated_cable_deadlift` (no `LEG_EMPHASIS_TAGS` tag, so excluded from
+    auto-generation by design — it is there for the custom builder and the swap
+    list, like the front-rack movements).
+  - **13 cues rewritten** with the specific mechanics from the list: the ~70°
+    torso lean and 45° scapular-plane path on all four lateral raises, hands-as-
+    hooks plus a firm grip on all four back pulls, a pad under the knees and
+    glutes squeezed on the lying leg curl with the distal/proximal split spelled
+    out against the RDL family, barefoot and knees-out on the squat family. The
+    render smoke test re-runs the **lossless `cueBullets` sweep over every EX
+    entry** afterwards, per the cue-presentation note above.
+  - **`CUSTOM_STRUCTURES` gains `density`** (10×10 on 60s). Structure, not a
+    new session type — the same call EMOM made: ten sets is ten sets, so MRV and
+    the ledgers price it exactly as ten hand-entered sets. Sets and rest are
+    FORCED so the label and the prescription can't disagree, and the banner
+    carries the part that actually matters — pick a weight you get ~12 with on
+    set 1 and ~8 on set 10 and **do not change it**; the decline is the stimulus.
+  - **`cardioOptions` is reordered, and the ORDER is the advice** — incline
+    treadmill first (lowest impact per calorie), running last and saying that it
+    is the only option there competing with leg recovery. Nothing removed.
+  - **Not done, deliberately**: the block does not auto-renew when it lapses. The
+    point of ending one is to look at what actually lagged and choose the next
+    emphasis from that, which is a decision, not a rollover — the Plan screen
+    says so.
+
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

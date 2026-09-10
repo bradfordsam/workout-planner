@@ -535,6 +535,18 @@ const EX = [
   {id:'floor_press',name:'DB Floor Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:5,rMax:10,rest:180,cue:'Lie flat on the floor, knees bent, feet planted. Press from the chest with elbows tucked to ~45°, forearms vertical. Lower under control until the BACKS OF THE UPPER ARMS touch the floor — that\'s the stop, and it is the whole point: the shoulder never travels past the torso line, so the front of the joint stays out of its end range. Pause a beat on the floor to kill the bounce, then press. Dumbbells only here — a barbell\'s plates hit the ground before your arms do, so the stop lands in the wrong place and the ROM cap stops working. Dumbbells also let each arm find its own path.'},
   {id:'bench',name:'Barbell Bench Press',muscle:'chest',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Retract shoulder blades, slight arch. Tuck elbows to ~45° from your torso (not flared to 90°) to protect the shoulders and load the chest. Keep forearms vertical through the press so tension stays on the chest, not the triceps. Lower bar to mid-chest with control (2 counts), press through the bar. Push the last working set to 1–2 reps shy of failure — the last rep should look ugly.'},
   {id:'incline_db',name:'Incline DB Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'30–45° incline (~58–100% grade on a bench that reads in percent). Tuck elbows to ~45° from your torso (don\'t flare to 90°) and keep forearms vertical so the chest does the work, not the triceps. At the top, drive your biceps toward each other rather than clanking the dumbbells together — that maximizes the contraction. Control the descent (2 counts) — push the last set to 1–2 reps shy of failure. SHOULDER STOP: end the descent when the upper arms reach the torso line — do not let the elbows travel behind the body chasing a deeper stretch.'},
+  // INCLINE BEFORE FLAT (2026-09-10). Placed here DELIBERATELY, between the
+  // incline dumbbell press and the two flat variants, and the position is the
+  // whole change: leastUsed() breaks frequency ties by EX array order, so the
+  // week's second chest compound used to be a FLAT press (flat_db_press, then
+  // machine_press) every time. An incline puts the humerus in less anterior
+  // shear than a flat press for the same load — which matters more here than
+  // anywhere, given the left shoulder — and it loads the clavicular head, which
+  // the flat press under-serves. Both flat variants stay in the pool; they just
+  // stop being what gets picked first. Bench itself is still on avoidExercises,
+  // and floor_press still LEADS the block for the mechanical-stop reason
+  // documented above — that constraint outranks this preference.
+  {id:'incline_machine_press',name:'Incline Machine Press',muscle:'chest',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:150,cue:'Set the seat so the handles line up with the UPPER chest, not the collarbone and not the nipple line. Retract the shoulder blades into the pad before the first rep and keep them there. Tuck the elbows to ~45° from the torso and keep the forearms in line with the handles. SHOULDER STOP: end the descent when the upper arms reach the torso line — the machine will happily let the elbows travel behind you, and that is the position the front of the left shoulder objects to. Press to just short of lockout so tension stays on the chest, then lower over 3 counts.'},
   {id:'flat_db_press',name:'Flat Dumbbell Press',muscle:'chest',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:180,cue:'Lie flat on a bench, dumbbells at chest level. Retract the shoulder blades. Tuck elbows to ~45° from the torso (don\'t flare to 90°) and keep forearms vertical so tension stays on the chest, not the triceps. Press up and slightly in, driving the dumbbells toward each other at the top for a harder squeeze without clanking them. Control the descent (2 counts) — push the last set to 1–2 reps shy of failure. SHOULDER STOP: stop when the upper arms reach the torso line, NOT at a full stretch. Chasing depth here is what makes the front of the shoulder hurt; if you can\'t feel the line, use the Floor Press instead and let the floor find it for you.'},
   {id:'machine_press',name:'Machine Chest Press',muscle:'chest',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:150,cue:'Set seat so handles are at mid-chest. Retract shoulder blades before pressing. Tuck elbows to ~45° (not flared) and keep forearms vertical so tension stays on the chest, not the triceps. Control the descent — 2 full counts down. Take the last set to 1–2 reps shy of failure. SHOULDER STOP: set the seat so the handles finish at the torso line, not behind it — most machines have a start-position adjustment for exactly this.'},
   // eq:['own_gear'], NOT 'bodyweight' — the vest is personal kit that doesn't
@@ -583,7 +595,7 @@ const EX = [
   // them is the one-line change that makes it the default vertical pull.
   {id:'parallel_pullup',name:'Parallel (Neutral-Grip) Pull-up',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,rest:180,noWeight:true,cue:'Palms facing each other on parallel handles. Dead hang, drive the elbows down and back, chest to the handles. Neutral grip keeps the shoulder in its strongest and least pinchy position — if pronated pull-ups ever nag the left shoulder, this is the swap.',tags:['vertical']},
   {id:'weighted_pullups',name:'Weighted Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:3,rMax:6,rest:180,startW:10,cue:'Vest, or a plate/dumbbell hung from a dip belt. Dead hang, drive the elbows down toward the hips, chin fully clears the bar, 3-count descent — added weight never buys a shorter rep. Start at 10 lb and only add when every set hits the top of the range clean. This is the STRENGTH expression of the pull-up; the Century (100 submaximal reps) is the VOLUME expression. They progress together and neither replaces the other.',tags:['vertical','foundation']},
-  {id:'lat_pulldown',name:'Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Slight lean back. Pull to upper chest, feel lat stretch fully at the top. Don\'t let elbows drift forward.',tags:['vertical']},
+  {id:'lat_pulldown',name:'Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Slight lean back, ribs down. Treat the hands as HOOKS — they hang onto the bar, they do not pull it. The pull comes from driving the elbows down and back into your pockets, and thinking about the hands is what turns this into a long set of biceps curls. Grip the bar FIRMLY even so: a soft, flimsy grip measurably cuts force output and the lats get whatever is left over. Full range both ends — let the shoulder blades rise and the lats stretch completely at the top, pull to the upper chest at the bottom, and do not let the elbows drift forward.',tags:['vertical']},
   {id:'bumstead_pulldown',name:'Bumstead Lat Pulldown',muscle:'back',type:'compound',eq:['cables'],rMin:8,rMax:12,rest:150,isoHoldSecs:5,cue:'Wide overhand grip. Pull the bar down to the upper chest, but stop and HOLD at the mid-position (elbows roughly level with your ribs) for a full 5 seconds — squeeze the shoulder blades down and together to lock in the lat contraction before finishing the rep. The mid-position pause is the whole point: it kills momentum and forces the lats, not the arms, to do the work. Use the 5s hold timer below at that point each rep.',tags:['vertical']},
   // ── Horizontal-pull family. ORDER IS LOAD-BEARING HERE. ──
   // pickEx's leastUsed() breaks frequency ties by EX array order, and the
@@ -611,9 +623,9 @@ const EX = [
   // eq deliberately omits plain 'bodyweight' — this needs a waist-height bar or
   // rings, which the grassy-field preset doesn't have.
   {id:'inverted_row',bwBase:true,name:'Inverted Row',muscle:'back',type:'compound',eq:['barbell','cables','machine','pullup_bar'],rMin:8,rMax:10,rest:120,scale:{unit:'notch',label:'Notch',lowerIsHarder:true,min:1,max:20},cue:'SCALED BY BAR HEIGHT, not weight — log the Smith machine notch you used (count from the floor). A LOWER notch means a more horizontal body and a harder row, so progress by dropping a notch once you own the rep range at your current one. Bar in a rack at roughly waist height (or rings/straps). Hang underneath, hands just outside shoulder width, body in ONE straight line from heels to head. Squeeze the glutes hard to drive the pelvis neutral and keep the abs braced the whole set — the plank IS the exercise, and letting it go is the main thing that kills this movement. Squeeze the shoulder blades down and together first to set the shoulders back, then pull, imagining you\'re pulling the BAR DOWN to your chest rather than hauling yourself up. Go as high as you can and stop there — do NOT arch the back to cheat the chest into the bar. No rushing: control both directions. 3 sets of 8–10 with clean form. Scale by angle, not weight: regress by raising the bar toward vertical or bending the knees to shorten the lever; progress by lowering the bar, then feet on a bench, then feet elevated + vest, then one arm.',tags:['horizontal']},
-  {id:'bb_row',name:'Barbell Row',muscle:'back',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Hip hinge, chest up. Bar to lower sternum. Drive elbows back and up. Control the negative — don\'t drop the bar.',tags:['horizontal']},
-  {id:'db_row',name:'Dumbbell Row',muscle:'back',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Brace hand on bench. Drive elbow to hip — not to the ceiling. Full stretch at bottom, full row.',tags:['horizontal']},
-  {id:'cable_row',name:'Seated Cable Row',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Sit tall, slight forward lean to stretch. Drive elbows back past your sides. No momentum.',tags:['horizontal']},
+  {id:'bb_row',name:'Barbell Row',muscle:'back',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Hip hinge to about 45°, chest up, back flat. Bar to the lower sternum. Hands are HOOKS — grip the bar firmly so no force leaks out of the chain, but pull with the elbows driving back and up rather than with the arms. Control the negative to a full stretch instead of dropping the bar; the lowering half is where most of this movement is wasted.',tags:['horizontal']},
+  {id:'db_row',name:'Dumbbell Row',muscle:'back',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Brace the free hand on the bench, back flat. Drive the elbow to the hip, not to the ceiling. The hand is a HOOK — hold the dumbbell firmly so nothing slips, but let the elbow lead so the lat pulls instead of the biceps. Full stretch at the bottom, letting the shoulder blade travel forward, then a full row and a brief squeeze at the top.',tags:['horizontal']},
+  {id:'cable_row',name:'Seated Cable Row',muscle:'back',type:'compound',eq:['cables'],rMin:6,rMax:10,rest:150,cue:'Sit tall, slight forward lean at the front of each rep to let the lats stretch all the way out. Hands are HOOKS — hang on and let the elbows do the pulling, straight back past your sides. Squeeze the grip hard the whole set; letting it go soft leaks force out of the whole chain and the back feels less of it. No momentum, no rocking the torso back and forth — the range comes from the shoulder blades, not the lower back.',tags:['horizontal']},
   {id:'straight_pull',name:'Straight-arm Pulldown',muscle:'back',type:'isolation',eq:['cables'],rMin:10,rMax:15,rest:120,cue:'Arms straight, slight forward lean. Sweep bar to thighs using lats only. Resist the cable on the way back up.'},
   {id:'db_pullover',name:'Dumbbell Pullover',muscle:'back',type:'isolation',eq:['dumbbells'],rMin:10,rMax:15,rest:120,cue:'Lie perpendicular across a bench with only your shoulders supported, hips low. Hold one dumbbell with both hands above your chest, arms nearly straight with a slight fixed elbow bend. Lower it in an arc behind your head until you feel a deep stretch through the lats and rib cage, then pull it back over your chest using the lats — keep the elbow bend fixed throughout so it stays a lat pull, not a triceps extension.'},
   {id:'face_pulls',name:'Face Pulls',muscle:'back',type:'isolation',eq:['cables'],rMin:12,rMax:15,rest:120,cue:'Rope at nose height. Pull to forehead and externally rotate (thumbs behind ears). Slow return. Non-negotiable for shoulder health.',tags:['rear_delt']},
@@ -625,11 +637,11 @@ const EX = [
   {id:'push_press',name:'Push Press',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'Bar racked at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch the bar overhead in one motion to lockout. Lower under control back to the shoulders. The leg drive lets you overload the press beyond strict-press weights while training total-body explosiveness — the classic athlete\'s overhead lift.'},
   {id:'db_push_press',name:'DB Push Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:3,rMax:6,rest:180,tags:['power'],cue:'A dumbbell in each hand at the shoulders, standing tall. Shallow knee dip — a quarter-squat, torso staying vertical — then drive the legs HARD and punch both DBs overhead in one motion to lockout. Each arm stabilizes its own dumbbell independently, so this runs noticeably lighter per hand than half your barbell push press — don\'t chase the same number. Lower under control back to the shoulders.'},
   {id:'arnold_press',name:'Arnold Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Seated on a bench with back support. Start palms facing you, rotate to facing out as you press. All three delt heads involved. Control the descent.'},
-  {id:'db_lateral',name:'DB Lateral Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Standing, slight forward lean, lead with elbows. Imagine "scraping the wall" with your knuckles as you raise — keeps the path in the scapular plane. Pause at top. Slow 2-count negative. Lateral delts respond well to higher reps.'},
-  {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Standing, cross-body cable. "Scrape the wall" with your hand on the way up to keep the arm path in the scapular plane. Constant tension throughout ROM. Resist the weight on the way down — don\'t let it snap back.'},
+  {id:'db_lateral',name:'DB Lateral Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Hinge the torso forward to about 70° from vertical — a real lean, not a nod. That lean is what moves the side delt into line with gravity and takes the traps off the job; standing bolt upright hands half the set to the traps. Let the arms travel FORWARD about 45° from your sides rather than straight out to the side, which is where the shoulder blade actually points (the scapular plane) and where the joint has room. Lead with the elbows and REACH the hands away from you as you rise, as if scraping them up a wall — reaching keeps the resistance arm long so the delt keeps working instead of the arm folding in. Stop at shoulder height, pause a beat, then take 3 counts down. Go light: if the shoulders shrug up toward the ears, the weight has already won.'},
+  {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Low pulley, cable running across the body, working arm on the far side. Lean the torso AWAY from the stack to about 70° from vertical and let that lean stay put for the whole set — it is what lines the side delt up with the cable and keeps the traps out. Arm travels forward about 45°, not straight out to the side. Reach the hand away from you the whole way up, as if scraping it up a wall, and stop at shoulder height. The cable holds tension at the BOTTOM where a dumbbell goes slack, which is the reason to pick this over the dumbbell version, so resist all the way down instead of letting it snap back.'},
   {id:'lying_cable_lat',name:'Lying Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Lie sideways, cable from low pulley. Raise arm up. Slow descent. Excellent lateral delt isolation.'},
-  {id:'incline_lateral',name:'45° Incline DB Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Set the bench to 45° (~100% grade). Lie on incline bench. Raise arm out from a fully stretched position, "scraping the wall" with your hand to stay in the scapular plane. Control the negative all the way down.'},
-  {id:'machine_lateral',name:'Machine Lateral Raise',muscle:'shoulders',type:'isolation',eq:['machine'],rMin:12,rMax:20,rest:120,cue:'Seat set so the pivot sits at shoulder height and the pads rest on the OUTER upper arm — not the forearms. Lead with the elbows, drive out and up to about shoulder height, pause a beat, then resist all the way down. The machine holds tension on the side delt through the whole arc including the bottom, where dumbbells go slack — that plus the fixed path (no swinging, no momentum) is what makes it an S-tier side-delt builder. Go light and strict; this muscle responds to reps, not load.',tags:['side_delt']},
+  {id:'incline_lateral',name:'45° Incline DB Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Set the bench to about 45° and brace your chest against it, one arm hanging. The bench IS the torso lean — it holds the ~70° position for you so the side delt stays in line with gravity for every rep and the traps never get a chance to take over. Raise from the fully stretched bottom with the arm travelling slightly forward, about 45° in the scapular plane, REACHING the hand away as if scraping it up a wall. Stop at shoulder height, then control the negative all the way back into the stretch.'},
+  {id:'machine_lateral',name:'Machine Lateral Raise',muscle:'shoulders',type:'isolation',eq:['machine'],rMin:12,rMax:20,rest:120,cue:'Seat set so the pivot sits at shoulder height and the pads rest on the OUTER upper arm — not the forearms. Lean the chest into the front pad if the machine has one, so the torso is forward of vertical and the side delt lines up with the arc. Lead with the elbows, drive out and up to about shoulder height, pause a beat, then resist all the way down. The machine holds tension on the side delt through the whole arc including the bottom, where dumbbells go slack — that plus the fixed path (no swinging, no momentum) is what makes it an S-tier side-delt builder. Go light and strict; this muscle responds to reps, not load. If the shoulders shrug toward the ears the traps have taken the set — drop a plate.',tags:['side_delt']},
   {id:'y_raise',name:'Y-Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells','bodyweight'],rMin:12,rMax:20,rest:90,cue:'Chest on an incline bench set ~30–45° (or hinged over standing), very light DBs or no weight at all. Raise both arms overhead into a wide Y with the thumbs up, squeezing the shoulder blades DOWN and back — think of reaching long, not lifting heavy. Lower under control. Trains the lower traps and rear delt, which is why it replaces the front raise: the front delt already gets plenty from every press, while this is the piece that actually improves posture and shoulder health. Light weight only — if the neck or upper traps take over, drop the load.',tags:['rear_delt','posture']},
   // On avoidExercises since 2026-08-03 (reported pain, left shoulder). Also
   // carries shoulderRisk so it stays hidden even if the avoid entry is ever
@@ -654,6 +666,18 @@ const EX = [
   // the setup needs a single handle and a torso position the second arm can't
   // share, so one arm at a time is the movement, not a preference.
   {id:'bayesian_curl',name:'Bayesian Cable Curl',muscle:'biceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'ONE ARM AT A TIME — this is the exception; the setup only works single-handed. Low pulley, single D-handle, and stand a step or two IN FRONT of the stack so the working arm hangs BEHIND your torso at the bottom. That shoulder-extended position puts the biceps at full stretch under load — the cable keeps tension there where a dumbbell has none. Curl without letting the elbow drift forward, squeeze, then lower slowly all the way back into the stretch. Peak tension at long muscle length is the whole point; a deep controlled stretch beats a heavier swing every time. Count reps per arm.',tags:['stretch']},
+  // BRACHIALIS + FOREARMS (2026-09-10). Added at the END of the biceps block on
+  // purpose: EX order decides ties, and these must not displace the supinated
+  // curls that drive the biceps itself. What they add is the elbow flexor UNDER
+  // the biceps (the brachialis, which a pronated/neutral grip loads far harder
+  // than a supinated one) plus the wrist and grip — and grip is not cosmetic
+  // here: a soft grip measurably cuts force output on every back pulling
+  // movement, which is the one place this program cannot afford to leak force.
+  // Both are 'biceps' rather than a new muscle bucket: dayTemplate's MUSCLES
+  // list is fixed at six, so a 'forearms' entry could never be slot-scheduled
+  // (the same reason PT_HIP_POOL is not in EX) and would be silent dead code.
+  {id:'reverse_curl',name:'Reverse Curl (Brachialis)',muscle:'biceps',type:'isolation',eq:['barbell','dumbbells','cables'],rMin:8,rMax:12,rest:90,cue:'Palms DOWN (pronated), grip shoulder-width, elbows pinned to your sides. Curl without letting the elbows drift forward and without swinging the hips — this will be much lighter than a supinated curl and it should be. Squeeze at the top, then lower over 3 counts. Pronating takes the biceps off the job and puts it on the brachialis underneath, which is what pushes the upper arm wider, and on the wrist extensors. An EZ bar\'s angled grip is easier on the wrists than a straight bar; use it if the straight bar nags.',tags:['brachialis','forearm']},
+  {id:'forearm_curl',name:'Barbell Forearm Curl',muscle:'biceps',type:'isolation',eq:['barbell','dumbbells'],rMin:12,rMax:20,rest:60,cue:'Sit with the forearms flat along your thighs, wrists just past the knees, palms UP, holding the bar. Let the bar roll down to the fingertips for a full stretch, then curl it back up and close the hand hard at the top. Wrists only — the forearms never leave the thighs. Then flip to palms DOWN for the same count if the elbows have been nagging; the extensor side is the one that usually needs it. Higher reps here than anywhere else in the program: this is connective-tissue work for the wrist and elbow, not a growth set.',tags:['forearm','grip']},
   {id:'pushdown',name:'Tricep Pushdown',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Elbows pinned to sides. Full lockout every rep. Resist the stack on the way back up — slow eccentric builds the horseshoe.'},
   {id:'overhead_ext',name:'Cable Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Standing (or seated on a bench for extra back support), facing away from a low pulley with a rope attachment — hands together behind the head at the bottom. Long head fully stretched overhead — highest growth potential. Keep elbows forward and pointed at the ceiling, don\'t let them flare. 2-count descent, no swinging the cable. Full ROM.'},
   {id:'db_overhead_ext',name:'DB Overhead Tricep Extension',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Standing (or seated on a bench for extra back support). Hold a single dumbbell with both hands, cupped under the top plate, arms straight overhead. Lower behind the head under control until you feel a full stretch in the long head of the tricep — keep elbows pointed at the ceiling and close to your ears, don\'t let them flare. Press back to full lockout. 2-count descent, full ROM.'},
@@ -661,9 +685,9 @@ const EX = [
   {id:'diamond_pu',name:'Diamond Push-ups',muscle:'triceps',type:'isolation',eq:['bodyweight'],rMin:10,rMax:15,rest:120,cue:'Hands close together. Elbows track backward. Full lockout at top, controlled descent. Add vest for progressive overload.'},
   {id:'ezbar_skull',name:'EZ Bar Skull Crushers',muscle:'triceps',type:'isolation',eq:['barbell'],rMin:8,rMax:12,rest:120,cue:'Lie on a bench holding an EZ bar on the angled grips, arms extended over your chest. Keeping the elbows fixed and pointed up, lower the bar toward your forehead (or just behind the head for a bigger long-head stretch) — 2 counts down. Press back to lockout without letting the elbows flare out. Strict and controlled, never a speed exercise.'},
   {id:'tricep_dips',name:'Tricep Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'PARALLEL BARS ONLY — not the bench-edge version. Bench dips pin the hands behind the body and load the shoulder at its extension end range, which is the exact position the front of the left shoulder objects to; parallel bars let the arms hang under the torso instead. NOT flagged shoulderRisk (it\'s the only compound in the triceps pool) — the depth cap is what keeps it safe, so respect it. Keep the torso fairly upright to bias the triceps (leaning forward shifts load to the chest). Lower until the elbows reach about 90° and NO further, keeping them tucked close to the body — don\'t let them flare. Press back to full lockout and squeeze the triceps at the top. Slow descent. Add a vest or plate on the lap to overload.'},
-  {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Sit back and down, knees track toes. Full depth. Drive the floor away on the way up.',tags:['quad','squat'],hipRisk:true},
+  {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Squat BAREFOOT or in flat socks if the floor allows — a compressible running sole is a soft spot between you and the ground, and bare feet let the toes spread and the arch actually grip. Screw the feet into the floor and drive the knees slightly OUT over the toes as you descend, rotating from the hips: that is what keeps the knee tracking properly and brings the glutes into the effort instead of letting the knees fall in. Sit back and down to full depth, then drive the floor away.',tags:['quad','squat'],hipRisk:true},
   {id:'bulgarian',name:'Bulgarian Split Squat (RFESS)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated, front foot well forward. Keep the front shin closer to vertical and torso upright — this caps front-hip flexion well short of a deep bilateral squat, and the staggered stance keeps the working hip neutral-to-externally-rotated. The hip-friendly substitute for deep squats. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral']},
-  {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold DB at chest. Elbows between knees at bottom. Full depth. Controlled descent.',tags:['quad','squat'],hipRisk:true},
+  {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold the DB at the chest. Barefoot or flat socks if you can, toes spread, feet gripping the floor. Drive the knees slightly OUT over the toes on the way down and keep them there — elbows end up between the knees at the bottom. Full depth, controlled descent.',tags:['quad','squat'],hipRisk:true},
   // Front-rack DB squats (2026-08-30, from Sam's paired-set workouts). The front
   // rack is deliberately hip-friendly: holding load at the chest forces a more
   // upright torso than a back squat, which keeps the femur out of the deep
@@ -689,6 +713,17 @@ const EX = [
   {id:'db_rdl',name:'Dumbbell RDL',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:8,rMax:12,rest:150,cue:'Hold a dumbbell in each hand. Push hips BACK — feel the hamstring stretch — keeping the DBs close to your legs. Drive hips forward to stand, squeeze glutes at top. Slow, controlled descent every rep.',tags:['hinge','hamstring']},
   {id:'trap_bar_dl',name:'Trap Bar Deadlift (Restricted Depth)',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Stand inside the hex bar, neutral spine, chest up. Pull the slack out of the bar, then drive through the floor — hips and shoulders rise together. Set up on a small block/mats if needed so the bar starts a few inches higher, keeping hip flexion shallower than a deep squat. A hip-friendly substitute for deep bilateral squats.',tags:['hinge','quad']},
   {id:'hip_thrust',name:'Hip Thrust',muscle:'legs',type:'compound',eq:['barbell','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Shoulders on bench. Set your feet so the shins are vertical and knees reach ~90° at the top. Keep ribs down and abs braced — don\'t arch the lower back — so the glutes, not the spine, do the work. Fix your eyes on a spot on the wall ahead to keep a neutral spine; don\'t crane your neck up. Drive to full hip extension — squeeze hard at top. Slow controlled descent. Optional: 1s iso hold at top.',tags:['hinge','glute']},
+  // SEATED CABLE DEADLIFT (2026-09-10). Deliberately carries NO tag from
+  // LEG_EMPHASIS_TAGS, so legAutoOK excludes it from AUTO-generation everywhere,
+  // exactly like the back squat and the leg press it sits beside. This is here
+  // to be picked BY HAND in the custom builder and the in-session swap list.
+  // Why it earns a place at all: sitting on the floor with the cable between the
+  // legs removes the plates from the path entirely, so the hips can travel
+  // further into flexion than a barbell deadlift allows, and the seat supplies
+  // the stability a standing hinge spends effort on — deep loaded hip extension
+  // with no balance tax and no spinal compression from a loaded bar, which given
+  // the lower-back history is the point.
+  {id:'seated_cable_deadlift',name:'Seated Cable Deadlift',muscle:'legs',type:'compound',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'Sit on the floor facing a LOW pulley, legs straight or slightly bent, rope or straight bar held between the legs. Hinge forward from the hips — chest down toward the thighs, back flat, not rounded — until you feel the glutes and hamstrings pull, then drive the hips back to upright and squeeze. The cable line stays roughly parallel to the floor. No plates in the way means you can travel further into the stretch than a barbell allows; the depth IS the reason to do this, so do not shorten it to add weight. 3 counts down, brief pause at the deepest point you can hold flat-backed.',tags:['hinge','glute','hamstring','stretch']},
   {id:'single_leg_hip_thrust',name:'Single-Leg Hip Thrust',muscle:'legs',type:'isolation',eq:['bodyweight'],noWeight:true,rMin:8,rMax:12,rest:120,cue:'Shoulders on bench, one foot on floor, other leg extended or held off the ground. Drive through the planted heel to full hip extension — squeeze glute at top. Slow controlled descent. Count per side.',tags:['hinge','glute','unilateral']},
   {id:'single_rdl',name:'Single-leg RDL',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Hinge at hip, hips square throughout. Slow descent — feel the hamstring load. Soft bend in standing knee. Count per leg.',tags:['hinge','hamstring','unilateral']},
   {id:'back_ext',name:'Back Extension',muscle:'legs',type:'isolation',eq:['machine','bodyweight'],rMin:10,rMax:15,rest:120,cue:'Hips hinge over the pad. Lower with control until you feel a hamstring/glute stretch, keep spine neutral — don\'t hyperextend at the top. Squeeze glutes to rise. On a machine with a chest pad, hold a light plate to the chest for added load and build the spinal erectors ("Christmas tree" lower-back development).',tags:['hinge','hamstring','glute']},
@@ -697,8 +732,8 @@ const EX = [
   // the earliest array match, so this ordering makes Seated Leg Curl the
   // default pick — the added hip flexion gives a bigger hamstring stretch
   // (biarticular muscle) than the lying variant, which improves development.
-  {id:'seated_leg_curl',name:'Seated Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Pad just above the heels, thighs locked under the support. Curl down hard and squeeze the hamstrings at end range, hold 1s. Resist the weight back up with a 2-count negative — don\'t let it slam. Keep hips planted. Best isolated-hamstring builder.',tags:['hamstring']},
-  {id:'leg_curl',name:'Lying Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Flex hard at end range. 2-count descent — resist the weight back to start. Hips stay down.',tags:['hamstring']},
+  {id:'seated_leg_curl',name:'Seated Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Pad just above the heels, thighs locked under the support, hips planted. Curl down hard and squeeze the hamstrings at end range, hold a beat. Resist the weight back up over 3 counts to a full stretch — do not let it slam. Sitting up bends the hip, which holds the hamstring long at the top end for the whole set, so this trains it at a longer muscle length than the lying version does. It is the KNEE-FLEXION half of hamstring work either way, biasing the lower end of the muscle; RDLs and deadlifts train the upper end at the hip, and a complete hamstring needs both.',tags:['hamstring']},
+  {id:'leg_curl',name:'Lying Leg Curl',muscle:'legs',type:'isolation',eq:['machine'],rMin:10,rMax:15,rest:120,cue:'Lying face down, hips flat on the pad. Put a folded towel or a yoga pad UNDER the knees so the thighs sit slightly raised — it lets the hamstring travel further into the stretch at the bottom instead of the pad jamming into the back of the knee. Squeeze the GLUTES and keep the hips pinned down through the whole set; the moment the hips lift, the movement becomes a lower-back exercise and the hamstrings stop working. Curl hard to full end range, then take 3 counts letting it back out to a complete stretch. This is the KNEE-FLEXION half of hamstring training and it biases the lower, distal end — the RDL family covers the upper, proximal end at the hip. You need both.',tags:['hamstring']},
   {id:'nordic_curl',name:'Nordic Hamstring Curl',muscle:'legs',type:'compound',eq:['bodyweight'],rMin:4,rMax:8,rest:120,noWeight:true,cue:'Kneel with ankles anchored (partner, bar, or under a couch). Brace and lower your torso toward the floor as SLOWLY as possible, resisting the whole way — catch yourself with your hands at the bottom and push back to kneeling. The eccentric lowering is the entire point: builds hamstring/tendon resilience and is one of the best-evidenced exercises for reducing strain injuries. Start with 3-5s descents.',tags:['hamstring','eccentric']},
   // ─── Heavy strength tier (1–5 reps @ 85–95% 1RM) ───
   // Maximal-strength work through the squat / hinge / single-leg patterns, all
@@ -707,7 +742,7 @@ const EX = [
   // LEG_EMPHASIS_TAGS, and the leg mandate's evening 'strength' slot rotates
   // through this pool via leastUsed. Long rests are deliberate — these don't
   // fit the lunch 90s rest cap, so lunch leg slots keep the 'hinge' mandate.
-  {id:'heavy_box_squat',name:'Heavy Box Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:2,rMax:5,rest:240,cue:'Box set just above parallel to cap depth — hip-friendly. Bar on upper traps, sit BACK to the box under full control, touch without rocking or relaxing, then drive up hard. 85–95% of 1RM, 2–5 reps, full rest between sets. Every rep starts and finishes braced; leave one in the tank — grinding a max with no spotter is not the goal.',tags:['squat','quad','strength']},
+  {id:'heavy_box_squat',name:'Heavy Box Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:2,rMax:5,rest:240,cue:'Box set just above parallel to cap depth — hip-friendly. Barefoot or flat socks if the floor allows, toes spread, feet screwed into the ground. Bar on upper traps, sit BACK to the box under full control, driving the knees slightly OUT over the toes the whole way, touch without rocking or relaxing, then drive up hard. 85–95% of 1RM, 2–5 reps, full rest between sets. Every rep starts and finishes braced; leave one in the tank — grinding a max with no spotter is not the goal.',tags:['squat','quad','strength']},
   {id:'heavy_trap_bar',name:'Heavy Trap Bar Deadlift',muscle:'legs',type:'compound',eq:['barbell'],rMin:2,rMax:5,rest:240,cue:'Elevate the bar a few inches on mats/blocks if needed to keep hip flexion shallow. Brace hard, pull the slack out, then drive the floor away — hips and shoulders rise together. 85–95% loads, 2–5 crisp reps, full rest. The heavy hinge with the most direct carryover to sprinting and jumping.',tags:['hinge','quad','strength']},
   {id:'heavy_rdl',name:'Heavy Romanian Deadlift',muscle:'legs',type:'compound',eq:['barbell'],rMin:3,rMax:5,rest:240,cue:'Same pattern as the normal RDL — hips back, bar close, neutral spine — loaded to 85–90% for 3–5 reps. The heavy eccentric is the point: lower in a controlled 3 seconds, feel the hamstrings load, then drive the hips through. End the set the moment the back angle starts to drift.',tags:['hinge','hamstring','strength','eccentric']},
   {id:'heavy_split_squat',name:'Heavy Bulgarian Split Squat',muscle:'legs',type:'compound',eq:['dumbbells','barbell'],rMin:3,rMax:5,rest:210,cue:'Same hip-friendly setup as the regular RFESS — front shin near vertical, torso tall, working hip neutral — but loaded heavy for 3–5 reps per leg. Single-leg maximal strength transfers directly to sprinting and cutting, and the stagger keeps the hip out of deep flexion. Control down, drive up with intent. Count per leg.',tags:['squat','unilateral','strength']},
@@ -1212,6 +1247,75 @@ function lastSetTechnique(ex){
   return'';
 }
 
+// ─── MUSCLE-LENGTH SEQUENCING (2026-09-10) ───
+// A muscle is not trained the same way at every joint angle: the load that
+// challenges it when it is SHORTENED (peak contraction) is not the load that
+// challenges it when it is fully LENGTHENED (deep stretch). The staple compound
+// covers the middle. So after the heavy compound, the accessories are ordered
+// shortened → mid → lengthened, ending the muscle's work at long length, and
+// the postural/prehab movements go dead last.
+//
+// Read off the ids rather than a new per-exercise field, because the file
+// already commits to the same classification twice and a third opinion would be
+// free to drift from them: LENGTHENED_PARTIAL_IDS is by definition the set whose
+// stretch position is loaded and safe to fail in, and a 'stretch' tag says the
+// same thing. Those ARE the lengthened list — reusing them means a movement
+// added to either place is sequenced correctly without a second edit.
+//
+// The shortened list is the only new judgement here, and it is deliberately
+// short: a movement earns a place only if its resistance genuinely peaks at
+// full contraction. Nothing here may also appear in LENGTHENED_PARTIAL_IDS —
+// two contradictory answers about the same movement is exactly the drift this
+// design is avoiding — and the render smoke test asserts that.
+const SHORTENED_BIAS_IDS=new Set([
+  'pushdown','diamond_pu','tricep_dips',                 // triceps loaded at lockout
+  'bb_shrug',                                            // trap at full contraction
+  'alt_front_raise',                                     // delt loaded at the top
+  'hip_thrust','single_leg_hip_thrust','glute_bridge','glute_bridge_2leg','back_ext']); // glute at full extension
+// Structural-balance work that closes a session rather than competing inside it:
+// light, postural, and pointless if done pre-fatigued before the work it exists
+// to counterbalance. Face pulls are the archetype.
+const PREHAB_FINISH_IDS=new Set(['face_pulls','rev_fly','pec_deck_rev_fly','y_raise']);
+// 0 shortened · 1 mid-range · 2 lengthened. Compounds default to mid: that is
+// what a staple compound loads, and it is where they belong in the order anyway
+// (they lead the session, so this rank never decides their position).
+function lengthRank(e){
+  if(!e)return 1;
+  if(SHORTENED_BIAS_IDS.has(e.id))return 0;
+  if(LENGTHENED_PARTIAL_IDS.has(e.id)||(e.tags||[]).includes('stretch'))return 2;
+  return 1;
+}
+
+// ─── MECHANICAL TENSION: how the set is executed (2026-09-10) ───
+// One derived line per movement rather than 175 rewritten cue strings — the
+// same reasoning cueBullets uses for the bullet split. Growth is driven by
+// mechanical tension in sets taken close to failure; the pump is a metabolite
+// by-product and is not the target, so the instruction is always about ROM,
+// eccentric control and where to STOP.
+//
+// TEMPO IS NOT UNIVERSAL, and this is the part worth getting right: a 4-second
+// negative is correct for a hypertrophy set and actively wrong for everything
+// trained by SPEED. A slow eccentric on a speed box squat, a jump or a med-ball
+// throw makes the rep worse, which is the same reason those tags are already
+// excluded from back-off sets and from paired sets. The heavy 1–5 tier gets its
+// own line instead: near-max work is governed by bar speed and by leaving reps
+// in reserve, not by a count.
+const ECCENTRIC_SECS=3;      // "3–4 second negative" — the low end, since it is the one that survives a real set
+const SPEED_TAGS=['power','ballistic','plyometric','overcoming','decel'];
+function tensionNote(ex){
+  if(!ex)return'';
+  const tags=ex.tags||[];
+  if(ex.isTimed)return'';                                  // a hold has no eccentric to control
+  if(SPEED_TAGS.some(t=>tags.includes(t)))
+    return'Trained by SPEED, not by time under tension — move the load as fast as you can and reset between reps. A slow negative here makes the rep worse, not harder.';
+  if(tags.includes('strength'))
+    return'Full range, braced, every rep. Stop the set when BAR SPEED drops off, and leave 1&ndash;2 reps in the tank &mdash; near-max work is governed by speed and reserve, not by grinding.';
+  return'Full range both ends, no half-reps and no momentum. Take '+ECCENTRIC_SECS+'&ndash;4 counts on the way DOWN and pause a beat in the stretched position. Stop at TECHNICAL failure &mdash; the rep where form starts to break &mdash; not at total failure. Tension is what grows the muscle; the pump is a by-product and is not the target.';
+}
+const TENSION_ROW=(ex)=>{const t=tensionNote(ex);return t
+  ?`<div style='font-size:12px;color:var(--txt-dim);line-height:1.5;margin:0 0 10px;padding:6px 10px;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);border-radius:8px'>&#127959; <strong style='color:#a78bfa'>Tension:</strong> ${t}</div>`
+  :'';};
+
 // ─── CABLE ATTACHMENT VERIFICATION ───
 // Which handle to clip on (and where to set the pulley) for every cable
 // movement — shown as its own line on the workout card so the setup can be
@@ -1678,6 +1782,11 @@ let S={
     // feeds the protein target shown on the Plan screen and cfg.bodyLbs, and is
     // edited from the Plan screen.)
     pairedSets:false,
+    // Multi-month training block. Present as a DRAFT (no `start`) so the Plan
+    // screen has something to show; blockActive() stays false until it is
+    // started. See the MULTI-MONTH TRAINING BLOCK section.
+    block:{months:4,emphasis:['shoulders','back'],maintain:['biceps','triceps']},
+    stapleLock:true,
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
   weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},noBarLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
@@ -1836,6 +1945,15 @@ function load(){
       if(S.cfg.volleyball)delete S.cfg.volleyball;
       // Migrate: which session pays for a century on a both-sessions day.
       if(!S.cfg.centuryWhen)S.cfg.centuryWhen='eve';
+      // Migrate: the multi-month training block (2026-09-10). Seeded as a DRAFT
+      // with the default roles but deliberately NOT started — `start` is unset,
+      // so blockActive() is false and no band moves until he taps Start. The
+      // whole point of a block is that it is a decision with a date on it; a
+      // block that silently began on the day of an app update is not one.
+      if(!S.cfg.block)S.cfg.block={months:BLOCK_DEFAULT_MONTHS,emphasis:BLOCK_DEFAULT_EMPHASIS.slice(),maintain:BLOCK_DEFAULT_MAINTAIN.slice()};
+      // stapleLock reads !==false, so it is live with no migration; this only
+      // exists so the Plan-screen checkbox renders in a known state.
+      if(S.cfg.stapleLock===undefined)S.cfg.stapleLock=true;
       // Clear mid-week planStartDow if the stored week plan is from a previous week
       if(S.cfg?.planStartDow&&(!S.weekPlan||S.weekPlan.weekOf<thisMonday())){
         delete S.cfg.planStartDow;
@@ -3586,11 +3704,21 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     !(isLunch && e.highSweat);
   const base = baseFor(slot);
 
-  // Among the candidates, take the LEAST-used movement (lowest weekly frequency),
-  // breaking ties by EX array order — so a slot that recurs across days rotates
-  // through the available movements instead of repeating barbell bench every time.
+  // Among the candidates, take the LEAST-used movement (lowest weekly frequency).
+  // Ties then go to THIS BLOCK'S STAPLE if there is one (see blockStapleIds for
+  // why a tie-break is the safe place for movement consistency to live), and to
+  // EX array order otherwise — so a slot that recurs across days still rotates
+  // through the available movements instead of repeating one lift every time.
+  // Mandate-tagged slots opt out: their pools rotate across different PATTERNS,
+  // which is coverage, not churn, and freezing them would delete a guarantee.
+  const staples=(slot&&slot.tag)?null:blockStapleIds();
+  const stapleRank=(e)=>(staples&&staples.has(e.id))?0:1;
   const leastUsed = (list) => list.length
-    ? list.reduce((best,e)=> freqOf(e) < freqOf(best) ? e : best)
+    ? list.reduce((best,e)=>{
+        const df=freqOf(e)-freqOf(best);
+        if(df!==0)return df<0?e:best;
+        return stapleRank(e)<stapleRank(best)?e:best;
+      })
     : null;
 
   // ── Foundation Five mandate (highest precedence) ──
@@ -3730,8 +3858,33 @@ function flagFirstWorkingSet(exs){
   // Med balls are excluded too: they're loaded but come in fixed ~5 lb jumps,
   // so "50% / 75% / 90%" acclimation percentages are meaningless for them.
   const scalable=e=>!e.noWeight&&!e.isTimed&&(e.eq||[]).some(q=>q!=='bodyweight'&&q!=='medball'&&q!=='medball_wall');
-  const compounds=exs.filter(e=>e.type==='compound');
-  const rest=exs.filter(e=>e.type!=='compound');
+  // ── SEQUENCING (2026-09-10) ──
+  // Heavy compounds first, while the nervous system is freshest and the lift
+  // that recruits the most muscle can actually be loaded; then the accessories,
+  // grouped by muscle and run SHORTENED → MID → LENGTHENED so the target is
+  // fatigued across its whole length curve; then the postural/prehab work, which
+  // is pointless done pre-fatigued in front of the work it counterbalances.
+  //
+  // Sorting COPIES (filter already returns new arrays), never exs itself, and
+  // every comparator ends in the original index — so the ordering is total and
+  // deterministic, and a session with nothing to reorder comes out unchanged.
+  const idx=new Map(exs.map((e,i)=>[e,i]));
+  const oi=(e)=>idx.has(e)?idx.get(e):0;
+  // Muscle order = where each muscle FIRST appears in the template, so the day's
+  // anchor keeps the front of the session and one muscle's work stays together
+  // (dayTemplate interleaves slots as m0,m1,m0, so without this the accessories
+  // come out shuffled between muscles).
+  const mFirst={};exs.forEach((e,i)=>{if(e.muscle&&mFirst[e.muscle]===undefined)mFirst[e.muscle]=i;});
+  const mRank=(e)=>(e&&e.muscle&&mFirst[e.muscle]!==undefined)?mFirst[e.muscle]:99;
+  // The heavy 1–5 @ 85–95% tier goes first among compounds when a session has
+  // one. It is the single most systemically demanding thing in the program and
+  // the one lift whose quality a couple of prior working sets genuinely ruins.
+  const heavyRank=(e)=>((e.tags||[]).includes('strength')?0:1);
+  const prehabRank=(e)=>(PREHAB_FINISH_IDS.has(e.id)?1:0);
+  const compounds=exs.filter(e=>e.type==='compound')
+    .sort((a,b)=>heavyRank(a)-heavyRank(b)||oi(a)-oi(b));
+  const rest=exs.filter(e=>e.type!=='compound')
+    .sort((a,b)=>prehabRank(a)-prehabRank(b)||mRank(a)-mRank(b)||lengthRank(a)-lengthRank(b)||oi(a)-oi(b));
   let ordered=[...compounds,...rest];
   // Pull a loadable movement to the front (prefer a loadable compound) so the
   // warm-up can ramp; only fall back to a bodyweight lead if nothing is loadable.
@@ -3906,7 +4059,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       // are redundant against it, which is the whole point of
       // SECONDARY_CREDIT_RULES.
       const patternVol=m==='back'?vol-((budget.centuryVol&&budget.centuryVol[m])||0):vol;
-      return{m,hrs,rested,headroom:max-vol,under:patternVol<min,patternUnder:patternVol<min&&patternVol<vol};
+      return{m,vol,hrs,rested,headroom:max-vol,under:patternVol<min,patternUnder:patternVol<min&&patternVol<vol};
     });
     // Eligible = rested with weekly MRV headroom. Priority: under-range
     // ("yellow") muscles first — get every group to its weekly minimum before
@@ -3917,7 +4070,42 @@ function genProgram(cfg,av,workoutHistoryLog){
     // the yellow one resumes as soon as it's recovered. Muscles over range
     // ("red") have no headroom and are never intentionally prescribed. If
     // headroom rules everything out, fall back to rested-only.
-    const byDebt=(a,b)=>(b.under?1:0)-(a.under?1:0)||b.hrs-a.hrs||MUSCLES.indexOf(a.m)-MUSCLES.indexOf(b.m);
+    // ── BLOCK EMPHASIS IS A SORT KEY (2026-09-10), and it has to be ──
+    // Raising an emphasis muscle's weekly FLOOR was the first design, and it was
+    // measured inert on two of the three profiles and worth −0.2 sets on the
+    // third. The reason is structural and is already documented in this file:
+    // `under` is a BOOLEAN, and on a lunch-only or 3-evening week essentially
+    // every muscle is under its band, so every muscle is already in the top tier
+    // and a higher floor buys no priority at all. Even on the full schedule,
+    // shoulders sat at ~5 sets against a base minimum of 8 — already yellow, so
+    // moving the minimum to 13 changed nothing about the ranking.
+    // So emphasis ranks WITHIN the under tier, immediately after it and ahead of
+    // recency. Deliberately not ABOVE `under`: "get every muscle to its weekly
+    // minimum first" is the rule the whole ledger is built on, and a block is
+    // meant to reallocate priority among the muscles that need work, not to let
+    // one muscle monopolise a week while another gets nothing. The rested check
+    // and the MRV ceiling are both untouched, so an emphasis muscle still cannot
+    // be trained inside its lockout or past its recoverable volume.
+    const blockEmph=(blockRoles()||{}).emphasis||new Set();
+    const emphRank=(m)=>blockEmph.has(m)?1:0;
+    // ── STARVATION FLOOR, and it is not optional ──
+    // With emphasis ranking inside the under tier, the pushed muscles won every
+    // tie and CHEST WENT TO ZERO SETS A WEEK on two of the three profiles
+    // (measured: lunch-only 2.2 → 0, 3-evening 1.9 → 0). That is not maintenance,
+    // it is deletion, and it is the junk-volume principle running backwards: a
+    // block is meant to reallocate emphasis, never to remove a muscle from the
+    // week. Legs survived it only because they carry hard mandates; chest has
+    // none, so chest is what the emphasis ate.
+    // A muscle with NOTHING banked this week therefore outranks the emphasis.
+    // Once it has any work at all, emphasis takes over again — so the block still
+    // decides where the bulk of the week goes, it just cannot claim all of it.
+    // Gated on a block actually running, so the no-block path is provably
+    // unchanged: without emphasis there is no starvation to guard against (chest
+    // measured 2.2 sets/wk, not 0), and an unconditional key here would change
+    // generation for a problem that does not exist. The case-study harness
+    // confirms all 7 scenarios stay byte-identical with no block started.
+    const starvedRank=(r)=>(blockEmph.size&&(r.vol||0)<=0?1:0);
+    const byDebt=(a,b)=>(b.under?1:0)-(a.under?1:0)||starvedRank(b)-starvedRank(a)||emphRank(b.m)-emphRank(a.m)||b.hrs-a.hrs||MUSCLES.indexOf(a.m)-MUSCLES.indexOf(b.m);
     // `patternUnder` overrides the headroom filter, and ONLY it can: it is true
     // only for a muscle whose weekly minimum is unmet once century volume is set
     // aside, i.e. back on a heavy century week. On an efficiency-mode week the
@@ -3970,7 +4158,10 @@ function genProgram(cfg,av,workoutHistoryLog){
     const ag=GROUP[anchor.m];
     // Pairing bonus applies WITHIN a volume tier — an in-range (green) muscle
     // sharing the anchor's group never jumps ahead of an under-range (yellow) one.
-    const rest2=elig.slice(1).map(r=>({r,score:r.hrs+(GROUP[r.m]===ag?PAIR_BONUS:0)})).sort((a,b)=>(b.r.under?1:0)-(a.r.under?1:0)||b.score-a.score).map(o=>o.r);
+    // Same three-key order as byDebt above — the pairing bonus is a nudge on
+    // RECENCY, so it must not be able to outrank the block's emphasis any more
+    // than it can outrank an under-range muscle.
+    const rest2=elig.slice(1).map(r=>({r,score:r.hrs+(GROUP[r.m]===ag?PAIR_BONUS:0)})).sort((a,b)=>(b.r.under?1:0)-(a.r.under?1:0)||starvedRank(b.r)-starvedRank(a.r)||emphRank(b.r.m)-emphRank(a.r.m)||b.score-a.score).map(o=>o.r);
     // ── DEPTH OVER BREADTH (2026-08-03) ──
     // A 60-min evening is EX_LIMIT[60]=4 exercises → muscleSlots=3, which
     // exactly matched the 3-muscle breadth below. Every chosen muscle therefore
@@ -4904,6 +5095,29 @@ function weeklySetCapacity(av){
   return sets;
 }
 
+// How many LIFT slots the week actually contains. Distinct from
+// weeklySetCapacity, which counts SETS — the block has to reason about
+// MOVEMENTS, because emphasis is allocated one slot at a time.
+//
+// Reads the REAL ledgers, lunchBudget and eveningLifts, not the EX_LIMIT tiers.
+// That distinction is the whole value of this function: weeklySetCapacity prices
+// evenings at 3 × exLimitFor(mins), which is the CEILING off the stated length
+// and ignores what prep, the century, the finisher and the calf top-up have
+// already claimed. On the 3-evening profile that reads 12 lifts a week where the
+// ledger actually affords THREE — and a block sized against 12 is a block that
+// silently starves whatever it did not name.
+function weeklyLiftSlots(av){
+  av=av||(S.weekPlan?.availability)||defaultAvailability();
+  let n=0;
+  [1,2,3,4,5].forEach(dow=>{const d=av[dow]||{};
+    if(d.lunch!==false)n+=lunchBudget(dow,av).lifts;
+    if(d.eve?.on)n+=eveningLifts(d.eve.mins||60,dow,av,d.eve.equipment||'ymca');
+  });
+  [6,0].forEach(dow=>{const d=av[dow]||{};
+    if(d.on)n+=eveningLifts(d.mins||60,dow,av,d.equipment||'ymca');});
+  return n;
+}
+
 // Efficiency Mode: training 3 days/week triggers a much lower, higher-
 // intensity volume floor — near-failure sets (0-2 RIR) can still trigger
 // growth on far less weekly volume than a moderate-intensity approach needs.
@@ -4911,6 +5125,134 @@ function weeklySetCapacity(av){
 // guidance (this app tracks all deltoid work, including compound presses,
 // under one 'shoulders' bucket, so that nuance can't live in the weekly cap).
 function isEfficiencyMode(av){ return trainingDayCount(av)===3; }
+
+// ─────────────────────────────────────────────
+// MULTI-MONTH TRAINING BLOCK (2026-09-10)
+// ─────────────────────────────────────────────
+// Trying to max out volume on every muscle group at once, every week, is how
+// you spend your whole recovery budget and grow nothing in particular. A block
+// picks a small number of EMPHASIS muscles to push and puts the rest on
+// MAINTENANCE volume for three to six months, then you look at what actually
+// lagged and choose again.
+//
+// THE MECHANISM IS THE FLOOR, NOT THE CEILING, and that is the whole design:
+//   • An EMPHASIS muscle has its band MINIMUM raised to the middle of the band.
+//     The ceiling does not move. `max` is the MRV — a recovery limit, not a
+//     preference — and raising it would be the junk-volume mistake this feature
+//     exists to avoid. What the raised floor buys is PRIORITY: dayTemplate ranks
+//     eligible muscles by `under` (still below the weekly minimum) before
+//     anything else, so an emphasis muscle keeps reading as under-range for more
+//     of the week and keeps winning days. That redirects slots that already
+//     existed; it does not add fatigue.
+//   • A MAINTENANCE muscle has its CEILING pulled down to what used to be its
+//     floor — a maintained muscle's ceiling is a grown muscle's floor — and its
+//     own floor down to half of that. Maintenance volume runs somewhere around a
+//     third to a half of growth volume; the top of that range is the deliberate
+//     choice, since erring high keeps work rather than deleting it.
+// The two move in opposite directions on purpose: the week's total slot count is
+// fixed by the schedule, so emphasis is paid for out of maintenance rather than
+// out of recovery.
+const BLOCK_MONTH_CHOICES=[3,4,6];
+const BLOCK_DEFAULT_MONTHS=4;
+// Roles can only be assigned to the six muscles dayTemplate actually schedules.
+// 'core' holds a RESERVED slot (muscleSlots = limit-1) rather than winning one,
+// and 'hips' is not in MUSCLES at all, so a role on either would change a number
+// nothing reads for priority — silent dead code of exactly the kind this file
+// keeps finding. Legs are eligible but off by default: they already carry the
+// widest band and three hard mandates.
+const BLOCK_ROLE_MUSCLES=['legs','back','chest','shoulders','biceps','triceps'];
+const BLOCK_MAX_EMPHASIS=2;
+// See the note above. 0.5 is the top of the ~1/3–1/2 maintenance range.
+const MAINTENANCE_FRACTION=0.5;
+// Default roles, and they are not arbitrary. Emphasis = shoulders + back: the
+// side delts and the lats are the two groups that widen the frame, which is the
+// stated intermediate goal, and both are documented in this file as chronically
+// hard to fill (shoulders land 0 sets on some profiles; the back accents are
+// capped by three claimants for two slots). Maintenance = biceps + triceps,
+// because SECONDARY_CREDIT_RULES already shows they collect the largest indirect
+// load in the program — 0.5 of every pull and every press, plus 300 pull-ups a
+// week — so they are the two that hold their size on the least direct work.
+const BLOCK_DEFAULT_EMPHASIS=['shoulders','back'];
+const BLOCK_DEFAULT_MAINTAIN=['biceps','triceps'];
+function blockCfg(){return (S.cfg&&S.cfg.block)||null;}
+function blockMonths(){const b=blockCfg();return b&&BLOCK_MONTH_CHOICES.includes(b.months)?b.months:BLOCK_DEFAULT_MONTHS;}
+// A block ends on a DATE, and once it is past it stops steering anything. It is
+// deliberately NOT auto-renewed: the point of ending a block is to look at what
+// actually lagged and choose the next emphasis from that, which is a decision,
+// not a rollover. The Plan screen says so when it lapses.
+function blockEndDate(){const b=blockCfg();if(!b||!b.start)return null;
+  const d=new Date(b.start+'T12:00:00');d.setMonth(d.getMonth()+blockMonths());return localDateStr(d);}
+function blockActive(){const b=blockCfg();const end=blockEndDate();
+  return !!(b&&b.start&&end&&todayStr()<end&&b.on!==false);}
+function blockExpired(){const b=blockCfg();const end=blockEndDate();
+  return !!(b&&b.start&&end&&b.on!==false&&todayStr()>=end);}
+// 1-based week within the block, so week 1 is the first week and not week 0.
+function blockWeek(){const b=blockCfg();if(!b||!b.start)return 0;
+  return Math.floor(daysBetween(b.start,todayStr())/7)+1;}
+function blockWeeksTotal(){const b=blockCfg();const end=blockEndDate();
+  return (b&&b.start&&end)?Math.max(1,Math.round(daysBetween(b.start,end)/7)):0;}
+// null when no block is steering — every caller then leaves the bands alone.
+function blockRoles(){
+  if(!blockActive())return null;
+  const b=blockCfg();
+  const clean=(a)=>new Set((a||[]).filter(m=>BLOCK_ROLE_MUSCLES.includes(m)));
+  const emphasis=clean(b.emphasis),maintain=clean(b.maintain);
+  // A muscle named on both lists is a contradiction; emphasis wins, since the
+  // failure of ignoring an emphasis is worse than the failure of maintaining
+  // one muscle more than intended.
+  maintain.forEach(m=>{if(emphasis.has(m))maintain.delete(m);});
+  if(!emphasis.size&&!maintain.size)return null;
+  return{emphasis,maintain};
+}
+// Applied to a COPY-SAFE limits object in place. Both branches clamp so a band
+// can never invert (min>max) on a schedule whose base band is already narrow —
+// efficiency mode collapses every band to 3–10 before this runs.
+function applyBlockRoles(limits){
+  const roles=blockRoles();
+  if(!roles)return limits;
+  Object.keys(limits).forEach(m=>{
+    const min=limits[m].min,max=limits[m].max;
+    if(roles.emphasis.has(m)){
+      limits[m]={min:Math.min(max,Math.round((min+max)/2)),max};
+    }else if(roles.maintain.has(m)){
+      const ceil=Math.max(1,min);
+      limits[m]={min:Math.max(1,Math.round(min*MAINTENANCE_FRACTION)),max:ceil};
+    }
+  });
+  return limits;
+}
+// ─── MOVEMENT CONSISTENCY WITHIN A BLOCK ───
+// "Keep the staples for twelve weeks; change a grip by an inch, not the whole
+// routine." The mechanism is a TIE-BREAK inside pickEx's leastUsed, and where it
+// sits is the entire reason it is safe: leastUsed picks the movement with the
+// lowest ROLLING 7-DAY frequency and only falls through to this on a tie. So it
+// never suppresses within-week variety (a movement used this week already has a
+// higher frequency and loses) — it only decides which movement gets picked when
+// several are equally fresh, which is precisely the week-to-week churn the rule
+// is about. Without it that tie is broken by EX array order alone.
+//
+// MANDATE-TAGGED SLOTS ARE EXEMPT. 'strength' rotates squat / trap bar / heavy
+// RDL / heavy split squat, and 'horizontal' vs 'rear_delt' alternate by design —
+// those pools rotate across DIFFERENT PATTERNS, which is pattern coverage, not
+// movement churn. Freezing them to one staple would delete a guarantee this file
+// spends several sections defending.
+const STAPLE_MIN_LOGS=3; // logged three times inside the block = this block's staple
+function stapleLockOn(){return S.cfg?.stapleLock!==false;}
+function blockStapleIds(){
+  if(!stapleLockOn())return null;
+  const b=blockCfg();
+  // With no block running, the window is the recent past rather than nothing —
+  // consistency is worth having either way, and LOG_KEEP already bounds it.
+  const from=(blockActive()&&b&&b.start)?b.start:null;
+  const counts={};
+  (S.logs||[]).forEach(l=>{
+    if(!l||l.isCardio)return;
+    const d=logDay(l.date);
+    if(from&&d<from)return;
+    (l.exercises||[]).forEach(e=>{if(e&&e.id)counts[e.id]=(counts[e.id]||0)+1;});
+  });
+  return new Set(Object.keys(counts).filter(id=>counts[id]>=STAPLE_MIN_LOGS));
+}
 
 function getMRVLimits(){
   let limits = {
@@ -4926,6 +5268,10 @@ function getMRVLimits(){
   if(isEfficiencyMode()){
     limits=Object.fromEntries(Object.keys(limits).map(m=>[m,{min:3,max:10}]));
   }
+  // Block emphasis/maintenance reshapes the bands BEFORE the fatigue penalty, so
+  // a hard session still trims whatever the block decided the week should look
+  // like rather than trimming a band the block is about to overwrite.
+  applyBlockRoles(limits);
   // Recovery auto-regulation: muscles trained in a high-fatigue session
   // (rating ≥4) within the last 72h get a temporarily reduced ceiling, so
   // the generator backs off volume until they've recovered. 72h window is
@@ -5077,6 +5423,74 @@ function getLockedMuscles(dateStr,history,assigned,heavyDates){
 }
 
 // Suggest a rest day once consecutive training days reach this many.
+// ─── STRENGTH AS THE OBJECTIVE FATIGUE SIGNAL (2026-09-10) ───
+// What you see in the mirror is subjective and moves too slowly to steer by.
+// The weights on the bar are neither. A sudden drop in strength across the
+// movements you are already logging is the readable sign that recovery has run
+// out — and the answer is a refeed, an extra rest day or a temporary volume cut,
+// not pushing harder.
+//
+// THE HARD PART IS NOT FIRING ON NOISE. A single top set's estimated 1RM swings
+// several percent on sleep, food and time of day alone, so a per-movement
+// threshold tight enough to catch real fatigue would fire most weeks — and this
+// file already records what that costs: a monitor that fires on correct plans
+// trains you to scroll past the banner. So the threshold stays moderate and the
+// precision comes from CORROBORATION instead: at least two movements have to be
+// down in the same window before anything is said. Systemic fatigue shows up
+// everywhere at once; a bad day on one lift is a bad day on one lift.
+const STRENGTH_TREND_WINDOW_DAYS=21;   // three weeks — long enough for a trend, short enough to be current
+const STRENGTH_TREND_MIN_SESSIONS=3;   // a baseline needs more than one prior point
+const STRENGTH_DROP_PCT=0.07;          // above ordinary session-to-session e1RM noise
+const STRENGTH_TREND_MIN_MOVEMENTS=2;  // the corroboration rule — this is the precision mechanism
+const STRENGTH_TREND_STALE_DAYS=10;    // don't report a drop measured a fortnight ago
+const STRENGTH_TREND_MAX_GAP_DAYS=14;  // a longer gap is DETRAINING, not acute fatigue
+
+// Best estimated 1RM per session for one movement, oldest first. BEST, not
+// every set: back-off sets are deliberately lighter (see the back-off model), so
+// averaging a session would read a normal session as a decline.
+function movementTopE1RM(exId){
+  const out=[];
+  (S.logs||[]).forEach(l=>{
+    if(!l||l.isCardio)return;
+    const e=(l.exercises||[]).find(x=>x&&x.id===exId);
+    if(!e)return;
+    let best=0;
+    (e.sets||[]).forEach(s=>{if(s&&s.weight>0&&s.reps>0){const v=epley1RM(s.weight,s.reps);if(v>best)best=v;}});
+    if(best>0)out.push({date:logDay(l.date),e1rm:best});
+  });
+  return out.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+}
+// [{id,name,pct}] for every movement whose latest session came in more than
+// STRENGTH_DROP_PCT under its best of the preceding three weeks. Empty unless
+// the corroboration rule is met, so callers can render it without re-checking.
+function strengthTrendDrops(){
+  const today=todayStr();
+  const ids=new Set();
+  (S.logs||[]).forEach(l=>{
+    if(!l||l.isCardio)return;
+    if(daysBetween(logDay(l.date),today)>STRENGTH_TREND_STALE_DAYS)return;
+    (l.exercises||[]).forEach(e=>{if(e&&e.id)ids.add(e.id);});
+  });
+  const down=[];
+  ids.forEach(id=>{
+    const series=movementTopE1RM(id).filter(pt=>{
+      const age=daysBetween(pt.date,today);
+      return age>=0&&age<=STRENGTH_TREND_WINDOW_DAYS;
+    });
+    if(series.length<STRENGTH_TREND_MIN_SESSIONS)return;
+    const last=series[series.length-1];
+    const prior=series.slice(0,-1);
+    if(daysBetween(last.date,today)>STRENGTH_TREND_STALE_DAYS)return;
+    if(daysBetween(prior[prior.length-1].date,last.date)>STRENGTH_TREND_MAX_GAP_DAYS)return;
+    const best=Math.max(...prior.map(pt=>pt.e1rm));
+    if(!(best>0)||last.e1rm>best*(1-STRENGTH_DROP_PCT))return;
+    const def=exById(id);
+    down.push({id,name:(def&&def.name)||id,pct:Math.round((1-last.e1rm/best)*100)});
+  });
+  down.sort((a,b)=>b.pct-a.pct);
+  return down.length>=STRENGTH_TREND_MIN_MOVEMENTS?down:[];
+}
+
 const REST_SUGGEST_STREAK=6;
 
 // Additive recovery monitor (READ-ONLY): surfaces rest-requirement advisories
@@ -5170,6 +5584,15 @@ function getRecoveryAdvisories(){
         advisories.push(`${MNAME[muscle]||muscle} is set for ${dlabel(days[i-1])} & ${dlabel(days[i])} — under the ${need}h${muscle==='legs'&&need===LEG_LIGHT_LOCKOUT?' an accent leg day needs':' it needs'} to recover. Consider spacing them out.`);
     }
   });
+
+  // (1b) Strength trend. Read-only like everything else here, and it is the one
+  // advisory in this function that is measured from what was LIFTED rather than
+  // from what is scheduled — see strengthTrendDrops.
+  const drops=strengthTrendDrops();
+  if(drops.length){
+    const named=listWords(drops.slice(0,3).map(d=>`${d.name} (−${d.pct}%)`));
+    advisories.push(`Strength is down on ${named} against your best of the last ${Math.round(STRENGTH_TREND_WINDOW_DAYS/7)} weeks. Across more than one lift that reads as fatigue, not a bad day — take an extra rest day, eat a proper refeed, or cut this week's volume rather than pushing through it.`);
+  }
 
   // (2) Consecutive training-day streak (spans the week boundary via log dates).
   const liftDates=Object.keys(dateMuscles).sort();
@@ -6320,12 +6743,23 @@ function cardioOptions(cals,bodyLbs){
   const stairRes=Math.min(20,Math.max(8,Math.round(8+(bodyLbs-150)/25)));
   // Elliptical resistance: similar scale
   const ellRes=Math.min(20,Math.max(10,Math.round(10+(bodyLbs-150)/20)));
+  // ── MINIMUM EFFECTIVE DOSE, LOWEST IMPACT FIRST (2026-09-10) ──
+  // Cardio here exists to strip fat, not to build an engine — the engine has its
+  // own protocols (see VO2_PROTOCOLS). So the order of this list is the
+  // recommendation, and it runs cheapest-to-recovery first. Incline walking
+  // leads: it costs roughly double a flat walk per minute, which is what makes
+  // the dose small enough to be a MINIMUM dose, and it does it with no impact
+  // and no eccentric loading, so it neither eats into leg recovery nor competes
+  // with the leg work for the adaptation. Running is last and says why — it is
+  // the one option on this list that draws on the same recovery the lifting
+  // needs and, at the volumes fat loss tempts you toward, the one that costs leg
+  // size. Nothing is removed; the ORDER is the advice.
   return[
-    {name:'Walk Outside',icon:'🚶',min:wm,dist:`${mi(3,wm)} mi`,note:'3 mph · flat ground',busy:false},
-    {name:'Stair Stepper',icon:'🪜',min:sm,dist:'—',note:`Resistance level ${stairRes}`,busy:true},
-    {name:'Elliptical',icon:'⚡',min:em,dist:'—',note:`Resistance level ${ellRes} · moderate stride`,busy:false},
-    {name:'Incline Treadmill (LISS)',icon:'🏃',min:im,dist:`${mi(3,im)} mi`,note:'3.0 mph · 6% incline · fasted AM or pre-sleep for fat oxidation',busy:false},
-    {name:'Run Outside',icon:'🏃‍♂️',min:rm,dist:`${mi(6.3,rm)} mi`,note:'9–10 min/mile pace',busy:false},
+    {name:'Incline Treadmill (LISS)',icon:'⛰️',min:im,dist:`${mi(3,im)} mi`,note:'3.0 mph · 6% incline · lowest impact per calorie — the default for fat loss',busy:false},
+    {name:'Walk Outside',icon:'🚶',min:wm,dist:`${mi(3,wm)} mi`,note:'3 mph · flat ground · zero recovery cost, but roughly double the time',busy:false},
+    {name:'Elliptical',icon:'⚡',min:em,dist:'—',note:`Resistance level ${ellRes} · moderate stride · off-feet`,busy:false},
+    {name:'Stair Stepper',icon:'🪜',min:sm,dist:'—',note:`Resistance level ${stairRes} · faster, but it is quad work — go easy near a leg day`,busy:true},
+    {name:'Run Outside',icon:'🏃‍♂️',min:rm,dist:`${mi(6.3,rm)} mi`,note:'9–10 min/mile · quickest, and the only option here that competes with leg recovery',busy:false},
   ];
 }
 
@@ -7746,6 +8180,105 @@ function renderCustomExercises(){
 // rather than the dashboard: the generator ENFORCES this, and Sam's standing rule
 // is that anything the algorithm already enforces gets no dashboard space to
 // report on itself.
+// The training block, on the Plan screen because it is a decision about the next
+// three to six months rather than a setting. Muscles cycle through three states
+// on tap — normal → push → maintain → normal — so the whole thing is one control.
+function blockPlanHTML(){
+  const b=blockCfg();
+  const active=blockActive(),expired=blockExpired();
+  const roles=blockRoles();
+  const emph=new Set((b&&b.emphasis)||[]),maint=new Set((b&&b.maintain)||[]);
+  const chip=(m)=>{
+    const on=emph.has(m)?'push':maint.has(m)?'maint':'';
+    const bg=on==='push'?'rgba(74,222,128,.14)':on==='maint'?'rgba(148,163,184,.14)':'transparent';
+    const bd=on==='push'?'rgba(74,222,128,.5)':on==='maint'?'rgba(148,163,184,.4)':'var(--bd)';
+    const col=on==='push'?'var(--ok)':on==='maint'?'var(--mut)':'var(--txt)';
+    const tag=on==='push'?'&#9650; push':on==='maint'?'&#9679; maintain':'&mdash;';
+    return `<div data-action='block-cycle-muscle' data-muscle='${m}' style='cursor:pointer;padding:8px 10px;border:1px solid ${bd};background:${bg};border-radius:10px;text-align:center'>
+      <div style='font-size:12.5px;font-weight:700;color:${col}'>${MNAME[m]||m}</div>
+      <div style='font-size:10.5px;color:var(--mut);margin-top:2px'>${tag}</div></div>`;
+  };
+  const grid=`<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px'>${BLOCK_ROLE_MUSCLES.map(chip).join('')}</div>`;
+  const monthPick=`<div style='display:grid;grid-template-columns:repeat(${BLOCK_MONTH_CHOICES.length},1fr);gap:8px;margin-top:10px'>${BLOCK_MONTH_CHOICES.map(mo=>`<div class='opt${blockMonths()===mo?' on':''}' data-action='block-months' data-val='${mo}'><div class='opt-v' style='font-size:16px'>${mo}</div><div class='opt-l'>months</div></div>`).join('')}</div>`;
+
+  // What the roles are actually DOING to the bands, read back out of the same
+  // function the generator uses rather than restated — so this line can never
+  // describe a rule the scheduler isn't running.
+  let effect='';
+  if(roles){
+    const rows=BLOCK_ROLE_MUSCLES.filter(m=>roles.emphasis.has(m)||roles.maintain.has(m)).map(m=>{
+      const lim=getMRVLimits()[m];
+      return `<div style='font-size:12px;color:var(--mut);line-height:1.7'><strong style='color:${roles.emphasis.has(m)?'var(--ok)':'var(--txt)'}'>${MNAME[m]||m}</strong> — ${roles.emphasis.has(m)?'push':'maintain'} ${lim.min}&ndash;${lim.max} sets/wk</div>`;
+    }).join('');
+    effect=rows;
+  }
+
+  // MEASURED, not guessed (2026-09-10). On the 3-evening profile the ledgers
+  // leave about one lift per session, and the heavy-strength mandate claims one
+  // of the three. Pushing two muscles then took the other two and CHEST FINISHED
+  // TEN SIMULATED WEEKS ON ZERO SETS — even with the starvation floor, because
+  // both emphasis muscles were starved too and the floor only breaks a tie when
+  // one side already has work. Dropping to a single emphasis muscle put chest and
+  // biceps back in the rotating third slot.
+  //
+  // The threshold is fitted to four measured points, not picked: a pushed muscle
+  // realistically claims about TWO slots a week — it anchors a day, and the
+  // depth-over-breadth rule hands an under-range anchor a second slot — plus one
+  // for the leg mandate and one spare for everything else to rotate through.
+  //   3-evening   4 slots, push 2 → chest 0     → warn        (4 < 6)
+  //   3-evening   4 slots, push 1 → chest fine  → no warning  (4 >= 4)
+  //   lunch-only  6 slots, push 2 → chest 3.0   → no warning  (6 >= 6)
+  //   lunch+3-eve 13 slots, push 2 → chest 5.9  → no warning
+  const slots=weeklyLiftSlots(S.weekPlan&&S.weekPlan.availability);
+  const need=2+2*emph.size;
+  const tooThin=emph.size>0&&slots<need;
+  const thinWarn=tooThin?`<div style='font-size:12px;color:var(--warn);line-height:1.5;margin-top:10px;padding:8px 10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:8px'>&#9888;&#65039; This week only has about <strong>${slots} lift${slots===1?'':'s'}</strong> in it, and the heavy leg lift claims one. Pushing ${emph.size} muscles leaves nothing for the others &mdash; measured, chest finishes on zero sets. Push <strong>one</strong> muscle on a schedule this light, or add a session.</div>`:'';
+  const header=`<div class='sec-lbl' style='margin-top:16px'>&#128197; Training Block</div>`;
+  if(active){
+    const wk=blockWeek(),tot=blockWeeksTotal();
+    return `${header}
+    <div class='card' style='margin-bottom:16px'>
+      <div style='display:flex;justify-content:space-between;align-items:baseline;gap:8px'>
+        <div style='font-size:13px;font-weight:700'>Week ${wk} of ${tot}</div>
+        <div style='font-size:12px;color:var(--mut)'>ends ${blockEndDate()}</div>
+      </div>
+      <div style='font-size:12px;color:var(--mut);margin-top:6px;line-height:1.5'>Pushed muscles get their weekly <strong style='color:var(--txt)'>floor</strong> raised, which keeps them ranking as under-range and winning days. Maintained muscles get their <strong style='color:var(--txt)'>ceiling</strong> pulled down to what used to be their floor. The MRV ceiling on a pushed muscle never moves &mdash; more volume is not the lever, priority is.</div>
+      ${grid}
+      ${thinWarn}
+      ${effect?`<div style='margin-top:10px'>${effect}</div>`:''}
+      <button class='btn btn-g btn-sm' data-action='block-end' style='margin-top:12px'>End this block</button>
+    </div>`;
+  }
+  return `${header}
+    <div class='card' style='margin-bottom:16px'>
+      <div style='font-size:13px;color:var(--mut);line-height:1.5'>${expired
+        ?`Your last block ran out on <strong style='color:var(--txt)'>${blockEndDate()}</strong>. Look at what actually lagged over those months and pick the next emphasis from that &mdash; blocks deliberately don't roll over on their own.`
+        :`Push one or two muscles hard for a few months and hold the rest at maintenance, instead of chasing every group's maximum every week. Tap a muscle to cycle it: <strong style='color:var(--txt)'>push</strong> &rarr; <strong style='color:var(--txt)'>maintain</strong> &rarr; off.`}</div>
+      ${grid}
+      ${thinWarn}
+      ${monthPick}
+      <button class='btn btn-ok btn-sm' data-action='block-start' style='margin-top:12px'>${expired?'Start the next block':'Start a '+blockMonths()+'-month block'}</button>
+      <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>Defaults to <strong style='color:var(--txt)'>shoulders</strong> and <strong style='color:var(--txt)'>back</strong> pushed (the side delts and lats are what widen the frame, and both are documented here as the hardest slots to fill) with <strong style='color:var(--txt)'>biceps</strong> and <strong style='color:var(--txt)'>triceps</strong> maintained &mdash; they already collect half a set of credit from every pull and every press, plus 300 pull-ups a week.</div>
+    </div>`;
+}
+
+// Movement consistency. Its own checkbox rather than part of the block card,
+// because it is worth having with or without a block running.
+function stapleLockPlanHTML(){
+  const on=stapleLockOn();
+  return `<div class='sec-lbl' style='margin-top:16px'>&#128204; Staple Movements</div>
+    <div class='card' style='margin-bottom:16px'>
+      <div class='plan-chk${on?' on':''}' data-action='toggle-staple-lock' style='margin-bottom:${on?'10px':'0'}'>
+        <div class='plan-chk-box'>${on?'&#10003;':''}</div>
+        <div>
+          <div style='font-size:13px;font-weight:700'>Stick with the same lifts</div>
+          <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Once you've logged a movement ${STAPLE_MIN_LOGS} times this block, it wins the slot over an equally-fresh alternative. Change a grip width or a bar angle, not the whole routine.</div>
+        </div>
+      </div>
+      ${on?`<div style='font-size:12px;color:var(--mut);line-height:1.6'>Only breaks <strong style='color:var(--txt)'>ties</strong>. A movement you already did this week still has a higher recent count and still loses, so variety inside a week is untouched &mdash; what this stops is the week-to-week churn. Mandated slots (the heavy 1&ndash;5 lift, the hinge, the hamstring, the row/rear-delt accents) are exempt: those rotate across different <em>patterns</em>, which is coverage, not churn.</div>`:''}
+    </div>`;
+}
+
 function pairedSetsPlanHTML(){
   const on=pairedSetsOn();
   const saved=Math.round((1-PAIR_TIME_FACTOR)*100);
@@ -7851,6 +8384,8 @@ function renderPlan(){
     ${capacityWarnHTML}
     ${renderAvailGrid(av,false)}
 
+    ${blockPlanHTML()}
+    ${stapleLockPlanHTML()}
     ${pairedSetsPlanHTML()}
     ${jumpDurabilityPlanHTML()}
     ${centuryWhenPlanHTML()}
@@ -8643,7 +9178,7 @@ function renderWorkout(){
   // Paired station: this card owns BOTH halves (see pairPartnerHTML).
   const pairIdx=(ex.pairId&&ex.pairPos===1)?pairPartnerIdx(exIdx):-1;
   const pairEx=pairIdx>=0?exercises[pairIdx]:null;
-  const pairBanner=pairBannerHTML(ex,pairEx)+emomBannerHTML();
+  const pairBanner=pairBannerHTML(ex,pairEx)+emomBannerHTML()+densityBannerHTML();
   const pairBlock=pairIdx>=0?pairPartnerHTML(pairIdx):'';
   const clusterBox=clusterHTML(ex)+(pairEx?clusterHTML(pairEx):'');
   const warmupHTML=ex.isFirst&&pctScalable?(S.active.isLunch
@@ -8910,6 +9445,7 @@ function renderWorkout(){
       <div class='ex-name'>${ex.name}</div>
       <span class='m-tag' style='background:${mcolor}22;color:${mcolor}'>${MNAME[ex.muscle]||ex.muscle} · ${ex.type}</span>
       ${cueBlockHTML(ex,mcolor)}
+      ${TENSION_ROW(ex)}
       ${SETUP_ROW(ex)}
       ${handleFor(ex)&&(EQUIPMENT_PRESETS[S.active.equipmentKey||'ymca']?.equipment||[]).includes('cables')?`<div style='font-size:12px;color:var(--txt-dim);line-height:1.5;margin:0 0 10px;padding:6px 10px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:8px'>🔗 <strong style='color:var(--acc)'>Attachment:</strong> ${handleFor(ex)}</div>`:''}
       <div style='display:flex;gap:8px;align-items:center;margin-bottom:10px'>
@@ -9191,9 +9727,34 @@ function customSessionSummary(d){
     perLiftMins:perLiftMinsFor(d.isLunch?lunchExMins():EVENING_EX_MINS)});
 }
 
+// ─── DENSITY BLOCK (2026-09-10) ───
+// Ten sets of ten on sixty seconds' rest, and the part that actually matters is
+// the LOAD RULE, not the set count: pick a weight you could get about 12 reps
+// with on set 1 and will be scraping 8 out of on set 10, and then do not touch
+// it. Roughly 20% of performance is meant to bleed away across the block — that
+// bleed IS the stimulus, and it only happens if the weight stays put. Chasing
+// the rep target by dropping the weight turns it into an easy circuit.
+//
+// STRUCTURE, NOT A NEW KIND OF SESSION — the same decision EMOM already made.
+// Ten sets is ten sets: MRV, recovery and the ledgers price it exactly as they
+// would price ten sets entered by hand, because that is what it is. What it
+// changes is the rest, and the sets/rest are FORCED rather than asked for, so
+// the prescription and the label cannot disagree.
+const DENSITY_SETS=10;
+const DENSITY_REST_SECS=60;
+const DENSITY_REPS=10;
+const DENSITY_REPS_LO=8, DENSITY_REPS_HI=12; // set 10 → set 1; the ~20% spread
+function densityBannerHTML(){
+  if(!S.active||!S.active.density)return'';
+  return`<div class='wu-box' style='border-color:rgba(251,146,60,.35);background:rgba(251,146,60,.05);margin-bottom:14px'>
+    <div class='wu-title' style='color:#fb923c'>&#128293; Density &middot; ${DENSITY_SETS}&times;${DENSITY_REPS} on ${DENSITY_REST_SECS}s</div>
+    <div class='wu-note' style='margin-top:0'>Pick a weight you could get about <strong style='color:var(--txt)'>${DENSITY_REPS_HI} reps</strong> with on set 1 and will be fighting for <strong style='color:var(--txt)'>${DENSITY_REPS_LO}</strong> on set 10 &mdash; then <strong style='color:var(--txt)'>keep it exactly the same</strong> for all ${DENSITY_SETS} sets. Reps are supposed to fall off; that decline is the whole stimulus. Dropping the weight to hold ${DENSITY_REPS} turns this into a circuit.</div>
+  </div>`;
+}
+
 // A custom session's structure. 'straight' is the ordinary top-set/back-off model,
 // 'paired' runs the picks as A1/A2 stations (see PAIRED SETS), 'emom' puts one
-// movement at the top of each minute.
+// movement at the top of each minute, 'density' is the 10x10 block above.
 //
 // EMOM is timing, not volume: same sets, same reps, so nothing downstream — MRV,
 // recovery, the ledgers — needs to know about it. What it changes is the rest,
@@ -9203,6 +9764,7 @@ const CUSTOM_STRUCTURES=[
   {key:'straight',label:'Straight sets',sub:'One movement at a time, full rest between sets.'},
   {key:'paired',label:'Paired A1/A2',sub:'Two movements per station, '+PAIR_TRANSITION_SECS+'s to change over, full rest after the pair.'},
   {key:'emom',label:'EMOM',sub:'One movement at the top of every minute. Rest is whatever is left of the minute.'},
+  {key:'density',label:'Density '+DENSITY_SETS+'\u00d7'+DENSITY_REPS,sub:DENSITY_SETS+' sets of about '+DENSITY_REPS+', '+DENSITY_REST_SECS+'s rest, same weight throughout.'},
 ];
 function customStructure(d){
   const k=(d||S.customSession||{}).structure;
@@ -9561,6 +10123,11 @@ function startCustomWorkout(){
     else pairSortAdjacent(exs);
   }
 
+  // Density forces its own sets and rest (see DENSITY_SETS). Applied AFTER the
+  // ordering passes and BEFORE the lunch clamp, which then correctly refuses to
+  // let a 10-set block claim a 40-minute lunch box.
+  if(structure==='density')exs=exs.map(e=>({...e,sets:DENSITY_SETS,rest:DENSITY_REST_SECS}));
+
   // Lunch time-box clamp, identical to startWorkout's: lead lift keeps 3 working
   // sets, everything after it drops to 2.
   if(d.isLunch)exs=exs.map((e,i)=>i>0&&e.sets>2?{...e,sets:2}:e);
@@ -9584,6 +10151,7 @@ function startCustomWorkout(){
     // EMOM is a clock, not a volume change — see CUSTOM_STRUCTURES. The workout
     // screen reads these two to swap the rest timer for a minute count.
     emom:structure==='emom',emomMins:structure==='emom'?emomMinutes(rows):0,
+    density:structure==='density',
     exercises:exs.map(e=>({...e,done:[],estW:estimateStartingWeight(e.id,S.logs,MOVEMENT_CLASS)})),
   };
   S.customSession=null;
@@ -11149,6 +11717,51 @@ document.addEventListener('click',e=>{
     S.cfg.pairedSets=!pairedSetsOn();
     // The lift COUNT changes with the rate, so the week has to be rebuilt, not
     // just re-rendered — this is a scheduling input, not a display preference.
+    replanCurrentWeek();save();render();return;
+  }
+  // Block role edits happen on the DRAFT (S.cfg.block) whether or not a block is
+  // running, so the chips can be set up before starting one. Only a running
+  // block reaches blockRoles(), so editing a lapsed block's chips changes
+  // nothing until it is started — which is why the button says so.
+  if(a==='block-cycle-muscle'){
+    const m=btn.dataset.muscle;
+    if(!BLOCK_ROLE_MUSCLES.includes(m))return;
+    const b=S.cfg.block=S.cfg.block||{months:BLOCK_DEFAULT_MONTHS,emphasis:[],maintain:[]};
+    b.emphasis=(b.emphasis||[]).filter(x=>BLOCK_ROLE_MUSCLES.includes(x));
+    b.maintain=(b.maintain||[]).filter(x=>BLOCK_ROLE_MUSCLES.includes(x));
+    const isE=b.emphasis.includes(m),isM=b.maintain.includes(m);
+    b.emphasis=b.emphasis.filter(x=>x!==m);b.maintain=b.maintain.filter(x=>x!==m);
+    if(!isE&&!isM){
+      b.emphasis.push(m);
+      // FIFO past the cap rather than refusing the tap: a control that silently
+      // does nothing reads as broken, and dropping the OLDEST choice is the one
+      // the user is least likely to have just made.
+      while(b.emphasis.length>BLOCK_MAX_EMPHASIS)b.emphasis.shift();
+    }else if(isE)b.maintain.push(m);
+    replanCurrentWeek();save();render();return;
+  }
+  if(a==='block-months'){
+    const b=S.cfg.block=S.cfg.block||{emphasis:BLOCK_DEFAULT_EMPHASIS.slice(),maintain:BLOCK_DEFAULT_MAINTAIN.slice()};
+    b.months=parseInt(btn.dataset.val,10)||BLOCK_DEFAULT_MONTHS;
+    replanCurrentWeek();save();render();return;
+  }
+  if(a==='block-start'){
+    const b=S.cfg.block=S.cfg.block||{};
+    if(!(b.emphasis||[]).length&&!(b.maintain||[]).length){
+      b.emphasis=BLOCK_DEFAULT_EMPHASIS.slice();b.maintain=BLOCK_DEFAULT_MAINTAIN.slice();
+    }
+    b.months=b.months||BLOCK_DEFAULT_MONTHS;
+    b.start=todayStr();b.on=true;
+    replanCurrentWeek();save();render();return;
+  }
+  if(a==='block-end'){
+    // Keeps the role choices as the draft for the next block — ending one is
+    // usually the moment you want to change ONE of them, not retype all four.
+    if(S.cfg.block)S.cfg.block.on=false;
+    replanCurrentWeek();save();render();return;
+  }
+  if(a==='toggle-staple-lock'){
+    S.cfg.stapleLock=!stapleLockOn();
     replanCurrentWeek();save();render();return;
   }
   if(a==='toggle-jump-durability'){
