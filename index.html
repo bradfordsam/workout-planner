@@ -794,6 +794,44 @@ const EX = [
   {id:'sa_incline_press',name:'Single-Arm Incline DB Press',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:8,rMax:12,rest:90,cue:'Incline bench, one dumbbell only. Press it while the free side of your body has NOTHING holding it down — the core must brace hard against the roll toward the loaded side the entire set. Keep both shoulder blades and hips square on the bench. A press that\'s secretly an anti-rotation drill. Count per side.',tags:['asymmetrical','anti-rotation']},
   {id:'split_stance_row',name:'Split-Stance Cable Row',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:12,rest:90,cue:'Staggered stance (opposite foot forward from the rowing arm), torso tall. Row the cable to your ribs without letting the shoulders or hips rotate open — the narrow stance gives the core nowhere to hide. Slow return, resist the twist the whole way back. Count per side.',tags:['asymmetrical','anti-rotation']},
   {id:'ab_rollout',name:'Ab Rollout (Barbell/Wheel)',muscle:'core',type:'rotational',eq:['barbell','bodyweight'],rMin:6,rMax:12,rest:90,noWeight:true,cue:'Kneel with hands on a loaded barbell (or ab wheel). Brace, tuck the pelvis, and roll out only as far as you can keep the lower back from arching — the abs resist extension the entire way out — then drag yourself back with lats and abs together. A shorter range done rigid beats a long saggy rep. The king of anti-extension work.',tags:['anti-extension']},
+  // Boat Pose / Navasana (2026-09-14, Sam sent EMG/biomechanics research and
+  // asked for it to be incorporated). LEADS the flexion isolation block rather
+  // than being appended, and that placement is the actual implementation of
+  // the research, not a formatting choice: the whole submission is an argument
+  // that Navasana beats crunches for rectus abdominis and transverse abdominis
+  // activation, and EX ORDER IS LOAD-BEARING for exactly this reason — leastUsed
+  // breaks ties by array position, and this slot recurs roughly ONCE A WEEK
+  // (see CORE_CYCLE: 5-way tag rotation on domDay, and core is a forced
+  // near-daily slot). MEASURED before this change, 14 simulated weeks,
+  // lunch+3-evening: of 15 flexion-isolation movements, only the first two in
+  // the array (crunches, situps) ever got picked — 8 and 6 times — and the
+  // other 13, everything from hanging_leg_raise on down, took ZERO. Appending
+  // Navasana below them would have made it the 16th movement nobody ever gets.
+  // Leading the block instead means it wins that weekly slot outright, which is
+  // what "isometric holds requiring balance elicit some of the highest
+  // activation levels... compared to traditional crunches" is actually asking
+  // for. `crunches` is demoted, not deleted (same treatment `bb_row` got when
+  // `inverted_row` was promoted for the same reason) — it stays available for
+  // the swap list and Custom Session, just no longer the generator's default.
+  //
+  // Tagged 'flexion' (not just 'isometric') so it is reachable through the same
+  // slot crunches was — `l_sits` and `reverse_plank` are the cautionary
+  // counter-example, both pure `isometric`-tagged V-holds with no 'flexion' tag
+  // and no CORE_CYCLE category ever targets 'isometric' alone, so both have
+  // been swap-list-only since they were added. Not a bug to fix here (they may
+  // be deliberate manual-only entries), but the reason Navasana needed the
+  // extra tag to actually land where the research is arguing it should.
+  //
+  // Hip flexion, no rotation, self-selected range under bodyweight only — the
+  // same category `body_v`, `hanging_leg_raise` and `incline_leg_raise` already
+  // clear unflagged, and the research's own note names `body_v` as
+  // "structurally identical" to Navasana. The FAI constraint bans LOADED
+  // end-range rotation through the hip, not sagittal flexion, so no `hipRisk`
+  // flag. The form cue below folds in the research's own regression (bend the
+  // knees to shorten the hip-flexor lever arm the moment the low back starts
+  // to round) rather than restating the theory — same "cue carries the
+  // constraint" pattern every injury-adjacent entry in this file already uses.
+  {id:'boat_pose',name:'Boat Pose (Navasana)',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:20,rMax:40,rest:75,noWeight:true,isTimed:true,cue:'Sit with knees bent, feet flat, then lean back and lift the feet until your torso and shins form a V, balanced on your sit bones — arms reach forward, parallel to the floor. Draw the belly button toward the spine and keep the chest lifted the whole hold. The low back rounding is the tell that the abs have quit and the hip flexors have taken over: the moment it happens, either lift the chest back up or bend the knees further (shins toward parallel to the floor) to shorten the hold and regress. Straighten the legs further to progress toward the full pose. Count seconds.',tags:['flexion','isometric']},
   {id:'crunches',name:'Crunches',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on back, knees bent. Curl shoulder blades off the floor, exhale at the top. Keep lower back pressed down — small controlled range, no momentum.',tags:['flexion']},
   // noWeight REMOVED 2026-08-03 (from Sam: "sit up can be weighted"). The cue
   // already told him to hold a plate; noWeight:true then hid the weight field,

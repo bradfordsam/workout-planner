@@ -1044,6 +1044,62 @@ strip it before other debugging.
     and both EMOM fixes), the finisher coverage sweep above, the 54- and
     63-assertion suites from the PT and McGill passes, `--smoke`, and the full
     case-study harness.
+- **`boat_pose` — Navasana promoted to lead the flexion core block (2026-09-14)**
+  — Sam sent EMG/biomechanics research arguing Navasana beats crunches for
+  rectus abdominis and transverse abdominis activation and asked for it to be
+  "incorporated into the workout programming logic."
+  - **The research IS the placement decision, not just the movement's cue.**
+    EX ORDER IS LOAD-BEARING, and the flexion-tagged isolation core slot recurs
+    roughly ONCE A WEEK — `CORE_CYCLE` is a 5-way tag rotation keyed on
+    `domDay`, and core is a forced near-daily slot, which lands it squarely in
+    the "once or twice a week" zone the EX-ordering note warns turns a slot
+    winner-take-all. **Measured before this change, 14 simulated weeks,
+    lunch+3-evening: of 15 flexion-isolation movements, only the first two in
+    the array — `crunches` and `situps` — were EVER picked (8 and 6 times);
+    the other 13 (`hanging_leg_raise`, `body_v`, `incline_leg_raise`,
+    `dip_bar_leg_lifts`, both Dragon Flag tiers, and seven more) took ZERO in
+    14 weeks.** Appending Navasana below all of them, the "safe-looking" edit,
+    would have made it the 16th movement nobody ever gets — the exact
+    silent-dead-code trap this file has hit before (`inverted_row`,
+    `repeat_block_jumps`/`soleus_raises`, the calf pool). Leading the block
+    instead is the literal implementation of "isometric holds... elicit some
+    of the highest activation levels... compared to traditional crunches":
+    measured after, `boat_pose` takes the 8 picks `crunches` used to get,
+    `crunches` drops to the 6 `situps` used to get, and `situps` goes to zero
+    — same DEMOTED-not-deleted treatment `bb_row` got when `inverted_row` was
+    promoted for the identical reason. Total flexion-slot volume is conserved
+    (14 picks either way); this is a substitution of WHICH movement wins, not
+    a change to how much core work lands.
+  - **Tagged `['flexion','isometric']`, not `isometric` alone, and that second
+    tag is what makes the promotion possible at all.** `l_sits` and
+    `reverse_plank` are the cautionary counter-example already in the pool:
+    both are pure isometric V/plank holds tagged `isometric` only, no
+    `CORE_CYCLE` category ever targets `isometric` alone, so neither has ever
+    been reachable through the generator — they've been swap-list/Custom-
+    Session-only since they were added, which may well be deliberate but is
+    exactly the kind of gap a research-driven request like this one would
+    otherwise walk straight into.
+  - **No `hipRisk` flag.** The constraint is loaded end-range ROTATION through
+    the hip, not sagittal flexion — `body_v`, `hanging_leg_raise` and
+    `incline_leg_raise` already clear hip caution unflagged at similar or
+    deeper flexion angles, and the research's own text names `body_v` as
+    "structurally identical" to Navasana. Bodyweight only, self-selected range,
+    no rotation: same category, same clearance.
+  - **The cue folds in the research's own regression rather than restating the
+    theory** — the "low back rounds ⇒ abs have quit, hip flexors take over"
+    mechanism becomes the literal in-set correction ("the moment it happens,
+    either lift the chest back up or bend the knees further... to regress"),
+    matching how every other injury-adjacent entry in this file carries its
+    constraint IN the cue rather than in a comment beside it.
+  - Verified: syntax gate, an 18-assertion test (entry shape, the flexion+
+    isometric tags, no `hipRisk`, both cue mechanisms present, the estimator
+    not choking on a bodyweight/timed/noWeight combination, and a full
+    `genProgram` run showing `boat_pose` actually landing in a generated week),
+    the pick-frequency sweep above (before/after, 14 simulated weeks), and the
+    full case-study harness against a fresh HEAD baseline — **all 7 scenarios
+    byte-identical**, since a same-muscle/same-type substitution inside an
+    existing slot changes which movement is chosen, not how much volume any
+    muscle receives.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
