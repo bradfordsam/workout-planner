@@ -1253,6 +1253,41 @@ strip it before other debugging.
     byte-identical**, since a same-muscle/same-type substitution inside an
     existing slot changes which movement is chosen, not how much volume any
     muscle receives.
+- **`seated_bb_military_press` — `fixedBarPressRisk`, a new unconditional flag
+  (2026-09-22)** — Sam asked to add Seated BB Military Press. Shown the
+  conflict before it was added, same as `db_hang_clean_jerk`: he chose
+  log-only, never auto-generated.
+  - **Seated clears the lower-back constraint fine** — `seated_db_press` and
+    `arnold_press` are the existing precedent for seated overhead pressing
+    being safe where standing OHP isn't. The real conflict is the SHOULDER:
+    a barbell locks both hands to one rigid path at a fixed grip width, the
+    exact mechanism `bench` is banned outright for ("fixed hands, so the arms
+    can't pick their own path") and the reason every other press in this pool
+    — seated or standing, DB or otherwise — is dumbbell-only. *"Don't add new
+    pressing that fixes the hands to one bar"* is a standing instruction in
+    this file; this is that case.
+  - **Neither existing flag fit, so this needed its own.** `standingPressRisk`
+    carries a hardcoded warning naming the LOWER BACK — reusing it here would
+    have shown Sam the wrong reason for the flag. `shoulderRisk` is
+    toggle-gated behind `S.cfg.shoulderCaution` and reserved for BALLISTIC
+    anterior loading "no cue can make safe" — a strict seated press is neither
+    ballistic nor something a caution toggle should be able to switch back
+    into auto-generation. `fixedBarPressRisk` is UNCONDITIONAL like
+    `standingPressRisk` — checked in `pickEx`'s `baseFor` and `dayTemplate`'s
+    `canPlaceFoundation` with no toggle escape hatch — and carries its own
+    warning line in `customExWarnings` naming the actual mechanism.
+  - **Reachable from the swap list and Custom Session's search with no extra
+    work** — `renderSwapSearchResults` has never checked any risk flag (only
+    `hipRisk`/`plyoHidden`/`kneeCautionBlocks`/`userAvoids`), so a flag that
+    only gates `pickEx`/`canPlaceFoundation` is invisible to it by
+    construction, same as `db_hang_clean_jerk`.
+  - Verified: syntax gate, a 12-assertion test (entry shape, the estimator not
+    throwing, the swap-list search surfacing it, `customExWarnings` showing
+    the fixed-bar-press message and NOT the lower-back or ballistic ones, and
+    a 10-week sweep on all three schedule profiles confirming zero
+    auto-generated appearances), `--smoke`, `render-smoke.js`, and the full
+    case-study harness — all 7 scenarios byte-identical, since a flag that
+    only the generator's own gates read can't move anything it never reaches.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

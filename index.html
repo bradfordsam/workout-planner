@@ -647,6 +647,27 @@ const EX = [
   // toggle-gated either).
   {id:'db_hang_clean_jerk',name:'Alternating Single-Arm DB Hang Clean & Jerk',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:3,rMax:5,rest:150,standingPressRisk:true,tags:['power','unilateral'],cue:'STANDING OVERHEAD PRESS — flagged for the lower back, same as Push Press. One DB hangs at arm\'s length in front of the thighs. Hinge slightly, then explode up through the hips and shrug the DB to the shoulder in one motion (the "clean"), rotating the elbow under and catching it racked at the shoulder, wrist straight. Without resetting, dip the knees a few inches and drive them straight up, punching the DB to lockout overhead (the "jerk"). Lower back to the shoulder, then to the hang, and alternate arms every rep. Full-body power expression — legs and hips do almost all the work in both the clean and the jerk; the arm is along for the ride, not lifting it. Land the catch soft in both positions, and stop the set the moment the catch gets sloppy.'},
   {id:'arnold_press',name:'Arnold Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Seated on a bench with back support. Start palms facing you, rotate to facing out as you press. All three delt heads involved. Control the descent.'},
+  // fixedBarPressRisk (2026-09-22) — Sam asked for Seated BB Military Press by
+  // name, was shown the conflict, and made the same call he made on
+  // db_hang_clean_jerk: add it for logging and weight-progression tracking,
+  // never let the generator reach for it on its own. SEATED clears the lower-
+  // back constraint fine (seated_db_press/arnold_press are the existing
+  // precedent), but a barbell fixes BOTH hands to one rigid bar at one grip
+  // width — the exact mechanism `bench` is banned outright for ("fixed hands,
+  // so the arms can't pick their own path") and the reason every other press
+  // in this pool, seated or standing, is dumbbell-only. Not `standingPressRisk`
+  // — that flag's own warning text names the LOWER BACK and would be actively
+  // wrong here; not `shoulderRisk` either, since that flag is toggle-gated
+  // behind `S.cfg.shoulderCaution` and reserved for BALLISTIC anterior loading
+  // ("no cue can make safe") — a strict seated press is neither ballistic nor
+  // something a toggle should be able to switch back into auto-generation.
+  // `fixedBarPressRisk` is UNCONDITIONAL, exactly like `standingPressRisk`:
+  // checked in `pickEx`'s `baseFor` and `dayTemplate`'s `canPlaceFoundation`
+  // with no caution-toggle escape hatch, carries its own warning line in
+  // `customExWarnings` naming the real reason, and is invisible to the swap
+  // list's filter (which never checked any risk flag) — reachable there and
+  // in Custom Session's search, same as the hang clean.
+  {id:'seated_bb_military_press',name:'Seated Barbell Military Press',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,fixedBarPressRisk:true,cue:'FIXED-BAR PRESS — flagged for the left shoulder, same reason bench press is on the avoid list: a barbell locks both hands to one rigid path with no room for either arm to find its own groove. Seated on a bench with back support (upright or slight incline), bar at clavicle height. Brace, press straight overhead to full lockout, lower under control back to the start. If the front of the shoulder objects at any point in the path, stop the set — the seated DB press and Arnold press give the same movement with a bar path each arm controls.'},
   {id:'db_lateral',name:'DB Lateral Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Hinge the torso forward to about 70° from vertical — a real lean, not a nod. That lean is what moves the side delt into line with gravity and takes the traps off the job; standing bolt upright hands half the set to the traps. Let the arms travel FORWARD about 45° from your sides rather than straight out to the side, which is where the shoulder blade actually points (the scapular plane) and where the joint has room. Lead with the elbows and REACH the hands away from you as you rise, as if scraping them up a wall — reaching keeps the resistance arm long so the delt keeps working instead of the arm folding in. Stop at shoulder height, pause a beat, then take 3 counts down. Go light: if the shoulders shrug up toward the ears, the weight has already won.'},
   {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Low pulley, cable running across the body, working arm on the far side. Lean the torso AWAY from the stack to about 70° from vertical and let that lean stay put for the whole set — it is what lines the side delt up with the cable and keeps the traps out. Arm travels forward about 45°, not straight out to the side. Reach the hand away from you the whole way up, as if scraping it up a wall, and stop at shoulder height. The cable holds tension at the BOTTOM where a dumbbell goes slack, which is the reason to pick this over the dumbbell version, so resist all the way down instead of letting it snap back.'},
   {id:'lying_cable_lat',name:'Lying Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Lie sideways, cable from low pulley. Raise arm up. Slow descent. Excellent lateral delt isolation.'},
@@ -3905,6 +3926,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     !(S.cfg.hipCaution && e.hipRisk) &&
     !(S.cfg.shoulderCaution && e.shoulderRisk) &&
     !e.standingPressRisk &&
+    !e.fixedBarPressRisk &&
     !plyoHidden(e) &&
     !userAvoids(e) &&
     dragonFlagUnlocked(e.id) &&
@@ -4642,7 +4664,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       if(!def)return false;
       return (def.eq||[]).some(q=>eqSet.has(q))
         &&!(S.cfg.hipCaution&&def.hipRisk)&&!(S.cfg.shoulderCaution&&def.shoulderRisk)
-        &&!def.standingPressRisk
+        &&!def.standingPressRisk&&!def.fixedBarPressRisk
         &&!plyoHidden(def)&&!userAvoids(def)
         &&!kneeCautionBlocks(def)&&dragonFlagUnlocked(def.id)
         &&!(isLunch&&def.highSweat);
@@ -10377,6 +10399,7 @@ function customExWarnings(ex,opts){
   if(S.cfg.hipCaution&&ex.hipRisk)add('&#9888;&#65039;',`Flagged for the left hip (FAI history) — loaded end-range rotation or hard landings.`);
   if(S.cfg.shoulderCaution&&ex.shoulderRisk)add('&#9888;&#65039;',`Flagged for the left shoulder — ballistic anterior loading, which no cue makes safe.`);
   if(ex.standingPressRisk)add('&#9888;&#65039;',`Standing overhead press — flagged for the lower back, same reason OHP/Push Press/Thrusters are on the avoid list. Never programmed automatically, but it's your call here.`);
+  if(ex.fixedBarPressRisk)add('&#9888;&#65039;',`Fixed-bar press — flagged for the left shoulder, same reason bench press is on the avoid list: a barbell locks both hands to one path neither arm can adjust. Never programmed automatically, but it's your call here.`);
   if(plyoHidden(ex))add('&#9888;&#65039;',`Impact plyo — the generator hides these under hip caution; only the low-impact subset is cleared.`);
   if(S.cfg.kneeCaution&&ex.muscle==='legs'&&!KNEE_SAFE_IDS.has(ex.id))add('&#9888;&#65039;',`Outside the knee-safe list that Knee Caution mode whitelists.`);
   if(!dragonFlagUnlocked(ex.id))add('&#128274;',`The earlier tier of this progression isn't logged at 10 reps yet.`);
