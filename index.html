@@ -715,7 +715,7 @@ const EX = [
   {id:'skull_crushers',name:'DB Skull Crushers',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower DBs toward forehead with control — 2 counts down. Elbows slightly flared. Press back up. This is not a speed exercise.'},
   {id:'diamond_pu',name:'Diamond Push-ups',muscle:'triceps',type:'isolation',eq:['bodyweight'],rMin:10,rMax:15,rest:120,cue:'Hands close together. Elbows track backward. Full lockout at top, controlled descent. Add vest for progressive overload.'},
   {id:'ezbar_skull',name:'EZ Bar Skull Crushers',muscle:'triceps',type:'isolation',eq:['barbell'],rMin:8,rMax:12,rest:120,cue:'Lie on a bench holding an EZ bar on the angled grips, arms extended over your chest. Keeping the elbows fixed and pointed up, lower the bar toward your forehead (or just behind the head for a bigger long-head stretch) — 2 counts down. Press back to lockout without letting the elbows flare out. Strict and controlled, never a speed exercise.'},
-  {id:'tricep_dips',name:'Tricep Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'PARALLEL BARS ONLY — not the bench-edge version. Bench dips pin the hands behind the body and load the shoulder at its extension end range, which is the exact position the front of the left shoulder objects to; parallel bars let the arms hang under the torso instead. NOT flagged shoulderRisk (it\'s the only compound in the triceps pool) — the depth cap is what keeps it safe, so respect it. Keep the torso fairly upright to bias the triceps (leaning forward shifts load to the chest). Lower until the elbows reach about 90° and NO further, keeping them tucked close to the body — don\'t let them flare. Press back to full lockout and squeeze the triceps at the top. Slow descent. Add a vest or plate on the lap to overload.'},
+  {id:'tricep_dips',name:'Tricep Dips',muscle:'triceps',type:'compound',eq:['dip_bars'],rMin:8,rMax:15,rest:120,cue:'PARALLEL BARS ONLY — not the bench-edge version. Bench dips pin the hands behind the body and load the shoulder at its extension end range, which is the exact position the front of the left shoulder objects to; parallel bars let the arms hang under the torso instead. NOT flagged shoulderRisk (it\'s the only compound in the triceps pool) — the depth cap is what keeps it safe, so respect it. Keep the torso fairly upright to bias the triceps (leaning forward shifts load to the chest). Lower until the elbows reach about 90° and NO further, keeping them tucked close to the body — don\'t let them flare. Press back to full lockout and squeeze the triceps at the top. Slow descent. Add a vest or plate on the lap to overload.'},
   {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Squat BAREFOOT or in flat socks if the floor allows — a compressible running sole is a soft spot between you and the ground, and bare feet let the toes spread and the arch actually grip. Screw the feet into the floor and drive the knees slightly OUT over the toes as you descend, rotating from the hips: that is what keeps the knee tracking properly and brings the glutes into the effort instead of letting the knees fall in. Sit back and down to full depth, then drive the floor away.',tags:['quad','squat'],hipRisk:true},
   {id:'bulgarian',name:'Bulgarian Split Squat (RFESS)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated, front foot well forward. Keep the front shin closer to vertical and torso upright — this caps front-hip flexion well short of a deep bilateral squat, and the staggered stance keeps the working hip neutral-to-externally-rotated. The hip-friendly substitute for deep squats. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral']},
   {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold the DB at the chest. Barefoot or flat socks if you can, toes spread, feet gripping the floor. Drive the knees slightly OUT over the toes on the way down and keep them there — elbows end up between the knees at the bottom. Full depth, controlled descent.',tags:['quad','squat'],hipRisk:true},
@@ -903,7 +903,7 @@ const EX = [
   {id:'toe_touch_crunch',name:'Toe Touch Crunch',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'On your back, legs straight up at vertical. Crunch the shoulder blades off the floor and reach both hands toward your toes — the range is short, the squeeze is the point. Lower the shoulders back down under control; legs stay tall the whole set. Exhale on every reach.',tags:['flexion']},
   {id:'flutter_kicks',name:'Flutter Kicks',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:20,rMax:45,rest:60,noWeight:true,isTimed:true,cue:'On your back, hands under the glutes, legs straight and hovering a few inches up. Small, fast alternating kicks — the lower back stays PRESSED into the floor the entire time; if it arches, raise the legs higher or stop the set. Count seconds.',tags:['flexion','anti-extension']},
   {id:'three_way_crunch',name:'3-Way Crunch (Middle + Sides)',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:9,rMax:15,rest:60,noWeight:true,cue:'One "round" is three crunches: straight up the middle, then reaching toward the LEFT knee, then toward the RIGHT — hitting rectus and both obliques in turn. Shoulder blades off the floor each rep, exhale at every top. Count total crunches (a multiple of 3).',tags:['flexion','lateral']},
-  {id:'dip_bar_leg_lifts',name:'Dip Bar Leg Lifts',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:8,rMax:15,rest:90,noWeight:true,cue:'Support yourself on parallel dip bars, arms locked, shoulders pressed down. Curl the pelvis and raise the knees (or straight legs to progress) to hip height — no swinging. Lower under control. Same lower-ab drive as hanging raises, without grip being the limiter.',tags:['flexion']},
+  {id:'dip_bar_leg_lifts',name:'Dip Bar Leg Lifts',muscle:'core',type:'isolation',eq:['dip_bars'],rMin:8,rMax:15,rest:90,noWeight:true,cue:'Support yourself on parallel dip bars, arms locked, shoulders pressed down. Curl the pelvis and raise the knees (or straight legs to progress) to hip height — no swinging. Lower under control. Same lower-ab drive as hanging raises, without grip being the limiter.',tags:['flexion']},
   {id:'half_pullup_leg_lifts',name:'Half Pull-up Leg Lifts',muscle:'core',type:'isolation',eq:['pullup_bar'],rMin:5,rMax:10,rest:120,noWeight:true,cue:'Pull to the HALF pull-up position — elbows at 90° — and hold yourself there while you raise the knees or straight legs to hip height and lower them. The iso pull-up hold hammers the lats and grip while the abs do the lifting. Come down when the hold breaks, not when the abs quit.',tags:['flexion','isometric']},
   // Dragon Flag progression track — 3 tiers, gated by dragonFlagUnlocked() below.
   // Tier 1 is always available; Tier 2/3 unlock after logging 10 clean reps in
@@ -4113,7 +4113,10 @@ function flagFirstWorkingSet(exs){
   // lead the session — the first/warm-up slot needs a loadable exercise.
   // Med balls are excluded too: they're loaded but come in fixed ~5 lb jumps,
   // so "50% / 75% / 90%" acclimation percentages are meaningless for them.
-  const scalable=e=>!e.noWeight&&!e.isTimed&&(e.eq||[]).some(q=>q!=='bodyweight'&&q!=='medball'&&q!=='medball_wall');
+  // 'dip_bars' (2026-09-27) is a HOST like the bodyweight token, not a resistance
+  // implement — listed here so dips keep exactly the no-ramp behaviour they had as
+  // eq:['bodyweight']. Same exclusion in renderWorkout's pctScalable.
+  const scalable=e=>!e.noWeight&&!e.isTimed&&(e.eq||[]).some(q=>q!=='bodyweight'&&q!=='dip_bars'&&q!=='medball'&&q!=='medball_wall');
   // ── SEQUENCING (2026-09-10) ──
   // Heavy compounds first, while the nervous system is freshest and the lift
   // that recruits the most muscle can actually be loaded; then the accessories,
@@ -9890,7 +9893,7 @@ function renderWorkout(){
   // %-scalable = actually loadable in fine increments; med balls, bodyweight,
   // and timed holds are excluded — "heavy compound ahead" and 50/75/90%
   // acclimation percentages make no sense for a 10 lb ball or a plank.
-  const pctScalable=!ex.noWeight&&!ex.isTimed&&!scaleDef&&(ex.eq||[]).some(q=>q!=='bodyweight'&&q!=='medball'&&q!=='medball_wall');
+  const pctScalable=!ex.noWeight&&!ex.isTimed&&!scaleDef&&(ex.eq||[]).some(q=>q!=='bodyweight'&&q!=='dip_bars'&&q!=='medball'&&q!=='medball_wall');
   const isHeavyPressFirst=ex.isFirst&&pctScalable&&ex.type==='compound'&&ex.rMax<=8&&['chest','shoulders','back'].includes(ex.muscle);
   const machineModeHTML=isHeavyPressFirst?`<div class='wu-box' style='border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:var(--warn)'>🔧 Machine Mode Prehab (heavy compound ahead — lock in the shoulder first)</div>
@@ -10436,7 +10439,7 @@ function customExWarnings(ex,opts){
   if((ex.eq||[]).length&&!ex.eq.some(q=>eq.has(q))){
     add('&#129520;',ex.synthetic
       ?`Not in the exercise database, so the app can't confirm the gear is at ${preset?.name||'this gym'}.`
-      :`Needs ${ex.eq.join(' or ')} — ${preset?.name||'this gym'} doesn't list it.`);
+      :`Needs ${ex.eq.map(q=>q.replace(/_/g,' ')).join(' or ')} — ${preset?.name||'this gym'} doesn't list it.`);
   }
   return out;
 }

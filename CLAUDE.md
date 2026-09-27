@@ -1306,10 +1306,23 @@ strip it before other debugging.
   - Verified: apartment/Westminster/Mom and Dad's now resolve five rungs and ARE
     prescribed on a ≥75-min evening; YMCA still dips (still not prescribed there).
     Render smoke 245/245; all 7 case-study scenarios byte-identical to HEAD.
-  - **Known and deliberately NOT changed here**: EX `tricep_dips` itself is still
-    `eq:['bodyweight']`, so the GENERATOR can still program dips at a gym with
-    no bars. Changing it moves scheduling (it is the triceps pool's only compound)
-    and needs a balance sim — flagged to Sam rather than slipped in.
+  - **Generator follow-up, same day (Sam: "yes")**: EX `tricep_dips` AND
+    `dip_bar_leg_lifts` are now `eq:['dip_bars']` too — both were
+    `['bodyweight']`, so the generator could program them at any gym. Two
+    knock-ons handled: `dip_bars` is a HOST, not resistance, so it is added to
+    the bodyweight/medball exclusion in BOTH warm-up tests (`flagFirstWorkingSet`'s
+    `scalable` and `renderWorkout`'s `pctScalable`) — otherwise dips would
+    suddenly get a 50/75/90% ramp. `loadClass` needed nothing (not in
+    `RESISTANCE`, so still 'bw'). The triceps slot's loss of its only compound
+    is absorbed by pickEx's existing tier 2.5 (`isoRelax`).
+    **The case-study harness CANNOT see this** — every scenario trains at the
+    YMCA, which has bars, so its byte-identical result proves nothing here.
+    Measured with a separate daily-replan sim, lunches at the YMCA, evenings at
+    the named gym, 10 weeks vs HEAD: lunch+3-evening is identical (all 10 dips
+    land on YMCA lunches); 3-evening swaps 4 dips → 4 Rope Pushdowns (apartment)
+    / 4 DB Overhead Extensions (Westminster), with **every muscle's set total
+    identical**. Custom Session now warns "Needs dip bars" at the apartment
+    (`customExWarnings` now prints tokens with spaces instead of underscores).
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
