@@ -1288,6 +1288,28 @@ strip it before other debugging.
     auto-generated appearances), `--smoke`, `render-smoke.js`, and the full
     case-study harness — all 7 scenarios byte-identical, since a flag that
     only the generator's own gates read can't move anything it never reaches.
+- **`'dip_bars'` + the Pyramid's triceps rung (2026-09-27)** — Sam: *"I would
+  love to be able to do my pyramid in my apartment gym but there are no dip bars
+  there."* Only the YMCA has them. The ×2 rung was dips with `eq:['bodyweight']`,
+  and `pyramidExOK` grants 'bodyweight' unconditionally (copied from pickEx), so
+  it resolved at EVERY gym — every prescribed Pyramid night was asking for dips
+  somewhere without bars, and `PYRAMID_EXCLUDED_GYMS` already keeps it off the
+  YMCA, the one place that has them. Same shape as `'own_gear'`: a distinct
+  token, carried only by the `ymca` preset.
+  - Rung is now `pattern:'triceps'` with options dips [`dip_bars`] →
+    **Rope Pushdown** [`cables`] → **DB Skull Crushers** [`dumbbells`]. Apartment
+    resolves to the pushdown (shoulder-neutral, elbow-tolerant at 200 reps);
+    Westminster and Mom and Dad's (no stack) to skull crushers. NOT bench dips
+    (banned) and NOT diamond push-ups (the ×3 rung is already push-ups, and the
+    close-hand bottom is the shoulder position this file avoids). Real EX ids, so
+    logged volume reconciles with history.
+  - Verified: apartment/Westminster/Mom and Dad's now resolve five rungs and ARE
+    prescribed on a ≥75-min evening; YMCA still dips (still not prescribed there).
+    Render smoke 245/245; all 7 case-study scenarios byte-identical to HEAD.
+  - **Known and deliberately NOT changed here**: EX `tricep_dips` itself is still
+    `eq:['bodyweight']`, so the GENERATOR can still program dips at a gym with
+    no bars. Changing it moves scheduling (it is the triceps pool's only compound)
+    and needs a balance sim — flagged to Sam rather than slipped in.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

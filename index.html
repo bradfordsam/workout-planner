@@ -1478,7 +1478,11 @@ const EQUIPMENT_PRESETS = {
   ymca: {
     name: '🏋️ YMCA',
     desc: 'Full gym with all equipment available',
-    equipment: ['cardio_machine', 'barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'bodyweight'],
+    // 'dip_bars' (2026-09-27): Sam confirmed the YMCA is the ONLY place he has
+    // parallel dip bars. Its own token rather than 'bodyweight', because pickEx
+    // and pyramidExOK both grant 'bodyweight' unconditionally — a dip rung
+    // tagged bodyweight was "available" at every gym, including the apartment.
+    equipment: ['cardio_machine', 'barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'dip_bars', 'bodyweight'],
     location: 'ymca'
   },
   westminster_gym: {
@@ -2873,9 +2877,32 @@ const PYRAMID_LADDER=[
     {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,secsPerRep:3,
      cue:'Supinated grip, full dead hang, elbows down and back.'},
   ]},
-  {mult:2,pattern:'dip',options:[
-    {id:'tricep_dips',name:'Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,secsPerRep:2.5,
+  // THE ×2 RUNG NEEDS A SUBSTITUTE EVERYWHERE THE LADDER IS ACTUALLY RUN
+  // (2026-09-27). Sam: "I would love to be able to do my pyramid in my apartment
+  // gym but there are no dip bars there." Dips were tagged eq:['bodyweight'],
+  // which pyramidExOK grants unconditionally, so the rung resolved to dips at
+  // EVERY gym. He has dip bars at the YMCA only — and the YMCA is the one gym in
+  // PYRAMID_EXCLUDED_GYMS. So every night this ladder has ever been PRESCRIBED
+  // asked for a movement the gym could not host. Dips now need 'dip_bars', and
+  // the rung falls through to a triceps substitute:
+  //   · Rope pushdown first (apartment gym has a cable stack with a rope). Elbows
+  //     pinned at the sides means the shoulder never leaves neutral, and it is
+  //     the most elbow-tolerant triceps movement at the rep counts this rung
+  //     reaches (200 at peak 10) — the load is picked light, the reps do the work.
+  //   · DB skull crushers where there is no stack (Westminster, Mom and Dad's).
+  // Deliberately NOT bench dips (banned in the dips cue — hands pinned behind the
+  // torso is the left shoulder's worst position) and NOT diamond push-ups: the
+  // ×3 rung is already push-ups, and stacking a second fixed-hand floor press on
+  // it would put 5 units of every rung on the shoulder the SHOULDER STOP cue
+  // exists to protect. Real EX ids, so logged volume and history reconcile with
+  // ordinary sessions exactly as the Cindy/Pyramid push-up id does.
+  {mult:2,pattern:'triceps',options:[
+    {id:'tricep_dips',name:'Dips',muscle:'triceps',type:'compound',eq:['dip_bars'],rMin:8,rMax:15,secsPerRep:2.5,
      cue:'PARALLEL BARS ONLY — never the bench-edge version, which pins the hands behind the body and loads the left shoulder exactly where it objects. SHOULDER STOP: elbows to about 90° and no further, tucked close, then press to lockout. At 200 reps the depth cap is the whole safety margin, and it is the first thing fatigue takes away — if you cannot hold the stop, end the rung.'},
+    {id:'pushdown',name:'Rope Pushdown',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,secsPerRep:2,
+     cue:'Stands in for dips on the ×2 rung where there are no dip bars. Rope on the high pulley, elbows pinned to your sides, spread the rope apart at lockout. Pick a LIGHT stack — this rung reaches 200 reps at the top of the ladder, so the weight is chosen for the last rung, not the first. Leave the pin set; don\'t re-rack between rungs.'},
+    {id:'skull_crushers',name:'DB Skull Crushers',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,secsPerRep:2.5,
+     cue:'Stands in for dips on the ×2 rung where there are no dip bars or cable stack. On your back on a bench, a light DB in each hand, upper arms vertical and still — bend only at the elbows, lowering beside the head, then extend. Light enough to keep the elbows quiet at high total reps; if the elbows start to ache, stop the rung rather than finishing it.'},
   ]},
   {mult:3,pattern:'push',options:[
     {id:'bw_pushups',name:'Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:12,rMax:25,secsPerRep:2,
