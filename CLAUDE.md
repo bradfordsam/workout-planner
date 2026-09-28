@@ -1245,6 +1245,132 @@ the harness can act on an EVENT — see `.claude/settings.json` +
     emphasis from that, which is a decision, not a rollover — the Plan screen
     says so.
 
+- **`boat_pose` — Navasana promoted to lead the flexion core block (2026-09-14)**
+  — Sam sent EMG/biomechanics research arguing Navasana beats crunches for
+  rectus abdominis and transverse abdominis activation and asked for it to be
+  "incorporated into the workout programming logic."
+  - **The research IS the placement decision, not just the movement's cue.**
+    EX ORDER IS LOAD-BEARING, and the flexion-tagged isolation core slot recurs
+    roughly ONCE A WEEK — `CORE_CYCLE` is a 5-way tag rotation keyed on
+    `domDay`, and core is a forced near-daily slot, which lands it squarely in
+    the "once or twice a week" zone the EX-ordering note warns turns a slot
+    winner-take-all. **Measured before this change, 14 simulated weeks,
+    lunch+3-evening: of 15 flexion-isolation movements, only the first two in
+    the array — `crunches` and `situps` — were EVER picked (8 and 6 times);
+    the other 13 (`hanging_leg_raise`, `body_v`, `incline_leg_raise`,
+    `dip_bar_leg_lifts`, both Dragon Flag tiers, and seven more) took ZERO in
+    14 weeks.** Appending Navasana below all of them, the "safe-looking" edit,
+    would have made it the 16th movement nobody ever gets — the exact
+    silent-dead-code trap this file has hit before (`inverted_row`,
+    `repeat_block_jumps`/`soleus_raises`, the calf pool). Leading the block
+    instead is the literal implementation of "isometric holds... elicit some
+    of the highest activation levels... compared to traditional crunches":
+    measured after, `boat_pose` takes the 8 picks `crunches` used to get,
+    `crunches` drops to the 6 `situps` used to get, and `situps` goes to zero
+    — same DEMOTED-not-deleted treatment `bb_row` got when `inverted_row` was
+    promoted for the identical reason. Total flexion-slot volume is conserved
+    (14 picks either way); this is a substitution of WHICH movement wins, not
+    a change to how much core work lands.
+  - **Tagged `['flexion','isometric']`, not `isometric` alone, and that second
+    tag is what makes the promotion possible at all.** `l_sits` and
+    `reverse_plank` are the cautionary counter-example already in the pool:
+    both are pure isometric V/plank holds tagged `isometric` only, no
+    `CORE_CYCLE` category ever targets `isometric` alone, so neither has ever
+    been reachable through the generator — they've been swap-list/Custom-
+    Session-only since they were added, which may well be deliberate but is
+    exactly the kind of gap a research-driven request like this one would
+    otherwise walk straight into.
+  - **No `hipRisk` flag.** The constraint is loaded end-range ROTATION through
+    the hip, not sagittal flexion — `body_v`, `hanging_leg_raise` and
+    `incline_leg_raise` already clear hip caution unflagged at similar or
+    deeper flexion angles, and the research's own text names `body_v` as
+    "structurally identical" to Navasana. Bodyweight only, self-selected range,
+    no rotation: same category, same clearance.
+  - **The cue folds in the research's own regression rather than restating the
+    theory** — the "low back rounds ⇒ abs have quit, hip flexors take over"
+    mechanism becomes the literal in-set correction ("the moment it happens,
+    either lift the chest back up or bend the knees further... to regress"),
+    matching how every other injury-adjacent entry in this file carries its
+    constraint IN the cue rather than in a comment beside it.
+  - Verified: syntax gate, an 18-assertion test (entry shape, the flexion+
+    isometric tags, no `hipRisk`, both cue mechanisms present, the estimator
+    not choking on a bodyweight/timed/noWeight combination, and a full
+    `genProgram` run showing `boat_pose` actually landing in a generated week),
+    the pick-frequency sweep above (before/after, 14 simulated weeks), and the
+    full case-study harness against a fresh HEAD baseline — **all 7 scenarios
+    byte-identical**, since a same-muscle/same-type substitution inside an
+    existing slot changes which movement is chosen, not how much volume any
+    muscle receives.
+- **`seated_bb_military_press` — `fixedBarPressRisk`, a new unconditional flag
+  (2026-09-22)** — Sam asked to add Seated BB Military Press. Shown the
+  conflict before it was added, same as `db_hang_clean_jerk`: he chose
+  log-only, never auto-generated.
+  - **Seated clears the lower-back constraint fine** — `seated_db_press` and
+    `arnold_press` are the existing precedent for seated overhead pressing
+    being safe where standing OHP isn't. The real conflict is the SHOULDER:
+    a barbell locks both hands to one rigid path at a fixed grip width, the
+    exact mechanism `bench` is banned outright for ("fixed hands, so the arms
+    can't pick their own path") and the reason every other press in this pool
+    — seated or standing, DB or otherwise — is dumbbell-only. *"Don't add new
+    pressing that fixes the hands to one bar"* is a standing instruction in
+    this file; this is that case.
+  - **Neither existing flag fit, so this needed its own.** `standingPressRisk`
+    carries a hardcoded warning naming the LOWER BACK — reusing it here would
+    have shown Sam the wrong reason for the flag. `shoulderRisk` is
+    toggle-gated behind `S.cfg.shoulderCaution` and reserved for BALLISTIC
+    anterior loading "no cue can make safe" — a strict seated press is neither
+    ballistic nor something a caution toggle should be able to switch back
+    into auto-generation. `fixedBarPressRisk` is UNCONDITIONAL like
+    `standingPressRisk` — checked in `pickEx`'s `baseFor` and `dayTemplate`'s
+    `canPlaceFoundation` with no toggle escape hatch — and carries its own
+    warning line in `customExWarnings` naming the actual mechanism.
+  - **Reachable from the swap list and Custom Session's search with no extra
+    work** — `renderSwapSearchResults` has never checked any risk flag (only
+    `hipRisk`/`plyoHidden`/`kneeCautionBlocks`/`userAvoids`), so a flag that
+    only gates `pickEx`/`canPlaceFoundation` is invisible to it by
+    construction, same as `db_hang_clean_jerk`.
+  - Verified: syntax gate, a 12-assertion test (entry shape, the estimator not
+    throwing, the swap-list search surfacing it, `customExWarnings` showing
+    the fixed-bar-press message and NOT the lower-back or ballistic ones, and
+    a 10-week sweep on all three schedule profiles confirming zero
+    auto-generated appearances), `--smoke`, `render-smoke.js`, and the full
+    case-study harness — all 7 scenarios byte-identical, since a flag that
+    only the generator's own gates read can't move anything it never reaches.
+- **`'dip_bars'` + the Pyramid's triceps rung (2026-09-27)** — Sam: *"I would
+  love to be able to do my pyramid in my apartment gym but there are no dip bars
+  there."* Only the YMCA has them. The ×2 rung was dips with `eq:['bodyweight']`,
+  and `pyramidExOK` grants 'bodyweight' unconditionally (copied from pickEx), so
+  it resolved at EVERY gym — every prescribed Pyramid night was asking for dips
+  somewhere without bars, and `PYRAMID_EXCLUDED_GYMS` already keeps it off the
+  YMCA, the one place that has them. Same shape as `'own_gear'`: a distinct
+  token, carried only by the `ymca` preset.
+  - Rung is now `pattern:'triceps'` with options dips [`dip_bars`] →
+    **Rope Pushdown** [`cables`] → **DB Skull Crushers** [`dumbbells`]. Apartment
+    resolves to the pushdown (shoulder-neutral, elbow-tolerant at 200 reps);
+    Westminster and Mom and Dad's (no stack) to skull crushers. NOT bench dips
+    (banned) and NOT diamond push-ups (the ×3 rung is already push-ups, and the
+    close-hand bottom is the shoulder position this file avoids). Real EX ids, so
+    logged volume reconciles with history.
+  - Verified: apartment/Westminster/Mom and Dad's now resolve five rungs and ARE
+    prescribed on a ≥75-min evening; YMCA still dips (still not prescribed there).
+    Render smoke 245/245; all 7 case-study scenarios byte-identical to HEAD.
+  - **Generator follow-up, same day (Sam: "yes")**: EX `tricep_dips` AND
+    `dip_bar_leg_lifts` are now `eq:['dip_bars']` too — both were
+    `['bodyweight']`, so the generator could program them at any gym. Two
+    knock-ons handled: `dip_bars` is a HOST, not resistance, so it is added to
+    the bodyweight/medball exclusion in BOTH warm-up tests (`flagFirstWorkingSet`'s
+    `scalable` and `renderWorkout`'s `pctScalable`) — otherwise dips would
+    suddenly get a 50/75/90% ramp. `loadClass` needed nothing (not in
+    `RESISTANCE`, so still 'bw'). The triceps slot's loss of its only compound
+    is absorbed by pickEx's existing tier 2.5 (`isoRelax`).
+    **The case-study harness CANNOT see this** — every scenario trains at the
+    YMCA, which has bars, so its byte-identical result proves nothing here.
+    Measured with a separate daily-replan sim, lunches at the YMCA, evenings at
+    the named gym, 10 weeks vs HEAD: lunch+3-evening is identical (all 10 dips
+    land on YMCA lunches); 3-evening swaps 4 dips → 4 Rope Pushdowns (apartment)
+    / 4 DB Overhead Extensions (Westminster), with **every muscle's set total
+    identical**. Custom Session now warns "Needs dip bars" at the apartment
+    (`customExWarnings` now prints tokens with spaces instead of underscores).
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

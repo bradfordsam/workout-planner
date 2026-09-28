@@ -647,6 +647,27 @@ const EX = [
   // toggle-gated either).
   {id:'db_hang_clean_jerk',name:'Alternating Single-Arm DB Hang Clean & Jerk',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:3,rMax:5,rest:150,standingPressRisk:true,tags:['power','unilateral'],cue:'STANDING OVERHEAD PRESS — flagged for the lower back, same as Push Press. One DB hangs at arm\'s length in front of the thighs. Hinge slightly, then explode up through the hips and shrug the DB to the shoulder in one motion (the "clean"), rotating the elbow under and catching it racked at the shoulder, wrist straight. Without resetting, dip the knees a few inches and drive them straight up, punching the DB to lockout overhead (the "jerk"). Lower back to the shoulder, then to the hang, and alternate arms every rep. Full-body power expression — legs and hips do almost all the work in both the clean and the jerk; the arm is along for the ride, not lifting it. Land the catch soft in both positions, and stop the set the moment the catch gets sloppy.'},
   {id:'arnold_press',name:'Arnold Press',muscle:'shoulders',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Seated on a bench with back support. Start palms facing you, rotate to facing out as you press. All three delt heads involved. Control the descent.'},
+  // fixedBarPressRisk (2026-09-22) — Sam asked for Seated BB Military Press by
+  // name, was shown the conflict, and made the same call he made on
+  // db_hang_clean_jerk: add it for logging and weight-progression tracking,
+  // never let the generator reach for it on its own. SEATED clears the lower-
+  // back constraint fine (seated_db_press/arnold_press are the existing
+  // precedent), but a barbell fixes BOTH hands to one rigid bar at one grip
+  // width — the exact mechanism `bench` is banned outright for ("fixed hands,
+  // so the arms can't pick their own path") and the reason every other press
+  // in this pool, seated or standing, is dumbbell-only. Not `standingPressRisk`
+  // — that flag's own warning text names the LOWER BACK and would be actively
+  // wrong here; not `shoulderRisk` either, since that flag is toggle-gated
+  // behind `S.cfg.shoulderCaution` and reserved for BALLISTIC anterior loading
+  // ("no cue can make safe") — a strict seated press is neither ballistic nor
+  // something a toggle should be able to switch back into auto-generation.
+  // `fixedBarPressRisk` is UNCONDITIONAL, exactly like `standingPressRisk`:
+  // checked in `pickEx`'s `baseFor` and `dayTemplate`'s `canPlaceFoundation`
+  // with no caution-toggle escape hatch, carries its own warning line in
+  // `customExWarnings` naming the real reason, and is invisible to the swap
+  // list's filter (which never checked any risk flag) — reachable there and
+  // in Custom Session's search, same as the hang clean.
+  {id:'seated_bb_military_press',name:'Seated Barbell Military Press',muscle:'shoulders',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,fixedBarPressRisk:true,cue:'FIXED-BAR PRESS — flagged for the left shoulder, same reason bench press is on the avoid list: a barbell locks both hands to one rigid path with no room for either arm to find its own groove. Seated on a bench with back support (upright or slight incline), bar at clavicle height. Brace, press straight overhead to full lockout, lower under control back to the start. If the front of the shoulder objects at any point in the path, stop the set — the seated DB press and Arnold press give the same movement with a bar path each arm controls.'},
   {id:'db_lateral',name:'DB Lateral Raise',muscle:'shoulders',type:'isolation',eq:['dumbbells'],rMin:12,rMax:20,rest:120,cue:'Hinge the torso forward to about 70° from vertical — a real lean, not a nod. That lean is what moves the side delt into line with gravity and takes the traps off the job; standing bolt upright hands half the set to the traps. Let the arms travel FORWARD about 45° from your sides rather than straight out to the side, which is where the shoulder blade actually points (the scapular plane) and where the joint has room. Lead with the elbows and REACH the hands away from you as you rise, as if scraping them up a wall — reaching keeps the resistance arm long so the delt keeps working instead of the arm folding in. Stop at shoulder height, pause a beat, then take 3 counts down. Go light: if the shoulders shrug up toward the ears, the weight has already won.'},
   {id:'cable_lateral',name:'Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Low pulley, cable running across the body, working arm on the far side. Lean the torso AWAY from the stack to about 70° from vertical and let that lean stay put for the whole set — it is what lines the side delt up with the cable and keeps the traps out. Arm travels forward about 45°, not straight out to the side. Reach the hand away from you the whole way up, as if scraping it up a wall, and stop at shoulder height. The cable holds tension at the BOTTOM where a dumbbell goes slack, which is the reason to pick this over the dumbbell version, so resist all the way down instead of letting it snap back.'},
   {id:'lying_cable_lat',name:'Lying Cable Lateral Raise',muscle:'shoulders',type:'isolation',eq:['cables'],rMin:12,rMax:20,rest:120,cue:'Lie sideways, cable from low pulley. Raise arm up. Slow descent. Excellent lateral delt isolation.'},
@@ -694,7 +715,7 @@ const EX = [
   {id:'skull_crushers',name:'DB Skull Crushers',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,rest:120,cue:'Lower DBs toward forehead with control — 2 counts down. Elbows slightly flared. Press back up. This is not a speed exercise.'},
   {id:'diamond_pu',name:'Diamond Push-ups',muscle:'triceps',type:'isolation',eq:['bodyweight'],rMin:10,rMax:15,rest:120,cue:'Hands close together. Elbows track backward. Full lockout at top, controlled descent. Add vest for progressive overload.'},
   {id:'ezbar_skull',name:'EZ Bar Skull Crushers',muscle:'triceps',type:'isolation',eq:['barbell'],rMin:8,rMax:12,rest:120,cue:'Lie on a bench holding an EZ bar on the angled grips, arms extended over your chest. Keeping the elbows fixed and pointed up, lower the bar toward your forehead (or just behind the head for a bigger long-head stretch) — 2 counts down. Press back to lockout without letting the elbows flare out. Strict and controlled, never a speed exercise.'},
-  {id:'tricep_dips',name:'Tricep Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,rest:120,cue:'PARALLEL BARS ONLY — not the bench-edge version. Bench dips pin the hands behind the body and load the shoulder at its extension end range, which is the exact position the front of the left shoulder objects to; parallel bars let the arms hang under the torso instead. NOT flagged shoulderRisk (it\'s the only compound in the triceps pool) — the depth cap is what keeps it safe, so respect it. Keep the torso fairly upright to bias the triceps (leaning forward shifts load to the chest). Lower until the elbows reach about 90° and NO further, keeping them tucked close to the body — don\'t let them flare. Press back to full lockout and squeeze the triceps at the top. Slow descent. Add a vest or plate on the lap to overload.'},
+  {id:'tricep_dips',name:'Tricep Dips',muscle:'triceps',type:'compound',eq:['dip_bars'],rMin:8,rMax:15,rest:120,cue:'PARALLEL BARS ONLY — not the bench-edge version. Bench dips pin the hands behind the body and load the shoulder at its extension end range, which is the exact position the front of the left shoulder objects to; parallel bars let the arms hang under the torso instead. NOT flagged shoulderRisk (it\'s the only compound in the triceps pool) — the depth cap is what keeps it safe, so respect it. Keep the torso fairly upright to bias the triceps (leaning forward shifts load to the chest). Lower until the elbows reach about 90° and NO further, keeping them tucked close to the body — don\'t let them flare. Press back to full lockout and squeeze the triceps at the top. Slow descent. Add a vest or plate on the lap to overload.'},
   {id:'squat',name:'Barbell Back Squat',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Bar on upper traps. Squat BAREFOOT or in flat socks if the floor allows — a compressible running sole is a soft spot between you and the ground, and bare feet let the toes spread and the arch actually grip. Screw the feet into the floor and drive the knees slightly OUT over the toes as you descend, rotating from the hips: that is what keeps the knee tracking properly and brings the glutes into the effort instead of letting the knees fall in. Sit back and down to full depth, then drive the floor away.',tags:['quad','squat'],hipRisk:true},
   {id:'bulgarian',name:'Bulgarian Split Squat (RFESS)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:180,cue:'Rear foot elevated, front foot well forward. Keep the front shin closer to vertical and torso upright — this caps front-hip flexion well short of a deep bilateral squat, and the staggered stance keeps the working hip neutral-to-externally-rotated. The hip-friendly substitute for deep squats. Drive through front heel. Count reps per leg.',tags:['quad','squat','unilateral']},
   {id:'goblet',name:'Goblet Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:10,rest:150,cue:'Hold the DB at the chest. Barefoot or flat socks if you can, toes spread, feet gripping the floor. Drive the knees slightly OUT over the toes on the way down and keep them there — elbows end up between the knees at the bottom. Full depth, controlled descent.',tags:['quad','squat'],hipRisk:true},
@@ -829,6 +850,44 @@ const EX = [
   {id:'sa_incline_press',name:'Single-Arm Incline DB Press',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:8,rMax:12,rest:90,cue:'Incline bench, one dumbbell only. Press it while the free side of your body has NOTHING holding it down — the core must brace hard against the roll toward the loaded side the entire set. Keep both shoulder blades and hips square on the bench. A press that\'s secretly an anti-rotation drill. Count per side.',tags:['asymmetrical','anti-rotation']},
   {id:'split_stance_row',name:'Split-Stance Cable Row',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:12,rest:90,cue:'Staggered stance (opposite foot forward from the rowing arm), torso tall. Row the cable to your ribs without letting the shoulders or hips rotate open — the narrow stance gives the core nowhere to hide. Slow return, resist the twist the whole way back. Count per side.',tags:['asymmetrical','anti-rotation']},
   {id:'ab_rollout',name:'Ab Rollout (Barbell/Wheel)',muscle:'core',type:'rotational',eq:['barbell','bodyweight'],rMin:6,rMax:12,rest:90,noWeight:true,cue:'Kneel with hands on a loaded barbell (or ab wheel). Brace, tuck the pelvis, and roll out only as far as you can keep the lower back from arching — the abs resist extension the entire way out — then drag yourself back with lats and abs together. A shorter range done rigid beats a long saggy rep. The king of anti-extension work.',tags:['anti-extension']},
+  // Boat Pose / Navasana (2026-09-14, Sam sent EMG/biomechanics research and
+  // asked for it to be incorporated). LEADS the flexion isolation block rather
+  // than being appended, and that placement is the actual implementation of
+  // the research, not a formatting choice: the whole submission is an argument
+  // that Navasana beats crunches for rectus abdominis and transverse abdominis
+  // activation, and EX ORDER IS LOAD-BEARING for exactly this reason — leastUsed
+  // breaks ties by array position, and this slot recurs roughly ONCE A WEEK
+  // (see CORE_CYCLE: 5-way tag rotation on domDay, and core is a forced
+  // near-daily slot). MEASURED before this change, 14 simulated weeks,
+  // lunch+3-evening: of 15 flexion-isolation movements, only the first two in
+  // the array (crunches, situps) ever got picked — 8 and 6 times — and the
+  // other 13, everything from hanging_leg_raise on down, took ZERO. Appending
+  // Navasana below them would have made it the 16th movement nobody ever gets.
+  // Leading the block instead means it wins that weekly slot outright, which is
+  // what "isometric holds requiring balance elicit some of the highest
+  // activation levels... compared to traditional crunches" is actually asking
+  // for. `crunches` is demoted, not deleted (same treatment `bb_row` got when
+  // `inverted_row` was promoted for the same reason) — it stays available for
+  // the swap list and Custom Session, just no longer the generator's default.
+  //
+  // Tagged 'flexion' (not just 'isometric') so it is reachable through the same
+  // slot crunches was — `l_sits` and `reverse_plank` are the cautionary
+  // counter-example, both pure `isometric`-tagged V-holds with no 'flexion' tag
+  // and no CORE_CYCLE category ever targets 'isometric' alone, so both have
+  // been swap-list-only since they were added. Not a bug to fix here (they may
+  // be deliberate manual-only entries), but the reason Navasana needed the
+  // extra tag to actually land where the research is arguing it should.
+  //
+  // Hip flexion, no rotation, self-selected range under bodyweight only — the
+  // same category `body_v`, `hanging_leg_raise` and `incline_leg_raise` already
+  // clear unflagged, and the research's own note names `body_v` as
+  // "structurally identical" to Navasana. The FAI constraint bans LOADED
+  // end-range rotation through the hip, not sagittal flexion, so no `hipRisk`
+  // flag. The form cue below folds in the research's own regression (bend the
+  // knees to shorten the hip-flexor lever arm the moment the low back starts
+  // to round) rather than restating the theory — same "cue carries the
+  // constraint" pattern every injury-adjacent entry in this file already uses.
+  {id:'boat_pose',name:'Boat Pose (Navasana)',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:20,rMax:40,rest:75,noWeight:true,isTimed:true,cue:'Sit with knees bent, feet flat, then lean back and lift the feet until your torso and shins form a V, balanced on your sit bones — arms reach forward, parallel to the floor. Draw the belly button toward the spine and keep the chest lifted the whole hold. The low back rounding is the tell that the abs have quit and the hip flexors have taken over: the moment it happens, either lift the chest back up or bend the knees further (shins toward parallel to the floor) to shorten the hold and regress. Straighten the legs further to progress toward the full pose. Count seconds.',tags:['flexion','isometric']},
   {id:'crunches',name:'Crunches',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on back, knees bent. Curl shoulder blades off the floor, exhale at the top. Keep lower back pressed down — small controlled range, no momentum.',tags:['flexion']},
   // noWeight REMOVED 2026-08-03 (from Sam: "sit up can be weighted"). The cue
   // already told him to hold a plate; noWeight:true then hid the weight field,
@@ -844,7 +903,7 @@ const EX = [
   {id:'toe_touch_crunch',name:'Toe Touch Crunch',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'On your back, legs straight up at vertical. Crunch the shoulder blades off the floor and reach both hands toward your toes — the range is short, the squeeze is the point. Lower the shoulders back down under control; legs stay tall the whole set. Exhale on every reach.',tags:['flexion']},
   {id:'flutter_kicks',name:'Flutter Kicks',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:20,rMax:45,rest:60,noWeight:true,isTimed:true,cue:'On your back, hands under the glutes, legs straight and hovering a few inches up. Small, fast alternating kicks — the lower back stays PRESSED into the floor the entire time; if it arches, raise the legs higher or stop the set. Count seconds.',tags:['flexion','anti-extension']},
   {id:'three_way_crunch',name:'3-Way Crunch (Middle + Sides)',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:9,rMax:15,rest:60,noWeight:true,cue:'One "round" is three crunches: straight up the middle, then reaching toward the LEFT knee, then toward the RIGHT — hitting rectus and both obliques in turn. Shoulder blades off the floor each rep, exhale at every top. Count total crunches (a multiple of 3).',tags:['flexion','lateral']},
-  {id:'dip_bar_leg_lifts',name:'Dip Bar Leg Lifts',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:8,rMax:15,rest:90,noWeight:true,cue:'Support yourself on parallel dip bars, arms locked, shoulders pressed down. Curl the pelvis and raise the knees (or straight legs to progress) to hip height — no swinging. Lower under control. Same lower-ab drive as hanging raises, without grip being the limiter.',tags:['flexion']},
+  {id:'dip_bar_leg_lifts',name:'Dip Bar Leg Lifts',muscle:'core',type:'isolation',eq:['dip_bars'],rMin:8,rMax:15,rest:90,noWeight:true,cue:'Support yourself on parallel dip bars, arms locked, shoulders pressed down. Curl the pelvis and raise the knees (or straight legs to progress) to hip height — no swinging. Lower under control. Same lower-ab drive as hanging raises, without grip being the limiter.',tags:['flexion']},
   {id:'half_pullup_leg_lifts',name:'Half Pull-up Leg Lifts',muscle:'core',type:'isolation',eq:['pullup_bar'],rMin:5,rMax:10,rest:120,noWeight:true,cue:'Pull to the HALF pull-up position — elbows at 90° — and hold yourself there while you raise the knees or straight legs to hip height and lower them. The iso pull-up hold hammers the lats and grip while the abs do the lifting. Come down when the hold breaks, not when the abs quit.',tags:['flexion','isometric']},
   // Dragon Flag progression track — 3 tiers, gated by dragonFlagUnlocked() below.
   // Tier 1 is always available; Tier 2/3 unlock after logging 10 clean reps in
@@ -1419,7 +1478,11 @@ const EQUIPMENT_PRESETS = {
   ymca: {
     name: '🏋️ YMCA',
     desc: 'Full gym with all equipment available',
-    equipment: ['cardio_machine', 'barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'bodyweight'],
+    // 'dip_bars' (2026-09-27): Sam confirmed the YMCA is the ONLY place he has
+    // parallel dip bars. Its own token rather than 'bodyweight', because pickEx
+    // and pyramidExOK both grant 'bodyweight' unconditionally — a dip rung
+    // tagged bodyweight was "available" at every gym, including the apartment.
+    equipment: ['cardio_machine', 'barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'dip_bars', 'bodyweight'],
     location: 'ymca'
   },
   westminster_gym: {
@@ -2814,9 +2877,32 @@ const PYRAMID_LADDER=[
     {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,secsPerRep:3,
      cue:'Supinated grip, full dead hang, elbows down and back.'},
   ]},
-  {mult:2,pattern:'dip',options:[
-    {id:'tricep_dips',name:'Dips',muscle:'triceps',type:'compound',eq:['bodyweight'],rMin:8,rMax:15,secsPerRep:2.5,
+  // THE ×2 RUNG NEEDS A SUBSTITUTE EVERYWHERE THE LADDER IS ACTUALLY RUN
+  // (2026-09-27). Sam: "I would love to be able to do my pyramid in my apartment
+  // gym but there are no dip bars there." Dips were tagged eq:['bodyweight'],
+  // which pyramidExOK grants unconditionally, so the rung resolved to dips at
+  // EVERY gym. He has dip bars at the YMCA only — and the YMCA is the one gym in
+  // PYRAMID_EXCLUDED_GYMS. So every night this ladder has ever been PRESCRIBED
+  // asked for a movement the gym could not host. Dips now need 'dip_bars', and
+  // the rung falls through to a triceps substitute:
+  //   · Rope pushdown first (apartment gym has a cable stack with a rope). Elbows
+  //     pinned at the sides means the shoulder never leaves neutral, and it is
+  //     the most elbow-tolerant triceps movement at the rep counts this rung
+  //     reaches (200 at peak 10) — the load is picked light, the reps do the work.
+  //   · DB skull crushers where there is no stack (Westminster, Mom and Dad's).
+  // Deliberately NOT bench dips (banned in the dips cue — hands pinned behind the
+  // torso is the left shoulder's worst position) and NOT diamond push-ups: the
+  // ×3 rung is already push-ups, and stacking a second fixed-hand floor press on
+  // it would put 5 units of every rung on the shoulder the SHOULDER STOP cue
+  // exists to protect. Real EX ids, so logged volume and history reconcile with
+  // ordinary sessions exactly as the Cindy/Pyramid push-up id does.
+  {mult:2,pattern:'triceps',options:[
+    {id:'tricep_dips',name:'Dips',muscle:'triceps',type:'compound',eq:['dip_bars'],rMin:8,rMax:15,secsPerRep:2.5,
      cue:'PARALLEL BARS ONLY — never the bench-edge version, which pins the hands behind the body and loads the left shoulder exactly where it objects. SHOULDER STOP: elbows to about 90° and no further, tucked close, then press to lockout. At 200 reps the depth cap is the whole safety margin, and it is the first thing fatigue takes away — if you cannot hold the stop, end the rung.'},
+    {id:'pushdown',name:'Rope Pushdown',muscle:'triceps',type:'isolation',eq:['cables'],rMin:8,rMax:12,secsPerRep:2,
+     cue:'Stands in for dips on the ×2 rung where there are no dip bars. Rope on the high pulley, elbows pinned to your sides, spread the rope apart at lockout. Pick a LIGHT stack — this rung reaches 200 reps at the top of the ladder, so the weight is chosen for the last rung, not the first. Leave the pin set; don\'t re-rack between rungs.'},
+    {id:'skull_crushers',name:'DB Skull Crushers',muscle:'triceps',type:'isolation',eq:['dumbbells'],rMin:8,rMax:12,secsPerRep:2.5,
+     cue:'Stands in for dips on the ×2 rung where there are no dip bars or cable stack. On your back on a bench, a light DB in each hand, upper arms vertical and still — bend only at the elbows, lowering beside the head, then extend. Light enough to keep the elbows quiet at high total reps; if the elbows start to ache, stop the rung rather than finishing it.'},
   ]},
   {mult:3,pattern:'push',options:[
     {id:'bw_pushups',name:'Push-ups',muscle:'chest',type:'compound',eq:['bodyweight'],rMin:12,rMax:25,secsPerRep:2,
@@ -3867,6 +3953,7 @@ function pickEx(slot,equip,used,isLunch,budget,freq){
     !(S.cfg.hipCaution && e.hipRisk) &&
     !(S.cfg.shoulderCaution && e.shoulderRisk) &&
     !e.standingPressRisk &&
+    !e.fixedBarPressRisk &&
     !plyoHidden(e) &&
     !userAvoids(e) &&
     dragonFlagUnlocked(e.id) &&
@@ -4026,7 +4113,10 @@ function flagFirstWorkingSet(exs){
   // lead the session — the first/warm-up slot needs a loadable exercise.
   // Med balls are excluded too: they're loaded but come in fixed ~5 lb jumps,
   // so "50% / 75% / 90%" acclimation percentages are meaningless for them.
-  const scalable=e=>!e.noWeight&&!e.isTimed&&(e.eq||[]).some(q=>q!=='bodyweight'&&q!=='medball'&&q!=='medball_wall');
+  // 'dip_bars' (2026-09-27) is a HOST like the bodyweight token, not a resistance
+  // implement — listed here so dips keep exactly the no-ramp behaviour they had as
+  // eq:['bodyweight']. Same exclusion in renderWorkout's pctScalable.
+  const scalable=e=>!e.noWeight&&!e.isTimed&&(e.eq||[]).some(q=>q!=='bodyweight'&&q!=='dip_bars'&&q!=='medball'&&q!=='medball_wall');
   // ── SEQUENCING (2026-09-10) ──
   // Heavy compounds first, while the nervous system is freshest and the lift
   // that recruits the most muscle can actually be loaded; then the accessories,
@@ -4604,7 +4694,7 @@ function genProgram(cfg,av,workoutHistoryLog){
       if(!def)return false;
       return (def.eq||[]).some(q=>eqSet.has(q))
         &&!(S.cfg.hipCaution&&def.hipRisk)&&!(S.cfg.shoulderCaution&&def.shoulderRisk)
-        &&!def.standingPressRisk
+        &&!def.standingPressRisk&&!def.fixedBarPressRisk
         &&!plyoHidden(def)&&!userAvoids(def)
         &&!kneeCautionBlocks(def)&&dragonFlagUnlocked(def.id)
         &&!(isLunch&&def.highSweat);
@@ -9803,7 +9893,7 @@ function renderWorkout(){
   // %-scalable = actually loadable in fine increments; med balls, bodyweight,
   // and timed holds are excluded — "heavy compound ahead" and 50/75/90%
   // acclimation percentages make no sense for a 10 lb ball or a plank.
-  const pctScalable=!ex.noWeight&&!ex.isTimed&&!scaleDef&&(ex.eq||[]).some(q=>q!=='bodyweight'&&q!=='medball'&&q!=='medball_wall');
+  const pctScalable=!ex.noWeight&&!ex.isTimed&&!scaleDef&&(ex.eq||[]).some(q=>q!=='bodyweight'&&q!=='dip_bars'&&q!=='medball'&&q!=='medball_wall');
   const isHeavyPressFirst=ex.isFirst&&pctScalable&&ex.type==='compound'&&ex.rMax<=8&&['chest','shoulders','back'].includes(ex.muscle);
   const machineModeHTML=isHeavyPressFirst?`<div class='wu-box' style='border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:var(--warn)'>🔧 Machine Mode Prehab (heavy compound ahead — lock in the shoulder first)</div>
@@ -10339,6 +10429,7 @@ function customExWarnings(ex,opts){
   if(S.cfg.hipCaution&&ex.hipRisk)add('&#9888;&#65039;',`Flagged for the left hip (FAI history) — loaded end-range rotation or hard landings.`);
   if(S.cfg.shoulderCaution&&ex.shoulderRisk)add('&#9888;&#65039;',`Flagged for the left shoulder — ballistic anterior loading, which no cue makes safe.`);
   if(ex.standingPressRisk)add('&#9888;&#65039;',`Standing overhead press — flagged for the lower back, same reason OHP/Push Press/Thrusters are on the avoid list. Never programmed automatically, but it's your call here.`);
+  if(ex.fixedBarPressRisk)add('&#9888;&#65039;',`Fixed-bar press — flagged for the left shoulder, same reason bench press is on the avoid list: a barbell locks both hands to one path neither arm can adjust. Never programmed automatically, but it's your call here.`);
   if(plyoHidden(ex))add('&#9888;&#65039;',`Impact plyo — the generator hides these under hip caution; only the low-impact subset is cleared.`);
   if(S.cfg.kneeCaution&&ex.muscle==='legs'&&!KNEE_SAFE_IDS.has(ex.id))add('&#9888;&#65039;',`Outside the knee-safe list that Knee Caution mode whitelists.`);
   if(!dragonFlagUnlocked(ex.id))add('&#128274;',`The earlier tier of this progression isn't logged at 10 reps yet.`);
@@ -10348,7 +10439,7 @@ function customExWarnings(ex,opts){
   if((ex.eq||[]).length&&!ex.eq.some(q=>eq.has(q))){
     add('&#129520;',ex.synthetic
       ?`Not in the exercise database, so the app can't confirm the gear is at ${preset?.name||'this gym'}.`
-      :`Needs ${ex.eq.join(' or ')} — ${preset?.name||'this gym'} doesn't list it.`);
+      :`Needs ${ex.eq.map(q=>q.replace(/_/g,' ')).join(' or ')} — ${preset?.name||'this gym'} doesn't list it.`);
   }
   return out;
 }
