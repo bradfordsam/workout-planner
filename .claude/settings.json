@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/skill-suites.js\"",
+            "shell": "bash",
+            "timeout": 10,
+            "statusMessage": "Loading skill suites..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/skill-suites.js\" --session-start",
+            "shell": "bash",
+            "timeout": 10,
+            "async": false
+          }
+        ]
+      }
+    ]
+  }
+}

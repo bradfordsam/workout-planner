@@ -62,6 +62,54 @@ Config-file hygiene: if a JSON config (settings.json etc.) fails to parse,
 check for a UTF-8 BOM first (PowerShell's default encoding adds one) and
 strip it before other debugging.
 
+## Skill suites fire automatically on code edits (2026-09-28)
+
+Sam: *"i want /superpowers to trigger every time we edit the code base of this
+app"*, then *"also with G stack"* and *"also use the impeccable skill to edit the
+UI of the app"*. Wired as a hook, not a memory or a CLAUDE.md line, because only
+the harness can act on an EVENT — see `.claude/settings.json` +
+`.claude/hooks/skill-suites.js`.
+
+- **`/superpowers` is not a slash command.** The plugin ships no `commands/`
+  directory; what it has is a SessionStart hook that injects its
+  `using-superpowers` skill, plus 15 skills invoked through the Skill tool. So
+  the hook names the individual skills rather than pretending a command exists.
+- **PreToolUse on `Edit|Write|MultiEdit|NotebookEdit`**, filtered to the app's
+  own source: `index.html`, `sw.js`, `manifest.json`, `analysis/*.js`. Markdown,
+  `.claude/` config and scratchpad copies are deliberately excluded — a reminder
+  that fires on a doc edit is the "monitor that fires on correct plans" failure
+  this file already has a section about.
+- **FULL block once per session, one-liner on every edit after.** It does fire on
+  every edit, as asked, but a 1,800-character block in front of all ~25 edits of
+  a working session buries the work it exists to guide. The marker is
+  `os.tmpdir()/wp-skill-suites-<session_id>`, written with flag `wx` so the
+  check-and-set is atomic.
+- **It also closes a real gap in the superpowers plugin**: that plugin's
+  SessionStart matcher is `startup|clear|compact`, so a **resumed** session gets
+  none of the suites — which is exactly what happened in the session that asked
+  for this. Hence the second entry here, `SessionStart` matcher `resume`.
+- **Written in Node, not a shell one-liner, because `jq` IS NOT INSTALLED on this
+  machine.** Every hook example in the docs pipes through jq, and a hook whose
+  command is not found fails silently — the same invisible-dead-code trap the
+  EX-ordering note warns about. Node is already this repo's verify dependency.
+- **Never blocks.** Every path exits 0 and the whole body is in a try/catch that
+  prints nothing on error. Pushing to main deploys the site Sam uses mid-workout;
+  a broken reminder must not be able to stop him editing it.
+- **`additionalContext` on `PreToolUse` is honored** — the schema documents it
+  under `hookSpecificOutput` but lists only `permissionDecision` /
+  `permissionDecisionReason` / `updatedInput` as PreToolUse-specific, so this was
+  not safe to assume. Proved live with a sentinel: the hook ran, the shell
+  command appended to the sentinel file, and the FULL block came back on the
+  first edit with the one-liner on the second.
+- Verified: 12-case pipe test (fires on all four app-source shapes and on Windows
+  backslash paths; silent on `.md`, `.claude/`, scratchpad, missing `file_path`,
+  empty stdin, garbage stdin, null `tool_input`), settings-schema check, the live
+  sentinel proof above, then `render-smoke` back to 245/245 and the syntax gate
+  clean after reverting the proof edit.
+- **If the hook stops firing**, the usual cause is the settings watcher rather
+  than the hook: open `/hooks` once to reload config, or restart. `/hooks` is
+  also where to review or disable it.
+
 ## Architecture notes
 
 - Cue presentation (2026-08-05): the "Feel it" line and the collapsible
