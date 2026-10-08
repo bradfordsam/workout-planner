@@ -219,6 +219,10 @@ ok(call("tensionNote(exById('wall_sit'))",'t3')==='','a timed hold gets no tempo
 ok(call("tensionNote(exById('pushdown'))",'t4').includes('technical failure'),'hypertrophy work gets the tension line');
 ok(call("tensionNote(exById('pullups'))",'t5')==='','bodyweight work gets no tempo line');
 ok(call("tensionNote(exById('crunches'))",'t6')==='','core work gets no tempo line');
+// stretchRot is seeded off Date.now(), so walk 60 days to cover every rotation offset.
+const bosuIn=(k)=>call(`(function(){const real=Date.now;try{return Array.from({length:60},(_,d)=>{Date.now=()=>real()+d*864e5;return prepPlan({isLegDay:true,equip:EQUIPMENT_PRESETS['${k}'].equipment});}).some(p=>JSON.stringify(p).includes('Balance Lunges'));}finally{Date.now=real;}})()`,'bosu '+k);
+ok(bosuIn('ymca'),'Balance Lunges can appear at the YMCA (has a Bosu)');
+ok(!bosuIn('apartment_gym'),'Balance Lunges never appear without a Bosu');
 clean(call("TENSION_ROW(exById('pushdown'))",'TENSION_ROW'),'TENSION_ROW');
 ok(call("TENSION_ROW(exById('wall_sit'))",'TENSION_ROW empty')==='','TENSION_ROW empty when there is no note');
 

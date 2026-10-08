@@ -1490,7 +1490,8 @@ const EQUIPMENT_PRESETS = {
     // parallel dip bars. Its own token rather than 'bodyweight', because pickEx
     // and pyramidExOK both grant 'bodyweight' unconditionally — a dip rung
     // tagged bodyweight was "available" at every gym, including the apartment.
-    equipment: ['cardio_machine', 'barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'dip_bars', 'bodyweight'],
+    // 'bosu' (2026-10-08): only known Bosu ball. Gates prep items with eq:['bosu'].
+    equipment: ['cardio_machine', 'barbell', 'dumbbells', 'cables', 'pullup_bar', 'machine', 'medball', 'medball_wall', 'dip_bars', 'bosu', 'bodyweight'],
     location: 'ymca'
   },
   westminster_gym: {
@@ -7957,7 +7958,7 @@ const PT_HIP_POOL=[
   {n:'Medicine Ball Rollout (3 directions)',d:'5 reps per direction/side · stand on one leg with the other foot resting on a med ball, hands free. Roll the ball out and back — straight FORWARD, out at 45°, then straight OUT TO THE SIDE — while the stance hip stays level and the stance knee tracks over the toes. The reaching leg is light; the stance hip is doing all the work',f:['hip','glute']},
   {n:'360 Lunges (circle stepping)',d:'1 circle/side · step out into a lunge and return to standing at each hour of a clock face — 12, 1:30, 3, 4:30, 6 — then reverse back around. Every step lands, sinks, and returns under control. This is the multi-directional hip loading in its cheapest form',f:['hip','adductor','glute']},
   {n:'Wall Kicks',d:'12 reps/side · stand facing a wall, hands on it at chest height, weight on one leg. Drive the other knee up to hip height and snap the foot down again, fast but quiet — the stance glute holds the pelvis dead level the whole time',f:['hip','glute']},
-  {n:'Balance Lunges',d:'8 reps/side · front foot on a Bosu ball (YMCA; flat floor elsewhere) · reverse lunge, then stand back up WITHOUT the back foot touching down — drive through the front heel and pause 1s on one leg at the top before the next rep',f:['hip','glute']},
+  {n:'Balance Lunges',eq:['bosu'],d:'8 reps/side · front foot on a Bosu ball · reverse lunge, then stand back up WITHOUT the back foot touching down — drive through the front heel and pause 1s on one leg at the top before the next rep',f:['hip','glute']},
   {n:'Balance Side Lunges',d:'8 reps/side · step out into a lateral lunge, sit into that hip with the other leg straight, then push back to a one-legged stand without the stepping foot touching down. Hold 1s at the top',f:['hip','adductor','glute']},
   {n:'Monster Walks',d:'10 steps each way · band above the knees, sink to a quarter-squat and walk forward with wide, deliberate steps pushing the knees OUT against the band — then walk it back. Feet never come closer than shoulder width',f:['glute','hip'],band:true},
   {n:'Banded Defensive Slides',d:'10 steps each way · band above the knees, athletic stance — chest up, hips back, hands ready — and shuffle sideways without the feet clicking together. Push off the trailing leg, land wide, stay low the whole way',f:['glute','hip','adductor'],band:true},
@@ -8214,8 +8215,13 @@ function prepPlan(o){
   const isLunch=!!o.isLunch, isLegDay=!!o.isLegDay;
   const cap=(o.capMins||(isLunch?PREP_BUDGET_MINS.lunch:PREP_BUDGET_MINS.evening))*60;
   const want=(evening,lunch)=>isLunch?lunch:evening;
-  const legPool=[...HIP_POOL,...LOWER_MOBILITY_POOL].filter(prepIsLeg);
-  const deskPool=[...HIP_POOL,...LOWER_MOBILITY_POOL].filter(prepIsDesk);
+  // An item with eq (e.g. Balance Lunges on a Bosu) only appears where that kit
+  // is on hand; with no equipment passed it is left out, so the rotation deals
+  // a different movement instead of one that can't be done.
+  const have=new Set(o.equip||[]);
+  const hasKit=(it)=>!it.eq||it.eq.every(e=>have.has(e));
+  const legPool=[...HIP_POOL,...LOWER_MOBILITY_POOL].filter(prepIsLeg).filter(hasKit);
+  const deskPool=[...HIP_POOL,...LOWER_MOBILITY_POOL].filter(prepIsDesk).filter(hasKit);
   // Decompression and the desk reversal are FIXED — they are the two things that
   // answer "my hip pinches" and "I came straight from a chair", so they are not
   // subject to the rotation or the budget.
@@ -8225,7 +8231,7 @@ function prepPlan(o){
   const rotating=[
     isLegDay?{key:'legprep',title:'🦵 Leg Prep · hamstrings, Achilles, adductors',color:'var(--warn)',pool:legPool,n:want(4,2)}:null,
     {key:'deskreset',title:'🧍 Hip &amp; Spine Reset',color:'var(--ok)',pool:deskPool,n:want(isLegDay?2:4,isLegDay?1:3)},
-    {key:'pthip',title:'🩺 PT Hip Program',color:'#c084fc',pool:PT_HIP_POOL,n:want(3,2)},
+    {key:'pthip',title:'🩺 PT Hip Program',color:'#c084fc',pool:PT_HIP_POOL.filter(hasKit),n:want(3,2)},
     o.shoulderCaution?{key:'shoulder',title:'🩹 Achy Shoulder',color:'var(--acc)',pool:SHOULDER_POOL,n:want(2,1)}:null,
     {key:'upper',title:'🔄 Upper Body',color:'var(--acc)',pool:UPPER_MOBILITY_POOL,n:want(2,1)},
   ].filter(Boolean);
@@ -8413,7 +8419,9 @@ function centuryOnlyDow(dow){
 // that is what needs to be warm. Rendered on the century card because on this
 // kind of day there is no workout screen to put it on.
 function centuryPrepHTML(){
+  const av=S.weekPlan?.availability?.[todayDow()];
   const p=prepPlan({isLunch:true,capMins:PREP_BUDGET_MINS.centuryLunch,upperFirst:true,
+    equip:equipForDow((av&&(av.lunchEquipment||av.equipment))||'ymca'),
     hipCaution:!!S.cfg?.hipCaution,shoulderCaution:!!S.cfg?.shoulderCaution});
   return`<div style='margin-top:10px;padding:10px 12px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.25);border-radius:10px'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:4px'>🔥 Before rep one · ~${p.mins} min</div>
@@ -9883,7 +9891,7 @@ function renderWorkout(){
   // than asked of the generator, so a swap or a preserved session is covered too.
   const wuRow=(it,i)=>`<div class='wu-row'><span class='wu-set' style='width:20px;font-size:11px'>${i+1}</span><span class='wu-val'>${it.n}</span><span style='color:var(--mut);font-size:12px'> · ${it.d}</span>${it.hold?`<button data-action='start-hold' data-secs='${it.hold}' style='margin-left:auto;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc2);border:none;border-radius:6px;padding:3px 8px;cursor:pointer'>${it.hold}s</button>`:''}</div>`;
   const isLegDay=exercises.some(e=>e.muscle==='legs');
-  const prep=prepPlan({isLunch:!!S.active.isLunch,isLegDay,hipCaution:!!S.cfg.hipCaution,shoulderCaution:!!S.cfg.shoulderCaution});
+  const prep=prepPlan({isLunch:!!S.active.isLunch,isLegDay,equip:equipForDow(S.active.equipmentKey||'ymca'),hipCaution:!!S.cfg.hipCaution,shoulderCaution:!!S.cfg.shoulderCaution});
   const prepHTML=exIdx===0?`<div class='wu-box' style='border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.04);margin-bottom:14px'>
     <div class='wu-title' style='color:#c084fc'>🔥 Prep · ~${prep.mins} min before rep one</div>
     <div class='wu-note' style='margin-top:0;margin-bottom:8px'>${isLegDay
