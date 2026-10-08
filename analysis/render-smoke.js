@@ -216,7 +216,9 @@ ok(Array.isArray(inv)&&inv.length===0,'generated sessions satisfy the length/pre
 ok(call("tensionNote(exById('snap_down'))",'t1').includes('SPEED'),'speed-tagged work gets the speed line, not a tempo');
 ok(call("tensionNote(exById('heavy_box_squat'))",'t2').includes('BAR SPEED'),'the heavy 1-5 tier gets the reserve line');
 ok(call("tensionNote(exById('wall_sit'))",'t3')==='','a timed hold gets no tempo line');
-ok(call("tensionNote(exById('pushdown'))",'t4').includes('TECHNICAL failure'),'hypertrophy work gets the tension line');
+ok(call("tensionNote(exById('pushdown'))",'t4').includes('technical failure'),'hypertrophy work gets the tension line');
+ok(call("tensionNote(exById('pullups'))",'t5')==='','bodyweight work gets no tempo line');
+ok(call("tensionNote(exById('crunches'))",'t6')==='','core work gets no tempo line');
 clean(call("TENSION_ROW(exById('pushdown'))",'TENSION_ROW'),'TENSION_ROW');
 ok(call("TENSION_ROW(exById('wall_sit'))",'TENSION_ROW empty')==='','TENSION_ROW empty when there is no note');
 
@@ -288,7 +290,8 @@ if(day){
   clean(w,'renderWorkout');
   ok(typeof w==='string'&&w.includes("class='view'"),'the workout screen keeps class="view"');
   ok(typeof w==='string'&&!w.includes("class='view rag"),'the workout screen still opts out of the rag layer');
-  ok(typeof w==='string'&&w.includes('Tension:'),'the tension line renders on the workout card');
+  const wantT=call("tensionNote(S.active.exercises[S.active.exIdx||0])!==''",'wantT');
+  ok(typeof w==='string'&&w.includes('Tension:')===wantT,'the tension line renders exactly when the current lift has one');
   // Every exercise index, so a bad template literal deeper in the list is caught.
   const n=(get('S.active')||{}).exercises.length;
   for(let i=0;i<n;i++){

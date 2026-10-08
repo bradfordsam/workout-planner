@@ -1388,11 +1388,19 @@ function tensionNote(ex){
   if(!ex)return'';
   const tags=ex.tags||[];
   if(ex.isTimed)return'';                                  // a hold has no eccentric to control
+  // Trimmed 2026-10-08 (Sam: "trim it further"). The generic tempo line is
+  // hypertrophy advice for LOADED lifts; on core, mobility, conditioning,
+  // bodyweight and the calf top-up it is noise repeated on every card.
+  // Speed and heavy-strength lines stay: they change how the rep is done.
   if(SPEED_TAGS.some(t=>tags.includes(t)))
     return'Trained by SPEED, not by time under tension — move the load as fast as you can and reset between reps. A slow negative here makes the rep worse, not harder.';
   if(tags.includes('strength'))
     return'Full range, braced, every rep. Stop the set when BAR SPEED drops off, and leave 1&ndash;2 reps in the tank &mdash; near-max work is governed by speed and reserve, not by grinding.';
-  return'Full range both ends, no half-reps and no momentum. Take '+ECCENTRIC_SECS+'&ndash;4 counts on the way DOWN and pause a beat in the stretched position. Stop at TECHNICAL failure &mdash; the rep where form starts to break &mdash; not at total failure. Tension is what grows the muscle; the pump is a by-product and is not the target.';
+  if(ex.noWeight||ex.calfTopUp||['core','hips','cardio'].includes(ex.muscle)
+     ||['mobility','conditioning','stretch','isometric'].some(t=>tags.includes(t)))return'';
+  const eq=ex.eq||[];
+  if(eq.length&&eq.every(e=>['bodyweight','pullup_bar','dip_bars','own_gear'].includes(e)))return'';
+  return'Full range, '+ECCENTRIC_SECS+'&ndash;4 counts down, pause in the stretch. Stop at technical failure, not total failure.';
 }
 const TENSION_ROW=(ex)=>{const t=tensionNote(ex);return t
   ?`<div style='font-size:12px;color:var(--txt-dim);line-height:1.5;margin:0 0 10px;padding:6px 10px;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);border-radius:8px'>&#127959; <strong style='color:#a78bfa'>Tension:</strong> ${t}</div>`
@@ -7790,7 +7798,7 @@ function ptPrescribedRowHTML(ex){
     <div class='bd-track' style='margin:5px 0 4px'><div class='bd-fill' style='background:${metWeek?'var(--ok)':'#c084fc'};--w:${pct}%'></div></div>
     <div style='font-size:11px;color:var(--mut);line-height:1.5'>${ex.d}</div>
     <div style='display:flex;align-items:center;gap:8px;margin-top:6px'>
-      <span style='font-size:11px;color:var(--mut);flex:1'>${ptDoseText(ex)}${neededToday>1?` · <span style='color:#c084fc;font-weight:700'>do ${neededToday}× today to catch up</span>`:(metWeek?' · <span style="color:var(--ok);font-weight:700">week done</span>':'')}</div>
+      <span style='font-size:11px;color:var(--mut);flex:1'>${ptDoseText(ex)}${neededToday>1?` · <span style='color:#c084fc;font-weight:700'>do ${neededToday}× today to catch up</span>`:(metWeek?' · <span style="color:var(--ok);font-weight:700">week done</span>':'')}</span>
       ${today>0?`<button class='btn btn-g btn-sm' data-action='pt-undo-done' data-id='${ex.id}' style='padding:4px 10px;font-size:11px'>↩ ${today}</button>`:''}
       <button class='btn ${today>0?'btn-ok':'btn-p'} btn-sm' data-action='pt-log-done' data-id='${ex.id}' style='padding:4px 12px;font-size:11px'>${today>0?'✓ Log another':'✓ Done'}</button>
     </div>
@@ -7949,7 +7957,7 @@ const PT_HIP_POOL=[
   {n:'Medicine Ball Rollout (3 directions)',d:'5 reps per direction/side · stand on one leg with the other foot resting on a med ball, hands free. Roll the ball out and back — straight FORWARD, out at 45°, then straight OUT TO THE SIDE — while the stance hip stays level and the stance knee tracks over the toes. The reaching leg is light; the stance hip is doing all the work',f:['hip','glute']},
   {n:'360 Lunges (circle stepping)',d:'1 circle/side · step out into a lunge and return to standing at each hour of a clock face — 12, 1:30, 3, 4:30, 6 — then reverse back around. Every step lands, sinks, and returns under control. This is the multi-directional hip loading in its cheapest form',f:['hip','adductor','glute']},
   {n:'Wall Kicks',d:'12 reps/side · stand facing a wall, hands on it at chest height, weight on one leg. Drive the other knee up to hip height and snap the foot down again, fast but quiet — the stance glute holds the pelvis dead level the whole time',f:['hip','glute']},
-  {n:'Balance Lunges',d:'8 reps/side · reverse lunge, then stand back up WITHOUT the back foot touching down — drive through the front heel and pause 1s on one leg at the top before the next rep',f:['hip','glute']},
+  {n:'Balance Lunges',d:'8 reps/side · front foot on a Bosu ball (YMCA; flat floor elsewhere) · reverse lunge, then stand back up WITHOUT the back foot touching down — drive through the front heel and pause 1s on one leg at the top before the next rep',f:['hip','glute']},
   {n:'Balance Side Lunges',d:'8 reps/side · step out into a lateral lunge, sit into that hip with the other leg straight, then push back to a one-legged stand without the stepping foot touching down. Hold 1s at the top',f:['hip','adductor','glute']},
   {n:'Monster Walks',d:'10 steps each way · band above the knees, sink to a quarter-squat and walk forward with wide, deliberate steps pushing the knees OUT against the band — then walk it back. Feet never come closer than shoulder width',f:['glute','hip'],band:true},
   {n:'Banded Defensive Slides',d:'10 steps each way · band above the knees, athletic stance — chest up, hips back, hands ready — and shuffle sideways without the feet clicking together. Push off the trailing leg, land wide, stay low the whole way',f:['glute','hip','adductor'],band:true},
@@ -8152,7 +8160,9 @@ const LOWER_MOBILITY_POOL=[
   {n:'Open Gate',d:'8 reps/side · walking or standing, lift the knee only to MID-THIGH height then swing it OUT and around (opening the gate), then reverse (closing) — groin and hip rotation. Left side: smaller arc, stop short of any front-of-hip pinch',f:['hip','adductor']},
   {n:'Horse Stance',d:'30 sec · wide stance, toes slightly out, sink until thighs near parallel with a tall torso and hold — hips, adductors, and quads together',f:['adductor','hip']},
   {n:'Windshield Wipers',d:'8 reps/side · on your back, knees bent and feet wide, drop both knees side to side keeping the shoulders flat — hip internal/external rotation',f:['hip','spine']},
-  {n:'Pike Sit-Down',d:'6 reps · standing pike fold, walk hands out slightly, then sit the hips back and down toward the heels and return — hamstring-to-hip transition',f:['hamstring']},
+  // Replaced Pike Sit-Down 2026-10-08: sitting back toward the heels loaded the
+  // front of the shin. Same hamstring-to-hip range lying down, feet unloaded.
+  {n:'Supine Hamstring Floss',d:'8 reps/side · on your back, hold behind one thigh with the hip at ~90°, then straighten and bend the knee slowly — low back stays flat, stop short of any pinch at the front of the hip',f:['hamstring']},
   {n:'Pike Rotations',d:'6 reps/side · in a standing pike with fingers to the floor, rotate the torso reaching one arm toward the ceiling — hamstrings plus spine rotation',f:['hamstring','spine']},
   // ── Added 2026-08-05 for the leg-day block ──
   // Sam named hamstrings, Achilles and adductors specifically. The pool was thin
