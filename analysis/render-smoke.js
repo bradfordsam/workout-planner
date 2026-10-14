@@ -308,8 +308,25 @@ if(day){
   call("(function(){const d=S.program.week.find(x=>x&&!x.rest&&x.exercises&&x.exercises.length);S.active=null;startWorkout(d,'lunch');})()",'paired start');
   clean(call('renderWorkout()','renderWorkout paired'),'renderWorkout with paired sets on');
   S.cfg.pairedSets=false;
+  // A1/A2: the partner is part of THIS station, so Next Up, Next and Skip all
+  // step past it. Fabricate a 3-lift session with lifts 0+1 paired.
+  call("(function(){const d=S.program.week.find(x=>x&&!x.rest&&x.exercises&&x.exercises.length);S.active=null;startWorkout(d,'eve');const e=S.active.exercises;while(e.length<3)e.push({...e[0],id:'x'+e.length,name:'Filler '+e.length,done:[],pairId:null,pairPos:null});e.forEach(x=>{delete x.pairId;delete x.pairPos;});e[0].pairId='A';e[0].pairPos=1;e[1].pairId='A';e[1].pairPos=2;S.active.exIdx=0;})()",'pair fab');
+  ok(call('nextStationIdx(0)','ns0')===2,'next station after an A1/A2 pair skips the partner');
+  ok(call('nextStationIdx(2)','ns2')===3,'next station after a straight lift is the next index');
+  const pw=call('renderWorkout()','renderWorkout pair');
+  clean(pw,'renderWorkout on a pair');
+  const names=get('S.active.exercises.map(e=>e.name)');
+  const nu=pw.slice(pw.indexOf('Next Up'));
+  ok(pw.includes('Next Up')&&nu.includes(names[2])&&!nu.slice(0,600).includes('>'+names[1]+'<'),'Next Up on A1 names the next station, not A2');
   S.active=null;
 }
+// Left IT band block: fixed, every session, and the lunch warm-up still fits.
+['lunch','evening'].forEach(k=>{
+  const p=call(`prepPlan({isLunch:${k==='lunch'},isLegDay:true,hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment})`,'prep '+k);
+  ok(JSON.stringify(p).includes('Standing IT Band Lean'),'IT band block is in the '+k+' warm-up');
+  const secs=call(`(function(){const p=prepPlan({isLunch:${k==='lunch'},isLegDay:true,hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment});return p.blocks?p.blocks.reduce((a,b)=>a+b.items.reduce((x,it)=>x+prepItemSecs(it),0),0):-1})()`,'secs '+k);
+  console.log('    '+k+' prep secs',secs,'cap',call(`PREP_BUDGET_MINS.${k}*60`,'cap'));
+});
 S.view='dash';
 clean(call('renderDash()','renderDash final'),'renderDash after the block is active');
 

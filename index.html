@@ -3648,6 +3648,12 @@ function pairSortAdjacent(exs){
 }
 
 // Index of the other half of this exercise's pair, or -1.
+// Index of the next STATION after idx. A pair is one station, so its partner is
+// never "next" — the Next Up card, Next and Skip all step past both halves.
+function nextStationIdx(idx){
+  const p=pairPartnerIdx(idx);
+  return Math.max(idx,p)+1;
+}
 function pairPartnerIdx(idx){
   const exs=S.active?.exercises||[];
   const e=exs[idx];
@@ -8070,6 +8076,27 @@ const HIP_DECOMPRESSION=[
   {n:'Hip Flexor Rockback (self-traction)',d:'30–45 sec/side, left first · half-kneeling, both hands wrapped high around the FRONT thigh just under the hip crease. Gently pull the thigh bone down and away from the hip to unload the joint, and — holding that traction — rock the hips back into flexion through the range that normally pinches. No band needed; your hands do the distracting. Ease off the instant you feel the left-hip pinch — that\'s the joint\'s bony limit, not a stretch to push through.',hold:45,f:['hip']},
 ];
 
+// ── LEFT IT BAND (2026-10-14) ──
+// Sam's PT: the left IT band is "crazy tight". The band itself is dense fascia
+// and barely lengthens, so the dose goes at what pulls on it — the TFL and
+// glute max up top, the lateral quad underneath — plus glute-med work, since a
+// lazy glute med is the usual reason the TFL picks up the slack. FIXED like the
+// decompression block: a rotating pool surfaces any one item about once a
+// fortnight, which is not a PT dose. FAI-safe by construction: no adduction
+// while the hip is flexed (that corner is the impingement position), so the
+// stretch is done standing with the hip in extension and nothing uses pigeon.
+// eveningOnly / lunchD: fixed blocks bypass the prep cap, and at full dose a
+// lunch's fixed prep alone came to 375s of a 360s cap, crowding out leg prep.
+// Lunch gets shorter doses (~70s), and a century lunch skips the block: its
+// 4-minute cap belongs to the shoulders before 100 pull-ups. The PT home program
+// already covers glute med daily (fire hydrants, side plank + clam), so lunch
+// keeps the release and the stretch and the evening adds the abduction.
+const IT_BAND_PREP=[
+  {n:'Foam Roll TFL & Outer Thigh (left)',lunchD:'30 sec · front of the left hip bone, then the outer quad. Slow passes, skip the bony band near the knee.',d:'60 sec · roller or ball just in front of the left hip bone, then the outer quad down to above the knee. Slow passes, pause on tender spots. Skip the bony band itself near the knee — rolling it straight on does nothing but hurt.',f:['hip']},
+  {n:'Standing IT Band Lean',lunchD:'20 sec/side, left first · left foot crossed BEHIND the right, hip pushed out sideways, left arm up and over. Hip stays straight.',d:'30 sec/side, left first · cross the left foot BEHIND the right, push the left hip out sideways and reach the left arm overhead and over. Hip stays straight (never bent) the whole time — feel it down the outside of the left hip.',f:['hip']},
+  {n:'Side-Lying Hip Abduction',eveningOnly:true,d:'10 reps/side, left first · lie on your right side, bottom knee bent. Lift the straight top leg slightly BEHIND you, toes pointing forward or down, 2s up and 2s down. If you feel it at the front of the hip, the leg has drifted forward.',f:['glute']},
+];
+
 // ── DESK REVERSAL ──
 // The day's sitting leaves the deep neck flexors asleep and the lumbar spine
 // parked in flexion. These are FIXED (never rotated out) because they are the
@@ -8227,6 +8254,7 @@ function prepPlan(o){
   // subject to the rotation or the budget.
   const fixed=[];
   if(o.hipCaution)fixed.push({key:'decompress',title:'🦋 Decompress first',color:'#c084fc',items:HIP_DECOMPRESSION,note:'Unload the joint before you mobilise it. Left hip: back off at the pinch.'});
+  if(!o.upperFirst)fixed.push({key:'itband',title:'🦵 Left IT Band · PT',color:'var(--warn)',items:IT_BAND_PREP.filter(it=>!(isLunch&&it.eveningOnly)).map(it=>isLunch&&it.lunchD?{...it,d:it.lunchD}:it),note:'Fixed every session until the PT clears it. Release the TFL and outer quad, stretch with the hip straight, then wake up the glute med.'});
   fixed.push({key:'desk',title:'🖥️ Desk Reversal',color:'var(--ok)',items:DESK_REVERSAL,note:'Fixed every session — the two most literal undo buttons for a day in a chair.'});
   const rotating=[
     isLegDay?{key:'legprep',title:'🦵 Leg Prep · hamstrings, Achilles, adductors',color:'var(--warn)',pool:legPool,n:want(4,2)}:null,
@@ -10236,18 +10264,18 @@ function renderWorkout(){
       ${nextBtn}
       ${skipBtn}
     </div>
-    ${(exIdx<total-1)?`<div class='card2' style='margin-top:12px'>
+    ${(()=>{const nxI=nextStationIdx(exIdx),nx=exercises[nxI],nxP=nx?pairPartnerIdx(nxI):-1;return(nxI<total)?`<div class='card2' style='margin-top:12px'>
       <div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:8px;display:flex;align-items:center;gap:4px'>
         <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='9 18 15 12 9 6'/></svg>Next Up
       </div>
       <div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>
-        <span style='width:6px;height:6px;border-radius:50%;background:${MCOL[exercises[exIdx+1].muscle]||'var(--acc)'};flex-shrink:0;display:inline-block'></span>
-        <strong style='font-size:14px'>${exercises[exIdx+1].name}</strong>
-        <span style='font-size:11px;color:var(--mut);margin-left:auto'>${exercises[exIdx+1].sets} × ${exercises[exIdx+1].rMin}–${exercises[exIdx+1].rMax}${exercises[exIdx+1].isTimed?'s':''}</span>
+        <span style='width:6px;height:6px;border-radius:50%;background:${MCOL[nx.muscle]||'var(--acc)'};flex-shrink:0;display:inline-block'></span>
+        <strong style='font-size:14px'>${nxP>=0?`${nx.pairId}1 ${nx.name} + ${nx.pairId}2 ${exercises[nxP].name}`:nx.name}</strong>
+        <span style='font-size:11px;color:var(--mut);margin-left:auto'>${nx.sets} × ${nx.rMin}–${nx.rMax}${nx.isTimed?'s':''}</span>
       </div>
-      <button class='cue-btn' data-action='toggle-cue' data-id='next-cue-${exIdx+1}' style='margin-bottom:6px'>💡 Preview cues</button>
-      <div class='cue-txt' id='next-cue-${exIdx+1}' style='font-size:12px;margin-bottom:0;padding:0;background:none'>${cueBlockHTML(exercises[exIdx+1],MCOL[exercises[exIdx+1].muscle]||'var(--acc)')||'No technique notes available.'}</div>
-    </div>`:''}
+      <button class='cue-btn' data-action='toggle-cue' data-id='next-cue-${nxI}' style='margin-bottom:6px'>💡 Preview cues</button>
+      <div class='cue-txt' id='next-cue-${nxI}' style='font-size:12px;margin-bottom:0;padding:0;background:none'>${cueBlockHTML(nx,MCOL[nx.muscle]||'var(--acc)')||'No technique notes available.'}</div>
+    </div>`:'';})()}
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
     <div style='font-size:12px;color:var(--mut);text-align:center;margin-top:8px'>${S.active.restCap?S.active.restCap+'s rest between sets (lunch time-box)':smartRestLabel(ex)} · slow eccentric</div>
   </div>`;
@@ -13391,8 +13419,7 @@ document.addEventListener('click',e=>{
     // — landing on A2 would show the same card again with the partner's rows
     // already logged.
     const exs=S.active.exercises,cur=exs[S.active.exIdx];
-    const step=(cur&&cur.pairId&&cur.pairPos===1)?2:1;
-    const next=S.active.exIdx+step;
+    const next=nextStationIdx(S.active.exIdx);
     if(next<exs.length)goToEx(next);
     return;
   }
@@ -13410,7 +13437,7 @@ document.addEventListener('click',e=>{
   // already logged on other exercises. On the last exercise, this finishes
   // the workout instead, same as tapping "Finish Workout" early.
   if(a==='skip-ex'){
-    const next=S.active.exIdx+1;
+    const next=nextStationIdx(S.active.exIdx);
     if(next<S.active.exercises.length){goToEx(next);}
     else{S.active.ratePending=true;save();render();}
     return;
