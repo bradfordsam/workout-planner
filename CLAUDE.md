@@ -1371,6 +1371,36 @@ the harness can act on an EVENT — see `.claude/settings.json` +
     / 4 DB Overhead Extensions (Westminster), with **every muscle's set total
     identical**. Custom Session now warns "Needs dip bars" at the apartment
     (`customExWarnings` now prints tokens with spaces instead of underscores).
+- **`DAILY MAX` — mandatory hybrid daily-max rule (2026-10-14, `applyDailyMax` /
+  `dailyMaxMode` / `dailyMaxHTML`)** — Sam brought in a study (7 lifters maxed
+  bench daily for 34 days, then 5 × 85–90%; avg +41 lb, peak by day 28–34, 3 of 7
+  got shoulder/triceps pain) and asked for it as a **mandatory default baked into
+  the workout object, not an opt-in card**. Bench is banned, so it is a hybrid:
+  - **Legs when recovered**: the heavy 1–5 `strength` slot (which dayTemplate only
+    creates when the 72h window allows) becomes a `heavy_trap_bar` max, falling
+    back to `heavy_box_squat`, then the slot's own pick. One lift every time, on
+    purpose: repetition of ONE lift is the study's mechanism.
+  - **DB floor press otherwise**, replacing the chest compound, else the last lift
+    that is not core/back/legs. **Gated on chest's own 48h lockout.** The first cut
+    pressed every non-leg session and measured **40 chest-lockout violations and
+    25.6 chest sets/wk** (band max 20) on the full schedule, with back 4 → 1. With
+    the gate and the no-back/legs rule: chest 4 → 13.6 (in band), back 3.7, 0
+    violations, strength mandate 10/10. So "every session leads with a max" means
+    every session where legs OR chest is recovered.
+  - **4 on / 1 off**, anchored to `DAILY_MAX_ANCHOR` (a fixed Monday, so no synced
+    state). **Lunch max+3, evening max+5.** Ledgers charge `DAILY_MAX_EXTRA_MINS`
+    (lunch 2 / evening 12, derived inline); a 60-min evening is now prep + the max +
+    finisher and usually ONE other lift. The training-block thin-schedule test
+    zeroes that charge so it still tests the warning logic itself.
+  - **"Shoulder hurt"** on the floor-press card writes `S.dmShoulderLog[date]` and
+    pulls the press side for `DAILY_MAX_PAIN_DAYS`; legs continue. Synced at all six
+    `noBarLog` sites (state init, save, load, both cloud merges, cloud write).
+  - The mode is appended to `tmpl.tk` so a deload or a pain tap rebuilds the day
+    instead of taking the preserve path. Tagged `strength` (no pairing, no back-off);
+    `flagFirstWorkingSet` ranks `dailyMax` first and gives it the warm-up ramp.
+  - Accepted costs on thin schedules (lunch-only, 3-evening): back ~1.3 → 0.3
+    sets/wk (one session in ten weeks), lunch core 6.2 → 4.6 from the 2-min charge.
+    Those profiles were already under-band everywhere.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

@@ -124,6 +124,9 @@ Object.keys(elim).forEach(k=>ok(elim[k].min<=elim[k].max,'efficiency band not in
 ok(elim.biceps.max===3,'efficiency + maintenance collapses the ceiling to the old floor');
 // The too-thin-for-two-emphasis warning, which is the whole reason chest does
 // not silently finish a block on zero sets.
+// The daily max's extra sets cost a lift per evening; this block tests the WARNING
+// logic against the base ledger, so zero that charge here and restore it after.
+get('DAILY_MAX_EXTRA_MINS.evening=0,DAILY_MAX_EXTRA_MINS.lunch=0');
 const thin3=call('weeklyLiftSlots(S.weekPlan.availability)','weeklyLiftSlots thin');
 ok(thin3>0&&thin3<=4,'a 3-evening week has very few lift slots (got '+thin3+')');
 ok(String(call('blockPlanHTML()','thin warn')).includes('leaves nothing for the others'),
@@ -131,6 +134,7 @@ ok(String(call('blockPlanHTML()','thin warn')).includes('leaves nothing for the 
 S.cfg.block.emphasis=['shoulders'];
 ok(!String(call('blockPlanHTML()','thin warn off')).includes('leaves nothing for the others'),
    'a 1-muscle emphasis on the same schedule does not');
+get('DAILY_MAX_EXTRA_MINS.evening=12,DAILY_MAX_EXTRA_MINS.lunch=2');
 clean(call('blockPlanHTML()','blockPlanHTML thin'),'blockPlanHTML (thin schedule)');
 S.cfg.block.emphasis=['shoulders','back'];
 S.weekPlan.availability=savedAv;
@@ -320,6 +324,35 @@ if(day){
   ok(pw.includes('Next Up')&&nu.includes(names[2])&&!nu.slice(0,600).includes('>'+names[1]+'<'),'Next Up on A1 names the next station, not A2');
   S.active=null;
 }
+// ─── Daily max (2026-10-14) ───
+ok(call("dailyMaxCycleWeek('2026-10-12')",'cw0')===0&&call("dailyMaxCycleWeek('2026-11-09')",'cw4')===4&&call("dailyMaxCycleWeek('2026-11-16')",'cw5')===0,'daily max cycles 4 on / 1 off from the anchor Monday');
+ok(call("dailyMaxMode('2026-11-10')",'deload')==='off','week 5 of the cycle is a deload');
+(function(){
+  const mk="[{id:'bb_row',name:'Row',muscle:'back',type:'compound',eq:['barbell'],sets:3,tags:['horizontal']},{id:'flat_db_press',name:'Flat DB',muscle:'chest',type:'compound',eq:['dumbbells'],sets:3,tags:[]},{id:'crunches',name:'Crunch',muscle:'core',type:'isolation',eq:['bodyweight'],sets:3,tags:['flexion']}]";
+  const eq="EQUIPMENT_PRESETS.ymca.equipment";
+  const r=call(`(function(){const e=${mk};applyDailyMax(e,{dateStr:'2026-10-14',isLunch:false,equip:${eq},lockedMuscles:new Set()});flagFirstWorkingSet(e);return e.map(x=>x.id+':'+(x.dailyMax||'')+':'+x.sets).join(',');})()`,'press');
+  ok(/^floor_press:press:6,/.test(r)&&r.includes('bb_row'),'non-leg evening: floor press max replaces the chest compound, leads, max + 5 (got '+r+')');
+  const rl=call(`(function(){const e=${mk};applyDailyMax(e,{dateStr:'2026-10-14',isLunch:true,equip:${eq},lockedMuscles:new Set()});return e.find(x=>x.dailyMax).sets;})()`,'lunch');
+  ok(rl===4,'lunch daily max is max + 3');
+  const rc=call(`(function(){const e=${mk};applyDailyMax(e,{dateStr:'2026-10-14',isLunch:false,equip:${eq},lockedMuscles:new Set(['chest'])});return e.some(x=>x.dailyMax);})()`,'chest locked');
+  ok(rc===false,'no press max while chest is inside its 48h window');
+  const rb=call(`(function(){const e=[${mk}[0],${mk}[2]];applyDailyMax(e,{dateStr:'2026-10-14',isLunch:false,equip:${eq},lockedMuscles:new Set()});return e.map(x=>x.id).join(',');})()`,'back kept');
+  ok(rb==='bb_row,crunches','the press never takes a back slot');
+  const rleg=call(`(function(){const e=[{...exById('heavy_box_squat'),sets:3},${mk}[1]];applyDailyMax(e,{dateStr:'2026-10-14',isLunch:false,equip:${eq},lockedMuscles:new Set()});return e.map(x=>x.id+':'+(x.dailyMax||'')).join(',');})()`,'legs');
+  ok(rleg.startsWith('heavy_trap_bar:legs')&&!rleg.includes(':press'),'recovered legs: the heavy strength slot becomes the trap bar max (got '+rleg+')');
+  const rnob=call(`(function(){const e=[{...exById('heavy_box_squat'),sets:3}];applyDailyMax(e,{dateStr:'2026-10-14',isLunch:false,equip:EQUIPMENT_PRESETS.bodyweight.equipment,lockedMuscles:new Set()});return e[0].id;})()`,'no barbell');
+  ok(rnob==='heavy_box_squat','with no allowed max lift the slot keeps its own movement');
+  get("S.dmShoulderLog={'2026-10-14':true}");
+  ok(call("dailyMaxMode('2026-10-18')",'hurt')==='legs'&&call("dailyMaxMode('2026-10-21')",'hurt2')==='on','shoulder hurt pulls the press for 7 days, then it returns');
+  const rh=call(`(function(){const e=${mk};applyDailyMax(e,{dateStr:'2026-10-16',isLunch:false,equip:${eq},lockedMuscles:new Set()});return e.some(x=>x.dailyMax);})()`,'hurt press');
+  ok(rh===false,'no press max while the shoulder flag is active');
+  get("S.dmShoulderLog={}");
+  const h=call("dailyMaxHTML(makeDailyMax(exById('floor_press'),'press',false))",'dmhtml');
+  clean(h,'dailyMaxHTML');
+  ok(h.includes('Daily max')&&h.includes('dm-shoulder-hurt')&&h.includes('5 × 2–3'),'floor press card shows the protocol and the shoulder-hurt button');
+  ok(!call("dailyMaxHTML(makeDailyMax(exById('heavy_trap_bar'),'legs',false))",'dmleg').includes('dm-shoulder-hurt'),'trap bar card has no shoulder button');
+  ok((function(){const off=call("dailyMaxMode(weekDateForDow(3))",'m3')==='off';return call("dailyMaxExtraMins(3,false)",'xm')===(off?0:12)&&call("dailyMaxExtraMins(3,true)",'xl')===(off?0:2);})(),'ledgers charge the extra heavy sets');
+})();
 // Left IT band block: fixed, every session, and the lunch warm-up still fits.
 ['lunch','evening'].forEach(k=>{
   const p=call(`prepPlan({isLunch:${k==='lunch'},isLegDay:true,hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment})`,'prep '+k);

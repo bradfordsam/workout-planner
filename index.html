@@ -1901,7 +1901,7 @@ let S={
     stapleLock:true,
     bodyScore:{score:79,weight:198.9,target:177.2,bodyFatPct:22.8,fatMass:45.3,skeletalMuscle:88.1,smRangeHi:82.5,visceralFat:7,bmi:27.8,bodyAge:24,testDate:'2026-05-24'}},
   program:null,logs:[],active:null,openLogs:{},
-  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},noBarLog:{},ptLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
+  weekPlan:null,lastWeights:{},sleepLog:{},pushupLog:{},noBarLog:{},dmShoulderLog:{},ptLog:{},viewDay:null,viewExDetail:null,editLogDraft:null,eveningMins:null,eveningLocation:null,
   customExercises:[],deletedSessions:[],confirmDelete:null,undoBanner:null,editScan:null,
   // CUSTOM SESSION (2026-08-29). The in-progress builder draft for a workout Sam
   // picks himself — see the CUSTOM SESSION block. Transient, never synced: it is
@@ -1972,7 +1972,7 @@ function stampSingletons(){
 function save(){
   S.updatedAt=new Date().toISOString();
   stampSingletons();
-  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,combatTest:S.combatTest||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
+  try{localStorage.setItem('wp3',JSON.stringify({cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),active:S.active,weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},dmShoulderLog:S.dmShoulderLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins,eveningLocation:S.eveningLocation,customExercises:S.customExercises,customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,combatTest:S.combatTest||null,updatedAt:S.updatedAt,fieldUpdated:S.fieldUpdated}));}catch(e){}
   cloudDirty=true;// cleared only when a cloud write CONFIRMS (see saveToCloud)
   saveToCloud();
 }
@@ -1980,7 +1980,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wp3')||'{}');
     if(d.cfg){
-      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},ptLog:d.ptLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,combatTest:d.combatTest||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
+      Object.assign(S,{cfg:d.cfg,program:d.program,logs:d.logs||[],active:d.active,weekPlan:d.weekPlan||null,lastWeights:d.lastWeights||{},sleepLog:d.sleepLog||{},pushupLog:d.pushupLog||{},noBarLog:d.noBarLog||{},dmShoulderLog:d.dmShoulderLog||{},ptLog:d.ptLog||{},viewDay:null,eveningMins:d.eveningMins||null,eveningLocation:d.eveningLocation||null,customExercises:d.customExercises||[],customTemplates:d.customTemplates||[],deletedSessions:d.deletedSessions||[],century:d.century||null,pyramid:d.pyramid||null,cindy:d.cindy||null,emom:d.emom||null,combatTest:d.combatTest||null,updatedAt:d.updatedAt||new Date().toISOString(),fieldUpdated:d.fieldUpdated||{}});
       // Paired sets shipped 2026-08-30; a cfg stored before that has no key at
       // all, and `pairedSetsOn` tests === true, so the migration is only about
       // making the Plan-screen checkbox render in a known state.
@@ -2281,6 +2281,141 @@ function pickCalfTopUp(equip,used,freq){
       &&!plyoHidden(e)&&!userAvoids(e)&&!kneeCautionBlocks(e)&&dragonFlagUnlocked(e.id));
   if(!cands.length)return null;
   return cands.reduce((best,e)=>(f[e.id]||0)<(f[best.id]||0)?e:best);
+}
+
+// ─────────────────────────────────────────────
+// DAILY MAX (2026-10-14)
+// ─────────────────────────────────────────────
+// Sam brought in a study: 7 lifters worked up to a bench 1RM EVERY DAY for 34
+// days, then 5 heavy sets at 85–90% of that day's max. All got stronger (avg
+// +41 lb), gains peaked between days 28 and 34, and 3 of 7 developed shoulder
+// or triceps pain. Strength is partly a skill, and maxing daily is practising
+// the exact lift at the exact intensity dozens of times.
+//
+// Bench is on his avoid list (left shoulder), so the rule is a HYBRID, and it
+// is a MANDATORY DEFAULT, not an opt-in card (Sam: "bake this directly into the
+// workout object as a mandatory default rule"). Every generated session leads
+// with a daily max:
+//   • LEGS when legs are recovered — the heavy 1–5 strength slot dayTemplate
+//     already creates exactly when the 72h heavy-leg window allows it is
+//     converted into the max. That makes the leg lockout the gate, unchanged:
+//     maxing a squat or hinge daily is the one version of this that would
+//     break a recovery rule, and it isn't loosened here.
+//   • DB FLOOR PRESS on every other session — the shoulder-safe press (the
+//     floor is a mechanical stop, see the training-constraints notes).
+// Same movement every time on each side (heavy_trap_bar / floor_press): the
+// study's whole mechanism is repetition of ONE lift, so the strength slot's
+// usual squat/trap bar/RDL rotation is deliberately overridden here.
+//
+// Three guards, each Sam's call (2026-10-14):
+//   1. CYCLES 4 weeks on / 1 week off, anchored to a fixed Monday so no synced
+//      state is needed. Gains peaked by day 34 in the study; nothing supports
+//      maxing indefinitely and the pain risk accumulates.
+//   2. A one-tap "shoulder hurt" on the floor-press card drops the PRESS side
+//      for DAILY_MAX_PAIN_DAYS (legs continue). Stored as a date map like
+//      noBarLog, synced the same way.
+//   3. LUNCH is max + 3 sets, evening max + 5, so a 40-minute lunch keeps room.
+// Injury gates are NOT bypassed: each candidate passes the same equipment /
+// avoid / hip / shoulder / knee tests pickCalfTopUp uses, and if neither side
+// can be placed the session is left exactly as generated.
+const DAILY_MAX_ANCHOR='2026-10-12';   // Monday of cycle week 1
+const DAILY_MAX_ON_WEEKS=4, DAILY_MAX_CYCLE_WEEKS=5;
+const DAILY_MAX_PAIN_DAYS=7;
+const DAILY_MAX_SETS={lunch:3,evening:5};     // heavy sets AFTER the max single
+const DAILY_MAX_LEG_IDS=['heavy_trap_bar','heavy_box_squat'];
+const DAILY_MAX_PRESS_ID='floor_press';
+// What the ledgers charge on top of an ordinary lead lift. Evening: the lead
+// lift is budgeted as 3 sets inside EVENING_EX_MINS; this one is a single plus
+// 5 (+3 sets) at 180–240s rest, ~4 min a set → 12. Lunch: rest is capped at
+// 90s and the lead lift already has 3 sets, so the single is +1 set ≈ 2 min.
+const DAILY_MAX_EXTRA_MINS={lunch:2,evening:12};
+function dailyMaxCycleWeek(dateStr){
+  const d=new Date(dateStr+'T12:00:00'),a=new Date(DAILY_MAX_ANCHOR+'T12:00:00');
+  const w=Math.floor((d-a)/(7*864e5));
+  return((w%DAILY_MAX_CYCLE_WEEKS)+DAILY_MAX_CYCLE_WEEKS)%DAILY_MAX_CYCLE_WEEKS; // 0-based
+}
+function dailyMaxDeload(dateStr){return dailyMaxCycleWeek(dateStr)>=DAILY_MAX_ON_WEEKS;}
+function dailyMaxPressBlocked(dateStr){
+  const t=new Date(dateStr+'T12:00:00');
+  return Object.keys(S.dmShoulderLog||{}).some(k=>{
+    const dd=(t-new Date(k+'T12:00:00'))/864e5;
+    return dd>=0&&dd<DAILY_MAX_PAIN_DAYS;
+  });
+}
+// 'off' (deload week) · 'legs' (press pulled for pain) · 'on'
+function dailyMaxMode(dateStr){
+  if(dailyMaxDeload(dateStr))return'off';
+  return dailyMaxPressBlocked(dateStr)?'legs':'on';
+}
+function dailyMaxExtraMins(dow,isLunch){
+  return dailyMaxMode(weekDateForDow(dow))==='off'?0:(isLunch?DAILY_MAX_EXTRA_MINS.lunch:DAILY_MAX_EXTRA_MINS.evening);
+}
+function dailyMaxAllowed(e,equip){
+  if(!e)return false;
+  const eqSet=new Set([...(equip||[]),'bodyweight']);
+  return(e.eq||[]).some(q=>eqSet.has(q))
+    &&!(S.cfg.hipCaution&&e.hipRisk)&&!(S.cfg.shoulderCaution&&e.shoulderRisk)
+    &&!e.standingPressRisk&&!e.fixedBarPressRisk
+    &&!plyoHidden(e)&&!userAvoids(e)&&!kneeCautionBlocks(e);
+}
+function makeDailyMax(base,side,isLunch){
+  const n=isLunch?DAILY_MAX_SETS.lunch:DAILY_MAX_SETS.evening;
+  return{...base,sets:1+n,rMin:1,rMax:3,rest:side==='legs'?240:180,
+    tags:[...new Set([...(base.tags||[]),'strength'])],   // 'strength' = no pairing, no back-off, leads the session
+    dailyMax:side};
+}
+// Mutates exs. Volume is re-booked through creditVolume so MRV stays honest.
+function applyDailyMax(exs,{dateStr,isLunch,equip,budget,lockedMuscles}){
+  const mode=dailyMaxMode(dateStr);
+  if(mode==='off'||!exs.length)return;
+  const swap=(i,nx)=>{
+    if(budget){creditVolume(budget.vol,exs[i],-(exs[i].sets||3));creditVolume(budget.vol,nx,nx.sets);}
+    exs[i]=nx;
+  };
+  // LEGS: the heavy strength slot exists only when the 72h window allows it.
+  const li=exs.findIndex(e=>e.muscle==='legs'&&(e.tags||[]).includes('strength'));
+  if(li>=0){
+    const base=DAILY_MAX_LEG_IDS.map(id=>EX.find(e=>e.id===id)).find(e=>dailyMaxAllowed(e,equip))||exs[li];
+    const dup=exs.findIndex((e,j)=>j!==li&&e.id===base.id);
+    swap(li,makeDailyMax({...base,sessionMins:exs[li].sessionMins},'legs',isLunch));
+    if(dup>=0){if(budget)creditVolume(budget.vol,exs[dup],-(exs[dup].sets||3));exs.splice(dup,1);}
+    return;
+  }
+  if(mode!=='on')return;
+  // Chest keeps its own 48h window. Pressing every non-leg session was measured
+  // at 40 chest-lockout violations and 25.6 chest sets/wk on the full schedule.
+  if(lockedMuscles&&(lockedMuscles.has?lockedMuscles.has('chest'):lockedMuscles.includes('chest')))return;
+  const fp=EX.find(e=>e.id===DAILY_MAX_PRESS_ID);
+  if(!dailyMaxAllowed(fp,equip))return;
+  // Replace, in order of preference: an existing floor press, the session's
+  // chest compound, then the last non-core lift — so the lift count the ledger
+  // sized is kept, and chest work is what gives way first.
+  let i=exs.findIndex(e=>e.id===DAILY_MAX_PRESS_ID);
+  if(i<0)i=exs.findIndex(e=>e.muscle==='chest'&&e.type==='compound');
+  // Never back or legs: those carry the weekly mandates and back collapsed to
+  // ~1 set/wk when the press was allowed to take its slot.
+  if(i<0){for(let j=exs.length-1;j>=0;j--){const m=exs[j].muscle;if(m!=='core'&&m!=='back'&&m!=='legs'&&!exs[j].calfTopUp){i=j;break;}}}
+  if(i<0)return;
+  swap(i,makeDailyMax({...fp,sessionMins:exs[i].sessionMins},'press',isLunch));
+}
+function dailyMaxHTML(ex){
+  if(!ex||!ex.dailyMax)return'';
+  const dateStr=todayStr();
+  const wk=dailyMaxCycleWeek(dateStr)+1;
+  const n=(ex.sets||1)-1;
+  const lift=ex.dailyMax==='legs'?'legs are recovered, so today it is the trap bar':'legs are not due, so today it is the floor press';
+  const hurt=ex.dailyMax==='press'
+    ?((S.dmShoulderLog||{})[dateStr]
+      ?`<button class='btn btn-g btn-sm' data-action='dm-shoulder-undo' style='margin-top:8px;padding:4px 10px;font-size:11px'>↩ Undo "shoulder hurt"</button>`
+      :`<button class='btn btn-g btn-sm' data-action='dm-shoulder-hurt' style='margin-top:8px;padding:4px 10px;font-size:11px'>🩹 Shoulder hurt: drop the floor press for ${DAILY_MAX_PAIN_DAYS} days</button>`)
+    :'';
+  return`<div style='font-size:12px;color:var(--txt-dim);line-height:1.5;margin:0 0 10px;padding:8px 10px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.3);border-radius:8px'>
+    <strong style='color:var(--warn)'>🔺 Daily max · week ${wk} of ${DAILY_MAX_ON_WEEKS}</strong><br>
+    <strong>Set 1:</strong> work up to today's heavy single. Stop at the first rep that slows down; never grind.<br>
+    <strong>Sets 2–${n+1}:</strong> ${n} × 2–3 reps at 85–90% of that single.<br>
+    <span style='color:var(--mut)'>Every session leads with a max: ${lift}. Week ${DAILY_MAX_CYCLE_WEEKS} of each cycle is a normal-training deload.</span>
+    ${hurt}
+  </div>`;
 }
 
 // ─────────────────────────────────────────────
@@ -3702,6 +3837,7 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   // Priced separately from the lifts above — 2 quick sets at CALF_TOPUP_MINS,
   // not a full per-lift charge. Skipped on a century lunch, matching the
   // ledger and the actual buildSession append.
+  if(!centuryLunch&&lifts>0)push('dailymax','Daily max (extra heavy sets)',dailyMaxExtraMins(dow,!!isLunch),'work up to a single, then '+(isLunch?DAILY_MAX_SETS.lunch:DAILY_MAX_SETS.evening)+' at 85–90%');
   if(!centuryLunch&&needsCalfTopUp())push('calf','Calf raises (weekly top-up)',CALF_TOPUP_MINS,`${calfSetsThisWeek()}/${CALF_WEEKLY_TARGET_SETS} sets so far this week`);
   if(centuryChg>0)push('century','Pull-up Century',centuryChg,centuryLunch?'this is the session':'median of your timed sessions');
   // Covered-ness is a property of the DAY, not of this session's charge — a
@@ -3801,7 +3937,7 @@ function eveningLifts(mins,dow,av,equipmentKey){
   // prep, the lifting, the century if this evening hosts it, the finisher, and
   // the calf top-up. Charging six (the full itemised plan) reserved buffer for
   // blocks that get shed anyway and quietly cost a lift at 75 and 90 minutes.
-  const fixed=PREP_BUDGET_MINS.evening+century+finisher+calfTopUp+transitionMins(4);
+  const fixed=PREP_BUDGET_MINS.evening+century+finisher+calfTopUp+dailyMaxExtraMins(dow,false)+transitionMins(4);
   // EX_LIMIT is the ceiling only. The tiers are calibrated as prep plus N lifts
   // at EVENING_EX_MINS (60 → 12 + 4×12), so the two agree on an empty evening
   // and diverge only by what's actually prescribed on top.
@@ -3846,7 +3982,10 @@ function lunchBudget(dow,av,boxMins,centuryOverride){
   // lunch for the same reason the spine holds are: that box has no room for
   // anything past the hundred itself.
   const calfTopUp=(!hostsCentury&&needsCalfTopUp())?CALF_TOPUP_MINS:0;
-  let left=box-spine-prep-century-calfTopUp-transitionMins(hostsCentury?2:5);
+  // The daily max's extra sets (see DAILY_MAX_EXTRA_MINS) — not on a century
+  // lunch, which lifts nothing.
+  const dailyMax=hostsCentury?0:dailyMaxExtraMins(dow,true);
+  let left=box-spine-prep-century-calfTopUp-dailyMax-transitionMins(hostsCentury?2:5);
   // minLifts is waived on a century lunch. Its comment used to read "a century
   // day never becomes a no-lifting day", written when a century was budgeted at
   // 16–20 min; at the MEASURED ~30 that sentence is arithmetically false, and
@@ -4153,7 +4292,7 @@ function flagFirstWorkingSet(exs){
   // The heavy 1–5 @ 85–95% tier goes first among compounds when a session has
   // one. It is the single most systemically demanding thing in the program and
   // the one lift whose quality a couple of prior working sets genuinely ruins.
-  const heavyRank=(e)=>((e.tags||[]).includes('strength')?0:1);
+  const heavyRank=(e)=>(e.dailyMax?-1:(e.tags||[]).includes('strength')?0:1);
   const prehabRank=(e)=>(PREHAB_FINISH_IDS.has(e.id)?1:0);
   const compounds=exs.filter(e=>e.type==='compound')
     .sort((a,b)=>heavyRank(a)-heavyRank(b)||oi(a)-oi(b));
@@ -4162,7 +4301,7 @@ function flagFirstWorkingSet(exs){
   let ordered=[...compounds,...rest];
   // Pull a loadable movement to the front (prefer a loadable compound) so the
   // warm-up can ramp; only fall back to a bodyweight lead if nothing is loadable.
-  const lead=ordered.find(e=>e.type==='compound'&&scalable(e))||ordered.find(e=>scalable(e));
+  const lead=ordered.find(e=>e.dailyMax&&scalable(e))||ordered.find(e=>e.type==='compound'&&scalable(e))||ordered.find(e=>scalable(e));
   if(lead)ordered=[lead,...ordered.filter(e=>e!==lead)];
   exs.length=0;exs.push(...ordered);
   exs.forEach(e=>{delete e.isFirst;});
@@ -4873,6 +5012,9 @@ function genProgram(cfg,av,workoutHistoryLog){
     if(limit<=0)return null;
     const tmpl=dayTemplate(dateStr,limit,slot.isLunch,equip);
     if(!tmpl)return null; // nothing adequately rested → this day stays a rest day
+    // Daily-max mode is part of the template key: a deload week starting or a
+    // "shoulder hurt" tap must rebuild the day, not take the preserve path.
+    tmpl.tk+='|dm:'+dailyMaxMode(dateStr);
     if(oldData===undefined)oldData=oldWeek?.[slot.dow];
     // Preserve existing exercises if already completed this week, OR the same
     // recovery template would be rebuilt at the same location (avoids churn).
@@ -4954,6 +5096,7 @@ function genProgram(cfg,av,workoutHistoryLog){
     // Restore the real weekly ceilings — the lockout only applied to today's pick.
     Object.entries(lockedLimits).forEach(([m,lim])=>{budget.limits[m]=lim;});
 
+    applyDailyMax(exs,{dateStr,isLunch:slot.isLunch,equip,budget,lockedMuscles}); // see DAILY MAX
     flagFirstWorkingSet(exs); // compounds first; warm-up flag on first loaded lift
     // AFTER the flag, never before: pairSession reorders, and the lift carrying
     // the warm-up ramp has to stay at index 0 (it just becomes A1).
@@ -10239,6 +10382,7 @@ function renderWorkout(){
       <div class='ex-name'>${ex.name}</div>
       <span class='m-tag' style='background:${mcolor}22;color:${mcolor}'>${MNAME[ex.muscle]||ex.muscle} · ${ex.type}</span>
       ${cueBlockHTML(ex,mcolor)}
+      ${dailyMaxHTML(ex)}
       ${TENSION_ROW(ex)}
       ${SETUP_ROW(ex)}
       ${handleFor(ex)&&(EQUIPMENT_PRESETS[S.active.equipmentKey||'ymca']?.equipment||[]).includes('cables')?`<div style='font-size:12px;color:var(--txt-dim);line-height:1.5;margin:0 0 10px;padding:6px 10px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:8px'>🔗 <strong style='color:var(--acc)'>Attachment:</strong> ${handleFor(ex)}</div>`:''}
@@ -12997,6 +13141,18 @@ document.addEventListener('click',e=>{
     replanCurrentWeek();
     save();render();return;
   }
+  if(a==='dm-shoulder-hurt'){
+    S.dmShoulderLog=S.dmShoulderLog||{};
+    S.dmShoulderLog[todayStr()]=true;
+    replanCurrentWeek(); // the rest of the week drops the press side
+    save();render();return;
+  }
+  if(a==='dm-shoulder-undo'){
+    S.dmShoulderLog=S.dmShoulderLog||{};
+    delete S.dmShoulderLog[todayStr()];
+    replanCurrentWeek();
+    save();render();return;
+  }
   if(a==='century-no-bar-undo'){
     S.noBarLog=S.noBarLog||{};
     delete S.noBarLog[todayStr()];
@@ -13761,6 +13917,7 @@ async function saveToCloud(){
         S.sleepLog={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
         S.pushupLog={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
         S.noBarLog={...(cloud.noBarLog||{}),...(S.noBarLog||{})};
+        S.dmShoulderLog={...(cloud.dmShoulderLog||{}),...(S.dmShoulderLog||{})};
         S.ptLog={...(cloud.ptLog||{}),...(S.ptLog||{})};
         // AFTER the log merge above: the draft merges ask whether today's
         // session is already finished, and the log that says so may have
@@ -13773,7 +13930,7 @@ async function saveToCloud(){
       }
       lastCloudMergeRead=Date.now();
     }
-    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,combatTest:S.combatTest||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
+    const data={cfg:S.cfg,program:S.program,logs:S.logs.slice(-LOG_KEEP),weekPlan:S.weekPlan,lastWeights:S.lastWeights,sleepLog:S.sleepLog||{},pushupLog:S.pushupLog||{},noBarLog:S.noBarLog||{},dmShoulderLog:S.dmShoulderLog||{},ptLog:S.ptLog||{},eveningMins:S.eveningMins||null,eveningLocation:S.eveningLocation||null,customExercises:S.customExercises||[],customTemplates:S.customTemplates||[],deletedSessions:(S.deletedSessions||[]).slice(-20),century:S.century||null,pyramid:S.pyramid||null,cindy:S.cindy||null,emom:S.emom||null,combatTest:S.combatTest||null,updatedAt:S.updatedAt||new Date().toISOString(),fieldUpdated:S.fieldUpdated||{}};
     await ref.set(data);
     cloudDirty=false;// confirmed in the cloud
   }catch(e){console.error('Cloud save failed',e);}
@@ -13949,6 +14106,7 @@ async function loadFromCloud(){
       const sleep={...(cloud.sleepLog||{}),...(S.sleepLog||{})};
       const pushl={...(cloud.pushupLog||{}),...(S.pushupLog||{})};
       const noBar={...(cloud.noBarLog||{}),...(S.noBarLog||{})};
+      const dmShoulder={...(cloud.dmShoulderLog||{}),...(S.dmShoulderLog||{})};
       const ptl={...(cloud.ptLog||{}),...(S.ptLog||{})};
       // Singleton state (cfg/program/weekPlan/...) adopted PER FIELD, by each
       // field's own change stamp. The old comparison used one global
@@ -13975,7 +14133,7 @@ async function loadFromCloud(){
         const fu={...lf};Object.keys(cf).forEach(k=>{if(!fu[k]||cf[k]>fu[k])fu[k]=cf[k];});
         S.fieldUpdated=fu;
       }
-      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,noBarLog:noBar,ptLog:ptl,customExercises:customEx,customTemplates:customTpl});
+      Object.assign(S,{deletedSessions:deleted.slice(-20),lastWeights:weights,sleepLog:sleep,pushupLog:pushl,noBarLog:noBar,dmShoulderLog:dmShoulder,ptLog:ptl,customExercises:customEx,customTemplates:customTpl});
       // Tombstone filter AFTER deletedSessions merge: a log deleted on another
       // device must not ride back in through this device's stale copy.
       S.logs=filterTombstoned(merged).slice(-LOG_KEEP);
