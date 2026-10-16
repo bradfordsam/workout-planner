@@ -7734,7 +7734,12 @@ function completeSet(exIdx,setIdx){
 
 function updateWarmup(exIdx,weight){
   const w=parseFloat(weight);if(!w||w<=0)return;
-  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=`${r5(w*val)} lb`;};
+  const ex=S.active&&S.active.exercises[exIdx];
+  const rack=EQUIPMENT_PRESETS[S.active&&S.active.equipmentKey]?.dumbbellWeights;
+  const isDb=!!(ex&&ex.eq?.includes('dumbbells')&&!ex.eq?.includes('barbell'));
+  // Same exact-rack snap the rendered ramp uses (see wu1Lbl).
+  const snap=v=>isDb&&rack?roundToAvailable(r5(v),rack):r5(v);
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=`${snap(w*val)} lb${isDb?' ea':''}`;};
   set(`wu1-${exIdx}`,0.5);set(`wu2-${exIdx}`,0.75);set(`wu3-${exIdx}`,0.9);
 }
 
@@ -10100,9 +10105,12 @@ function renderWorkout(){
   const sugW0=prog?prog.suggest:(est?est.weight:null);
   const isDumbbellEx=!!(ex.eq?.includes('dumbbells')&&!ex.eq?.includes('barbell'));
   const wUnit=scaleDef?scaleDef.unit:isDumbbellEx?'lb ea':'lb';
-  const wu1Lbl=sugW0?`${r5(sugW0*0.5)} ${wUnit}`:'~50%';
-  const wu2Lbl=sugW0?`${r5(sugW0*0.75)} ${wUnit}`:'~75%';
-  const wu3Lbl=sugW0?`${r5(sugW0*0.9)} ${wUnit}`:'~90%';
+  // At a gym with an exact dumbbell rack, warm-up and back-off loads snap DOWN
+  // to a pair that exists there, same rule as the working weight above.
+  const rs=v=>capDb&&dbWeights?roundToAvailable(r5(v),dbWeights):r5(v);
+  const wu1Lbl=sugW0?`${rs(sugW0*0.5)} ${wUnit}`:'~50%';
+  const wu2Lbl=sugW0?`${rs(sugW0*0.75)} ${wUnit}`:'~75%';
+  const wu3Lbl=sugW0?`${rs(sugW0*0.9)} ${wUnit}`:'~90%';
   // Weight-acclimation coverage beyond the session's lead lift: the recovery-
   // debt scheduler mixes muscle groups within one session (e.g. Legs · Back ·
   // Chest), so the first LOADABLE lift of each NEW muscle group also gets a
@@ -10167,7 +10175,7 @@ function renderWorkout(){
   // for higher reps. Straight sets for bodyweight, timed, single-set, circuit,
   // and power work (every power set is the same quality — no fatigued sets).
   const useBackoff=!isNoWeight&&!isTimed&&!scaleDef&&!ex.circuitStyle&&!isPowerEx&&!ex.pairId&&ex.sets>1;
-  const backoffW=(useBackoff&&sugW0)?r5(sugW0*0.85):null;
+  const backoffW=(useBackoff&&sugW0)?rs(sugW0*0.85):null;
   const backoffRepLo=ex.rMax, backoffRepHi=ex.rMax+5;
   let progHTML;
   if(isTimed){
@@ -10200,7 +10208,7 @@ function renderWorkout(){
       :isPowerEx
       ?`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} explosive reps — max intent, stop the set when speed visibly drops`
       :`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} to 1–2 reps shy of failure`;
-    const backoffTarget=useBackoff&&(backoffW||(est&&r5(est.weight*0.85)))?` · then back-off ${backoffW||r5(est.weight*0.85)} ${wUnit} × ${backoffRepLo}–${backoffRepHi}`:'';
+    const backoffTarget=useBackoff&&(backoffW||(est&&rs(est.weight*0.85)))?` · then back-off ${backoffW||rs(est.weight*0.85)} ${wUnit} × ${backoffRepLo}–${backoffRepHi}`:'';
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>
       ${prog.layoffWeeks?`<div class='prog-hint' style='color:var(--warn)'>⏸ ~${prog.layoffWeeks} weeks since you last did this — ${scaleDef?`raising the ${scaleDef.label.toLowerCase()} to ramp back in safely.`:`suggesting ${prog.layoffWeeks>=8?'80%':'90%'} of your old weight to ramp back in safely.`}</div>`:''}
       ${prog.ready?`<div class='prog-hint'>🔼 Ready to progress! ${scaleDef?`Drop to ${scaleDef.label.toLowerCase()} ${prog.suggest} — one notch lower is a flatter body and a harder row.`:`${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget}`}</div>`:`<div style='font-size:13px;color:var(--mut);margin-bottom:10px'>${isPowerEx?'Sets':'Top set'}: ${topTarget}${backoffTarget}</div>`}`
@@ -10237,7 +10245,7 @@ function renderWorkout(){
   const setsRows=Array.from({length:ex.sets},(_,i)=>{
     const done=ex.done[i];
     const isBackoffSet=useBackoff&&i>0;
-    const sugW=isBackoffSet?(backoffW||(baseW!=null?r5(baseW*0.85):'')):(baseW!=null?baseW:(done?.weight||''));
+    const sugW=isBackoffSet?(backoffW||(baseW!=null?rs(baseW*0.85):'')):(baseW!=null?baseW:(done?.weight||''));
     const setRep=isBackoffSet?`${backoffRepLo}–${backoffRepHi}`:repRange;
     const sugR=done?.reps||(isBackoffSet?backoffRepLo:ex.rMax);
     const setTag=(isNoWeight||isTimed||!useBackoff)?'':`<div style='font-size:9px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px'>${isBackoffSet?'back-off':'top set'}</div>`;
