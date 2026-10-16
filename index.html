@@ -1886,7 +1886,7 @@ let S={
     // and an evening — see centuryHostSession. 'eve' is the default because the
     // evening is the side with slack.
     centuryWhen:'eve',
-    avoidExercises:['ohp','push_press','db_push_press','thrusters','woodchop','plank_outside_climbers','ezbar_upright_row','bench'],
+    avoidExercises:['ohp','push_press','db_push_press','thrusters','woodchop','plank_outside_climbers','ezbar_upright_row','bench','cossack_squat','kb_weight_shift'],
     // Seeded from the InBody-style body-composition scan (Starfit, 2026-05-24).
     // Muscle already sits above the normal range — the score gap is pure fat, so
     // the program is tuned to strip fat while preserving muscle. (The dashboard
@@ -2034,6 +2034,10 @@ function load(){
       // territory — despite the movement carrying no 'plyometric' tag and no
       // hipRisk flag, so neither the plyo ban nor hipCaution would catch it.
       if(!S.cfg.avoidExercises.includes('plank_outside_climbers'))S.cfg.avoidExercises.push('plank_outside_climbers');
+      // Migrate: Cossack squats pull hard on the LEFT groin (2026-10-16)  the deep
+      // lateral shift with the far leg straight loads the adductor at end range.
+      // Kettlebell Weight Shift is the same travel, so it goes too.
+      ['cossack_squat','kb_weight_shift'].forEach(id=>{if(!S.cfg.avoidExercises.includes(id))S.cfg.avoidExercises.push(id);});
       // Migrate: LEFT SHOULDER (2026-08-03). Upright rows hurt, and the front of
       // the shoulder hurts while benching — one mechanism, two lifts, so both go.
       ['ezbar_upright_row','bench'].forEach(id=>{
@@ -8256,8 +8260,8 @@ const DESK_REVERSAL=[
 const HIP_POOL=[
   {n:'Ankle Rocks',d:'10 reps/side · Achilles/calf mobility',f:['achilles']},
   {n:'Cat-Cow',d:'8 slow reps · thoracic extension',f:['spine']},
-  {n:'90/90 Hip Stretch',d:'30 sec/side · breathe into it',f:['hip']},
-  {n:'Half-Kneeling Hip Flexor Stretch',d:'30 sec/side · tuck pelvis first',f:['hip']},
+  {n:'90/90 Switches',d:'8 reps/side · seated 90/90, hands behind you, rotate both knees over to the other side and back — controlled, stop short of any pinch at the front of the left hip',f:['hip']},
+  {n:'Half-Kneeling Hip Flexor Rocks',d:'10 reps/side · tuck the pelvis, squeeze the back glute and rock forward until the front of the hip opens, 2s, then back out — moving, not holding',f:['hip']},
   // Figure 4 Stretch moved OUT 2026-09-09, to PT_PRESCRIBED below, alongside
   // Butterfly Stretch — same reasoning as the PT_HIP_POOL removals above: the
   // physio's sheet prescribes both DAILY with a fixed dose, and this casual
@@ -8271,10 +8275,6 @@ const HIP_POOL=[
   // loaded by bodyweight. Pool order is mobilize → activate and this is the
   // activation end of rotation work, so it comes after the passive stretches.
   {n:'Hip Airplanes',d:'5 cycles/side · hand on a wall, hinge until torso and free leg are one horizontal line, then rotate the pelvis over the stance hip — open UP toward the ceiling, pause, slowly back under. Torso stays still; only the stance hip moves. Slow enough to stop anywhere. Left hip: open up further than you rotate under, and back off at any pinch in the front',f:['hip']},
-  {n:'Supine Knee-to-Chest Stretch',d:'30 sec/side · on your back, pull one knee to your chest with both hands, other leg long and flat on the floor — deepens hip flexion range and stretches the glute/lower back',f:['hip','spine']},
-  {n:'Knee-to-Chest Lie',d:'45 sec · on your back, hug BOTH knees to your chest, gently rocking side to side if it feels good — decompresses the lower back and opens the hips',f:['spine','hip']},
-  {n:'Kneeling Diamond Sit',d:'45 sec · kneel with the knees wide and big toes touching behind you, sit back onto the heels with a tall spine — hips, inner thighs, and ankles together (hip-friendly, like wide-knee child\'s pose)',f:['hip','adductor']},
-  {n:'Z-Sit',d:'30 sec/side · sit with the front shin folded across in front and the other shin folded to the side behind you (a settled 90/90), tall spine, weight even on both sit bones — releases the hips; switch sides, and ease out if the left groin complains',f:['hip']},
   // Pretzel Stretch removed 2026-07-15: cramps the user's left groin when that
   // leg is bent — the seated cross-leg position drives deep hip flexion +
   // rotation under pressure, exactly the pattern the FAI constraints ban.
@@ -8293,11 +8293,9 @@ const SHOULDER_POOL=[
   // Band Pull-aparts removed 2026-07-15: no band at the time. Face Pulls above
   // and the thoracic rotations below cover the same rear-delt/upper-back
   // posture territory bandless.
-  {n:'Doorway Stretch',d:'30 sec/side · pec/anterior shoulder mobility',f:['shoulder']},
+  {n:'Wall Slides',d:'10 slow reps · back and forearms on a wall, slide the arms up as far as they go without the low back arching, then pull the elbows down into the ribs',f:['shoulder']},
   {n:'Kneeling Thoracic Rotation',d:'10 reps/side · tall-kneeling, hand behind head, rotate the elbow down and across then up toward the ceiling — hips stay square, the upper back does the rotating',f:['shoulder','spine']},
   {n:'Standing Thoracic Rotation',d:'10 reps/side · feet planted hip-width, arms crossed at the chest, rotate the upper body side to side while the hips stay facing forward',f:['shoulder','spine']},
-  {n:'Behind-the-Back Shoulder Stretch',d:"30 sec · clasp your hands behind your back (hold a towel if they don't meet), straighten the arms, and gently lift them away from your body — opens the front of the shoulder through end-range extension",f:['shoulder']},
-  {n:'Overhead Reach Stretch',d:'30 sec · reach both arms straight overhead, interlace fingers, palms up, and reach tall — deepens overhead shoulder flexion range and stretches the lats',f:['shoulder']},
   {n:'Crab Reach',d:'8 reps/side · seated crab position (hands planted behind you, feet flat), press the hips up and reach one arm up and over across the body — opens the front of the shoulders and extends the upper back',f:['shoulder','spine']},
 ];
 
@@ -8307,8 +8305,6 @@ const LOWER_MOBILITY_POOL=[
   {n:'Deep Squat Reach',d:'8 reps · sink into a deep squat, plant one hand down, reach the other arm to the sky rotating through the upper back — hold 1s at full reach, alternate sides',f:['hip','spine']},
   {n:'Alt. Reverse Lunge + Reach',d:'8 reps/side · step back into a reverse lunge, reach both arms overhead and lean back slightly — hip flexor and lat stretch together',f:['hip']},
   {n:'Shin Box Lunge',d:'6 reps/side · from a seated 90/90 position, drive up into a lunge over the front leg then sit back down — hip internal/external rotation under control',f:['hip']},
-  {n:'Low Cossack Squat',d:'8 reps/side · wide stance, sit deep into one hip while the other leg stays straight, heel down — adductor/hip mobility',f:['adductor','hip']},
-  {n:'Kettlebell Weight Shift',d:'8 shifts/side · hold a KB or single DB goblet-style at the chest, stand wide, sink into a deep squat and travel side to side staying LOW the whole way — the counterweight lets you sit deeper and stay upright. Left hip: stop short of any front-of-hip pinch'},
   {n:'Cross-Body High Kicks',d:'8 reps/side · walking or in place, kick one straight leg up toward the OPPOSITE hand — dynamic hamstring opener with a rotation element',f:['hamstring']},
   {n:'Elephant Walks',d:'10 alternating reps · standing pike, hands toward the floor, alternately bend one knee while straightening the other — milking the hamstrings one side at a time',f:['hamstring','achilles']},
   {n:'Pump Stretch',d:'10 alternating reps · in Down Dog, pedal the heels — pressing one heel toward the floor while the other knee bends — calves and hamstrings',f:['achilles','hamstring']},
@@ -8322,14 +8318,12 @@ const LOWER_MOBILITY_POOL=[
   // range below the pinch; never push through it.
   {n:'Standing Hip Rotations',d:'8 circles/side · lift the knee only to MID-THIGH height (below 90°) and draw a smooth circle — out, around, and back — standing tall near a wall for balance. Left side: keep the circle smaller and stop short of any front-of-hip pinch — the pinch is the joint\'s limit, not a stretch',f:['hip']},
   {n:'Glute Bridge Pulses',d:'15 reps · glute bridge at the TOP of the range, small quick pulses squeezing the glutes — activation before loading',f:['glute']},
-  {n:'Glute Bridge Hold',d:'30 sec · drive to full hip extension and hold, glutes squeezed hard, ribs down — count a slow 30',f:['glute']},
   {n:'Single-Leg Raises',d:'8 reps/side · flat on your back, one leg straight up then lower slow — press the lower back FLAT into the floor and only lower as far as you can hold it flat (bend the down-leg knee & plant that foot if needed). A faint pop just above the waistline on the way down means the back is arching and the hip flexor is snapping — shorten the range and brace harder, don\'t push through it',f:['spine','hip']},
   {n:'Knee Hugs',d:'8 reps/side · standing, pull one knee to the chest with both hands, squeeze 1s, tall posture — alternate',f:['hip']},
   {n:'Lymphatic Jumps',d:'30 sec · light relaxed bouncing on the toes, heels barely tapping, arms loose — wakes the ankles and gets blood moving',f:['achilles']},
   {n:'Lunge Flow',d:'5 reps/side · flow lunge sequence: deep lunge → back-knee tap → straighten front leg for hamstrings → hands overhead — one smooth cycle per rep',f:['hip','hamstring']},
   // Cue capped 2026-07-16: same left-hip anterior pinch as Standing Hip Rotations.
   {n:'Open Gate',d:'8 reps/side · walking or standing, lift the knee only to MID-THIGH height then swing it OUT and around (opening the gate), then reverse (closing) — groin and hip rotation. Left side: smaller arc, stop short of any front-of-hip pinch',f:['hip','adductor']},
-  {n:'Horse Stance',d:'30 sec · wide stance, toes slightly out, sink until thighs near parallel with a tall torso and hold — hips, adductors, and quads together',f:['adductor','hip']},
   {n:'Windshield Wipers',d:'8 reps/side · on your back, knees bent and feet wide, drop both knees side to side keeping the shoulders flat — hip internal/external rotation',f:['hip','spine']},
   // Replaced Pike Sit-Down 2026-10-08: sitting back toward the heels loaded the
   // front of the shin. Same hamstring-to-hip range lying down, feet unloaded.
