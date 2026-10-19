@@ -1741,7 +1741,7 @@ const CONDITIONING_FINISHERS=[
   // rotation); the reactive jump protocol carries plyo:true so getFinisher
   // drops it while hip caution is on.
   {name:'Block Jump Capacity',jumpDurability:true,desc:'6 sets × 12–20 continuous block jumps (hands up the whole time, submaximal height), 60s rest. On SAND or grass if at all possible. Trains the thing that actually fails late in a set: holding jump height with incomplete recovery. End any set the moment height drops or the feet start slapping — the number of QUALITY jumps is the score, and it should climb week to week.',icon:'\ud83c\udfd0',mins:14},
-  {name:'Bounce Foundation',desc:'Tendon-stiffness isometrics — pick 3: Split Squat Hold 3×45s/leg · Single-Leg Wall Sit 3×45s/leg · Wall Sit 3×45s · Reverse Nordic Iso 3×30s · Calf Raise Iso Hold 3×45s',icon:'🦶',mins:10,lunchOK:true},
+  {name:'Bounce Foundation',desc:'Tendon-stiffness isometrics, run as a circuit — pick 3: Split Squat Hold 45s/leg · Single-Leg Wall Sit 45s/leg · Wall Sit 45s · Reverse Nordic Iso 30s · Calf Raise Iso Hold 45s. Rest 30s between holds, 60s between rounds, 2 rounds. Swap legs straight through on the per-leg holds — the other leg is resting.',icon:'🦶',mins:11,lunchOK:true},
   {name:'Bounce Protocol',desc:'Reactive jump work, full recovery between sets, quality over quantity — pick 3: Pogo Hops 3×15 · Line Hops 3×20 · Plate Hops 3×10 · Chair Jumps 3×5 · Lunge Hops 3×6/side · U Hops 3×8 · Depth Jumps 3×5 · ATG Jump Squats 3×6 · JAPAP Jumps 3×5. Stop any drill the moment height or crispness drops.',icon:'🦘',mins:12,plyo:true},
   // The Combat Fitness Test's own events minus the running, so the style of work
   // shows up in ORDINARY weeks rather than only on the fortnightly benchmark —
@@ -9901,7 +9901,7 @@ function clusterHTML(ex){
 // sr-/w-/r-/db- keyed on the partner's real index in S.active.exercises — which is
 // the whole reason this needs no change to completeSet. The rows log to the right
 // exercise because their ids say which one they are.
-function pairPartnerHTML(pIdx){
+function pairPartnerHTML(pIdx,swapHTML=''){
   const exs=S.active?.exercises||[];
   const ex=exs[pIdx];
   if(!ex)return'';
@@ -9937,8 +9937,10 @@ function pairPartnerHTML(pIdx){
     <div style='display:flex;align-items:center;gap:8px;margin-bottom:2px'>
       <span style='font-size:12px;font-weight:800;letter-spacing:1px;color:${mcolor}'>${ex.pairId}2</span>
       <span style='font-size:17px;font-weight:800'>${ex.name}</span>
+      <button class='cue-btn' data-action='toggle-swap' data-idx='${pIdx}' style='margin-bottom:0;margin-left:auto;color:var(--mut)'>↕ Swap</button>
     </div>
     <div style='font-size:12px;color:var(--mut);margin-bottom:8px'>${MNAME[ex.muscle]||ex.muscle} · ${target} · ${basis}</div>
+    ${swapHTML}
     ${cueBlockHTML(ex,mcolor)}
     <div class='sets-hdr' style='${rowGrid};margin-top:10px'>
       <div>Set</div><div>Target</div>${hideWeight?'':'<div>Weight</div>'}<div>${isTimed?'Sec':'Reps'}</div><div></div>
@@ -10129,7 +10131,6 @@ function renderWorkout(){
   const pairIdx=(ex.pairId&&ex.pairPos===1)?pairPartnerIdx(exIdx):-1;
   const pairEx=pairIdx>=0?exercises[pairIdx]:null;
   const pairBanner=pairBannerHTML(ex,pairEx)+emomBannerHTML()+densityBannerHTML();
-  const pairBlock=pairIdx>=0?pairPartnerHTML(pairIdx):'';
   const clusterBox=clusterHTML(ex)+(pairEx?clusterHTML(pairEx):'');
   const warmupHTML=ex.isFirst&&pctScalable?(S.active.isLunch
   // Lunch: abbreviated 2-set ramp (part of the 2026-07-14 time-box
@@ -10215,13 +10216,15 @@ function renderWorkout(){
       :`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">${isPowerEx?`First time — start light. ${ex.rMin}–${ex.rMax} explosive reps per set, judged by speed, not fatigue.`:`First time — start conservative. Top set ${ex.rMin}–${ex.rMax} to 1–2 reps shy${useBackoff?`, then a back-off set ~15% lighter for ${backoffRepLo}–${backoffRepHi}`:''}.`}</div>`;
   }
 
-  const swapOpen=S.active.swapMode===exIdx;
   // Use current session's equipment for exercise swaps
   const today=todayDow();
   const av=S.weekPlan?.availability||{};
   const todayAv=av[today]||{};
   const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
-  const selectedPreset=EQUIPMENT_PRESETS[sessionEquipment]||EQUIPMENT_PRESETS.ymca;
+  // Built per target index so the A2 partner of a paired station can be swapped too.
+  const swapPanelFor=(exIdx)=>{
+  const ex=S.active.exercises[exIdx];
+  const swapOpen=S.active.swapMode===exIdx;
   const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!plyoHidden(e)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>equipForDow(sessionEquipment,today).includes(q))).slice(0,5):[];
   const swapSearchOpen=swapOpen&&S.active.swapSearch;
   const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
@@ -10234,8 +10237,12 @@ function renderWorkout(){
       <input id='swap-search-input' type='text' class='ni' placeholder='Name, muscle, or type…' value='${(S.active.swapQuery||'').replace(/'/g,"&#39;")}' style='width:100%;margin-bottom:8px' autocomplete='off' autocorrect='off' spellcheck='false'>
       <div id='swap-search-results'>${renderSwapSearchResults(S.active.swapQuery||'',exIdx)}</div>
     </div>`:`<button class='btn btn-g btn-sm' style='margin-top:2px' data-action='swap-more' data-idx='${exIdx}'>+ More options</button>`}
-    <button class='btn btn-g btn-sm' style='margin-top:6px' data-action='toggle-swap'>Cancel</button>
+    <button class='btn btn-g btn-sm' style='margin-top:6px' data-action='toggle-swap' data-idx='${exIdx}'>Cancel</button>
   </div>`:'';
+  return swapPanel;
+  };
+  const swapPanel=swapPanelFor(exIdx);
+  const pairBlock=pairIdx>=0?pairPartnerHTML(pairIdx,swapPanelFor(pairIdx)):'';
 
   const repRange=isTimed?`${ex.rMin}–${ex.rMax}s`:`${ex.rMin}–${ex.rMax}`;
   const rowGrid=hideWeight?'grid-template-columns:36px 64px 1fr 42px':'';
@@ -10417,7 +10424,12 @@ function renderWorkout(){
         <strong style='font-size:14px'>${nxP>=0?`${nx.pairId}1 ${nx.name} + ${nx.pairId}2 ${exercises[nxP].name}`:nx.name}</strong>
         <span style='font-size:11px;color:var(--mut);margin-left:auto'>${nx.sets} × ${nx.rMin}–${nx.rMax}${nx.isTimed?'s':''}</span>
       </div>
-      <button class='cue-btn' data-action='toggle-cue' data-id='next-cue-${nxI}' style='margin-bottom:6px'>💡 Preview cues</button>
+      <div style='display:flex;gap:6px;flex-wrap:wrap'>
+        <button class='cue-btn' data-action='toggle-cue' data-id='next-cue-${nxI}' style='margin-bottom:6px'>💡 Preview cues</button>
+        <button class='cue-btn' data-action='toggle-swap' data-idx='${nxI}' style='margin-bottom:6px;color:var(--mut)'>↕ Swap${nxP>=0?` ${nx.pairId}1`:''}</button>
+        ${nxP>=0?`<button class='cue-btn' data-action='toggle-swap' data-idx='${nxP}' style='margin-bottom:6px;color:var(--mut)'>↕ Swap ${nx.pairId}2</button>`:''}
+      </div>
+      ${swapPanelFor(nxI)}${nxP>=0?swapPanelFor(nxP):''}
       <div class='cue-txt' id='next-cue-${nxI}' style='font-size:12px;margin-bottom:0;padding:0;background:none'>${cueBlockHTML(nx,MCOL[nx.muscle]||'var(--acc)')||'No technique notes available.'}</div>
     </div>`:'';})()}
     ${prevBtn?`<div class='ex-nav'>${prevBtn}</div>`:''}
@@ -13617,7 +13629,8 @@ document.addEventListener('click',e=>{
   if(a==='start-iso-hold'){startRest(parseInt(btn.dataset.secs),'Mid-position hold');return;}
   if(a==='start-hold'){startRest(parseInt(btn.dataset.secs),'Stretch hold');return;}
   if(a==='toggle-swap'){
-    S.active.swapMode=S.active.swapMode===S.active.exIdx?null:S.active.exIdx;
+    const tIdx=btn.dataset.idx!=null?parseInt(btn.dataset.idx):S.active.exIdx;
+    S.active.swapMode=S.active.swapMode===tIdx?null:tIdx;
     S.active.swapSearch=false;S.active.swapQuery='';
     render();return;
   }
@@ -13633,7 +13646,7 @@ document.addEventListener('click',e=>{
     const newEx=allEx.find(e=>e.id===newId);
     if(newEx&&S.active.exercises[idx]){
       const old=S.active.exercises[idx];
-      S.active.exercises[idx]={...newEx,sets:old.sets,sessionMins:old.sessionMins,done:[],isFirst:old.isFirst};
+      S.active.exercises[idx]={...newEx,sets:old.sets,sessionMins:old.sessionMins,done:[],isFirst:old.isFirst,pairId:old.pairId,pairPos:old.pairPos};
       S.active.swapMode=null;S.active.swapSearch=false;S.active.swapQuery='';save();render();
     }
     return;
