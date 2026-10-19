@@ -2114,7 +2114,16 @@ const kneeCautionBlocks=(e)=>S.cfg.kneeCaution&&e.muscle==='legs'&&!KNEE_SAFE_ID
 // available so vertical-jump work isn't fully lost to the FAI hip. True impact
 // plyos (depth jumps, single-leg drops, bounds) carry no lowImpact flag and
 // remain banned. Used everywhere the old inline plyometric check lived.
-const plyoHidden=(e)=>S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')&&!e.lowImpact;
+// SHIN CARE WEEK (2026-10-19): sore lower shins after basketball plus a broken
+// toenail. A fixed date window rather than a synced toggle, so it lapses on its
+// own and needs no cloud wiring. While it runs: no jumps or hops of any kind
+// (low-impact ones included), no sprint or jump finishers, no calf top-up, and
+// a daily shin-care card. Only real-clock dates fall inside it, so the
+// case-study harness (anchored in January) never sees it.
+const SHIN_CARE={from:'2026-10-19',to:'2026-10-25'};
+function shinCareOn(){const t=todayStr();return t>=SHIN_CARE.from&&t<=SHIN_CARE.to;}
+const SHIN_IMPACT_RX=/jump|hop|sprint|bound|skip|shuttle|pogo|run\b|burpee/i;
+const plyoHidden=(e)=>(shinCareOn()&&((e.tags||[]).includes('plyometric')||SHIN_IMPACT_RX.test(e.name||'')))||(S.cfg.hipCaution&&(e.tags||[]).includes('plyometric')&&!e.lowImpact);
 // Personal exercise exclusions — movements that flare a specific issue
 // regardless of the broader hip/knee/shoulder caution flags (e.g. Push Press
 // on the lower back). A flat id blacklist, not a tag rule, since these are
@@ -2269,7 +2278,7 @@ function calfSetsThisWeek(){
   });
   return sets;
 }
-function needsCalfTopUp(){return calfSetsThisWeek()<CALF_WEEKLY_TARGET_SETS;}
+function needsCalfTopUp(){return !shinCareOn()&&calfSetsThisWeek()<CALF_WEEKLY_TARGET_SETS;}
 // Pick the least-used still-eligible calf movement — same safety gates
 // Foundation Five's canPlaceFoundation uses (equipment, hip/shoulder caution,
 // plyo, avoid list, knee caution, dragon-flag gate); calf isolation work trips
@@ -7839,8 +7848,9 @@ function getFinisher(dow,isLunch,equipmentKey){
   // isn't. Unknown location => treat as unequipped, same conservative default
   // as the runway check.
   const equip=new Set(EQUIPMENT_PRESETS[equipmentKey]?.equipment||[]);
-  const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution)&&(!isLunch||f.lunchOK)&&!(f.needsRunway&&!hasRunway)&&!(f.needsEquip&&!equip.has(f.needsEquip)));
-  if(!isLunch&&jumpDurabilityOn()&&!eveningTrainedThisWeek()){
+  const pool=CONDITIONING_FINISHERS.filter(f=>!(f.plyo&&S.cfg.hipCaution)&&(!isLunch||f.lunchOK)&&!(f.needsRunway&&!hasRunway)&&!(f.needsEquip&&!equip.has(f.needsEquip))
+    &&!(shinCareOn()&&(f.sprint||f.plyo||f.jumpDurability||/jump|hop|bound|shuttle|pogo|burpee/i.test(f.name+' '+f.desc))));
+  if(!isLunch&&jumpDurabilityOn()&&!shinCareOn()&&!eveningTrainedThisWeek()){
     const jd=pool.find(f=>f.jumpDurability);
     if(jd)return jd;
   }
@@ -7977,12 +7987,28 @@ function ptPrescribedHTML(){
     ${PT_PRESCRIBED.map(ptPrescribedRowHTML).join('')}
   </div>`;
 }
+const SHIN_CARE_ITEMS=[
+  {n:'Ankle circles',d:'10 each direction, each ankle. Slow and big.'},
+  {n:'Seated tibialis raises',d:'2×15. Sit, heels on the floor, lift the toes and lower slowly. Pain-free range only.'},
+  {n:'Bent-knee wall calf stretch',d:'30s/side. Knee bent so it hits the soleus, heel down.'},
+  {n:'Kneeling shin stretch',d:'30s. Sit back on the heels with the tops of the feet down; put a folded towel under the toes to spare the toenail.'},
+  {n:'Calf self-massage',d:'2 min/side with a roller or hands on the calf muscle, not on the sore bone.'},
+];
+function shinCareHTML(){
+  if(!shinCareOn())return'';
+  return`<div style='margin-top:10px;padding:14px;background:rgba(251,146,60,.06);border:1px solid rgba(251,146,60,.25);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fb923c;margin-bottom:6px'>🦵 Shin Care · this week only · ~6 min</div>
+    ${SHIN_CARE_ITEMS.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>No jumps, hops, sprints or calf top-up through Sunday. Bike or rower for conditioning. If one spot on the bone hurts to press, or walking hurts, get it checked: that can be a stress reaction, not soreness.</div>
+  </div>`;
+}
 function dailySpineHTML(){
   return`<div style='margin-top:10px;padding:14px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.2);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:6px'>🧘 Daily Spine Minimums · ~5 min</div>
     ${DAILY_SPINE_MINIMUMS.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>Fixed daily doses — these never rotate. A few minutes every day keeps the spine decompressed, the core protective, and posture honest. Evening training days fold them into the cool-down; otherwise do them any time.</div>
   </div>
+  ${shinCareHTML()}
   ${ptPrescribedHTML()}`;
 }
 
