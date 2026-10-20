@@ -1441,6 +1441,13 @@ the harness can act on an EVENT — see `.claude/settings.json` +
     `band:true` marks the four needing a mini band. **`Kinky Leg Spreads` is a
     guessed interpretation** (seated spread with the torso hinged forward) —
     flagged to Sam, correct it if the physio meant something else.
+  - **`ISO_DYNAMIC_POOL`** (2026-10-20) — five iso-hold → reps combos Sam named
+    (heel-elevated wall sit → tib raises, Copenhagen hold → dips, bent-knee calf
+    iso → pulses, SL glute bridge iso → bridges, heel-elevated split squat iso →
+    split squats). Own leg-day-only block (`isodyn`, 2 evening / 1 lunch), split
+    out for the same dilution reason as `PT_HIP_POOL`. `iso:true` makes
+    `prepItemSecs` charge the hold AND the reps (otherwise a stated time wins).
+    Case study byte-identical to HEAD.
   - `DESK_REVERSAL` (chin tucks + pelvic tilts) and `HIP_DECOMPRESSION` are
     FIXED blocks — never rotated, never budget-trimmed. Desk reversal now shows
     at lunch too; it used to be evening-only, which had it backwards.

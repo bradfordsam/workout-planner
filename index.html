@@ -8054,11 +8054,14 @@ function prepItemSecs(it){
   if(tm){
     const lo=+tm[1],hi=tm[2]?+tm[2]:+tm[1];
     secs=((lo+hi)/2)*(/min/i.test(tm[3])?60:1);
-  }else{
+  }
+  // An iso→dynamic combo (ISO_DYNAMIC_POOL) states BOTH a hold and a rep count,
+  // and both are work; everywhere else a stated time wins and reps are ignored.
+  if(!tm||it.iso){
     const rm=d.match(/(\d+)\s*(?:[–\-]\s*(\d+)\s*)?(?:\w+\s+)?(reps?|circles?|swings?|cycles?|steps?|walks?)/i);
     if(rm){
       const lo=+rm[1],hi=rm[2]?+rm[2]:+rm[1];
-      secs=((lo+hi)/2)*PREP_REP_SECS;
+      secs+=((lo+hi)/2)*PREP_REP_SECS;
     }
   }
   if(perSide)secs*=2;
@@ -8400,6 +8403,21 @@ function stretchRot(pool,n){
 // the fixed decompression/desk-reversal blocks plus about a minute of rotation.
 // It is deliberately not zero — 100 pull-ups on a cold shoulder is the one thing
 // in this app worth spending scarce minutes on.
+// ── ISO → DYNAMIC (2026-10-20) ──
+// Sam asked for these five by name. Each is an isometric hold straight into reps
+// of the same pattern, no rest between — the hold pre-loads the tendon, the reps
+// then move it through range. Its own leg-day block rather than five more entries
+// in LOWER_MOBILITY_POOL: a ~30-entry leg pool dealing 4 a session surfaces any
+// one combo about once a fortnight, the same dilution PT_HIP_POOL is split out to
+// avoid. `iso:true` makes prepItemSecs charge the hold AND the reps. Every entry
+// carries a PREP_LEG_TISSUES tag so it is not a desk-day candidate either way.
+const ISO_DYNAMIC_POOL=[
+  {n:'Heel-Elevated Wall Sit → Tib Raises',d:'60 sec hold, then 15 reps · heels on a plate or wedge, back flat on the wall, thighs about parallel — hold 60 sec, then stay against the wall and pull the toes up toward the shins 15 times. Quads and patellar tendon under load, then the tibialis that decelerates every landing',f:['achilles'],iso:true},
+  {n:'Copenhagen Hold → Copenhagen Dips',d:'30 sec hold, then 8 reps/side · side plank on one elbow, TOP leg on a bench, hips lifted by the top inner thigh — hold 30 sec, then lower the hips toward the floor and drive back up 8 times. Knee on the bench first; straight leg once that\x27s easy. Left side: stop short of any pull in the groin and shorten the dip',f:['adductor'],iso:true},
+  {n:'Bent-Knee Calf Iso → Calf Pulses',d:'30 sec hold, then 15 reps/side · single leg, knee bent ~30°, up on the ball of the foot — hold 30 sec at the top, then small quick pulses through the top half for 15. The bent knee puts it on the soleus',f:['achilles'],iso:true},
+  {n:'Single-Leg Glute Bridge Iso → Bridges',d:'30 sec hold, then 8 reps/side · one foot planted, other knee hugged or leg held straight, hips up and level — hold 30 sec squeezing the glute, then 8 full bridges on the same leg. Pelvis stays square; drive through the heel',f:['glute','hamstring'],iso:true},
+  {n:'Heel-Elevated Split Squat Iso → Split Squats',d:'30 sec hold, then 12 reps/side · front heel on a plate, drop into the bottom of a split squat with the front knee travelling over the toes — hold 30 sec, then 12 reps. Upright torso; back knee hovers just off the floor',f:['adductor','hip'],iso:true},
+];
 const PREP_BUDGET_MINS={lunch:6,evening:12,centuryLunch:4};
 // Assemble the session's prep. Blocks are filled round-robin in priority order
 // so a later block can't be starved by an earlier one eating the whole budget,
@@ -8426,6 +8444,7 @@ function prepPlan(o){
   fixed.push({key:'desk',title:'🖥️ Desk Reversal',color:'var(--ok)',items:DESK_REVERSAL,note:'Fixed every session — the two most literal undo buttons for a day in a chair.'});
   const rotating=[
     isLegDay?{key:'legprep',title:'🦵 Leg Prep · hamstrings, Achilles, adductors',color:'var(--warn)',pool:legPool,n:want(4,2)}:null,
+    isLegDay?{key:'isodyn',title:'🧱 Iso → Dynamic',color:'var(--warn)',pool:ISO_DYNAMIC_POOL,n:want(2,1)}:null,
     {key:'deskreset',title:'🧍 Hip &amp; Spine Reset',color:'var(--ok)',pool:deskPool,n:want(isLegDay?2:4,isLegDay?1:3)},
     {key:'pthip',title:'🩺 PT Hip Program',color:'#c084fc',pool:PT_HIP_POOL.filter(hasKit),n:want(3,2)},
     o.shoulderCaution?{key:'shoulder',title:'🩹 Achy Shoulder',color:'var(--acc)',pool:SHOULDER_POOL,n:want(2,1)}:null,
