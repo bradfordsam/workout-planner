@@ -7635,13 +7635,10 @@ function applyDailyAutoReg(exs){
   return{exs:out,notes};
 }
 
-function startWorkout(day,sessionType){
-  // Two-per-day cap, judged on the LOCAL calendar day
-  const sessionsToday=liftingSessionsOn(todayStr());
-  if(sessionsToday>=2){
-    alert('Daily session limit: two lifting sessions are already logged today. Recovery beats more volume — go again tomorrow.');
-    return;
-  }
+// The exercise list a session starts with: the program's exercises plus any
+// make-ups. Shared by the Review screen (which lets you swap before starting)
+// and startWorkout, so what you review is exactly what you get.
+function sessionExercises(day,sessionType){
   const isEve=sessionType==='eve'&&day.eveningSession;
   const src=isEve?day.eveningSession:day;
   // Use every exercise the program built for this session — it's already sized
@@ -7662,6 +7659,19 @@ function startWorkout(day,sessionType){
       });
     }
   }
+  return rawExs;
+}
+
+function startWorkout(day,sessionType,reviewed){
+  // Two-per-day cap, judged on the LOCAL calendar day
+  const sessionsToday=liftingSessionsOn(todayStr());
+  if(sessionsToday>=2){
+    alert('Daily session limit: two lifting sessions are already logged today. Recovery beats more volume — go again tomorrow.');
+    return;
+  }
+  const isEve=sessionType==='eve'&&day.eveningSession;
+  const src=isEve?day.eveningSession:day;
+  let rawExs=(reviewed||sessionExercises(day,sessionType)).map(({done,...e})=>e);
   // Lunch time-box clamp: mirrors the generation-time rule (lead lift 3 sets,
   // 2 for the rest) so sessions generated or preserved BEFORE the 2026-07-14
   // calibration also fit the 35–40 min box the moment they're started.
@@ -9834,14 +9844,43 @@ function renderDash(){
 // RENDER – WORKOUT
 // ─────────────────────────────────────────────
 
+// The swap panel serves two places: the Review Workout screen (before Start) and
+// the active workout. Each keeps its own list and swap state — S.reviewWorkout
+// before the session starts, S.active after — and swapCtx() picks whichever the
+// current view is showing, so one set of handlers covers both.
+function swapCtx(){return S.view==='review-workout'?S.reviewWorkout:S.active;}
+function sessionSwapEquipment(isLunch){
+  const today=todayDow();
+  const todayAv=(S.weekPlan?.availability||{})[today]||{};
+  return equipForDow(isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca'),today);
+}
+function swapPanelHTML(ctx,exIdx,isLunch){
+  const ex=ctx?.exercises?.[exIdx];
+  if(!ex||ctx.swapMode!==exIdx)return'';
+  const eq=sessionSwapEquipment(isLunch);
+  const alts=EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!ctx.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!plyoHidden(e)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>eq.includes(q))).slice(0,5);
+  return`<div class='card2' style='margin-bottom:12px'>
+    <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
+    ${alts.map(a=>`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.type}</span></button>`).join('')}
+    ${!alts.length?`<div style='font-size:13px;color:var(--mut);margin-bottom:6px'>No equipment-matched alternatives found.</div>`:''}
+    ${ctx.swapSearch?`
+    <div style='margin-top:10px;border-top:1px solid var(--brd);padding-top:10px'>
+      <div class='sec-lbl' style='margin-bottom:6px'>Search all exercises:</div>
+      <input id='swap-search-input' type='text' class='ni' placeholder='Name, muscle, or type…' value='${(ctx.swapQuery||'').replace(/'/g,"&#39;")}' style='width:100%;margin-bottom:8px' autocomplete='off' autocorrect='off' spellcheck='false'>
+      <div id='swap-search-results'>${renderSwapSearchResults(ctx.swapQuery||'',exIdx)}</div>
+    </div>`:`<button class='btn btn-g btn-sm' style='margin-top:2px' data-action='swap-more' data-idx='${exIdx}'>+ More options</button>`}
+    <button class='btn btn-g btn-sm' style='margin-top:6px' data-action='toggle-swap' data-idx='${exIdx}'>Cancel</button>
+  </div>`;
+}
 function renderSwapSearchResults(query,exIdx){
   const q=(query||'').toLowerCase().trim();
   if(!q)return`<div style='font-size:13px;color:var(--mut)'>Type to search all ${EX.length+(S.customExercises||[]).length} exercises…</div>`;
-  const ex=S.active?.exercises?.[exIdx];
+  const list=swapCtx()?.exercises||[];
+  const ex=list[exIdx];
   const allEx=[...EX,...(S.customExercises||[])];
   const matches=allEx.filter(e=>
     e.id!==(ex?.id) &&
-    !S.active.exercises.some(ae=>ae.id===e.id) &&
+    !list.some(ae=>ae.id===e.id) &&
     !(S.cfg.hipCaution&&e.hipRisk) &&
     !plyoHidden(e) &&
     !kneeCautionBlocks(e) &&
@@ -10263,31 +10302,8 @@ function renderWorkout(){
       :`<div style="font-size:13px;color:var(--mut);margin-bottom:10px">${isPowerEx?`First time — start light. ${ex.rMin}–${ex.rMax} explosive reps per set, judged by speed, not fatigue.`:`First time — start conservative. Top set ${ex.rMin}–${ex.rMax} to 1–2 reps shy${useBackoff?`, then a back-off set ~15% lighter for ${backoffRepLo}–${backoffRepHi}`:''}.`}</div>`;
   }
 
-  // Use current session's equipment for exercise swaps
-  const today=todayDow();
-  const av=S.weekPlan?.availability||{};
-  const todayAv=av[today]||{};
-  const sessionEquipment=S.active.isLunch?(todayAv.lunchEquipment||'ymca'):(todayAv.eve?.equipment||'ymca');
   // Built per target index so the A2 partner of a paired station can be swapped too.
-  const swapPanelFor=(exIdx)=>{
-  const ex=S.active.exercises[exIdx];
-  const swapOpen=S.active.swapMode===exIdx;
-  const alts=swapOpen?EX.filter(e=>e.muscle===ex.muscle&&e.id!==ex.id&&!S.active.exercises.some(ae=>ae.id===e.id)&&!(S.cfg.hipCaution&&e.hipRisk)&&!plyoHidden(e)&&!kneeCautionBlocks(e)&&!userAvoids(e)&&dragonFlagUnlocked(e.id)&&e.eq.some(q=>equipForDow(sessionEquipment,today).includes(q))).slice(0,5):[];
-  const swapSearchOpen=swapOpen&&S.active.swapSearch;
-  const swapPanel=swapOpen?`<div class='card2' style='margin-bottom:12px'>
-    <div class='sec-lbl' style='margin-bottom:8px'>Swap to (same muscle):</div>
-    ${alts.map(a=>`<button class='btn btn-g btn-sm' style='margin-bottom:6px;justify-content:flex-start;text-align:left' data-action='swap-ex' data-idx='${exIdx}' data-id='${a.id}'><span>${a.name}</span><span style='color:var(--mut);font-size:11px;margin-left:6px'>${a.type}</span></button>`).join('')}
-    ${!alts.length?`<div style='font-size:13px;color:var(--mut);margin-bottom:6px'>No equipment-matched alternatives found.</div>`:''}
-    ${swapSearchOpen?`
-    <div style='margin-top:10px;border-top:1px solid var(--brd);padding-top:10px'>
-      <div class='sec-lbl' style='margin-bottom:6px'>Search all exercises:</div>
-      <input id='swap-search-input' type='text' class='ni' placeholder='Name, muscle, or type…' value='${(S.active.swapQuery||'').replace(/'/g,"&#39;")}' style='width:100%;margin-bottom:8px' autocomplete='off' autocorrect='off' spellcheck='false'>
-      <div id='swap-search-results'>${renderSwapSearchResults(S.active.swapQuery||'',exIdx)}</div>
-    </div>`:`<button class='btn btn-g btn-sm' style='margin-top:2px' data-action='swap-more' data-idx='${exIdx}'>+ More options</button>`}
-    <button class='btn btn-g btn-sm' style='margin-top:6px' data-action='toggle-swap' data-idx='${exIdx}'>Cancel</button>
-  </div>`:'';
-  return swapPanel;
-  };
+  const swapPanelFor=(i)=>swapPanelHTML(S.active,i,S.active.isLunch);
   const swapPanel=swapPanelFor(exIdx);
   const pairBlock=pairIdx>=0?pairPartnerHTML(pairIdx,swapPanelFor(pairIdx)):'';
 
@@ -10493,28 +10509,8 @@ function renderReviewWorkout(){
   const {day, sessionType} = S.reviewWorkout;
   const isEve = sessionType === 'eve' && day.eveningSession;
   const src = isEve ? day.eveningSession : day;
-  // Show every exercise the program built for this session — matches the
-  // Program tab (which renders src.exercises in full) and the started workout.
-  // The array is already sized at generation time (lunch=3, longer sessions=
-  // EX_LIMIT[mins]), so a true 40-min lunch still shows 3.
-  let rawExs = src.exercises.slice();
-
-  // Show makeup exercises logic (same as startWorkout)
-  if(!isEve){
-    const missed = getMissedDays();
-    if(missed.length > 0){
-      const todayMuscles = new Set(rawExs.map(e => e.muscle));
-      missed.forEach(missedDow => {
-        const md = S.program.week[missedDow];
-        if(!md || md.rest) return;
-        const mu = md.exercises.find(e => !todayMuscles.has(e.muscle));
-        if(mu){
-          rawExs = [...rawExs, {...mu, sets: 2, isMakeup: true, makeupFrom: md.name}];
-          todayMuscles.add(mu.muscle);
-        }
-      });
-    }
-  }
+  // The exact list Start will use (makeups included), with any swaps made here.
+  const rawExs = S.reviewWorkout.exercises;
 
   const sessionLabel = src.isLunch ? `${src.name} · Lunch` : `${src.name} · ${src.mins||src.sessionMins||60} min`;
 
@@ -10525,9 +10521,10 @@ function renderReviewWorkout(){
     return `<div class='ex-card' style='position:relative'>
       ${makeupBadge}
       <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px'>
-        <div class='m-tag' style='background:${mcolor}22;color:${mcolor};border:1px solid ${mcolor}44'>${MNAME[ex.muscle]}</div>
-        <button class='btn btn-g btn-sm' data-action='swap-exercise' data-idx='${idx}' style='font-size:11px;padding:6px 10px'>⟲ Swap</button>
+        <div class='m-tag' style='background:${mcolor}22;color:${mcolor};border:1px solid ${mcolor}44'>${ex.pairId?`${ex.pairId}${ex.pairPos||1} · `:''}${MNAME[ex.muscle]}</div>
+        <button class='btn btn-g btn-sm' data-action='toggle-swap' data-idx='${idx}' style='font-size:11px;padding:6px 10px'>⟲ Swap</button>
       </div>
+      ${swapPanelHTML(S.reviewWorkout,idx,!!src.isLunch)}
       <div class='ex-name'>${ex.name}</div>
       <div style='font-size:13px;color:var(--mut);margin-bottom:8px'>${ex.sets} sets × ${ex.rMin}–${ex.rMax} ${ex.isTimed?'seconds':'reps'}</div>
       <button class='cue-btn' data-action='toggle-cue' data-id='review-cue-${idx}'>💡 Cues</button>
@@ -12911,9 +12908,12 @@ document.addEventListener('click',e=>{
   if(a==='start-workout'){
     const d=todayDay();if(d&&!d.rest){
       // Show review screen instead of starting directly
+      const sessionType = btn.dataset.session || 'lunch';
       S.reviewWorkout = {
         day: d,
-        sessionType: btn.dataset.session || 'lunch'
+        sessionType,
+        exercises: sessionExercises(d, sessionType),
+        swapMode: null
       };
       S.view = 'review-workout';
       render();
@@ -12924,7 +12924,7 @@ document.addEventListener('click',e=>{
     const d=S.reviewWorkout?.day;
     const sessionType=S.reviewWorkout?.sessionType;
     if(d&&!d.rest){
-      startWorkout(d,sessionType);
+      startWorkout(d,sessionType,S.reviewWorkout.exercises);
     }
     return;
   }
@@ -12933,41 +12933,6 @@ document.addEventListener('click',e=>{
   }
   if(a==='view-mrv-breakdown'){
     S.view='mrv-breakdown';render();return;
-  }
-  if(a==='swap-exercise'){
-    const idx=parseInt(btn.dataset.idx);
-    if(!S.reviewWorkout)return;
-
-    // Get current exercise to replace
-    const {day, sessionType} = S.reviewWorkout;
-    const isEve = sessionType === 'eve' && day.eveningSession;
-    const src = isEve ? day.eveningSession : day;
-    const currentEx = src.exercises[idx];
-
-    // Find alternative exercises for the same muscle group and type
-    const alternatives = EX.filter(e =>
-      e.muscle === currentEx.muscle &&
-      e.type === currentEx.type &&
-      e.id !== currentEx.id &&
-      e.eq.some(eq => src.exercises.some(srcEx => srcEx.eq?.includes(eq))) // Has compatible equipment
-    ).slice(0, 5); // Limit to 5 alternatives
-
-    if(alternatives.length === 0){
-      alert('No alternative exercises available for this muscle group and type.');
-      return;
-    }
-
-    // Show selection modal (simple confirm for now, can be enhanced later)
-    const altNames = alternatives.map((e, i) => `${i+1}. ${e.name}`).join('\n');
-    const choice = prompt(`Choose replacement for ${currentEx.name}:\n\n${altNames}\n\nEnter number (1-${alternatives.length}):`);
-    const choiceIdx = parseInt(choice) - 1;
-
-    if(choiceIdx >= 0 && choiceIdx < alternatives.length){
-      // Replace the exercise
-      src.exercises[idx] = {...alternatives[choiceIdx], sets: currentEx.sets};
-      render();
-    }
-    return;
   }
   if(a==='add-custom-exercise'){
     // Create custom exercise form
@@ -13676,13 +13641,15 @@ document.addEventListener('click',e=>{
   if(a==='start-iso-hold'){startRest(parseInt(btn.dataset.secs),'Mid-position hold');return;}
   if(a==='start-hold'){startRest(parseInt(btn.dataset.secs),'Stretch hold');return;}
   if(a==='toggle-swap'){
-    const tIdx=btn.dataset.idx!=null?parseInt(btn.dataset.idx):S.active.exIdx;
-    S.active.swapMode=S.active.swapMode===tIdx?null:tIdx;
-    S.active.swapSearch=false;S.active.swapQuery='';
+    const ctx=swapCtx();if(!ctx)return;
+    const tIdx=btn.dataset.idx!=null?parseInt(btn.dataset.idx):ctx.exIdx;
+    ctx.swapMode=ctx.swapMode===tIdx?null:tIdx;
+    ctx.swapSearch=false;ctx.swapQuery='';
     render();return;
   }
   if(a==='swap-more'){
-    S.active.swapSearch=true;S.active.swapQuery='';
+    const ctx=swapCtx();if(!ctx)return;
+    ctx.swapSearch=true;ctx.swapQuery='';
     render();
     setTimeout(()=>{const el=document.getElementById('swap-search-input');if(el)el.focus();},50);
     return;
@@ -13691,10 +13658,11 @@ document.addEventListener('click',e=>{
     const idx=parseInt(btn.dataset.idx),newId=btn.dataset.id;
     const allEx=[...EX,...(S.customExercises||[])];
     const newEx=allEx.find(e=>e.id===newId);
-    if(newEx&&S.active.exercises[idx]){
-      const old=S.active.exercises[idx];
-      S.active.exercises[idx]={...newEx,sets:old.sets,sessionMins:old.sessionMins,done:[],isFirst:old.isFirst,pairId:old.pairId,pairPos:old.pairPos};
-      S.active.swapMode=null;S.active.swapSearch=false;S.active.swapQuery='';save();render();
+    const ctx=swapCtx();
+    if(newEx&&ctx?.exercises?.[idx]){
+      const old=ctx.exercises[idx];
+      ctx.exercises[idx]={...newEx,sets:old.sets,sessionMins:old.sessionMins,done:[],isFirst:old.isFirst,pairId:old.pairId,pairPos:old.pairPos,isMakeup:old.isMakeup,makeupFrom:old.makeupFrom};
+      ctx.swapMode=null;ctx.swapSearch=false;ctx.swapQuery='';save();render();
     }
     return;
   }
@@ -13868,9 +13836,12 @@ document.addEventListener('input',e=>{
     if(v>=80&&v<=400)S.cfg.bodyLbs=v;
   }
   if(e.target.id==='swap-search-input'){
-    S.active.swapQuery=e.target.value;
-    const el=document.getElementById('swap-search-results');
-    if(el)el.innerHTML=renderSwapSearchResults(S.active.swapQuery,S.active.swapMode);
+    const ctx=swapCtx();
+    if(ctx){
+      ctx.swapQuery=e.target.value;
+      const el=document.getElementById('swap-search-results');
+      if(el)el.innerHTML=renderSwapSearchResults(ctx.swapQuery,ctx.swapMode);
+    }
   }
   if(e.target.id==='cardio-log-mins'&&S.cardioLogDraft){
     S.cardioLogDraft.mins=parseInt(e.target.value)||0;
