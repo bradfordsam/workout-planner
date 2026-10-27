@@ -1783,7 +1783,28 @@ const VO2_PROTOCOLS=[
   {key:'anaerobic',name:'Anaerobic Repeats (Off-Feet)',icon:'🔥',base:8,maxW:14,
    desc:w=>`${w} × 30s hard / 90s easy — repeatable efforts, zero impact, not a death march. Rower or ski erg first, then sled push, battle ropes, or hard KB swings; bike only if nothing else is free`,
    mins:w=>Math.round(w*2+6)},
+  // Hoops conditioning (2026-10-26, Sam: "this would be great for the workout
+  // app"). Fun-first fat-loss work: makes not attempts, so the session length
+  // scales with skill, and the constant 50% jog between reps keeps the heart
+  // rate up the whole time. No threes on purpose — middies and layups both
+  // demand a max jump and need far fewer attempts per make. needsCourt gates
+  // it to COURT_LOCATIONS; it also shows up as a manual swap on the card.
+  {key:'hoops',name:'Hoops Conditioning',icon:'🏀',base:5,maxW:5,needsCourt:true,
+   desc:w=>`Two workouts, 3 sets × ${w} MAKES each, jogging at ~50% between every rep (never stand still). 30–60s rest between sets, 1–2 min between workouts. ① LAYUPS — jump with intent every rep; beginners keep it basic, otherwise work creative finishes, footwork and crafty gathers off the dribble. ② MIDRANGE — Set 1: 1–2 dribble pull-up · Set 2: snatch counter (downhill → uphill decel into the shot) · Set 3: lateral counter (lateral change of direction into the shot). One side, starting at the top of the key. No threes.`,
+   mins:()=>40},
 ];
+// Gyms with a usable hoop (Sam, 2026-10-26). An unknown location is allowed —
+// rest-day evenings often have no planned gym, and the swap is manual anyway.
+const COURT_LOCATIONS=new Set(['ymca','westminster_gym','moms_and_dads']);
+const NO_COURT_LOCATIONS=new Set(['apartment_gym','hotel_gym','bodyweight']);
+function courtOK(equipKey){return !equipKey||!NO_COURT_LOCATIONS.has(equipKey);}
+// The day's planned evening (or weekend) venue. Lunch is ignored on purpose:
+// lunches are low-sweat and never get an engine session, hoops included.
+function dayEquipKey(dow){
+  const d=S.weekPlan?.availability?.[dow];if(!d)return null;
+  if(dow===0||dow===6)return d.on?(d.equipment||null):null;
+  return d.eve?.on?(d.eve.equipment||null):null;
+}
 // 20-minute maximal row benchmark: every 8th engine session (~every 2–3
 // weeks) overrides the rotation. A sustained ~20 min all-out effort is a big
 // acute endocrine event (testosterone + cortisol both spike), but the honest
@@ -1796,10 +1817,15 @@ const ROW_TEST={key:'rowtest',name:'20-Minute Max Row Test',icon:'🚣',
   desc:'20:00 continuous all-out on the rower — settle into the hardest pace you can hold, empty the tank over the last 3 min. Record distance + avg split; beating your last test IS the progression. Zero impact, maximal systemic stimulus.',
   mins:32}; // ~8 min warm-up build + 20 min test + easy spin-down
 function vo2History(){return (S.logs||[]).filter(l=>l.vo2);}
-function currentVO2Protocol(){
+function currentVO2Protocol(opts={}){
   const lvl=vo2History().length;
+  const build=proto=>{const work=Math.min(proto.base+Math.floor(lvl/4),proto.maxW);
+    return{...proto,work,desc:proto.desc(work),mins:proto.mins(work),lvl};};
+  if(opts.pick){const p=VO2_PROTOCOLS.find(x=>x.key===opts.pick);if(p)return build(p);}
   if(lvl%8===7)return{...ROW_TEST,work:20,lvl,benchmark:true};
-  const proto=VO2_PROTOCOLS[Math.floor(lvl/2)%VO2_PROTOCOLS.length];
+  let i=Math.floor(lvl/2)%VO2_PROTOCOLS.length;
+  if(VO2_PROTOCOLS[i].needsCourt&&!courtOK(opts.equipKey))i=(i+1)%VO2_PROTOCOLS.length;
+  const proto=VO2_PROTOCOLS[i];
   const work=Math.min(proto.base+Math.floor(lvl/4),proto.maxW);
   return{...proto,work,desc:proto.desc(work),mins:proto.mins(work),lvl};
 }
@@ -7436,6 +7462,7 @@ const CARDIO_ACTIVITIES=[
   {id:'stair_stepper',name:'Stair Stepper',icon:'🪜'},
   {id:'elliptical',name:'Elliptical',icon:'⚡'},
   {id:'run',name:'Run',icon:'🏃‍♂️'},
+  {id:'basketball',name:'Basketball (shooting + jogging)',icon:'🏀'},
 ];
 function cardioCalPerMin(activityId,bodyLbs){
   const walkCpm=bodyLbs*0.0245; // 3 mph flat walk baseline, MET ~3.5
@@ -7445,6 +7472,7 @@ function cardioCalPerMin(activityId,bodyLbs){
     case 'stair_stepper': return bodyLbs*0.063;
     case 'elliptical': return bodyLbs*0.038;
     case 'run': return bodyLbs*0.070;
+    case 'basketball': return bodyLbs*0.045; // MET ~6: shooting drills with constant jogging
     case 'walk': default: return walkCpm;
   }
 }
@@ -9779,8 +9807,14 @@ function renderDash(){
       // Backdating skips the evening-free gate: it records what actually
       // happened, even on a day that also had a lifting session.
       if(isBackdate||eveningFree){
-        const proto=currentVO2Protocol();
         const targetDateStr=isBackdate?addDays(todayStr(),viewDow2-dow):todayStr();
+        const equipKey=dayEquipKey(viewDow2);
+        const pick=S.vo2Pick&&S.vo2Pick.date===targetDateStr?S.vo2Pick.key:null;
+        const proto=currentVO2Protocol({pick,equipKey});
+        const swapBtn=pick
+          ?`<button class='btn btn-g btn-sm' data-action='vo2-pick' data-date='${targetDateStr}' data-key='' style='margin-top:6px;width:100%'>↩ Back to the rotation</button>`
+          :(proto.key!=='hoops'&&courtOK(equipKey)
+            ?`<button class='btn btn-g btn-sm' data-action='vo2-pick' data-date='${targetDateStr}' data-key='hoops' style='margin-top:6px;width:100%'>🏀 Swap to Hoops Conditioning</button>`:'');
         const tomorrow=S.program?.week[(dow+1)%7];
         const legsTomorrow=!isBackdate&&!!(tomorrow&&!tomorrow.rest&&(tomorrow.exercises||[]).some(e=>e.muscle==='legs'&&e.type==='compound'));
         const doneThatDay=vo2History().some(l=>logDay(l.date)===targetDateStr);
@@ -9794,7 +9828,7 @@ function renderDash(){
         ${legsTomorrow?`<div style='font-size:11px;color:var(--warn);margin-top:6px'>${proto.benchmark?`⚠️ Legs are programmed tomorrow — the max row test hits like a heavy session. Shift the test to another evening.`:`⚠️ Legs are programmed tomorrow — keep the easy portions truly easy, or shift this to another evening.`}</div>`:''}
         ${doneThatDay
           ?`<div class='prog-hint' style='margin-top:8px'>✅ VO2 session logged ${isBackdate?DOW[viewDow2]:'today'}</div>`
-          :`<button class='btn btn-s btn-sm' data-action='log-vo2-session' data-date='${targetDateStr}' style='margin-top:8px;width:100%'>🫀 Log Engine Session Done${isBackdate?` — for ${DOW[viewDow2]}`:''}</button>`}
+          :`<button class='btn btn-s btn-sm' data-action='log-vo2-session' data-date='${targetDateStr}' style='margin-top:8px;width:100%'>🫀 Log Engine Session Done${isBackdate?` — for ${DOW[viewDow2]}`:''}</button>${swapBtn}`}
         <div style='font-size:11px;color:var(--mut);margin-top:6px'>${isBackdate?`Saves to ${DOW[viewDow2]} ${targetDateStr} — tap "Back to Today" when done. `:''}${proto.benchmark?`Benchmark session — every 8th engine session is the 20-min max row; progression is beating your last distance.`:`+1 interval every 4 sessions, protocols alternate. Doesn't count against lifting MRV or the two-session daily cap.`}</div>
       </div>`;
       }
@@ -13402,8 +13436,15 @@ document.addEventListener('click',e=>{
     S.pyramid=null;S.pyramidOpen=false;
     save();render();return;
   }
+  if(a==='vo2-pick'){
+    S.vo2Pick=btn.dataset.key?{date:btn.dataset.date,key:btn.dataset.key}:null;
+    save();render();return;
+  }
   if(a==='log-vo2-session'){
-    const p=currentVO2Protocol();
+    const dd=btn.dataset.date||todayStr();
+    const pick=S.vo2Pick&&S.vo2Pick.date===dd?S.vo2Pick.key:null;
+    const p=currentVO2Protocol({pick,equipKey:dayEquipKey(new Date(dd+'T12:00:00').getDay())});
+    S.vo2Pick=null;
     // Backdate support: the dashboard card carries data-date for the day being
     // viewed. A past day saves at 18:00 local of THAT date (a plausible evening
     // slot), so recovery/history logic attributes the session to the right day.
