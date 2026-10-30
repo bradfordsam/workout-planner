@@ -728,6 +728,7 @@ const EX = [
   {id:'front_rack_db_squat',name:'Front Rack DB Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:15,rest:150,cue:'DBs racked on the shoulders, elbows up and forward. Chest tall, sit straight down between the hips. The front rack will quit before your legs do — that is the point, it caps the load and keeps the torso upright. Stop the set when the elbows start to drop.',tags:['quad','squat']},
   {id:'heels_elev_front_squat',name:'Heels Elevated Front Rack Squat',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:6,rMax:15,rest:150,cue:'Heels on a 1–2 inch wedge or plates, DBs in the front rack. The elevation lets the knees travel forward so you get depth from the ankles rather than from folding at the hip — quad-biased and easier on the left hip than an equally deep flat-footed squat. Knees track over the middle toes, no collapsing in.',tags:['quad','squat']},
   {id:'leg_press',name:'Leg Press',muscle:'legs',type:'compound',eq:['machine'],rMin:6,rMax:10,rest:180,cue:'Feet shoulder-width on platform. Lower until knees reach ~90°, don\'t let lower back round off the pad. Press through full foot, stop just short of lockout.',tags:['quad']},
+  {id:'sl_leg_press',name:'Single-Leg Leg Press',muscle:'legs',type:'compound',eq:['machine'],rMin:8,rMax:12,rest:120,cue:'One foot centred on the platform, hip-width line, knee tracking over the second toe — never caving in. HIP STOP: lower only to ~90° at the knee, and stop the moment you feel a pinch at the front of the hip; the left hip sets the depth, not the sled. Lower back stays glued to the pad. Press through the whole foot, stop just short of lockout. Log the sled weight; count reps per leg.',tags:['quad','unilateral']},
   {id:'step_ups',name:'Step-ups',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step onto stable surface, drive through full foot. Keep hips level throughout movement. Control the step down. Count per leg.',tags:['quad','unilateral']},
   {id:'reverse_lunge',name:'Reverse Lunge (DB)',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:6,rMax:10,rest:150,cue:'Step BACK — hip-friendly. Front shin vertical. Drive through front heel to return. Control the descent. Count per leg.',tags:['quad','unilateral']},
   {id:'sumo_squat',name:'Sumo Squat',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:8,rMax:12,rest:150,cue:'Wide stance, toes turned out ~30°. Hold a dumbbell vertically at arm\'s length between your legs (or goblet-style at the chest). Sit straight down and back, keeping the torso tall — the wide stance keeps the shins closer to vertical than a standard squat, reducing knee shear stress while emphasizing the glutes and adductors. Drive through the whole foot to stand.',tags:['quad','squat','glute']},
@@ -1096,6 +1097,7 @@ const FEELS={
   squat:'Quads and glutes loading as you sit in, then driving the floor away — the whole thigh works.',
   bulgarian:'The front-leg quad and glute doing everything — the rear leg is only a kickstand.',
   goblet:'Quads working deep while the upper back fights the dumbbell — feel tall the whole rep.',
+  sl_leg_press:'One quad and glute taking the whole sled — the hips stay square and the knee stays over the toe.',
   leg_press:'Quads stretching under load at the bottom, pressing through the full foot.',
   step_ups:'The top-leg quad and glute hoisting your whole body — zero push off the bottom foot.',
   reverse_lunge:'The front quad and glute absorbing, then driving — stepping back keeps it in the front leg.',
@@ -7058,6 +7060,7 @@ const MOVEMENT_CLASS = {
   // ─ Legs: squat / hinge / machine ─
   goblet:        [{from:'squat',coef:0.35},{from:'leg_press',coef:0.25}], // single DB
   leg_press:     [{from:'squat',coef:1.8}],
+  sl_leg_press:  [{from:'leg_press',coef:0.55},{from:'squat',coef:1.0}], // bilateral→unilateral 0.55, as RFESS
   squat:         [{from:'leg_press',coef:0.55},{from:'goblet',coef:2.8}],
   rdl:           [{from:'squat',coef:0.8},{from:'trap_bar_dl',coef:0.85}],
   trap_bar_dl:   [{from:'rdl',coef:1.15},{from:'squat',coef:0.95}],
