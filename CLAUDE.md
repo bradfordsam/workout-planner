@@ -2548,8 +2548,8 @@ inside a template literal is invisible to the syntax check.
   PT hip program is already completed for the week". `ptWeekComplete()` (every
   3x/week PT_PRESCRIBED moves at target since Monday; daily stretches excluded per Sam, same day) swaps the `pthip` block for
   `shoulderrehab` in the SAME slot with the same n, so nothing else in the prep
-  moves. Note Butterfly and Figure-4 are weeklyFreq 7, so in practice this is
-  late-week unless he doubles up. Warm-up copies (`shoulderRehabPrepItems`)
+  moves. Butterfly and Figure-4 (weeklyFreq 7) were excluded because counting
+  them pushed the swap to Sunday. Warm-up copies (`shoulderRehabPrepItems`)
   are 1 × 15 and `iso:true`. Two traps: "lower over 3 seconds" / "hold 1 sec"
   made `prepItemSecs` price Scaption and Prone T at ~12s (a stated time beats
   reps unless iso); and stretchRot's sort meant the last entry was never dealt,
