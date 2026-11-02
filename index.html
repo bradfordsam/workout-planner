@@ -841,6 +841,8 @@ const EX = [
   {id:'sa_db_row',name:'Single-arm DB Row (Standing)',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:8,rMax:12,rest:90,cue:'No bench support. Bent over. Core braces hard against rotation on every rep. Count per side.',tags:['unilateral']},
   {id:'dead_bug',name:'Dead Bug',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:8,rMax:12,rest:60,noWeight:true,cue:'Lower opposite arm and leg simultaneously, back stays flat. Exhale on the way down. Slow and controlled — speed kills the point of this exercise. Count per side.',tags:['anti-rotation']},
   {id:'side_plank_dip',name:'Side Plank Hip Dips',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:10,rMax:15,rest:60,noWeight:true,cue:'Full side plank. Dip hip to floor and drive back up. Resist lateral flexion the whole time. Count per side.',tags:['lateral']},
+  {id:'crossover_situp',name:'Cross-over Sit-ups',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:10,rMax:20,rest:60,noWeight:true,tags:['rotation','flexion'],cue:'On your back, knees bent, feet flat, hands lightly behind the head. Sit up and turn the trunk so one elbow crosses to the OPPOSITE knee, lower down, then cross the other way. Rotate through the ribs and stay inside a range you control; do not yank the neck. Count total reps.'},
+  {id:'ground_and_pound',name:'Ground and Pound Sit-ups',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:8,rMax:15,rest:60,noWeight:true,tags:['rotation','flexion'],cue:'Sit-up with feet anchored or flat. At the top, throw 4 fast cross punches (left, right, left, right), turning the shoulders into each one, then lower under control. Snap the punches from the trunk, not just the arms, and exhale on each one. Count sit-ups, not punches. Hold light dumbbells to progress.'},
   {id:'russian_twist',name:'Russian Twists',muscle:'core',type:'rotational',eq:['bodyweight','dumbbells','medball'],rMin:10,rMax:16,rest:60,cue:'Sit back to ~45°, heels light or lifted, chest proud. Rotate the SHOULDERS side to side — the weight follows the turn, don\'t just wave it across a still torso. Slow enough to feel the obliques driving each turn. Hold a DB or med ball to load. Count total touches.',tags:['rotation']},
   {id:'bicycle_crunch',name:'Bicycle Crunch',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Hands lightly behind the head, legs cycling. Drive one elbow toward the OPPOSITE knee by rotating through the trunk while the other leg extends long and hovers. Slow and deliberate — reach the shoulder across, don\'t flap the elbows. Exhale on each twist. Count total reps.',tags:['rotation','flexion']},
   {id:'plank_outside_climbers',name:'Plank Hold + Outside Climbers',muscle:'core',type:'rotational',eq:['bodyweight'],rMin:8,rMax:12,rest:75,noWeight:true,cue:'Strong high-plank hold — then, keeping the hips dead level, step one foot up OUTSIDE its hand, pause a beat, and return. Alternate sides. The plank fights extension while each leg drive fights rotation, and the outside step doubles as a deep hip-flexor opener. Count per side.',tags:['anti-extension','stability']},
@@ -889,6 +891,13 @@ const EX = [
   // to round) rather than restating the theory — same "cue carries the
   // constraint" pattern every injury-adjacent entry in this file already uses.
   {id:'boat_pose',name:'Boat Pose (Navasana)',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:20,rMax:40,rest:75,noWeight:true,isTimed:true,cue:'Sit with knees bent, feet flat, then lean back and lift the feet until your torso and shins form a V, balanced on your sit bones — arms reach forward, parallel to the floor. Draw the belly button toward the spine and keep the chest lifted the whole hold. The low back rounding is the tell that the abs have quit and the hip flexors have taken over: the moment it happens, either lift the chest back up or bend the knees further (shins toward parallel to the floor) to shorten the hold and regress. Straighten the legs further to progress toward the full pose. Count seconds.',tags:['flexion','isometric']},
+  // ── Sam's core adds (2026-11-02): "For core, add: sit press ups, ground and
+  // pounds, cross over sit ups". Placed right under boat_pose, NOT appended:
+  // this flexion slot recurs ~once a week and leastUsed breaks ties by array
+  // order, so anything below situps is swap-list-only (see the boat_pose note).
+  // sit_press_up's press is SEATED overhead with dumbbells (free hand path) —
+  // the seated_db_press precedent, not the standing OHP on avoidExercises.
+  {id:'sit_press_up',name:'Sit-up Press',muscle:'core',type:'isolation',eq:['dumbbells'],startW:10,rMin:8,rMax:15,rest:60,tags:['flexion'],cue:'Lie back with knees bent, feet anchored, a light dumbbell in each hand at the shoulders. Sit all the way up, then press both dumbbells overhead at the top. Lower them back to the shoulders and roll down slowly, one vertebra at a time. Press only as high as the left shoulder stays quiet; stop short of lockout if it pinches.'},
   {id:'crunches',name:'Crunches',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:60,noWeight:true,cue:'Lie on back, knees bent. Curl shoulder blades off the floor, exhale at the top. Keep lower back pressed down — small controlled range, no momentum.',tags:['flexion']},
   // noWeight REMOVED 2026-08-03 (from Sam: "sit up can be weighted"). The cue
   // already told him to hold a plate; noWeight:true then hid the weight field,
@@ -8483,6 +8492,28 @@ const BOUNCE_ISO_POOL=[
   {n:'Copenhagen Hold',d:'30 sec/side · side plank on one elbow, TOP leg on a bench, hips lifted by the top inner thigh. Knee on the bench first, straight leg once that\x27s easy. Left side: stop short of any pull in the groin',f:['adductor']},
   {n:'Heel-Elevated Split Squat Hold',d:'30 sec/side · front heel on a plate, sink into the bottom of a split squat with the front knee travelling well past the toes. Push down through the front foot the whole hold. Upright torso; back knee hovers just off the floor',f:['adductor','hip']},
 ];
+// ── SAM'S MOBILITY PICKS (2026-11-02) ──
+// Sam: "For mobility: DB thoracic rotations with adductor stretch, Loaded hip
+// airplanes with wall support, seated hip pry, froggy thread the needle". Own
+// block, one a session, every session (leg or desk day), so all four cycle
+// every four sessions instead of being diluted into a ~30-entry pool. All are
+// moving, not held, per the 2026-10-16 "warm-ups dynamic, not static" rule.
+// Three touch documented constraints, and the cue carries each one, the same
+// way hip_airplane and the Copenhagen entries do:
+//  - the adductor positions (1, 4) sit near the left-groin pull that got
+//    cossack_squat banned, so the left side gets a narrower stance;
+//  - the loaded airplane is weighted ROTATION at the hip, the woodchop category,
+//    so the load is capped light and the range is self-selected short of the
+//    pinch, ER-first, exactly as the bodyweight Hip Airplanes entry is cued;
+//  - the hip pry is deep flexion + abduction (the FAI position), tolerated in
+//    Deep Squat Reach / Squat Twists only as deep as the hip stays quiet.
+// "Seated hip pry" is a guessed interpretation (bottom-of-goblet-squat pry).
+const MOBILITY_PICKS_POOL=[
+  {n:'DB Thoracic Rotation + Adductor Stretch',d:'6 reps/side · half-kneeling with the front leg kicked straight out to the side, a light dumbbell held at the chest. Rotate the chest toward the straight leg, then away, letting the upper back do the turning while the inner thigh lengthens. Left side: shorter stance, stop before any pull in the groin',f:['spine','adductor'],eq:['dumbbells']},
+  {n:'Loaded Hip Airplanes (Wall)',d:'4 cycles/side · one hand on a wall, light dumbbell (10–15 lb) in the other. Hinge until torso and free leg are level, then rotate the pelvis open UP toward the ceiling, pause, and slowly back under. Rotate only as far as you control; stop short of any pinch at the front of the left hip. Open further than you close',f:['hip','glute'],eq:['dumbbells']},
+  {n:'Seated Hip Pry',d:'8 reps · sit into the bottom of a goblet squat holding a light dumbbell or kettlebell as a counterweight, elbows inside the knees. Gently pry the knees out and rock side to side, shifting weight from foot to foot; each rock is a rep. Only sit as deep as the front of the hip stays quiet',f:['hip','adductor']},
+  {n:'Froggy Thread the Needle',d:'6 reps/side · frog position: on all fours with the knees wide and the inner feet flat. Thread one arm under the body to the opposite side, then sweep it open toward the ceiling following it with your eyes. Knees only as wide as the left groin allows',f:['adductor','spine']},
+];
 const PREP_BUDGET_MINS={lunch:6,evening:12,centuryLunch:4};
 // Assemble the session's prep. Blocks are filled round-robin in priority order
 // so a later block can't be starved by an earlier one eating the whole budget,
@@ -8511,6 +8542,7 @@ function prepPlan(o){
     isLegDay?{key:'legprep',title:'🦵 Leg Prep · hamstrings, Achilles, adductors',color:'var(--warn)',pool:legPool,n:want(4,2)}:null,
     isLegDay?{key:'isodyn',title:'🧱 Iso → Dynamic',color:'var(--warn)',pool:ISO_DYNAMIC_POOL,n:want(2,1)}:null,
     isLegDay?{key:'bounceiso',title:'🦘 Bounce Isos',color:'var(--warn)',pool:BOUNCE_ISO_POOL,n:1}:null,
+    {key:'mobpicks',title:'🌀 Mobility',color:'var(--ok)',pool:MOBILITY_PICKS_POOL.filter(hasKit),n:1},
     {key:'deskreset',title:'🧍 Hip &amp; Spine Reset',color:'var(--ok)',pool:deskPool,n:want(isLegDay?2:4,isLegDay?1:3)},
     {key:'pthip',title:'🩺 PT Hip Program',color:'#c084fc',pool:PT_HIP_POOL.filter(hasKit),n:want(3,2)},
     o.shoulderCaution?{key:'shoulder',title:'🩹 Achy Shoulder',color:'var(--acc)',pool:SHOULDER_POOL,n:want(2,1)}:null,

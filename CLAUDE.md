@@ -1458,6 +1458,23 @@ the harness can act on an EVENT — see `.claude/settings.json` +
     first pick. (2) 45 sec/side split squat holds (100s) never fit at lunch; 30
     sec/side does. render-smoke now prints hold coverage over 14 leg days and names
     any hold that never lands. Case study identical to HEAD.
+  - **`MOBILITY_PICKS_POOL`** (2026-11-02) — four moves Sam named (DB thoracic
+    rotation + adductor stretch, loaded wall hip airplanes, seated hip pry, froggy
+    thread the needle). Block `mobpicks`, every session (leg AND desk day), n:1.
+    Placed AFTER bounceiso: moved ahead of it, lunch bounce isos fell to 5/14 leg
+    days. Lunch LEG days are already full after round 0, so there the two 46s picks
+    never land (render-smoke allows that one case); all four land on lunch desk
+    days and every evening. Trimming lunch legprep to 1 does NOT help (only round
+    1 shrinks). "8 rocks" was priced at 0 reps by `prepItemSecs`; units must say
+    reps/circles/swings/cycles/steps/walks. Cues carry the left-groin, loaded-
+    rotation and FAI constraints; "seated hip pry" is a guessed interpretation.
+- **Core adds (2026-11-02)** — `sit_press_up` (flexion, dumbbells, seated overhead
+  per the `seated_db_press` precedent) right under `boat_pose`; `crossover_situp`
+  and `ground_and_pound` lead the `rotation` block. ground_and_pound took 0 picks
+  in the flexion block (only the first two ever land), so it moved to rotation
+  with cross punches. 10-wk counts: crossover 3–5, ground_and_pound 2–3,
+  sit_press_up 1–2 (dumbbell scenarios). Displaced to swap-only: russian_twist,
+  bicycle_crunch, crunches.
   - `DESK_REVERSAL` (chin tucks + pelvic tilts) and `HIP_DECOMPRESSION` are
     FIXED blocks — never rotated, never budget-trimmed. Desk reversal now shows
     at lunch too; it used to be evening-only, which had it backwards.
