@@ -416,6 +416,16 @@ ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_
   ok(call(`prepPlan({isLunch:false,isLegDay:false,shoulderCaution:false,ptWeekDone:true,equip:EQUIPMENT_PRESETS.ymca.equipment})`,'sc off').blocks.some(b=>b.key==='pthip'),'shoulder caution off: PT Hip block stays');
   ok(typeof call('ptWeekComplete()','pwc')==='boolean','ptWeekComplete runs');
 })();
+// ptWeekComplete counts only the 3x/week moves; the daily stretches don't block it.
+(function(){
+  const saved=JSON.stringify(call('S.ptLog||{}','ptlog'));
+  get('S.ptLog={}');
+  ok(call('ptWeekComplete()','pwc0')===false,'PT 3x/week moves not logged: no swap');
+  const mon=call('thisMonday()','mon');
+  get(`PT_PRESCRIBED.filter(e=>e.weeklyFreq<7).forEach(e=>{S.ptLog[ptLogKey(e.id,'${mon}')]=e.weeklyFreq;})`);
+  ok(call('ptWeekComplete()','pwc1')===true,'3x/week moves done, daily stretches not: swap on');
+  get('S.ptLog='+saved);
+})();
 // Who pays when a block is added: items dealt per block over 14 days. The prep
 // budget is zero-sum, so read this line before and after any pool/block change.
 [['lunch',true],['evening',true],['lunch',false],['evening',false]].forEach(([k,leg])=>{

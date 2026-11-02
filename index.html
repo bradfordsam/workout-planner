@@ -8066,7 +8066,7 @@ function shoulderRehabHTML(){
   return`<div style='margin-top:10px;padding:14px;background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.25);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:6px'>💪 Left Shoulder Rehab · daily at home · ~12 min</div>
     ${SHOULDER_REHAB_POOL.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
-    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Once a day, twice if you can; give it 12 weeks. Once the PT hip program is done for the week, these also show up in your gym warm-up, and doing them there counts. Pain up to about 3/10 during a set is fine if it settles back to normal afterward and is no worse the next morning. If it's worse, drop the weight or do only the doorway holds for a few days. Get it looked at if it starts catching, locking or slipping, wakes you at night, or your arm goes numb or tingly.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Once a day, twice if you can; give it 12 weeks. Once this week's 3-days-a-week PT hip moves are done, these also show up in your gym warm-up, and doing them there counts. Pain up to about 3/10 during a set is fine if it settles back to normal afterward and is no worse the next morning. If it's worse, drop the weight or do only the doorway holds for a few days. Get it looked at if it starts catching, locking or slipping, wakes you at night, or your arm goes numb or tingly.</div>
   </div>`;
 }
 function dailySpineHTML(){
@@ -8320,9 +8320,13 @@ function ptItemSecs(ex){
   const perRep=ex.holdSecs||PREP_REP_SECS;
   return ex.sets*(ex.reps*perRep*(ex.perSide?2:1)+PREP_TRANSITION_SECS);
 }
-// Every PT_PRESCRIBED target met since Monday. Gates the warm-up swap below.
+// The 3x/week PT_PRESCRIBED moves (side plank clam, SL bridge, fire hydrant) have
+// all hit their weekly target since Monday. Gates the warm-up swap below. The
+// daily stretches (butterfly, figure-4, weeklyFreq 7) are deliberately left out
+// (Sam, 2026-11-02: "just add it in once the 3 days a week moves are done"):
+// counting them meant the swap almost never happened before Sunday.
 function ptWeekComplete(){
-  try{return PT_PRESCRIBED.every(ex=>ptDoneThisWeek(ex.id)>=ex.weeklyFreq);}catch(e){return false;}
+  try{return PT_PRESCRIBED.filter(ex=>ex.weeklyFreq<7).every(ex=>ptDoneThisWeek(ex.id)>=ex.weeklyFreq);}catch(e){return false;}
 }
 function ptOwedToday(){
   return PT_PRESCRIBED.map(ex=>({ex,n:ptSessionsNeededToday(ex)})).filter(r=>r.n>0);
@@ -8640,7 +8644,7 @@ function prepPlan(o){
     // PT done for the week → the shoulder rehab takes the PT slot (same place in
     // the order, same item count), so nothing else in the warm-up moves.
     (o.shoulderCaution&&(o.ptWeekDone!==undefined?o.ptWeekDone:ptWeekComplete()))
-      ?{key:'shoulderrehab',title:'💪 Left Shoulder Rehab · PT hip done this week',color:'var(--acc)',pool:shoulderRehabPrepItems().filter(hasKit),n:want(3,2),leadRot:true}
+      ?{key:'shoulderrehab',title:'💪 Left Shoulder Rehab · PT hip 3x/week moves done',color:'var(--acc)',pool:shoulderRehabPrepItems().filter(hasKit),n:want(3,2),leadRot:true}
       :{key:'pthip',title:'🩺 PT Hip Program',color:'#c084fc',pool:PT_HIP_POOL.filter(hasKit),n:want(3,2)},
     o.shoulderCaution?{key:'shoulder',title:'🩹 Achy Shoulder',color:'var(--acc)',pool:SHOULDER_POOL,n:want(2,1)}:null,
     {key:'upper',title:'🔄 Upper Body',color:'var(--acc)',pool:UPPER_MOBILITY_POOL,n:want(2,1)},

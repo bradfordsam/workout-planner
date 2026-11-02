@@ -2546,7 +2546,7 @@ inside a template literal is invisible to the syntax check.
   imaging, not more exercise.
   **Warm-up swap (same day)** — Sam: "it can be a part of the gym warm up if the
   PT hip program is already completed for the week". `ptWeekComplete()` (every
-  PT_PRESCRIBED weeklyFreq met since Monday) swaps the `pthip` block for
+  3x/week PT_PRESCRIBED moves at target since Monday; daily stretches excluded per Sam, same day) swaps the `pthip` block for
   `shoulderrehab` in the SAME slot with the same n, so nothing else in the prep
   moves. Note Butterfly and Figure-4 are weeklyFreq 7, so in practice this is
   late-week unless he doubles up. Warm-up copies (`shoulderRehabPrepItems`)
