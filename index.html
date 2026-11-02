@@ -8066,7 +8066,7 @@ function shoulderRehabHTML(){
   return`<div style='margin-top:10px;padding:14px;background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.25);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:6px'>💪 Left Shoulder Rehab · daily at home · ~12 min</div>
     ${SHOULDER_REHAB_POOL.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
-    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Once a day, twice if you can; give it 12 weeks. Pain up to about 3/10 during a set is fine if it settles back to normal afterward and is no worse the next morning. If it's worse, drop the weight or do only the doorway holds for a few days. Get it looked at if it starts catching, locking or slipping, wakes you at night, or your arm goes numb or tingly.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Once a day, twice if you can; give it 12 weeks. Once the PT hip program is done for the week, these also show up in your gym warm-up, and doing them there counts. Pain up to about 3/10 during a set is fine if it settles back to normal afterward and is no worse the next morning. If it's worse, drop the weight or do only the doorway holds for a few days. Get it looked at if it starts catching, locking or slipping, wakes you at night, or your arm goes numb or tingly.</div>
   </div>`;
 }
 function dailySpineHTML(){
@@ -8319,6 +8319,10 @@ function ptSessionsNeededToday(ex){
 function ptItemSecs(ex){
   const perRep=ex.holdSecs||PREP_REP_SECS;
   return ex.sets*(ex.reps*perRep*(ex.perSide?2:1)+PREP_TRANSITION_SECS);
+}
+// Every PT_PRESCRIBED target met since Monday. Gates the warm-up swap below.
+function ptWeekComplete(){
+  try{return PT_PRESCRIBED.every(ex=>ptDoneThisWeek(ex.id)>=ex.weeklyFreq);}catch(e){return false;}
 }
 function ptOwedToday(){
   return PT_PRESCRIBED.map(ex=>({ex,n:ptSessionsNeededToday(ex)})).filter(r=>r.n>0);
@@ -8592,6 +8596,16 @@ const SHOULDER_REHAB_POOL=[
   {n:'Doorway Isometric Rotations',d:'60 sec/side · stand in a doorway, elbow at 90° by your side. Push the back of the hand OUT into the frame for 30 sec (external rotation), then the palm IN for 30 sec (internal rotation), at about half effort. Use this one first on days the shoulder is cranky; it calms pain without moving the joint',f:['shoulder']},
   {n:'Cross-Body Shoulder Stretch',d:'30 sec/side · pull the straight arm across the chest just below chin height with the other hand until you feel it in the back of the shoulder. Keep the shoulder blade pinned down and back, not hunched up. A stretch, not pain',f:['shoulder']},
 ];
+// Warm-up dose (2026-11-02, Sam: "it can be a part of the gym warm up if the PT
+// hip program is already completed for the week"). Once ptWeekComplete(), the
+// PT Hip block's slot goes to these instead. The card's "2–3 × 15" has no
+// "reps" word for prepItemSecs to price, so the warm-up copy states 2 × 15 as a
+// total; it would otherwise be charged as 10 seconds.
+// One set of 15 here, not the card's 2–3: at 2 × 15 (Side-Lying ER alone is
+// 190s) the PT slot's budget only ever reached the first item, and the last
+// entry was never dealt. iso:true because several cues mention seconds ("lower
+// over 3 seconds", "hold 1 sec") and a stated time otherwise wins over the reps.
+const shoulderRehabPrepItems=()=>SHOULDER_REHAB_POOL.map(it=>({...it,iso:true,d:it.d.replace(/^2–3 × 15(\/side)? · /,(m,s)=>'1 × 15 (15 reps'+(s||'')+') · ')}));
 const PREP_BUDGET_MINS={lunch:6,evening:15,centuryLunch:4};
 // Assemble the session's prep. Blocks are filled round-robin in priority order
 // so a later block can't be starved by an earlier one eating the whole budget,
@@ -8623,7 +8637,11 @@ function prepPlan(o){
     isLegDay?{key:'sprinthips',title:'⚡ Sprint Hips',color:'var(--warn)',pool:SPRINT_HIP_POOL.filter(hasKit),n:1}:null,
     {key:'mobpicks',title:'🌀 Mobility',color:'var(--ok)',pool:MOBILITY_PICKS_POOL.filter(hasKit),n:1},
     {key:'deskreset',title:'🧍 Hip &amp; Spine Reset',color:'var(--ok)',pool:deskPool,n:want(isLegDay?2:4,isLegDay?1:3)},
-    {key:'pthip',title:'🩺 PT Hip Program',color:'#c084fc',pool:PT_HIP_POOL.filter(hasKit),n:want(3,2)},
+    // PT done for the week → the shoulder rehab takes the PT slot (same place in
+    // the order, same item count), so nothing else in the warm-up moves.
+    (o.shoulderCaution&&(o.ptWeekDone!==undefined?o.ptWeekDone:ptWeekComplete()))
+      ?{key:'shoulderrehab',title:'💪 Left Shoulder Rehab · PT hip done this week',color:'var(--acc)',pool:shoulderRehabPrepItems().filter(hasKit),n:want(3,2),leadRot:true}
+      :{key:'pthip',title:'🩺 PT Hip Program',color:'#c084fc',pool:PT_HIP_POOL.filter(hasKit),n:want(3,2)},
     o.shoulderCaution?{key:'shoulder',title:'🩹 Achy Shoulder',color:'var(--acc)',pool:SHOULDER_POOL,n:want(2,1)}:null,
     {key:'upper',title:'🔄 Upper Body',color:'var(--acc)',pool:UPPER_MOBILITY_POOL,n:want(2,1)},
   ].filter(Boolean);
@@ -8634,17 +8652,21 @@ function prepPlan(o){
   // physio's block cut PT Hip items on desk days from 15 to 5 a fortnight. At
   // lunch PT goes first; the evening has room for both since its cap went to 15.
   if(isLunch){
-    const mi=rotating.findIndex(b=>b.key==='mobpicks'),pi=rotating.findIndex(b=>b.key==='pthip');
+    const mi=rotating.findIndex(b=>b.key==='mobpicks'),pi=rotating.findIndex(b=>b.key==='pthip'||b.key==='shoulderrehab');
     if(mi>=0&&pi>mi)rotating.splice(pi,0,rotating.splice(mi,1)[0]);
   }
   if(o.upperFirst){
-    const isUpper=(b)=>b.key==='shoulder'||b.key==='upper';
+    const isUpper=(b)=>b.key==='shoulderrehab'||b.key==='shoulder'||b.key==='upper';
     rotating.sort((a,b)=>(isUpper(b)?1:0)-(isUpper(a)?1:0));
   }
   let secs=fixed.reduce((a,b)=>a+b.items.reduce((x,it)=>x+prepItemSecs(it),0),0);
   // Pre-roll each pool's rotation, then deal one item at a time across the
   // blocks until the budget is gone.
-  const queues=rotating.map(b=>({...b,queue:stretchRot(b.pool,b.n),items:[]}));
+  // `leadRot` blocks rotate WITHOUT stretchRot's sort back into pool order, so
+  // each entry takes a turn as the day's FIRST pick. With the sort, the last
+  // entry is only ever a later-round pick, and a tight budget never reaches it.
+  const leadRot=(pool,n)=>{if(!pool||!pool.length)return[];const off=Math.floor(Date.now()/864e5)%pool.length;return Array.from({length:Math.min(n,pool.length)},(_,i)=>pool[(off+i)%pool.length]);};
+  const queues=rotating.map(b=>({...b,queue:b.leadRot?leadRot(b.pool,b.n):stretchRot(b.pool,b.n),items:[]}));
   for(let round=0;round<Math.max(...queues.map(q=>q.n),0);round++){
     for(const q of queues){
       const it=q.queue[round];

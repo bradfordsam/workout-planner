@@ -2544,6 +2544,17 @@ inside a template literal is invisible to the syntax check.
   (lunch-desk PT Hip 14 → 8) and never fit Side-Lying ER at lunch, so it was moved
   out of the budget entirely. The card lists the red flags that mean it needs
   imaging, not more exercise.
+  **Warm-up swap (same day)** — Sam: "it can be a part of the gym warm up if the
+  PT hip program is already completed for the week". `ptWeekComplete()` (every
+  PT_PRESCRIBED weeklyFreq met since Monday) swaps the `pthip` block for
+  `shoulderrehab` in the SAME slot with the same n, so nothing else in the prep
+  moves. Note Butterfly and Figure-4 are weeklyFreq 7, so in practice this is
+  late-week unless he doubles up. Warm-up copies (`shoulderRehabPrepItems`)
+  are 1 × 15 and `iso:true`. Two traps: "lower over 3 seconds" / "hold 1 sec"
+  made `prepItemSecs` price Scaption and Prone T at ~12s (a stated time beats
+  reps unless iso); and stretchRot's sort meant the last entry was never dealt,
+  hence the new `leadRot:true` block option (rotate without re-sorting).
+  Evening: all six in 14 days. Lunch: Side-Lying ER and Doorway never fit.
 - Lower back: **any standing overhead press hurts** (2026-07-27, expanded from
   the push-press-only report). `ohp`, `push_press`, `db_push_press`, and
   `thrusters` are all on `avoidExercises`. Seated overhead pressing

@@ -397,6 +397,25 @@ ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_
   get('S.cfg.shoulderCaution='+JSON.stringify(was));
   ok(!JSON.stringify(call(`prepPlan({isLunch:true,isLegDay:false,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment})`,'rehab prep')).includes('Side-Lying External Rotation'),'shoulder rehab stays out of the warm-up budget');
 })();
+// PT week complete → shoulder rehab takes the PT Hip slot; not before.
+(function(){
+  const base='isLegDay:false,hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment';
+  ['lunch','evening'].forEach(k=>{
+    const L=k==='lunch';
+    const off=JSON.stringify(call(`prepPlan({isLunch:${L},${base},ptWeekDone:false})`,'pt open '+k));
+    ok(off.includes('pthip')&&!off.includes('shoulderrehab'),'PT not done: PT Hip block, no shoulder rehab ('+k+')');
+    const on=call(`prepPlan({isLunch:${L},${base},ptWeekDone:true})`,'pt done '+k);
+    const b=on.blocks.find(b=>b.key==='shoulderrehab');
+    ok(b&&!on.blocks.some(b=>b.key==='pthip'),'PT done: shoulder rehab replaces the PT Hip block ('+k+')');
+    ok(b&&b.items.every(it=>call(`prepItemSecs(${JSON.stringify(it)})`,'secs')>=50),'warm-up rehab items are priced from their reps ('+k+')');
+    ok(on.secs<=call(`PREP_BUDGET_MINS.${k}*60`,'cap'),'swap stays inside the '+k+' cap');
+    // all six cycle through in two weeks
+    const miss=call(`(function(){const real=Date.now;try{const seen=new Set();for(let d=0;d<14;d++){Date.now=()=>real()+d*864e5;const p=prepPlan({isLunch:${L},${base},ptWeekDone:true});(p.blocks.find(b=>b.key==='shoulderrehab')||{items:[]}).items.forEach(it=>seen.add(it.n));}return SHOULDER_REHAB_POOL.map(i=>i.n).filter(n=>!seen.has(n)).join(', ');}finally{Date.now=real;}})()`,'rehab cycle '+k);
+    console.log('    '+k+' desk, PT done: shoulder rehab '+(miss?'never: '+miss:'all 6 dealt in 14 days'));
+  });
+  ok(call(`prepPlan({isLunch:false,isLegDay:false,shoulderCaution:false,ptWeekDone:true,equip:EQUIPMENT_PRESETS.ymca.equipment})`,'sc off').blocks.some(b=>b.key==='pthip'),'shoulder caution off: PT Hip block stays');
+  ok(typeof call('ptWeekComplete()','pwc')==='boolean','ptWeekComplete runs');
+})();
 // Who pays when a block is added: items dealt per block over 14 days. The prep
 // budget is zero-sum, so read this line before and after any pool/block change.
 [['lunch',true],['evening',true],['lunch',false],['evening',false]].forEach(([k,leg])=>{
