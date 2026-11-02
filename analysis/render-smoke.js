@@ -374,9 +374,23 @@ ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_
 [['lunch',true],['lunch',false],['evening',true],['evening',false]].forEach(([k,leg])=>{
   const r=call(`(function(){const real=Date.now;try{const seen=new Set();let days=0;for(let d=0;d<14;d++){Date.now=()=>real()+d*864e5;const p=prepPlan({isLunch:${k==='lunch'},isLegDay:${leg},hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment});const b=p.blocks.find(b=>b.key==='mobpicks');if(b){days++;b.items.forEach(it=>seen.add(it.n));}}return{days,missing:MOBILITY_PICKS_POOL.map(i=>i.n).filter(n=>!seen.has(n)).join(', ')};}finally{Date.now=real;}})()`,'mob '+k+leg);
   console.log('    '+k+(leg?' leg':' desk')+' mobility picks: on',r.days,'of 14 days',r.missing?'(never: '+r.missing+')':'(all 4 dealt)');
-  // Lunch LEG days are the one exception: the 6-min cap is spent after round 0 of
-  // the leg blocks, so the pricier picks only land on lunch desk days and evenings.
-  ok(r.days>0&&(!r.missing||(k==='lunch'&&leg)),'every mobility pick lands in the '+k+(leg?' leg':' desk')+' warm-up');
+  // Lunch is the exception: the 6-min cap is spent on the leg blocks and (desk
+  // days) the PT block, which ranks ahead at lunch, so full coverage is evenings.
+  ok(r.days>0&&(!r.missing||k==='lunch'),'every mobility pick lands in the '+k+(leg?' leg':' desk')+' warm-up');
+});
+// Sprint hips: leg days only; all six cycle through the 15-min evening.
+(function(){
+  const r=call(`(function(){const real=Date.now;try{const seen=new Set();let days=0;for(let d=0;d<14;d++){Date.now=()=>real()+d*864e5;const p=prepPlan({isLunch:false,isLegDay:true,hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment});const b=p.blocks.find(b=>b.key==='sprinthips');if(b){days++;b.items.forEach(it=>seen.add(it.n));}}return{days,missing:SPRINT_HIP_POOL.map(i=>i.n).filter(n=>!seen.has(n)).join(', ')};}finally{Date.now=real;}})()`,'sprint');
+  console.log('    evening sprint hips: on',r.days,'of 14 leg days',r.missing?'(never: '+r.missing+')':'(all 6 dealt)');
+  ok(r.days===14&&!r.missing,'every sprint-hip move lands in the evening leg warm-up');
+  ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_PRESETS.ymca.equipment})`,'sprint desk')).includes('sprinthips'),'sprint hips stay off non-leg days');
+  ok(call('PREP_BUDGET_MINS.evening','cap')===15,'evening prep cap is 15');
+})();
+// Who pays when a block is added: items dealt per block over 14 days. The prep
+// budget is zero-sum, so read this line before and after any pool/block change.
+[['lunch',true],['evening',true],['lunch',false],['evening',false]].forEach(([k,leg])=>{
+  const r=call(`(function(){const real=Date.now;try{const c={};for(let d=0;d<14;d++){Date.now=()=>real()+d*864e5;prepPlan({isLunch:${k==='lunch'},isLegDay:${leg},hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment}).blocks.forEach(b=>{c[b.key]=(c[b.key]||0)+b.items.length;});}return Object.entries(c).map(([k,v])=>k+'='+v).join(' ');}finally{Date.now=real;}})()`,'dealt '+k+leg);
+  console.log('    dealt/14d '+k+(leg?' leg ':' desk')+': '+r);
 });
 S.view='dash';
 clean(call('renderDash()','renderDash final'),'renderDash after the block is active');

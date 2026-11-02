@@ -1413,7 +1413,7 @@ the harness can act on an EVENT — see `.claude/settings.json` +
   still inline in the renderer (post-session, nothing budgets against it).
   - **Prep is a BUDGET, not a list.** Blocks are filled round-robin — every block
     gets its first item before any gets a second, so none can be starved — until
-    `PREP_BUDGET_MINS` (lunch 6 / evening 12) runs out. `prepPlan` guarantees it
+    `PREP_BUDGET_MINS` (lunch 6 / evening 15 since 2026-11-02) runs out. `prepPlan` guarantees it
     never exceeds the cap, which is what makes the figure safe for `lunchBudget`
     to reserve without knowing which rotation lands today.
   - **Item durations are PARSED from the description** (`prepItemSecs`): every
@@ -1468,6 +1468,16 @@ the harness can act on an EVENT — see `.claude/settings.json` +
     1 shrinks). "8 rocks" was priced at 0 reps by `prepItemSecs`; units must say
     reps/circles/swings/cycles/steps/walks. Cues carry the left-groin, loaded-
     rotation and FAI constraints; "seated hip pry" is a guessed interpretation.
+  - **`SPRINT_HIP_POOL` + evening prep cap 12 → 15 (2026-11-02)** — Sam: "more hip
+    moves to help my sprint speed", six named moves, leg-day block `sprinthips`,
+    n:1. Before adding it, render-smoke's new `dealt/14d` line showed the day's
+    earlier blocks (bounceiso, mobpicks) had cut PT Hip items on evening leg days
+    14 → 5 and Achy Shoulder 12 → 2 per fortnight. Asked Sam; he chose a longer
+    evening over ranking PT first. At 15: PT 15, shoulder 13, all six sprint moves
+    every leg evening. Lunch (still 6) puts `pthip` AHEAD of `mobpicks` (lunch desk
+    PT had fallen 15 → 5; now 14, mobility 5/14 lunch desk days). Case study:
+    volume unchanged in 6 of 7 scenarios, S3 core 0.7 → 0.3 sets/wk. **Read the
+    `dealt/14d` line before and after any prep block change; it is zero-sum.**
 - **Core adds (2026-11-02)** — `sit_press_up` (flexion, dumbbells, seated overhead
   per the `seated_db_press` precedent) right under `boat_pose`; `crossover_situp`
   and `ground_and_pound` lead the `rotation` block. ground_and_pound took 0 picks
