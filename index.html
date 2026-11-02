@@ -8061,6 +8061,14 @@ function shinCareHTML(){
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>No jumps, hops, sprints or calf top-up through Sunday. Bike or rower for conditioning. If one spot on the bone hurts to press, or walking hurts, get it checked: that can be a stress reaction, not soreness.</div>
   </div>`;
 }
+function shoulderRehabHTML(){
+  if(!S.cfg||!S.cfg.shoulderCaution)return'';
+  return`<div style='margin-top:10px;padding:14px;background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.25);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:6px'>💪 Left Shoulder Rehab · daily at home · ~12 min</div>
+    ${SHOULDER_REHAB_POOL.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Once a day, twice if you can; give it 12 weeks. Pain up to about 3/10 during a set is fine if it settles back to normal afterward and is no worse the next morning. If it's worse, drop the weight or do only the doorway holds for a few days. Get it looked at if it starts catching, locking or slipping, wakes you at night, or your arm goes numb or tingly.</div>
+  </div>`;
+}
 function dailySpineHTML(){
   return`<div style='margin-top:10px;padding:14px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.2);border-radius:12px;text-align:left'>
     <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#c084fc;margin-bottom:6px'>🧘 Daily Spine Minimums · ~5 min</div>
@@ -8068,6 +8076,7 @@ function dailySpineHTML(){
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>Fixed daily doses — these never rotate. A few minutes every day keeps the spine decompressed, the core protective, and posture honest. Evening training days fold them into the cool-down; otherwise do them any time.</div>
   </div>
   ${shinCareHTML()}
+  ${shoulderRehabHTML()}
   ${ptPrescribedHTML()}`;
 }
 
@@ -8557,6 +8566,32 @@ const SPRINT_HIP_POOL=[
   {n:'Bird Dog to Hip Gate',d:'6 reps/side · bird dog with the opposite arm and leg long. Bring that knee forward, swing it out to the side and around (open the gate) at hip height or lower, then kick it back long again. Hips stay square to the floor, no low-back sag',f:['glute','hip','spine']},
 ];
 // evening 12 → 15 on 2026-11-02 (Sam) to fit the sprint-hip block without starving PT.
+// ── LEFT SHOULDER REHAB (2026-11-02) ──
+// Sam: "add stretches and exercises for a labrum strain/pull i dont have the
+// money to go to actual physical therapy". Left shoulder, pain only in certain
+// positions (no catching, locking, giving way, night pain), and "it feels more
+// muscular than joint" — so this is a rotator cuff / scapular LOADING program,
+// not a labral-repair protocol. Evidence it rests on:
+//  - Holmgren 2012 (BMJ 344:e787): 2 eccentric cuff + 3 scapular stabiliser
+//    exercises + a posterior shoulder stretch, 3×15; surgery 20% vs 63% control.
+//  - Littlewood SELF trial (2016): self-managed loaded exercise matched usual
+//    physio. Pain DURING a set is allowed if it settles back to baseline after
+//    and is no worse the next morning.
+//  - Nonoperative SLAP reviews: scapular retraction at shoulder level and
+//    balanced cuff work; responders stretched LESS, not more.
+// A DAILY HOME CARD (shoulderRehabHTML, beside Shin Care), not a warm-up block.
+// Tried as a ranked-first prep block first: at 2×15 it ate the 6-min lunch cap
+// (lunch-desk PT Hip 14 → 8 a fortnight) and Side-Lying ER never fit at all.
+// Holmgren's program was a home program done daily anyway. All six, every day,
+// while shoulderCaution is on.
+const SHOULDER_REHAB_POOL=[
+  {n:'Side-Lying External Rotation',d:'2–3 × 15/side · lie on your right side, rolled towel between the left elbow and ribs, elbow at 90°. Rotate a 2–5 lb dumbbell up toward the ceiling, then take 3 full seconds to lower it. Both sides, left first. Add 1–2 lb once all 15 feel easy',f:['shoulder'],eq:['dumbbells']},
+  {n:'Scaption Raise (slow lower)',d:'2–3 × 15 · light dumbbells, thumbs up, arms angled about 30° forward of your sides. Raise to shoulder height only, never above, then lower over 3 seconds. Shoulders stay down away from the ears',f:['shoulder'],eq:['dumbbells']},
+  {n:'Prone T Raise',d:'2–3 × 15 · chest down on an incline bench or the floor, arms straight out at shoulder height, thumbs up. Squeeze the shoulder blades together to lift the arms, hold 1 sec, lower slowly. Empty hands until it is easy, then 1–2 lb',f:['shoulder']},
+  {n:'Push-up Plus',d:'2–3 × 15 · hands on a wall or a bench (floor once that is easy), arms straight the whole time. Let the chest sink between the shoulder blades, then push the floor away until the upper back rounds slightly. Trains the serratus that holds the shoulder blade flat',f:['shoulder']},
+  {n:'Doorway Isometric Rotations',d:'60 sec/side · stand in a doorway, elbow at 90° by your side. Push the back of the hand OUT into the frame for 30 sec (external rotation), then the palm IN for 30 sec (internal rotation), at about half effort. Use this one first on days the shoulder is cranky; it calms pain without moving the joint',f:['shoulder']},
+  {n:'Cross-Body Shoulder Stretch',d:'30 sec/side · pull the straight arm across the chest just below chin height with the other hand until you feel it in the back of the shoulder. Keep the shoulder blade pinned down and back, not hunched up. A stretch, not pain',f:['shoulder']},
+];
 const PREP_BUDGET_MINS={lunch:6,evening:15,centuryLunch:4};
 // Assemble the session's prep. Blocks are filled round-robin in priority order
 // so a later block can't be starved by an earlier one eating the whole budget,

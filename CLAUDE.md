@@ -2532,6 +2532,18 @@ inside a template literal is invisible to the syntax check.
   assessed** — the pattern (a pop under a violent swing, still symptomatic
   years later on two specific loaded positions) is worth a physio's opinion,
   and the app changes are load management, not treatment.
+  **Rehab added 2026-11-02** — Sam: "stretches and exercises for a labrum
+  strain/pull i dont have the money to go to actual physical therapy". Left
+  shoulder, pain only in certain positions (no catching/locking/giving way/night
+  pain), "feels more muscular than joint". So `SHOULDER_REHAB_POOL` is a cuff +
+  scapular LOADING program (Holmgren 2012 BMJ shape: eccentric cuff, scapular
+  stabilisers, posterior stretch; Littlewood SELF pain rule), not a labral
+  protocol. Shown as a DAILY HOME CARD (`shoulderRehabHTML`, inside
+  `dailySpineHTML` next to Shin Care) gated on `shoulderCaution`. It was first
+  built as a ranked-first warm-up block, which ate the 6-min lunch cap
+  (lunch-desk PT Hip 14 → 8) and never fit Side-Lying ER at lunch, so it was moved
+  out of the budget entirely. The card lists the red flags that mean it needs
+  imaging, not more exercise.
 - Lower back: **any standing overhead press hurts** (2026-07-27, expanded from
   the push-press-only report). `ohp`, `push_press`, `db_push_press`, and
   `thrusters` are all on `avoidExercises`. Seated overhead pressing

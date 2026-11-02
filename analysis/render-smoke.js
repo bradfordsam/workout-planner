@@ -386,6 +386,17 @@ ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_
   ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_PRESETS.ymca.equipment})`,'sprint desk')).includes('sprinthips'),'sprint hips stay off non-leg days');
   ok(call('PREP_BUDGET_MINS.evening','cap')===15,'evening prep cap is 15');
 })();
+// Shoulder rehab is a daily home card, not a warm-up block (see SHOULDER_REHAB_POOL).
+(function(){
+  const was=call('S.cfg.shoulderCaution','sc');
+  get('S.cfg.shoulderCaution=true');
+  const on=call('dailySpineHTML()','rehab card on');clean(on,'shoulder rehab card');
+  ok(on.includes('Left Shoulder Rehab')&&on.includes('Side-Lying External Rotation')&&on.includes('3/10'),'shoulder rehab card shows all six and the pain rule');
+  get('S.cfg.shoulderCaution=false');
+  ok(!call('dailySpineHTML()','rehab card off').includes('Left Shoulder Rehab'),'shoulder rehab card hidden when shoulder caution is off');
+  get('S.cfg.shoulderCaution='+JSON.stringify(was));
+  ok(!JSON.stringify(call(`prepPlan({isLunch:true,isLegDay:false,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment})`,'rehab prep')).includes('Side-Lying External Rotation'),'shoulder rehab stays out of the warm-up budget');
+})();
 // Who pays when a block is added: items dealt per block over 14 days. The prep
 // budget is zero-sum, so read this line before and after any pool/block change.
 [['lunch',true],['evening',true],['lunch',false],['evening',false]].forEach(([k,leg])=>{
