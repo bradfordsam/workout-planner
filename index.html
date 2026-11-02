@@ -8320,13 +8320,12 @@ const IT_BAND_PREP=[
 ];
 
 // ── DESK REVERSAL ──
-// The day's sitting leaves the deep neck flexors asleep and the lumbar spine
-// parked in flexion. These are FIXED (never rotated out) because they are the
-// most literal answer to "I'm coming from my desk" — the static relief work for
-// the same areas lives in the post-session cool-down.
+// The day's sitting leaves the chest and front of the shoulders shortened and
+// the glutes switched off. FIXED (never rotated out) because it is the most
+// literal answer to "I'm coming from my desk" — the static relief work lives in
+// the post-session cool-down. Chin Tucks and Standing Pelvic Tilts were removed
+// 2026-11-02 at Sam's request.
 const DESK_REVERSAL=[
-  {n:'Chin Tucks',d:'10 reps · glide the head straight BACK (make a double chin), hold 2s — wakes the deep neck flexors before pressing',f:['spine']},
-  {n:'Standing Pelvic Tilts',d:'10 slow reps · rock the pelvis fully forward and back — unglues the lower back from its chair shape',f:['spine']},
   // Added 2026-11-02 at Sam's request. The chest/front-shoulder opener with the
   // glutes and rear delts holding the line — the literal opposite of the slouch.
   // Shoulder goes into loaded extension, hence the left-shoulder stop in the cue.
@@ -8486,7 +8485,7 @@ function prepPlan(o){
   const fixed=[];
   if(o.hipCaution)fixed.push({key:'decompress',title:'🦋 Decompress first',color:'#c084fc',items:HIP_DECOMPRESSION,note:'Unload the joint before you mobilise it. Left hip: back off at the pinch.'});
   if(!o.upperFirst)fixed.push({key:'itband',title:'🦵 Left IT Band · PT',color:'var(--warn)',items:IT_BAND_PREP.filter(it=>!(isLunch&&it.eveningOnly)).map(it=>isLunch&&it.lunchD?{...it,d:it.lunchD}:it),note:'Fixed every session until the PT clears it. Release the TFL and outer quad, stretch with the hip straight, then wake up the glute med.'});
-  fixed.push({key:'desk',title:'🖥️ Desk Reversal',color:'var(--ok)',items:DESK_REVERSAL,note:'Fixed every session — the two most literal undo buttons for a day in a chair.'});
+  fixed.push({key:'desk',title:'🖥️ Desk Reversal',color:'var(--ok)',items:DESK_REVERSAL,note:'Fixed every session — the most literal undo button for a day in a chair.'});
   const rotating=[
     isLegDay?{key:'legprep',title:'🦵 Leg Prep · hamstrings, Achilles, adductors',color:'var(--warn)',pool:legPool,n:want(4,2)}:null,
     isLegDay?{key:'isodyn',title:'🧱 Iso → Dynamic',color:'var(--warn)',pool:ISO_DYNAMIC_POOL,n:want(2,1)}:null,
