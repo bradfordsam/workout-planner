@@ -3903,11 +3903,20 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   if(centuryLunch)items.push({key:'spine',label:'Daily spine minimums',mins:prepBlockMins(DAILY_SPINE_MINIMUMS),note:'morning or evening — the hundred is the whole box',deferred:true,byDesign:true});
   else push('spine','Daily spine minimums',prepBlockMins(DAILY_SPINE_MINIMUMS));
   if(!isLunch)push('cooldown','Cool-down stretching',COOLDOWN_MINS);
+  // PT is priced only for TODAY — the quota is a running weekly count, so a
+  // future day's share isn't knowable until the days before it are logged.
+  // Sheddable like the spine holds (floor work, no gym needed), and deliberately
+  // NOT charged by the ledgers, so it never changes the lift count — it is shed
+  // AFTER the spine holds because it is the physio's prescription.
+  if(dow===todayDow()){
+    const owed=ptOwedToday();
+    push('pt','PT exercises',ptMinsToday(),owed.length?`${owed.length} still owed today`:'');
+  }
   // If it doesn't all fit, SHED rather than silently overrun — the whole point
   // is a routine that fits the duration actually stated. Order is cheapest-to-
   // lose first, and every one of these is a block that genuinely can happen
   // away from the gym later:
-  //   cool-down stretching -> the spine holds.
+  //   cool-down stretching -> the spine holds -> PT exercises.
   // Prep is never shed (it's the injury-prevention half), the lifts are already
   // floored at one by the ledgers, and the century isn't dropped because on a
   // century day it IS the session's headline prescription.
@@ -3915,7 +3924,7 @@ function sessionPlan({mins,dow,av,equipmentKey,isLunch,lifts,perLiftMins}){
   // cannot fit a 40-min lunch or a 45-min evening alongside prep and a lift, so
   // when it reaches the front of this queue the honest message is that this
   // session is too short for it — not that it was quietly skipped.
-  const SHED_ORDER=['cooldown','spine','century'];
+  const SHED_ORDER=['cooldown','spine','pt','century'];
   const cost=()=>items.filter(i=>!i.deferred).reduce((a,i)=>a+i.mins,0)
     +transitionMins(items.filter(i=>!i.deferred).length);
   for(const key of SHED_ORDER){
@@ -8290,6 +8299,23 @@ function ptSessionsNeededToday(ex){
   if(owedBeforeToday<=0)return 0;
   const todaysQuota=Math.max(1,Math.ceil(owedBeforeToday/ptDaysLeftInWeek()));
   return Math.max(0,todaysQuota-doneToday);
+}
+
+// What today's outstanding PT work costs on the clock, so sessionPlan can put it
+// in the session instead of leaving it as an unpriced card (2026-11-02). Priced
+// off the dose itself, same anchors prepItemSecs uses: a hold costs its seconds,
+// a rep costs PREP_REP_SECS, per-side doubles, and every set pays one
+// PREP_TRANSITION_SECS to get into position. Counts only what is still OWED
+// today (ptSessionsNeededToday), so logging a movement takes it off the clock.
+function ptItemSecs(ex){
+  const perRep=ex.holdSecs||PREP_REP_SECS;
+  return ex.sets*(ex.reps*perRep*(ex.perSide?2:1)+PREP_TRANSITION_SECS);
+}
+function ptOwedToday(){
+  return PT_PRESCRIBED.map(ex=>({ex,n:ptSessionsNeededToday(ex)})).filter(r=>r.n>0);
+}
+function ptMinsToday(){
+  return Math.round(ptOwedToday().reduce((a,r)=>a+r.n*ptItemSecs(r.ex),0)/60);
 }
 
 // ── HIP DECOMPRESSION ──

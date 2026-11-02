@@ -392,6 +392,25 @@ ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_
   const r=call(`(function(){const real=Date.now;try{const c={};for(let d=0;d<14;d++){Date.now=()=>real()+d*864e5;prepPlan({isLunch:${k==='lunch'},isLegDay:${leg},hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment}).blocks.forEach(b=>{c[b.key]=(c[b.key]||0)+b.items.length;});}return Object.entries(c).map(([k,v])=>k+'='+v).join(' ');}finally{Date.now=real;}})()`,'dealt '+k+leg);
   console.log('    dealt/14d '+k+(leg?' leg ':' desk')+': '+r);
 });
+// PT in the time plan: today's owed PT is a line in sessionPlan, sheds after the
+// spine holds, never changes the lift count, and drops off once logged.
+(function(){
+  const plan=(mins,dow)=>call(`sessionPlan({mins:${mins},dow:${dow},av:S.weekPlan&&S.weekPlan.availability,equipmentKey:'ymca',isLunch:false,lifts:2})`,'pt plan');
+  const today=call('todayDow()','dow');
+  call('S.ptLog={}','reset');
+  const owedMins=call('ptMinsToday()','pt mins');
+  const p=plan(120,today),pt=p.items.find(i=>i.key==='pt');
+  console.log('    PT owed today:',owedMins,'min');
+  ok(owedMins>0&&pt&&!pt.deferred&&pt.mins===owedMins,'owed PT is a kept line in a long session');
+  ok(!plan(120,(today+1)%7).items.some(i=>i.key==='pt'),'PT is only priced on today');
+  const tight=plan(45,today);
+  const sp=tight.items.find(i=>i.key==='spine'),tp=tight.items.find(i=>i.key==='pt');
+  ok(!tp||!tp.deferred||(sp&&sp.deferred),'PT sheds only after the spine holds');
+  ok(call(`eveningLifts(60,${today},S.weekPlan&&S.weekPlan.availability,'ymca')`,'el')===call(`(function(){const s=ptMinsToday;ptMinsToday=()=>0;try{return eveningLifts(60,${today},S.weekPlan&&S.weekPlan.availability,'ymca')}finally{ptMinsToday=s}})()`,'el0'),'PT never changes the lift count');
+  call(`PT_PRESCRIBED.forEach(ex=>{for(let i=0;i<7;i++)S.ptLog[ptLogKey(ex.id,todayStr())]=(S.ptLog[ptLogKey(ex.id,todayStr())]||0)+1})`,'log all');
+  ok(!plan(120,today).items.some(i=>i.key==='pt'),'logged PT drops off the clock');
+  call('S.ptLog={}','reset2');
+})();
 S.view='dash';
 clean(call('renderDash()','renderDash final'),'renderDash after the block is active');
 
