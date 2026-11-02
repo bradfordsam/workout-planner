@@ -360,6 +360,15 @@ ok(call("dailyMaxMode('2026-11-10')",'deload')==='off','week 5 of the cycle is a
   const secs=call(`(function(){const p=prepPlan({isLunch:${k==='lunch'},isLegDay:true,hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment});return p.blocks?p.blocks.reduce((a,b)=>a+b.items.reduce((x,it)=>x+prepItemSecs(it),0),0):-1})()`,'secs '+k);
   console.log('    '+k+' prep secs',secs,'cap',call(`PREP_BUDGET_MINS.${k}*60`,'cap'));
 });
+// Bounce isos: leg days only, and every hold actually gets dealt across two weeks
+// at the realistic (hip+shoulder caution) budget — a block the cap always starves
+// would look fine in a syntax check.
+['lunch','evening'].forEach(k=>{
+  const r=call(`(function(){const real=Date.now;try{const seen=new Set();let days=0;for(let d=0;d<14;d++){Date.now=()=>real()+d*864e5;const p=prepPlan({isLunch:${k==='lunch'},isLegDay:true,hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment});const b=p.blocks.find(b=>b.key==='bounceiso');if(b){days++;b.items.forEach(it=>seen.add(it.n));}}return{days,seen:seen.size,total:BOUNCE_ISO_POOL.length,missing:BOUNCE_ISO_POOL.map(i=>i.n).filter(n=>!seen.has(n)).join(', ')};}finally{Date.now=real;}})()`,'bounce '+k);
+  console.log('    '+k+' bounce isos: on',r.days,'of 14 leg days,',r.seen,'of',r.total,'holds dealt',r.missing?'(never: '+r.missing+')':'');
+  ok(r.days>0,'bounce isos land in the '+k+' leg-day warm-up');
+});
+ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_PRESETS.ymca.equipment})`,'bounce desk')).includes('bounceiso'),'bounce isos stay off non-leg days');
 S.view='dash';
 clean(call('renderDash()','renderDash final'),'renderDash after the block is active');
 

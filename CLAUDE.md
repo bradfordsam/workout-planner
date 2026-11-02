@@ -1448,6 +1448,16 @@ the harness can act on an EVENT — see `.claude/settings.json` +
     out for the same dilution reason as `PT_HIP_POOL`. `iso:true` makes
     `prepItemSecs` charge the hold AND the reps (otherwise a stated time wins).
     Case study byte-identical to HEAD.
+  - **`BOUNCE_ISO_POOL`** (2026-11-02) — Sam: *"add these iso to workout planner
+    to help me get bouncy"*. Seven PURE holds (tib raise, RFE split squat, hamstring,
+    SL glute bridge, knee drive, Copenhagen, heel-elevated split squat), no reps
+    after; own leg-day block `bounceiso`, ONE hold a session. Two traps found by
+    the render-smoke sweep: (1) `stretchRot` keeps pool order, so with n=2 the LAST
+    entry is only ever the second pick, and the evening budget is full enough that
+    second picks never land (Tib Raise Hold: 0 of 14 days). n:1 makes every hold a
+    first pick. (2) 45 sec/side split squat holds (100s) never fit at lunch; 30
+    sec/side does. render-smoke now prints hold coverage over 14 leg days and names
+    any hold that never lands. Case study identical to HEAD.
   - `DESK_REVERSAL` (chin tucks + pelvic tilts) and `HIP_DECOMPRESSION` are
     FIXED blocks — never rotated, never budget-trimmed. Desk reversal now shows
     at lunch too; it used to be evening-only, which had it backwards.

@@ -8462,6 +8462,27 @@ const ISO_DYNAMIC_POOL=[
   {n:'Single-Leg Glute Bridge Iso → Bridges',d:'30 sec hold, then 8 reps/side · one foot planted, other knee hugged or leg held straight, hips up and level — hold 30 sec squeezing the glute, then 8 full bridges on the same leg. Pelvis stays square; drive through the heel',f:['glute','hamstring'],iso:true},
   {n:'Heel-Elevated Split Squat Iso → Split Squats',d:'30 sec hold, then 12 reps/side · front heel on a plate, drop into the bottom of a split squat with the front knee travelling over the toes — hold 30 sec, then 12 reps. Upright torso; back knee hovers just off the floor',f:['adductor','hip'],iso:true},
 ];
+// ── BOUNCE ISOS (2026-11-02) ──
+// Sam: "add these iso to workout planner to help me get bouncy". Pure holds, no
+// reps after — long mid-range isometrics stiffen the tendons that return energy
+// on a jump (patellar, Achilles, hamstring, adductor, tib). Kept separate from
+// ISO_DYNAMIC_POOL, which is hold → reps of the same pattern. Leg days only, same
+// dilution reasoning. Doses are single timed holds so prepItemSecs prices them
+// from the stated time; push hard into the floor/bench for the whole hold rather
+// than just sitting in the position. Tib leads the pool on purpose: stretchRot
+// keeps pool order, so the last entry only ever landed as the second pick, which
+// the budget starves; the split squat holds are 30 sec/side so lunch can fit them.
+// One hold a session (n:1): the evening budget is already full, so a second pick
+// never landed — and with n:1 every hold is a first pick on its day.
+const BOUNCE_ISO_POOL=[
+  {n:'Tib Raise Hold',d:'45 sec · back against a wall, heels about a foot out. Pull the toes up toward the shins as high as they go and hold them there; only the heels touch. Add a band or a plate on the toes once it\x27s easy',f:['achilles']},
+  {n:'RFE Split Squat Hold',d:'30 sec/side · rear foot on a bench, drop until the front thigh is just above parallel and stop. Drive the front foot into the floor like you are about to stand up, but don\x27t. Front knee over the toes, torso tall. Add DBs once 30 sec is easy',f:['adductor','hip']},
+  {n:'Hamstring Hold',d:'30 sec/side · on your back, one heel on a bench, knee bent ~20°, other leg in the air. Bridge the hips up and dig the heel down and back toward you as hard as you can. Hips stay level; stop if the hamstring cramps',f:['hamstring']},
+  {n:'Single-Leg Glute Bridge Hold',d:'45 sec/side · one foot planted, other knee hugged to the chest so the lower back can\x27t arch. Hips up to a straight line and squeeze the glute the whole time. Drive through the heel; pelvis stays square',f:['glute','hamstring']},
+  {n:'Knee Drive Hold',d:'30 sec/side · stand tall on the ball of one foot, heel just off the floor. Drive the other knee to hip height with the toes pulled up, opposite arm forward like a sprint. Stay tall and still; stance knee soft, not locked. Wall touch for balance is fine',f:['achilles','hip']},
+  {n:'Copenhagen Hold',d:'30 sec/side · side plank on one elbow, TOP leg on a bench, hips lifted by the top inner thigh. Knee on the bench first, straight leg once that\x27s easy. Left side: stop short of any pull in the groin',f:['adductor']},
+  {n:'Heel-Elevated Split Squat Hold',d:'30 sec/side · front heel on a plate, sink into the bottom of a split squat with the front knee travelling well past the toes. Push down through the front foot the whole hold. Upright torso; back knee hovers just off the floor',f:['adductor','hip']},
+];
 const PREP_BUDGET_MINS={lunch:6,evening:12,centuryLunch:4};
 // Assemble the session's prep. Blocks are filled round-robin in priority order
 // so a later block can't be starved by an earlier one eating the whole budget,
@@ -8489,6 +8510,7 @@ function prepPlan(o){
   const rotating=[
     isLegDay?{key:'legprep',title:'🦵 Leg Prep · hamstrings, Achilles, adductors',color:'var(--warn)',pool:legPool,n:want(4,2)}:null,
     isLegDay?{key:'isodyn',title:'🧱 Iso → Dynamic',color:'var(--warn)',pool:ISO_DYNAMIC_POOL,n:want(2,1)}:null,
+    isLegDay?{key:'bounceiso',title:'🦘 Bounce Isos',color:'var(--warn)',pool:BOUNCE_ISO_POOL,n:1}:null,
     {key:'deskreset',title:'🧍 Hip &amp; Spine Reset',color:'var(--ok)',pool:deskPool,n:want(isLegDay?2:4,isLegDay?1:3)},
     {key:'pthip',title:'🩺 PT Hip Program',color:'#c084fc',pool:PT_HIP_POOL.filter(hasKit),n:want(3,2)},
     o.shoulderCaution?{key:'shoulder',title:'🩹 Achy Shoulder',color:'var(--acc)',pool:SHOULDER_POOL,n:want(2,1)}:null,
