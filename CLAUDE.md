@@ -1468,6 +1468,9 @@ the harness can act on an EVENT — see `.claude/settings.json` +
     1 shrinks). "8 rocks" was priced at 0 reps by `prepItemSecs`; units must say
     reps/circles/swings/cycles/steps/walks. Cues carry the left-groin, loaded-
     rotation and FAI constraints; "seated hip pry" is a guessed interpretation.
+    2026-11-04: +8 Sam picks at 30 sec each (lymphatic hops, body waves, full
+    twists, straddle, yogi squat, trunk twists, deep squat reaches, down/up dogs).
+    Pool now 12, still n:1: evening deals all 12 in 14 days; lunch rarely reaches it.
   - **`SPRINT_HIP_POOL` + evening prep cap 12 → 15 (2026-11-02)** — Sam: "more hip
     moves to help my sprint speed", six named moves, leg-day block `sprinthips`,
     n:1. Before adding it, render-smoke's new `dealt/14d` line showed the day's
