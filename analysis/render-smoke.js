@@ -220,7 +220,8 @@ ok(Array.isArray(inv)&&inv.length===0,'generated sessions satisfy the length/pre
 ok(call("tensionNote(exById('snap_down'))",'t1').includes('SPEED'),'speed-tagged work gets the speed line, not a tempo');
 ok(call("tensionNote(exById('heavy_box_squat'))",'t2').includes('BAR SPEED'),'the heavy 1-5 tier gets the reserve line');
 ok(call("tensionNote(exById('wall_sit'))",'t3')==='','a timed hold gets no tempo line');
-ok(call("tensionNote(exById('pushdown'))",'t4').includes('technical failure'),'hypertrophy work gets the tension line');
+ok(call("tensionNote(exById('pushdown'))",'t4').includes('take it to failure'),'hypertrophy work gets the tension line (failure, cable)');
+ok(call("tensionNote(EX.find(e=>e.eq&&e.eq.length===1&&e.eq[0]==='barbell'&&!(e.tags||[]).includes('strength')&&!e.noWeight&&e.muscle!=='core'))",'t4b').includes('unless someone is spotting'),'pin-risk barbell lift stays 1 short without a spotter');
 ok(call("tensionNote(exById('pullups'))",'t5')==='','bodyweight work gets no tempo line');
 ok(call("tensionNote(exById('crunches'))",'t6')==='','core work gets no tempo line');
 // stretchRot is seeded off Date.now(), so walk 60 days to cover every rotation offset.

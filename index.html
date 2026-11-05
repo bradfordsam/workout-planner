@@ -1411,7 +1411,16 @@ function tensionNote(ex){
      ||['mobility','conditioning','stretch','isometric'].some(t=>tags.includes(t)))return'';
   const eq=ex.eq||[];
   if(eq.length&&eq.every(e=>['bodyweight','pullup_bar','dip_bars','own_gear'].includes(e)))return'';
-  return'Full range, '+ECCENTRIC_SECS+'&ndash;4 counts down, pause in the stretch. Stop at technical failure, not total failure.';
+  // 2026-11-05, Sam: failure and forced reps are fine, except where failing alone
+  // pins you (bench, which he can't spot himself). So the LAST set goes to failure
+  // on anything that can't trap him; a free-weight lift that can stays 1 rep short
+  // unless a spotter is there. Forced reps need a partner; alone, rest-pause.
+  // Heavy 1–5 work keeps its reserve line above: grinding a near-max alone is the
+  // pinning case.
+  const canPin=eq.includes('barbell')&&!eq.some(e=>['machine','cables','smith'].includes(e));
+  return'Full range, '+ECCENTRIC_SECS+'&ndash;4 counts down, pause in the stretch. '+(canPin
+    ?'Last set: 1 rep short of failure unless someone is spotting you; with a spotter, go to failure plus 1&ndash;2 forced reps.'
+    :'Last set: take it to failure. With a partner, add 1&ndash;2 forced reps; alone, rest 15 sec and squeeze out 1&ndash;3 more (rest-pause).');
 }
 const TENSION_ROW=(ex)=>{const t=tensionNote(ex);return t
   ?`<div style='font-size:12px;color:var(--txt-dim);line-height:1.5;margin:0 0 10px;padding:6px 10px;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);border-radius:8px'>&#127959; <strong style='color:#a78bfa'>Tension:</strong> ${t}</div>`
@@ -9482,7 +9491,7 @@ function blockPlanHTML(){
       ${thinWarn}
       ${monthPick}
       <button class='btn btn-g btn-sm' data-action='block-ronnie' style='margin-top:12px'>&#127947;&#65039; Ronnie Coleman preset: push back + legs</button>
-      <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>Heavy basics first, back and legs pushed, arms on maintenance. Not copied from Ronnie: barbell bench, sets to failure, and his 15&ndash;20+ sets a muscle. Your injury rules and weekly ceilings still apply.</div>
+      <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>Heavy basics first, back and legs pushed, arms on maintenance. Last sets go to failure (forced reps with a partner, rest-pause alone), except lifts that can pin you without a spotter. Not copied: barbell bench, and his 15&ndash;20+ sets a muscle, since your schedule has no room for it. Your injury rules and weekly ceilings still apply.</div>
       <button class='btn btn-ok btn-sm' data-action='block-start' style='margin-top:12px'>${expired?'Start the next block':'Start a '+blockMonths()+'-month block'}</button>
       <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>Defaults to <strong style='color:var(--txt)'>shoulders</strong> and <strong style='color:var(--txt)'>back</strong> pushed (the side delts and lats are what widen the frame, and both are documented here as the hardest slots to fill) with <strong style='color:var(--txt)'>biceps</strong> and <strong style='color:var(--txt)'>triceps</strong> maintained &mdash; they already collect half a set of credit from every pull and every press, plus 300 pull-ups a week.</div>
     </div>`;
