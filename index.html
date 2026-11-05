@@ -1406,7 +1406,7 @@ function tensionNote(ex){
   if(SPEED_TAGS.some(t=>tags.includes(t)))
     return'Trained by SPEED, not by time under tension — move the load as fast as you can and reset between reps. A slow negative here makes the rep worse, not harder.';
   if(tags.includes('strength'))
-    return'Full range, braced, every rep. Stop the set when BAR SPEED drops off, and leave 1&ndash;2 reps in the tank &mdash; near-max work is governed by speed and reserve, not by grinding.';
+    return'Ronnie-style: add weight each set up to one heavy top set. Full range, braced, every rep. Stop the set when BAR SPEED drops off, and leave 1&ndash;2 reps in the tank &mdash; near-max work is governed by speed and reserve, not by grinding.';
   if(ex.noWeight||ex.calfTopUp||['core','hips','cardio'].includes(ex.muscle)
      ||['mobility','conditioning','stretch','isometric'].some(t=>tags.includes(t)))return'';
   const eq=ex.eq||[];
@@ -5736,6 +5736,14 @@ const MAINTENANCE_FRACTION=0.5;
 // week — so they are the two that hold their size on the least direct work.
 const BLOCK_DEFAULT_EMPHASIS=['shoulders','back'];
 const BLOCK_DEFAULT_MAINTAIN=['biceps','triceps'];
+// RONNIE COLEMAN preset (2026-11-05, Sam chose 'principles only'). Ronnie built
+// his physique on heavy basics for back and legs (rows, deadlifts, squats), and
+// back won him shows. So the preset pushes back + legs. Arms go to maintenance:
+// they get indirect work from every heavy pull and press. Deliberately NOT
+// copied: barbell bench (banned, left shoulder), sets to failure / forced reps
+// (the app stops 1–2 reps short), and his 15–20+ sets per muscle (the MRV
+// ceiling stays put). Heavy-first ordering already comes from flagFirstWorkingSet.
+const BLOCK_RONNIE={emphasis:['back','legs'],maintain:['biceps','triceps']};
 function blockCfg(){return (S.cfg&&S.cfg.block)||null;}
 function blockMonths(){const b=blockCfg();return b&&BLOCK_MONTH_CHOICES.includes(b.months)?b.months:BLOCK_DEFAULT_MONTHS;}
 // A block ends on a DATE, and once it is past it stops steering anything. It is
@@ -9473,6 +9481,8 @@ function blockPlanHTML(){
       ${grid}
       ${thinWarn}
       ${monthPick}
+      <button class='btn btn-g btn-sm' data-action='block-ronnie' style='margin-top:12px'>&#127947;&#65039; Ronnie Coleman preset: push back + legs</button>
+      <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>Heavy basics first, back and legs pushed, arms on maintenance. Not copied from Ronnie: barbell bench, sets to failure, and his 15&ndash;20+ sets a muscle. Your injury rules and weekly ceilings still apply.</div>
       <button class='btn btn-ok btn-sm' data-action='block-start' style='margin-top:12px'>${expired?'Start the next block':'Start a '+blockMonths()+'-month block'}</button>
       <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>Defaults to <strong style='color:var(--txt)'>shoulders</strong> and <strong style='color:var(--txt)'>back</strong> pushed (the side delts and lats are what widen the frame, and both are documented here as the hardest slots to fill) with <strong style='color:var(--txt)'>biceps</strong> and <strong style='color:var(--txt)'>triceps</strong> maintained &mdash; they already collect half a set of credit from every pull and every press, plus 300 pull-ups a week.</div>
     </div>`;
@@ -13023,6 +13033,11 @@ document.addEventListener('click',e=>{
   if(a==='block-months'){
     const b=S.cfg.block=S.cfg.block||{emphasis:BLOCK_DEFAULT_EMPHASIS.slice(),maintain:BLOCK_DEFAULT_MAINTAIN.slice()};
     b.months=parseInt(btn.dataset.val,10)||BLOCK_DEFAULT_MONTHS;
+    replanCurrentWeek();save();render();return;
+  }
+  if(a==='block-ronnie'){
+    const b=S.cfg.block=S.cfg.block||{months:BLOCK_DEFAULT_MONTHS};
+    b.emphasis=BLOCK_RONNIE.emphasis.slice();b.maintain=BLOCK_RONNIE.maintain.slice();
     replanCurrentWeek();save();render();return;
   }
   if(a==='block-start'){
