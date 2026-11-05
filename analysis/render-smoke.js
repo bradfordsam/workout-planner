@@ -452,6 +452,30 @@ ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_
   ok(!plan(120,today).items.some(i=>i.key==='pt'),'logged PT drops off the clock');
   call('S.ptLog={}','reset2');
 })();
+
+// Auto training blocks (2026-11-05): first block = Ronnie, rollover never repeats,
+// 3 months, ending by hand turns auto off.
+console.log('  auto blocks');
+(function(){
+  const saved=call('JSON.stringify({b:S.cfg.block||null,a:S.cfg.blockAuto})','save');
+  call('S.cfg.block=null;delete S.cfg.blockAuto','reset');
+  ok(call('blockAutoTick()','tick1')===true&&call('blockActive()','act'),'auto starts a block when none runs');
+  const e1=call('S.cfg.block.emphasis.join()','e1');
+  ok(call('S.cfg.block.months','mo')===3,'auto block is 3 months');
+  ok(/back/.test(e1),'first auto block is the Ronnie preset ('+e1+')');
+  ok(call('blockAutoTick()','tick2')===false,'no restart while a block runs');
+  call("S.cfg.block.start=localDateStr(new Date(Date.now()-100*864e5))",'age');
+  ok(call('blockAutoTick()','tick3')===true,'rolls over when the block ends');
+  const e2=call('S.cfg.block.emphasis.join()','e2');
+  ok(e2&&!e1.split(',').some(m=>e2.split(',').includes(m)),'next block pushes different muscles ('+e1+' -> '+e2+')');
+  ok(call('S.cfg.block.history.length','h')===1,'ended block is kept in history');
+  S.view='plan';clean(call('blockPlanHTML()','bp'),'block card with auto on');
+  ok(call('blockPlanHTML()','bp2').includes('Auto:'),'card says auto is on');
+  call('S.cfg.blockAuto=false;S.cfg.block.on=false','off');
+  ok(call('blockAutoTick()','tick4')===false,'auto off never starts a block');
+  ok(call('blockPlanHTML()','bp3').includes('Automate it'),'card offers automation when off');
+  call('(function(o){S.cfg.block=o.b;if(o.a===undefined)delete S.cfg.blockAuto;else S.cfg.blockAuto=o.a;})('+saved+')','restore');
+})();
 S.view='dash';
 clean(call('renderDash()','renderDash final'),'renderDash after the block is active');
 

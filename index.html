@@ -5753,6 +5753,63 @@ const BLOCK_DEFAULT_MAINTAIN=['biceps','triceps'];
 // (the app stops 1–2 reps short), and his 15–20+ sets per muscle (the MRV
 // ceiling stays put). Heavy-first ordering already comes from flagFirstWorkingSet.
 const BLOCK_RONNIE={emphasis:['back','legs'],maintain:['biceps','triceps']};
+// ── AUTO BLOCKS (2026-11-05) ──
+// Sam: "automate the length and rotation... take as much decision fatigue as
+// possible out of this." With S.cfg.blockAuto on (the default), a block starts
+// itself whenever none is running, and the next one starts the day the last ends.
+//  - LENGTH is fixed at 3 months: long enough to grow a pushed muscle, short
+//    enough that all six come around in under a year and a half.
+//  - HOW MANY muscles: read off the real ledgers with the same 2+2×n threshold
+//    the thin-schedule warning uses, so auto never picks a block that warning
+//    would flag.
+//  - WHICH: the first auto block is the Ronnie preset. After that, the weakest
+//    muscles by strengthBalance() (his own lifts vs. the app's expectations),
+//    never repeating the block that just ended. With too little history to rank,
+//    it walks BLOCK_AUTO_ORDER from where the last block left off.
+//  - Arms not being pushed are maintained, the same reasoning as the default.
+// Runs at app open only (INIT), never inside genProgram/replan, so the case-study
+// harness and any sim stay byte-identical. Ending a block by hand turns auto off.
+const BLOCK_AUTO_MONTHS=3;
+const BLOCK_AUTO_ORDER=['back','legs','shoulders','chest','triceps','biceps'];
+function blockAutoOn(){return !!(S.cfg&&S.cfg.blockAuto!==false);}
+function blockAutoCount(){
+  const slots=weeklyLiftSlots(S.weekPlan&&S.weekPlan.availability);
+  return slots>=6?2:1;
+}
+function blockAutoPick(prev,count){
+  const prevSet=new Set(prev||[]);
+  const pool=BLOCK_ROLE_MUSCLES.filter(m=>!prevSet.has(m));
+  const out=[];
+  let ranked=[];
+  try{ranked=(strengthBalance().ranked||[]).map(r=>r.m);}catch(e){}
+  ranked.forEach(m=>{if(out.length<count&&pool.includes(m)&&!out.includes(m))out.push(m);});
+  const last=(prev||[]).map(m=>BLOCK_AUTO_ORDER.indexOf(m)).filter(i=>i>=0);
+  const start=last.length?Math.max(...last)+1:0;
+  for(let k=0;k<BLOCK_AUTO_ORDER.length&&out.length<count;k++){
+    const m=BLOCK_AUTO_ORDER[(start+k)%BLOCK_AUTO_ORDER.length];
+    if(pool.includes(m)&&!out.includes(m))out.push(m);
+  }
+  return out;
+}
+// Returns true when it started a block, so the caller knows to replan.
+function blockAutoTick(){
+  if(!S.cfg||!blockAutoOn()||blockActive())return false;
+  const b=S.cfg.block=S.cfg.block||{};
+  const first=!b.start;
+  const prev=first?null:(b.emphasis||[]);
+  const count=blockAutoCount();
+  const emphasis=first?BLOCK_RONNIE.emphasis.slice(0,count):blockAutoPick(prev,count);
+  if(!emphasis.length)return false;
+  if(!first){b.history=(b.history||[]).concat([{start:b.start,end:blockEndDate(),emphasis:prev}]).slice(-12);}
+  // Back-to-back: the new block starts the day the old one ended, not today,
+  // unless that was long ago (app unopened for weeks).
+  const end=first?null:blockEndDate();
+  b.start=(end&&daysBetween(end,todayStr())<14)?end:todayStr();
+  b.emphasis=emphasis;
+  b.maintain=['biceps','triceps'].filter(m=>!emphasis.includes(m));
+  b.months=BLOCK_AUTO_MONTHS;b.on=true;b.auto=true;
+  return true;
+}
 function blockCfg(){return (S.cfg&&S.cfg.block)||null;}
 function blockMonths(){const b=blockCfg();return b&&BLOCK_MONTH_CHOICES.includes(b.months)?b.months:BLOCK_DEFAULT_MONTHS;}
 // A block ends on a DATE, and once it is past it stops steering anything. It is
@@ -9479,7 +9536,8 @@ function blockPlanHTML(){
       ${grid}
       ${thinWarn}
       ${effect?`<div style='margin-top:10px'>${effect}</div>`:''}
-      <button class='btn btn-g btn-sm' data-action='block-end' style='margin-top:12px'>End this block</button>
+      ${blockAutoOn()?`<div style='font-size:12px;color:var(--mut);margin-top:10px;line-height:1.5'>&#128260; <strong style='color:var(--txt)'>Auto:</strong> when this ends on ${blockEndDate()}, the next ${BLOCK_AUTO_MONTHS}-month block starts by itself, pushing your weakest muscles by your own lifts (never the same ones twice in a row). Nothing to decide.</div>`:''}
+      <button class='btn btn-g btn-sm' data-action='block-end' style='margin-top:12px'>End this block${blockAutoOn()?' (turns auto off)':''}</button>
     </div>`;
   }
   return `${header}
@@ -9489,6 +9547,7 @@ function blockPlanHTML(){
         :`Push one or two muscles hard for a few months and hold the rest at maintenance, instead of chasing every group's maximum every week. Tap a muscle to cycle it: <strong style='color:var(--txt)'>push</strong> &rarr; <strong style='color:var(--txt)'>maintain</strong> &rarr; off.`}</div>
       ${grid}
       ${thinWarn}
+      <button class='btn btn-ok btn-sm' data-action='block-auto-on' style='margin-top:12px'>&#128260; Automate it: pick length and muscles for me</button>
       ${monthPick}
       <button class='btn btn-g btn-sm' data-action='block-ronnie' style='margin-top:12px'>&#127947;&#65039; Ronnie Coleman preset: push back + legs</button>
       <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>Heavy basics first, back and legs pushed, arms on maintenance. Last sets go to failure (forced reps with a partner, rest-pause alone), except lifts that can pin you without a spotter. Not copied: barbell bench, and his 15&ndash;20+ sets a muscle, since your schedule has no room for it. Your injury rules and weekly ceilings still apply.</div>
@@ -13044,6 +13103,11 @@ document.addEventListener('click',e=>{
     b.months=parseInt(btn.dataset.val,10)||BLOCK_DEFAULT_MONTHS;
     replanCurrentWeek();save();render();return;
   }
+  if(a==='block-auto-on'){
+    S.cfg.blockAuto=true;
+    if(blockAutoTick())replanCurrentWeek();
+    save();render();return;
+  }
   if(a==='block-ronnie'){
     const b=S.cfg.block=S.cfg.block||{months:BLOCK_DEFAULT_MONTHS};
     b.emphasis=BLOCK_RONNIE.emphasis.slice();b.maintain=BLOCK_RONNIE.maintain.slice();
@@ -13062,6 +13126,7 @@ document.addEventListener('click',e=>{
     // Keeps the role choices as the draft for the next block — ending one is
     // usually the moment you want to change ONE of them, not retype all four.
     if(S.cfg.block)S.cfg.block.on=false;
+    S.cfg.blockAuto=false;
     replanCurrentWeek();save();render();return;
   }
   if(a==='toggle-staple-lock'){
@@ -14576,6 +14641,7 @@ function armReveals(){
 // INIT
 // ─────────────────────────────────────────────
 load();
+try{if(blockAutoTick()){replanCurrentWeek();save();}}catch(e){console.warn('auto block',e);}
 const _fbCfg=getStoredFbConfig();
 if(_fbCfg)initFirebase(_fbCfg);
 render();
