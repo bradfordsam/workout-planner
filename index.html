@@ -5873,7 +5873,9 @@ function applyBlockRoles(limits){
 // movement churn. Freezing them to one staple would delete a guarantee this file
 // spends several sections defending.
 const STAPLE_MIN_LOGS=3; // logged three times inside the block = this block's staple
-function stapleLockOn(){return S.cfg?.stapleLock!==false;}
+// 2026-11-05, Sam: "just take the card out". Always on now; the Plan-screen card
+// is no longer rendered, so an old stapleLock:false must not leave it stuck off.
+function stapleLockOn(){return true;}
 function blockStapleIds(){
   if(!stapleLockOn())return null;
   const b=blockCfg();
@@ -9679,7 +9681,6 @@ function renderPlan(){
     ${renderAvailGrid(av,false)}
 
     ${blockPlanHTML()}
-    ${stapleLockPlanHTML()}
     ${pairedSetsPlanHTML()}
     ${jumpDurabilityPlanHTML()}
     ${centuryWhenPlanHTML()}
