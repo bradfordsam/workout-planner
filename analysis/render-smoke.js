@@ -154,7 +154,7 @@ S.cfg.block.on=false;
 ok(call('blockStapleIds()','no block').has('squat'),'with no block running the window is the whole recent log');
 S.cfg.block.on=true;S.cfg.block.start='2026-01-05';
 S.cfg.stapleLock=false;
-ok(call('blockStapleIds()','blockStapleIds off')===null,'staple lock off returns null');
+ok(call('blockStapleIds()','blockStapleIds off') instanceof Object,'staple lock stays on even with an old stapleLock:false');
 S.cfg.stapleLock=true;
 
 // ─── 4. Sequencing + tension ───
