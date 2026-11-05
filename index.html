@@ -8566,6 +8566,16 @@ const MOBILITY_PICKS_POOL=[
   {n:'Deep Squat Reaches',d:'30 sec · from the bottom of a squat, reach one arm up and rotate the chest open toward it, return, switch. Squat only as deep as the left hip stays quiet',f:['hip','spine']},
   {n:'Down/Up Dogs',d:'30 sec · flow from downward dog (hips high, heels reaching down) into upward dog (hips low, chest through the arms) and back, slow breath each way. Left shoulder: press the floor away, no sagging',f:['spine','hamstring','achilles']},
 ];
+// ── HIP MOBILITY (2026-11-05) ──
+// Sam: four hip mobility moves, 3 sets each. Own block, every session, n:1 —
+// appended to MOBILITY_PICKS_POOL (16 entries) two never landed in 14 days.
+// prepItemSecs prices one set; the card states all three.
+const HIP_MOB_POOL=[
+  {n:'Single-Leg RDL Hip CAR',d:'3 × 5 reps/side · hand on a wall, hinge into a single-leg RDL, then slowly circle the free leg hip through its full range: knee forward, out, around and back. Stance hip stays level. Left side: smaller circle, stop short of any pinch at the front of the hip',f:['hip','hamstring']},
+  {n:'90/90 with Hip Extension',d:'3 × 10 reps · seated 90/90, rotate the knees to switch sides, then drive the hips up off the floor into extension and squeeze the glutes, lower, switch again. Hands behind you if needed. Left side: stop short of any pinch',f:['hip','glute']},
+  {n:'Hip Around the Worlds',d:'3 × 10 reps each way · standing, hands on hips or a wall, lift one knee and draw the biggest slow circle the hip controls, 10 one direction then 10 the other, both legs. Left hip: smaller circle, no pinch',f:['hip']},
+  {n:'Kneeling Hip CAR',d:'3 × 5 reps/side · on all fours, lift one knee out to the side, sweep it back and around, then forward under the body in one slow controlled circle. Hips square, no low-back twist. Left side: keep the inward part of the circle short of the pinch',f:['hip','glute']},
+];
 // ── SPRINT HIPS (2026-11-02) ──
 // Sam: "more hip moves to help my sprint speed". Six he named. Leg days only, one
 // a session. Made room by raising the EVENING prep cap 12 → 15 (Sam's call, over
@@ -8649,6 +8659,7 @@ function prepPlan(o){
     isLegDay?{key:'bounceiso',title:'🦘 Bounce Isos',color:'var(--warn)',pool:BOUNCE_ISO_POOL,n:1}:null,
     isLegDay?{key:'sprinthips',title:'⚡ Sprint Hips',color:'var(--warn)',pool:SPRINT_HIP_POOL.filter(hasKit),n:1}:null,
     {key:'mobpicks',title:'🌀 Mobility',color:'var(--ok)',pool:MOBILITY_PICKS_POOL.filter(hasKit),n:1},
+    isLunch?null:{key:'hipmob',title:'🦴 Hip Mobility',color:'var(--ok)',pool:HIP_MOB_POOL,n:1,leadRot:true},
     {key:'deskreset',title:'🧍 Hip &amp; Spine Reset',color:'var(--ok)',pool:deskPool,n:want(isLegDay?2:4,isLegDay?1:3)},
     // PT done for the week → the shoulder rehab takes the PT slot (same place in
     // the order, same item count), so nothing else in the warm-up moves.
