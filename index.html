@@ -9534,7 +9534,6 @@ function blockPlanHTML(){
         <div style='font-size:13px;font-weight:700'>Week ${wk} of ${tot}</div>
         <div style='font-size:12px;color:var(--mut)'>ends ${blockEndDate()}</div>
       </div>
-      <div style='font-size:12px;color:var(--mut);margin-top:6px;line-height:1.5'>Pushed muscles get their weekly <strong style='color:var(--txt)'>floor</strong> raised, which keeps them ranking as under-range and winning days. Maintained muscles get their <strong style='color:var(--txt)'>ceiling</strong> pulled down to what used to be their floor. The MRV ceiling on a pushed muscle never moves &mdash; more volume is not the lever, priority is.</div>
       ${grid}
       ${thinWarn}
       ${effect?`<div style='margin-top:10px'>${effect}</div>`:''}
@@ -9554,7 +9553,6 @@ function blockPlanHTML(){
       <button class='btn btn-g btn-sm' data-action='block-ronnie' style='margin-top:12px'>&#127947;&#65039; Ronnie Coleman preset: push back + legs</button>
       <div style='font-size:11px;color:var(--mut);margin-top:6px;line-height:1.6'>Heavy basics first, back and legs pushed, arms on maintenance. Last sets go to failure (forced reps with a partner, rest-pause alone), except lifts that can pin you without a spotter. Not copied: barbell bench, and his 15&ndash;20+ sets a muscle, since your schedule has no room for it. Your injury rules and weekly ceilings still apply.</div>
       <button class='btn btn-ok btn-sm' data-action='block-start' style='margin-top:12px'>${expired?'Start the next block':'Start a '+blockMonths()+'-month block'}</button>
-      <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>Defaults to <strong style='color:var(--txt)'>shoulders</strong> and <strong style='color:var(--txt)'>back</strong> pushed (the side delts and lats are what widen the frame, and both are documented here as the hardest slots to fill) with <strong style='color:var(--txt)'>biceps</strong> and <strong style='color:var(--txt)'>triceps</strong> maintained &mdash; they already collect half a set of credit from every pull and every press, plus 300 pull-ups a week.</div>
     </div>`;
 }
 
@@ -9602,11 +9600,10 @@ function jumpDurabilityPlanHTML(){
         <div class='plan-chk-box'>${on?'✓':''}</div>
         <div>
           <div style='font-size:13px;font-weight:700'>Train for repeat jumping on sand</div>
-          <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Guarantees these land every week instead of losing every slot race to the leg mandates.</div>
+          <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Guarantees a jump-capacity finisher on your first evening each week.</div>
         </div>
       </div>
-      ${on?`${rows}
-      <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>These get the same weekly coverage guarantee as the Foundation Five — one stamped movement per session, seeded from what you've actually logged, and they yield to the Foundation movements while those are still outstanding. Without it both were <strong style='color:var(--txt)'>dead code</strong>: zero picks in six simulated weeks, because legs only get about two slots a week and heavy strength and the hinge/hamstring mandates take both.</div>`:''}
+      ${on?`${rows}`:''}
     </div>`;
 }
 // Which session pays for a century on a day that has BOTH a lunch and an evening.
@@ -9677,7 +9674,6 @@ function renderPlan(){
     <div class='hdg'>Plan This Week</div>
     <div style='font-size:13px;color:var(--mut);margin-bottom:20px'>Schedule applies from <strong style='color:var(--txt)'>${todayDate}</strong> forward. Changes take effect when you tap Save.</div>
 
-    ${capacityWarnHTML}
     ${renderAvailGrid(av,false)}
 
     ${blockPlanHTML()}
