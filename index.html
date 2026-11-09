@@ -746,7 +746,6 @@ const EX = [
   {id:'bottom_half_atg',name:'Bottom-Half ATG Squat',muscle:'legs',type:'compound',eq:['bodyweight','dumbbells','barbell'],rMin:8,rMax:12,rest:150,cue:'Squat all the way down — hamstrings to calves — then rise only to about half height and sink back to the bottom. Never locking out keeps constant tension on the quads and knee tendons in their deepest, weakest range. Heels down, torso as upright as you can. Bodyweight first; hold a light DB goblet-style to load.',tags:['quad','squat','tendon']},
   {id:'atg_squat_thrust',name:'ATG Squat + Hip Thrust Finish',muscle:'legs',type:'compound',eq:['bodyweight','dumbbells'],rMin:8,rMax:12,rest:150,cue:'Full-depth squat — hamstrings to calves at the bottom — then stand and finish by driving the hips through, squeezing the glutes hard into a standing hip-thrust lockout with a posterior pelvic tilt. Full knee range on the way down, full hip extension at the top: the whole leg trains in one rep. Slow descent, snap the hips at the finish.',tags:['quad','squat','glute','tendon']},
   {id:'split_squat_pulses',name:'Single-Leg Split Squat Pulses',muscle:'legs',type:'isolation',eq:['bodyweight','dumbbells'],rMin:10,rMax:15,rest:120,cue:'Drop into the bottom of a split squat (rear knee an inch off the floor) and pulse up and down through only the bottom few inches — never standing up between reps. Constant deep-range tension on the front leg\'s quad and tendons. Front heel stays planted. Count pulses per leg; add DBs when bodyweight is easy.',tags:['quad','unilateral','tendon']},
-  {id:'bstance_hip_thrust',name:'B-Stance Hip Thrust',muscle:'legs',type:'compound',eq:['dumbbells','bodyweight'],rMin:8,rMax:12,rest:150,cue:'Shoulders on a bench, a dumbbell across the hips if loading. Plant one foot flat and slide the other foot forward, resting lightly on the toe for balance — most of the load stays on the planted "working" leg without going fully single-leg. Drive through the planted heel to full hip extension, squeeze the glute at the top, lower under control. Nearly all the unilateral benefit of a single-leg hip thrust with much better stability. Count per side.',tags:['hinge','glute','unilateral']},
   {id:'rdl',name:'Romanian Deadlift',muscle:'legs',type:'compound',eq:['barbell','dumbbells'],rMin:6,rMax:10,rest:180,cue:'Push hips BACK, feel hamstring stretch. Bar close to legs. Drive hips forward at top. Not a squat.',tags:['hinge','hamstring']},
   {id:'db_rdl',name:'Dumbbell RDL',muscle:'legs',type:'compound',eq:['dumbbells'],rMin:8,rMax:12,rest:150,cue:'Hold a dumbbell in each hand. Push hips BACK — feel the hamstring stretch — keeping the DBs close to your legs. Drive hips forward to stand, squeeze glutes at top. Slow, controlled descent every rep.',tags:['hinge','hamstring']},
   {id:'trap_bar_dl',name:'Trap Bar Deadlift (Restricted Depth)',muscle:'legs',type:'compound',eq:['barbell'],rMin:4,rMax:8,rest:180,cue:'Stand inside the hex bar, neutral spine, chest up. Pull the slack out of the bar, then drive through the floor — hips and shoulders rise together. Set up on a small block/mats if needed so the bar starts a few inches higher, keeping hip flexion shallower than a deep squat. A hip-friendly substitute for deep bilateral squats.',tags:['hinge','quad']},
@@ -1134,7 +1133,6 @@ const FEELS={
   trap_bar_dl:'The whole posterior chain plus quads driving the floor apart as one piece.',
   hip_thrust:'Glutes squeezing to full lockout at the top — the lower back stays quiet.',
   single_leg_hip_thrust:'One glute doing the entire lift — a near-cramp squeeze at the top.',
-  bstance_hip_thrust:'The front-leg glute doing ~80% — one cheek fires far harder than the other.',
   single_rdl:'The standing-leg hamstring stretching deep while the glute steers the balance.',
   back_ext:'Hamstrings and glutes hinging you up — glutes squeeze at the top, spine neutral.',
   seated_leg_curl:'Hamstrings curling hard from a full stretch — deepest tension at end range.',
@@ -2160,7 +2158,7 @@ const legAutoOK=(e)=>e.muscle!=='legs'||LEG_EMPHASIS_TAGS.some(t=>(e.tags||[]).i
 // restricted to this small dumbbell-only, knee-friendly whitelist — an
 // absolute allowlist rather than a tag filter, since it's meant to override
 // the explosive/tendon emphasis gate entirely, not layer on top of it.
-const KNEE_SAFE_IDS=new Set(['goblet','rdl','db_rdl','reverse_lunge','sumo_squat','bstance_hip_thrust','tib_raise']);
+const KNEE_SAFE_IDS=new Set(['goblet','rdl','db_rdl','reverse_lunge','sumo_squat','tib_raise']);
 // Manual swap/suggestion lists don't have a slot.tag to reason about (unlike
 // pickEx's per-slot gate above) — Knee-Caution there is a flat allow-list
 // check: exclude any leg exercise outside the knee-safe set.
@@ -9810,7 +9808,7 @@ function renderSetup(){
        <div class='plan-chk-box'>${cfg.kneeCaution?'✓':''}</div>
        <div>
          <div style='font-size:13px;font-weight:700'>Knee-friendly leg work only</div>
-         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Restricts all leg training to a dumbbell-only, knee-safe set: Goblet Squat, RDL, Reverse Lunge, Sumo Squat, B-Stance Hip Thrust.</div>
+         <div style='font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4'>Restricts all leg training to a dumbbell-only, knee-safe set: Goblet Squat, RDL, Reverse Lunge, Sumo Squat.</div>
        </div>
      </div>
      <div class='sec-lbl' style='margin-top:16px'>Shoulder Discomfort</div>
