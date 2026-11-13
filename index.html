@@ -850,8 +850,7 @@ const EX = [
   {id:'sl_kneel_rot_slam',name:'Single-Leg Kneeling Med Ball Rotational Slam',muscle:'core',type:'rotational',eq:['medball'],rMin:6,rMax:10,rest:90,startW:8,highSweat:true,tags:['power','asymmetrical','unilateral'],cue:'Half-kneeling on a pad, one knee down, other foot forward. Ball at the shoulder on the DOWN-KNEE side. Rotate through the ribs, not the lower back: hips stay square and the glute of the down leg stays squeezed. Slam the ball hard outside the front foot, folding across the body. Pick it up, reset tall, repeat with full intent. Count per side, then switch knees and do the same reps on the other leg. Log the weight of the ball.'},
   {id:'kneel_slam_rot_throw',name:'Kneeling Med Ball Slam + Rotational Wall Throw',muscle:'core',type:'rotational',eq:['medball_wall'],rMin:5,rMax:8,rest:90,startW:6,highSweat:true,tags:['power','rotation','anti-extension'],cue:'ONE REP = A SLAM PLUS A THROW. Tall-kneeling on a pad, BOTH knees down, side-on to a solid wall, glutes squeezed so the hips stay locked. Ball overhead, ribs down, slam it into the floor in front of the knees, folding hard through the abs. Pick it up to the back hip, rotate the ribs away, then whip them through and fire the ball into the wall. Catch or collect, reset tall. With the legs out of it, all the power comes from the trunk. Count per side, then turn around for the same reps facing the other way. Log the weight of the ball.'},
   {id:'med_ball_rot_throw',name:'Med Ball Rotational Throw',muscle:'core',type:'rotational',eq:['medball_wall'],rMin:5,rMax:8,rest:90,startW:10,highSweat:true,tags:['power','rotation'],cue:'Stand side-on to a solid wall, ball at the back hip. Log the ball\'s weight so moving up in balls is tracked. Load into the rear hip, then snap the hips through and fire the ball into the wall — the power comes from the ground up through the hips; the arms just deliver it. Catch or collect, reset, repeat. Count per side. Power work: rotational throws reward speed over load — stay with a ball you can throw violently. The purest expression of rotational athletic power.'},
-  {id:'suitcase_carry',name:'Suitcase Carry',muscle:'core',type:'rotational',eq:['dumbbells'],rMin:30,rMax:45,rest:90,isTimed:true,tags:['carry','anti-rotation','lateral','unilateral'],cue:'One heavy dumbbell at your side like a suitcase. Walk tall — shoulders and hips level, ribs stacked, zero lean toward or away from the load. The offset weight forces the lateral core and grip to fight the whole time. Count seconds per side. The most athletic "abs" exercise there is.'},
-  {id:'sandbag_carry',name:'Sandbag Carry',muscle:'core',type:'rotational',eq:['other'],rMin:30,rMax:60,rest:90,isTimed:true,tags:['carry'],cue:'Sandbag hugged to the chest or across the shoulders, load centered rather than offset like the DB suitcase carry. Brace hard, walk tall, don\'t let the bag pull you into a lean. Count seconds — if the workout prescribes a distance instead (e.g. "100m"), just log how long that distance actually took you.'},
+  {id:'sandbag_carry',name:'Sandbag Carry',muscle:'core',type:'rotational',eq:['other'],rMin:30,rMax:60,rest:90,isTimed:true,tags:['carry'],cue:'Sandbag hugged to the chest or across the shoulders, load centered. Brace hard, walk tall, don\'t let the bag pull you into a lean. Count seconds — if the workout prescribes a distance instead (e.g. "100m"), just log how long that distance actually took you.'},
   {id:'woodchop',name:'Cable Woodchop',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Rotate from thoracic spine, diagonal plane. Arms stay relatively straight. Count per side.',tags:['rotation']},
   {id:'half_kneel_press',name:'Half-kneeling Press',muscle:'core',type:'rotational',eq:['dumbbells','cables'],rMin:10,rMax:15,rest:90,cue:'Down knee is the loaded side. Tall posture. Press without leaning — core fights lateral forces. Per side.',tags:['asymmetrical']},
   {id:'sa_cable_row',name:'Single-arm Cable Row',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:12,rest:90,cue:'Core resists rotation as you row. Back AND anti-rotation in one. Count per side.',tags:['unilateral']},
@@ -1194,7 +1193,6 @@ const FEELS={
   kneel_slam_rot_throw:'The abs folding through the slam, then the obliques snapping the ribs through the throw, with the legs taken out of both.',
   med_ball_mountain_climbers:'The shoulders and abs fighting to keep the ball still while the legs drive.',
   med_ball_rot_throw:'Power spiraling from the back hip up through the obliques and into the throw.',
-  suitcase_carry:'The side OPPOSITE the weight burning to keep you level.',
   woodchop:'Obliques rotating the torso as one piece — the arms stay long and lazy.',
   half_kneel_press:'The core bracing hard against tipping sideways — the press is the easy part.',
   sa_cable_row:'The core locking the torso against rotation while one lat rows.',
@@ -1781,8 +1779,8 @@ const CONDITIONING_FINISHERS=[
   // and skill-based rather than staring at a console. needsEquip keeps them
   // from being prescribed where the gear isn't.
   {name:'Med Ball Complex',needsEquip:'medball',desc:'4 rounds, 60s rest: Slams × 8 · Rotational Throws × 6/side · Overhead-to-floor Slam × 6. Every rep maximal intent — this is power work that happens to spike the heart rate, not a metcon. Put the ball down between rounds.',icon:'\ud83c\udfaf',mins:12},
-  {name:'Carry & Crawl Medley',desc:'3 rounds, walk 60s between: Farmer Carry 40 m heavy · Suitcase Carry 20 m/side · Bear Crawl 15 m forward + 15 m backward. Grip, trunk and shoulders under continuous load — athletic conditioning with zero machine time.',icon:'\ud83e\uddf3',mins:12},
-  {name:'Brace Circuit',desc:'2 quiet rounds: Suitcase Carry 40s/side · Pallof Press Hold 30s/side · Ab Rollout × 8 · Copenhagen Plank 25s/side. Resist rotation, extension, and lateral flexion — no sweat required.',icon:'🛡️',mins:8,lunchOK:true},
+  {name:'Carry & Crawl Medley',desc:'3 rounds, walk 60s between: Farmer Carry 40 m heavy · Bear Crawl 15 m forward + 15 m backward. Grip, trunk and shoulders under continuous load — athletic conditioning with zero machine time.',icon:'\ud83e\uddf3',mins:12},
+  {name:'Brace Circuit',desc:'2 quiet rounds: Pallof Press Hold 30s/side · Ab Rollout × 8 · Copenhagen Plank 25s/side. Resist rotation, extension, and lateral flexion — no sweat required.',icon:'🛡️',mins:8,lunchOK:true},
   // Bounce work in two tiers: the iso foundation is impact-free (always in
   // rotation); the reactive jump protocol carries plyo:true so getFinisher
   // drops it while hip caution is on.
@@ -7234,8 +7232,8 @@ function experienceLevel(){
   return n>=6?'intermediate':'beginner';
 }
 
-// Timed movements that still REQUIRE an external load (e.g. Suitcase Carry's
-// dumbbell) get a weight input alongside the seconds field; bodyweight holds
+// Timed movements that still REQUIRE an external load (e.g. a sandbag
+// carry's load) get a weight input alongside the seconds field; bodyweight holds
 // (wall sits, planks, L-sits, holds where load is optional) don't.
 function timedLoaded(ex){return !!ex&&ex.isTimed===true&&!ex.noWeight&&(ex.eq||[]).length>0&&!ex.eq.includes('bodyweight');}
 
@@ -7446,7 +7444,7 @@ function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMa
 
   // Bodyweight / timed movements carry no external load — the "starting weight"
   // is bodyweight itself (the UI still renders reps/seconds, not a weight box).
-  // Exception: loaded timed movements (Suitcase Carry) go through the engine.
+  // Exception: loaded timed movements (e.g. Sandbag Carry) go through the engine.
   if(def.noWeight||(def.isTimed&&!timedLoaded(def)))return{weight:bodyLbs,source:'bodyweight',confidence:'high'};
 
   // Step 1 — logged history for THIS exact exercise → most recent working weight.
@@ -10571,7 +10569,7 @@ function renderWorkout(){
 
   const isNoWeight=ex.noWeight===true;
   const isTimed=ex.isTimed===true;
-  // Loaded timed movements (Suitcase Carry) show BOTH a weight box and seconds.
+  // Loaded timed movements (e.g. Sandbag Carry) show BOTH a weight box and seconds.
   const isLoadedTimed=timedLoaded(ex);
   const hideWeight=(isNoWeight&&!scaleDef)||(isTimed&&!isLoadedTimed);
   // Power/ballistic/plyometric work is trained by SPEED, not proximity to
