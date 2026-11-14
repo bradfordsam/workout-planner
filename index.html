@@ -811,7 +811,7 @@ const EX = [
   {id:'kb_snatch',name:'KB Snatch',muscle:'shoulders',type:'compound',eq:['kettlebell'],rMin:5,rMax:8,rest:150,highSweat:true,shoulderRisk:true,tags:['power','ballistic','unilateral'],cue:'BALLISTIC OVERHEAD, so it stays hidden while Shoulder Caution is on. Swing the bell between the legs, snap the hips, and let it float up close to the body. Punch the hand through at the top so the bell rolls softly onto the forearm instead of banging, then lock out overhead with the bicep by the ear. Drop it back into the hike. Count per side.'},
   {id:'kb_press',name:'KB Shoulder Press',muscle:'shoulders',type:'compound',eq:['kettlebell'],rMin:6,rMax:10,rest:150,standingPressRisk:true,tags:['unilateral'],cue:'STANDING OVERHEAD PRESS, flagged for the lower back the same as Push Press. Rack one kettlebell at the shoulder, bell resting on the forearm, wrist straight. Squeeze glutes and abs hard, ribs down, and press straight up to lockout with the bicep by the ear. Lower under control back to the rack. No leaning back. Count per side.'},
   {id:'kb_curl_ext',name:'KB Curl into Extension',muscle:'biceps',type:'isolation',eq:['kettlebell'],rMin:8,rMax:12,rest:90,cue:'Hold one kettlebell by the horns, bottom down. Curl it to the chest, then press it overhead and lower it behind the head into a tricep extension, elbows pointed up. Extend back up, bring it over the head to the chest, and lower out of the curl. One curl plus one extension is a rep. Ribs down; SHOULDER STOP: lower behind the head only as far as the front of the shoulder stays quiet.'},
-  {id:'spanish_squat',name:'Spanish Squat (Isometric)',muscle:'legs',type:'isolation',eq:['cables','bodyweight'],rMin:20,rMax:45,rest:120,isTimed:true,cue:'Loop a band behind your knees anchored to a rig (or brace against a fixed post). Sit straight DOWN with vertical shins to about 90°, weight through mid-foot, and HOLD. Builds patellar-tendon stiffness and knee resilience with zero impact — one of the best-evidenced tendon-loading drills for jumpers. Count seconds.',tags:['quad','isometric','tendon']},
+  {id:'spanish_squat',name:'Spanish Squat (Isometric)',muscle:'legs',type:'isolation',eq:['cables','bodyweight'],rMin:20,rMax:45,rest:120,isTimed:true,cue:'Loop the cable strap behind your knees at a low anchor (or brace against a fixed post). Sit straight DOWN with vertical shins to about 90°, weight through mid-foot, and HOLD. Builds patellar-tendon stiffness and knee resilience with zero impact — one of the best-evidenced tendon-loading drills for jumpers. Count seconds.',tags:['quad','isometric','tendon']},
   {id:'iso_split_squat',name:'Isometric Split Squat Hold',muscle:'legs',type:'isolation',eq:['bodyweight','dumbbells'],rMin:20,rMax:45,rest:120,isTimed:true,cue:'Split stance, drop to a 90/90 bottom position (front shin vertical, rear knee under hip), brace, and hold dead still. Add DBs to load it. Builds single-leg tendon stiffness and the positional strength that feeds acceleration. Work toward 3×45s per leg. Count seconds per leg.',tags:['quad','isometric','tendon','unilateral']},
   {id:'wall_sit',name:'Wall Sit (Isometric Quad)',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:30,rMax:60,rest:90,isTimed:true,cue:'Back flat on the wall, thighs parallel to the floor, knees over ankles. Brace and hold — no sliding up. Progress to a single-leg hold once 60s is easy. Low-impact quad-tendon stiffness and isometric strength. Count seconds.',tags:['quad','isometric','tendon']},
   {id:'sl_wall_sit',name:'Single-Leg Wall Sit',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:20,rMax:45,rest:120,isTimed:true,noWeight:true,cue:'Set up a normal wall sit — back flat, thighs parallel — then extend one leg straight out so the planted leg holds everything. Hips stay level, no sliding down. Twice the tendon stimulus of the two-leg version and closer to the single-leg demands of jumping. Work toward 3×45s per leg. Count seconds per side.',tags:['quad','isometric','tendon','unilateral']},
@@ -844,13 +844,12 @@ const EX = [
   {id:'single_leg_calf_raise',name:'Single-Leg Calf Raise',muscle:'legs',type:'isolation',eq:['bodyweight','machine'],rMin:10,rMax:15,rest:90,cue:'Balance on one foot (hold something for stability). Full stretch at bottom (off step edge). Full contraction at top. Slow tempo. Count per side.',tags:['calf','unilateral']},
   {id:'hip_abduct',name:'Hip Abduction',muscle:'legs',type:'isolation',eq:['machine'],rMin:15,rMax:20,rest:90,cue:'Slow and controlled. Feel glute med. No momentum or pelvic tilt.',tags:['glute']},
   {id:'glute_bridge_2leg',name:'Glute Bridges',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'To load it, rest a DB or plate across the hip crease (pad it) and log that as the weight; 0 = bodyweight. Lie on back, knees bent, feet flat on the floor. Drive through both heels to full hip extension — squeeze glutes hard at the top, avoid arching through the lower back. Slow controlled descent.\n\nProgression: once 20 reps feel easy, move to the Single-leg Glute Bridge below for added difficulty.',tags:['glute']},
-  {id:'glute_bridge',name:'Single-leg Glute Bridge',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'Single leg raises difficulty. Drive through heel. Full hip extension. Squeeze hard at top.\n\nProgression without bands: (1) Build reps → (2) Add 2s hold at top each rep → (3) Elevate your foot on a bench (increases ROM and difficulty) → (4) Add a backpack or a heavy book on your hip for resistance → (5) Barbell hip thrust when you reach a gym.',tags:['glute']},
+  {id:'glute_bridge',name:'Single-leg Glute Bridge',muscle:'legs',type:'isolation',eq:['bodyweight'],rMin:12,rMax:20,rest:90,cue:'Single leg raises difficulty. Drive through heel. Full hip extension. Squeeze hard at top.\n\nProgression: (1) Build reps → (2) Add 2s hold at top each rep → (3) Elevate your foot on a bench (increases ROM and difficulty) → (4) Add a backpack or a heavy book on your hip for resistance → (5) Barbell hip thrust when you reach a gym.',tags:['glute']},
   {id:'pallof',name:'Pallof Press',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Press out fully, hold 2s, return. Resist rotation — your core fights the cable the whole time. Count per side.',tags:['anti-rotation']},
   {id:'med_ball_slam',name:'Med Ball Slam',muscle:'core',type:'rotational',eq:['medball'],rMin:6,rMax:10,rest:90,startW:15,highSweat:true,tags:['power','anti-extension','conditioning'],cue:'Ball overhead at full stretch, up on the toes — then slam it into the floor as violently as you can, folding through the core (not just the arms). Log the ball\'s weight so moving up in balls is tracked. Catch the rebound or pick it up, reset tall, repeat with full intent. Power work: if a heavier ball visibly slows the slam, drop back down. Total-body power expressed through the trunk.'},
   {id:'sl_kneel_rot_slam',name:'Single-Leg Kneeling Med Ball Rotational Slam',muscle:'core',type:'rotational',eq:['medball'],rMin:6,rMax:10,rest:90,startW:8,highSweat:true,tags:['power','asymmetrical','unilateral'],cue:'Half-kneeling on a pad, one knee down, other foot forward. Ball at the shoulder on the DOWN-KNEE side. Rotate through the ribs, not the lower back: hips stay square and the glute of the down leg stays squeezed. Slam the ball hard outside the front foot, folding across the body. Pick it up, reset tall, repeat with full intent. Count per side, then switch knees and do the same reps on the other leg. Log the weight of the ball.'},
   {id:'kneel_slam_rot_throw',name:'Kneeling Med Ball Slam + Rotational Wall Throw',muscle:'core',type:'rotational',eq:['medball_wall'],rMin:5,rMax:8,rest:90,startW:6,highSweat:true,tags:['power','rotation','anti-extension'],cue:'ONE REP = A SLAM PLUS A THROW. Tall-kneeling on a pad, BOTH knees down, side-on to a solid wall, glutes squeezed so the hips stay locked. Ball overhead, ribs down, slam it into the floor in front of the knees, folding hard through the abs. Pick it up to the back hip, rotate the ribs away, then whip them through and fire the ball into the wall. Catch or collect, reset tall. With the legs out of it, all the power comes from the trunk. Count per side, then turn around for the same reps facing the other way. Log the weight of the ball.'},
   {id:'med_ball_rot_throw',name:'Med Ball Rotational Throw',muscle:'core',type:'rotational',eq:['medball_wall'],rMin:5,rMax:8,rest:90,startW:10,highSweat:true,tags:['power','rotation'],cue:'Stand side-on to a solid wall, ball at the back hip. Log the ball\'s weight so moving up in balls is tracked. Load into the rear hip, then snap the hips through and fire the ball into the wall — the power comes from the ground up through the hips; the arms just deliver it. Catch or collect, reset, repeat. Count per side. Power work: rotational throws reward speed over load — stay with a ball you can throw violently. The purest expression of rotational athletic power.'},
-  {id:'sandbag_carry',name:'Sandbag Carry',muscle:'core',type:'rotational',eq:['other'],rMin:30,rMax:60,rest:90,isTimed:true,tags:['carry'],cue:'Sandbag hugged to the chest or across the shoulders, load centered. Brace hard, walk tall, don\'t let the bag pull you into a lean. Count seconds — if the workout prescribes a distance instead (e.g. "100m"), just log how long that distance actually took you.'},
   {id:'woodchop',name:'Cable Woodchop',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:15,rest:90,cue:'Rotate from thoracic spine, diagonal plane. Arms stay relatively straight. Count per side.',tags:['rotation']},
   {id:'half_kneel_press',name:'Half-kneeling Press',muscle:'core',type:'rotational',eq:['dumbbells','cables'],rMin:10,rMax:15,rest:90,cue:'Down knee is the loaded side. Tall posture. Press without leaning — core fights lateral forces. Per side.',tags:['asymmetrical']},
   {id:'sa_cable_row',name:'Single-arm Cable Row',muscle:'core',type:'rotational',eq:['cables'],rMin:10,rMax:12,rest:90,cue:'Core resists rotation as you row. Back AND anti-rotation in one. Count per side.',tags:['unilateral']},
@@ -938,9 +937,9 @@ const EX = [
   {id:'dragon_flag_bent',name:'Bent-Knee Dragon Flag',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:5,rMax:10,rest:90,noWeight:true,dragonTier:2,cue:'Lie on a bench, gripping it behind your head for anchoring. Keeping only your shoulder blades in contact with the bench, lift your hips and bent legs into a straight line from shoulders to knees — a jackknife with the knees bent. Lower under control, keeping the line rigid, without letting your lower back sag or your hips touch down. Tier 2 of the Dragon Flag progression: log 10 clean reps in a single set to unlock the Full Dragon Flag.',tags:['flexion','anti-extension']},
   {id:'dragon_flag_full',name:'Full Dragon Flag',muscle:'core',type:'isolation',eq:['bodyweight'],rMin:3,rMax:8,rest:120,noWeight:true,dragonTier:3,cue:'Lie on a bench, gripping it behind your head. Keeping the ENTIRE body dead straight from shoulders to pointed toes, lift into a rigid plank floating above the bench, pivoting only at the shoulder blades. Lower as slowly as you can control — the eccentric is the hardest part and the whole point. Elite-level core strength. Bend the knees (regressing toward the Bent-Knee variation) if the straight line breaks.',tags:['flexion','anti-extension']},
   // ─── Hip Health (stability & mobility) ───
-  {id:'clamshell',name:'Clamshell',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,noWeight:true,cue:'Side-lying, knees bent ~45°. Rotate top knee up like a clamshell lid. Keep hips stacked — they WILL want to roll back. Squeeze hard at top, slow negative. This is pure glute med. Count per side.\n\nProgression without bands: (1) Build to 20 strict reps per side → (2) Add a 2s pause at the top of each rep → (3) Slow the negative to 3 counts → (4) Move to straight-leg side-lying abduction (harder leverage) → (5) Ankle weights when available. No band needed to keep progressing for a long time.',tags:['glute_med']},
-  {id:'fire_hydrant',name:'Fire Hydrant',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:12,rMax:15,rest:60,noWeight:true,cue:'Hands and knees (quadruped). Lift one knee out to the side — drive from the hip, not by rotating your torso. Keep hips level and core braced. Slow and controlled. Count per side.\n\nProgression without bands: (1) Build reps → (2) Add a 2s pause at peak → (3) Slow negative to 3 counts → (4) Add small circles at the top → (5) Progress to a higher, fuller ROM → (6) Ankle weights when you have them.',tags:['glute_med']},
-  {id:'side_lying_abduct',name:'Side-lying Hip Abduction',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,noWeight:true,cue:'Straight leg lift to ~45°. Foot slightly flexed, toes angled slightly downward (internal rotation targets glute med better). Slow negative — do not drop. Keep lower back out of it. Count per side.\n\nProgression without bands: (1) Build reps with 2s pause at top → (2) Slow negative to 3 counts → (3) Add small leg circles at peak height → (4) Elevate slightly (lying on bed edge, leg off the side) for more ROM → (5) Ankle weights are the final step.',tags:['glute_med']},
+  {id:'clamshell',name:'Clamshell',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,noWeight:true,cue:'Side-lying, knees bent ~45°. Rotate top knee up like a clamshell lid. Keep hips stacked — they WILL want to roll back. Squeeze hard at top, slow negative. This is pure glute med. Count per side.\n\nProgression: (1) Build to 20 strict reps per side → (2) Add a 2s pause at the top of each rep → (3) Slow the negative to 3 counts → (4) Move to straight-leg side-lying abduction (harder leverage) → (5) Ankle weights when available.',tags:['glute_med']},
+  {id:'fire_hydrant',name:'Fire Hydrant',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:12,rMax:15,rest:60,noWeight:true,cue:'Hands and knees (quadruped). Lift one knee out to the side — drive from the hip, not by rotating your torso. Keep hips level and core braced. Slow and controlled. Count per side.\n\nProgression: (1) Build reps → (2) Add a 2s pause at peak → (3) Slow negative to 3 counts → (4) Add small circles at the top → (5) Progress to a higher, fuller ROM → (6) Ankle weights when you have them.',tags:['glute_med']},
+  {id:'side_lying_abduct',name:'Side-lying Hip Abduction',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:20,rest:60,noWeight:true,cue:'Straight leg lift to ~45°. Foot slightly flexed, toes angled slightly downward (internal rotation targets glute med better). Slow negative — do not drop. Keep lower back out of it. Count per side.\n\nProgression: (1) Build reps with 2s pause at top → (2) Slow negative to 3 counts → (3) Add small leg circles at peak height → (4) Elevate slightly (lying on bed edge, leg off the side) for more ROM → (5) Ankle weights are the final step.',tags:['glute_med']},
   {id:'copenhagen_plank',name:'Copenhagen Plank',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:20,rMax:40,rest:60,noWeight:true,isTimed:true,cue:'Side plank with top foot on a bench, bottom leg hanging. Hold for time — count seconds. Targets adductors and lateral hip, muscles often neglected with impingement.\n\nProgression: (1) Start with knee (not foot) on the bench for an easier version → (2) Foot on bench, bottom leg on floor → (3) Foot on bench, bottom leg raised off floor (hardest bodyweight version) → (4) Add a small hip dip at the bottom of each rep → (5) Elevate the bench higher.',tags:['adductor','lateral']},
   {id:'hip_90_90',name:'90/90 Hip Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Sit with both knees at 90°. Front leg externally rotated, back leg internally rotated. Lean forward over your front shin to the max comfortable stretch (PAILS/RAILS): hold, then gently push the front knee into the floor for 5s (contract the stretched muscle), relax, then use the back leg to pull yourself deeper for 5s (assisted by the antagonist) — repeat 2-3x per side. This targets hip internal rotation, which is often restricted with impingement. Count seconds per side.',tags:['mobility','internal_rotation']},
   {id:'hip_flexor_half_kneel',name:'Half-Kneeling Hip Flexor Stretch',muscle:'hips',type:'mobility',eq:['bodyweight'],rMin:30,rMax:60,rest:30,noWeight:true,isTimed:true,cue:'Down knee on pad, front foot forward. FIRST: posteriorly tilt your pelvis (tuck tailbone). THEN drive hips forward. That pelvic tilt is the key — without it you compress the hip instead of stretching the flexor. Hold, breathe. Count seconds per side.',tags:['mobility','hip_flexor']},
@@ -969,7 +968,7 @@ const EX = [
   // ─── Hip Flexor Rehab (strengthening entry points) ───
   {id:'straight_leg_raise',name:'Straight Leg Raise',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:8,rMax:15,rest:60,noWeight:true,cue:'Lie on your back, one knee bent (foot flat), the other leg straight. Tighten the quad to lock the knee, then lift the straight leg to the height of the bent knee. Slow, controlled — no jerking. Lower under control without touching down between reps. A safe low-level entry point for hip-flexor and quad strength. Count per side.\n\nProgression: (1) build strict reps → (2) add a 2s hold at the top → (3) slow the lower to 3 counts → (4) add an ankle weight.',tags:['rehab','hip_flexor']},
   {id:'hip_flexor_rock_back',name:'Eccentric Hip Flexor Rock Back',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:6,rMax:10,rest:60,noWeight:true,cue:'Half-kneeling (down knee on a pad), front foot planted. Keeping a tall torso and a posterior pelvic tilt (tuck the tailbone), slowly rock your hips BACK over the down leg — loading the hip flexor as it lengthens — then return. The control on the way back is the point: a slow eccentric is what builds tolerance in an irritated hip flexor. Stop short of any pinch. Count per side.',tags:['rehab','hip_flexor','eccentric']},
-  {id:'hip_flexor_90_90',name:'90/90 Knee Extension Hold',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:40,rest:45,noWeight:true,isTimed:true,cue:'Sit tall on the floor or a low box, hips and knees at 90°. Brace your core, then actively lift one foot to straighten the knee toward extension and HOLD — the hip flexor and quad fire isometrically to keep the thigh up. Keep the spine tall, don\'t lean back. A band over the shin or light ankle weight adds load. Count seconds per side.',tags:['rehab','hip_flexor','isometric']},
+  {id:'hip_flexor_90_90',name:'90/90 Knee Extension Hold',muscle:'hips',type:'stability',eq:['bodyweight'],rMin:15,rMax:40,rest:45,noWeight:true,isTimed:true,cue:'Sit tall on the floor or a low box, hips and knees at 90°. Brace your core, then actively lift one foot to straighten the knee toward extension and HOLD — the hip flexor and quad fire isometrically to keep the thigh up. Keep the spine tall, don\'t lean back. A light ankle weight adds load. Count seconds per side.',tags:['rehab','hip_flexor','isometric']},
 
   // Athletic/Performance focused exercises
   {id:'burpees',name:'Burpees',muscle:'core',type:'compound',eq:['bodyweight'],noWeight:true,rMin:8,rMax:15,rest:120,cue:'Drop to push-up, jump feet back in, explosive jump up with hands overhead. Full-body power endurance. Focus on smooth transitions and explosive jump.',tags:['plyometric','conditioning'],highSweat:true},
@@ -1090,7 +1089,6 @@ const FEELS={
   medball_situp_over_box:'The curl finishes exactly as the ball leaves your hands — a clean sit-up with a throw stapled to the top, not a throw that happens to follow a sit-up.',
   box_jump_over:'All the effort is in the jump itself — the landing on the far side should feel like it happens to you, not something you\'re still working for.',
   burpee_pullup:'The burpee is just transport to the bar — the only rep that counts is the pull, chin clearing clean every time.',
-  sandbag_carry:'A dead, shifting weight trying to peel you forward — the brace is constant, not just at the pickup.',
   cal_row:'Legs first, then hips, then arms — reverse it on the recovery. The number climbing is the only feedback that matters.',
   cal_bike:'Both the arms and the legs paying for every calorie — the moment either one coasts, the number stalls.',
   arnold_press:'Delts loaded through the rotation — front delts at the start, side delts as the arms open.',
@@ -1469,7 +1467,7 @@ const HANDLES={
   bayesian_curl:'Single D-handle · lowest pulley — stand a step or two in FRONT of the stack so the arm hangs behind you',
   pushdown:'Rope (preferred — lets you split at the bottom) or straight bar · high pulley',
   overhead_ext:'Rope · low pulley, facing away from the stack',
-  spanish_squat:'No handle — loop the strap (or a heavy band) behind BOTH knees · low anchor',
+  spanish_squat:'No handle — loop the strap behind BOTH knees · low anchor',
   pallof:'Single D-handle · pulley at chest height',
   pallof_hold:'Single D-handle · pulley at chest height',
   sl_hip_flexor_pallof:'Single D-handle · pulley at chest height',
@@ -1540,7 +1538,7 @@ const EQUIPMENT_PRESETS = {
   },
   westminster_gym: {
     name: '🏟️ Westminster Gym',
-    desc: 'Squat racks, GHD, plyo boxes, kettlebells & unlimited dumbbells, assault bikes, resistance bands, pull-up bar, medicine balls',
+    desc: 'Squat racks, GHD, plyo boxes, kettlebells & unlimited dumbbells, assault bikes, pull-up bar, medicine balls',
     // No cable stack and no selectorized machines here (no leg press, pec
     // deck, lat pulldown, etc.) — squat racks cover barbell work, kettlebells
     // are trained the same as dumbbells (existing KB/DB swing movements
@@ -1793,7 +1791,7 @@ const CONDITIONING_FINISHERS=[
   // carving it a leg slot: loaded carries and odd-object work are
   // finisher-shaped, and legs only get ~2 slots a week with both mandated.
   //
-  // THE SANDBAG STOPS AT THE SHOULDER HERE, and that is the one deliberate
+  // THE CLEAN STOPS AT THE SHOULDER HERE, and that is the one deliberate
   // difference from the test itself. getFinisher AUTO-PRESCRIBES from this pool
   // — Sam never opts in — so the overhead finish that the test card flags and
   // lets him decide about must not appear in something the app chooses on his
@@ -1803,7 +1801,7 @@ const CONDITIONING_FINISHERS=[
   // Ungated on purpose. The 40 m carry matches Carry & Crawl Medley, which has
   // no needsRunway either, and the shuttle needs about 10 m — far less than the
   // measured lane the sprint entries require.
-  {name:'Combat Events Medley',desc:'3 rounds, 90s between: Sandbag Clean to SHOULDER × 8 (40 lb — shoulder height, never overhead) · Farmer Carry 40 m with two 40 lb cans/KBs · Dead-Stop Push-ups × 10 (hands on low blocks if the left shoulder is talking) · 5-10-5 shuttle × 2. The Combat Fitness Test\'s events minus the miles — rehearse the kit and the transitions so test day is only about the clock.',icon:'\ud83c\udf96\ufe0f',mins:14},
+  {name:'Combat Events Medley',desc:'3 rounds, 90s between: DB Hang Clean to SHOULDER × 8 (40 lb DB or KB — shoulder height, never overhead) · Farmer Carry 40 m with two 40 lb cans/KBs · Dead-Stop Push-ups × 10 (hands on low blocks if the left shoulder is talking) · 5-10-5 shuttle × 2. The Combat Fitness Test\'s events minus the miles — rehearse the kit and the transitions so test day is only about the clock.',icon:'\ud83c\udf96\ufe0f',mins:14},
 ];
 // ─── AEROBIC ENGINE PROTOCOLS (non-lunch sessions) ───
 // Progressive conditioning overload, fully isolated from lifting: these logs
@@ -3100,7 +3098,7 @@ const PYRAMID_PEAK_HEADROOM=2;
 const PYRAMID_LADDER=[
   {mult:1,pattern:'pull',options:[
     {id:'pullups',name:'Pull-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:8,secsPerRep:3,
-     cue:'Dead hang, drive the elbows to the hips, chin clears the bar. Switch grips freely as the rungs climb — overhand, neutral and chin-ups all count. Bands or feet on a box are legitimate regressions on the top rungs; a broken set of the right number beats a missed rung.'},
+     cue:'Dead hang, drive the elbows to the hips, chin clears the bar. Switch grips freely as the rungs climb — overhand, neutral and chin-ups all count. Feet on a box or slow negatives are legitimate regressions on the top rungs; a broken set of the right number beats a missed rung.'},
     {id:'chinups',name:'Chin-ups',muscle:'back',type:'compound',eq:['pullup_bar'],rMin:4,rMax:10,secsPerRep:3,
      cue:'Supinated grip, full dead hang, elbows down and back.'},
   ]},
@@ -3540,7 +3538,7 @@ function cindyPrescription(){
 // knows nothing about it, same rule as the other three.
 //
 // SELF-SCALING in the Century's sense, which is what makes it worth having:
-// the standard NEVER moves — 30 push-ups, 16 sandbag lifts, 40 lb cans, two
+// the standard NEVER moves — 30 push-ups, 16 platform lifts, 40 lb cans, two
 // miles — and the TIME is the score. So it never needs rewriting as he gets
 // fitter, exactly like the Century's fixed hundred.
 //
@@ -3558,7 +3556,7 @@ function cindyPrescription(){
 //     the hand-release is the whole point of the event and a higher deck is the
 //     only way to keep the release while raising the bottom position — the same
 //     mechanical-stop logic that makes floor_press lead the chest block.
-//   - A 40 lb sandbag onto a 65" platform finishes ABOVE SHOULDER HEIGHT, i.e.
+//   - A 40 lb DB/KB onto a 65" platform finishes ABOVE SHOULDER HEIGHT, i.e.
 //     the standing-overhead position his lower back has a stated history with
 //     (`ohp`/`push_press`/`db_push_press`/`thrusters` are all on avoidExercises
 //     for exactly this, and db_hang_clean_jerk carries standingPressRisk). The
@@ -3596,11 +3594,11 @@ const COMBAT_TEST_EVENTS=[
   {key:'sprint',n:'100 m Sprint',
    d:'One maximal 100 m. Tall, relaxed, full turnover — you are already warm from the mile, so there is no build-up here.',
    kit:'100 m of runway.'},
-  {key:'sandbag',n:'16 Sandbag Lifts',
-   d:'40 lb sandbag, 16 lifts onto a 65" platform. Hips drive it; the arms only guide. Reset the bag square each rep rather than wrestling it back.',
-   kit:'40 lb sandbag (any 40 lb odd object) + a 65" platform.',
-   flag:'STANDARD finishes the bag at 65", which is above shoulder height — the standing-overhead position your lower back has a stated history with, and the reason four press variants are on your avoid list. The bag is light; the finish is the problem. YOUR VERSION: a 45–48" platform, so the lift finishes at chest height and the back never has to stabilise a load overhead. Same 16 reps, same bag.',
-   log:{id:'ct_sandbag_lift',name:'Sandbag Lift to Platform',muscle:'shoulders',type:'compound',rMin:8,rMax:15,reps:16}},
+  {key:'sandbag',n:'16 Platform Lifts (40 lb DB/KB)',
+   d:'40 lb dumbbell or kettlebell held at the chest with both hands, 16 lifts onto a 65" platform. Hips drive it; the arms only guide. Set it down square each rep and pick it straight back up.',
+   kit:'40 lb DB or KB (stand-in for the test sandbag) + a 65" platform.',
+   flag:'STANDARD finishes the bag at 65", which is above shoulder height — the standing-overhead position your lower back has a stated history with, and the reason four press variants are on your avoid list. The weight is light; the finish is the problem. YOUR VERSION: a 45–48" platform, so the lift finishes at chest height and the back never has to stabilise a load overhead. Same 16 reps, same weight.',
+   log:{id:'ct_sandbag_lift',name:'40 lb Lift to Platform',muscle:'shoulders',type:'compound',rMin:8,rMax:15,reps:16}},
   {key:'cans',n:'50 m Water Can Carry',
    d:'Two 40 lb water cans, 50 m unbroken if you can. Ribs down, shoulders packed, quick feet — this is a brace under load, not a stroll.',
    kit:'Two 40 lb cans, or a 40 lb KB/DB per hand.',
@@ -7232,7 +7230,7 @@ function experienceLevel(){
   return n>=6?'intermediate':'beginner';
 }
 
-// Timed movements that still REQUIRE an external load (e.g. a sandbag
+// Timed movements that still REQUIRE an external load (e.g. a loaded
 // carry's load) get a weight input alongside the seconds field; bodyweight holds
 // (wall sits, planks, L-sits, holds where load is optional) don't.
 function timedLoaded(ex){return !!ex&&ex.isTimed===true&&!ex.noWeight&&(ex.eq||[]).length>0&&!ex.eq.includes('bodyweight');}
@@ -7444,7 +7442,7 @@ function estimateStartingWeight(exId, historicalPerformanceLogs, movementClassMa
 
   // Bodyweight / timed movements carry no external load — the "starting weight"
   // is bodyweight itself (the UI still renders reps/seconds, not a weight box).
-  // Exception: loaded timed movements (e.g. Sandbag Carry) go through the engine.
+  // Exception: loaded timed movements (e.g. a loaded carry) go through the engine.
   if(def.noWeight||(def.isTimed&&!timedLoaded(def)))return{weight:bodyLbs,source:'bodyweight',confidence:'high'};
 
   // Step 1 — logged history for THIS exact exercise → most recent working weight.
@@ -8280,7 +8278,7 @@ const prepIsDesk=(it)=>prepFocus(it).some(t=>PREP_DESK_TISSUES.includes(t));
 // actually delivers hip work. A fixed per-session dose is also a stronger
 // guarantee than a slot that competes on merit.
 //
-// HIP-CAUTION REVIEW: all fifteen are bodyweight or light band, and every
+// HIP-CAUTION REVIEW: all of these are bodyweight, and every
 // range is SELF-SELECTED — the same reasoning that lets hip_airplane and
 // hip_cars run under hipCaution. The FAI constraint is no LOADED end-range
 // rotation and no hard-landing impact; none of these are either. The four that
@@ -8288,13 +8286,11 @@ const prepIsDesk=(it)=>prepFocus(it).some(t=>PREP_DESK_TISSUES.includes(t));
 // quadruped work, side plank with clam) carry an explicit stop-at-the-pinch
 // cue, which is the same safety mechanism tricep_dips' depth cap relies on.
 //
-// `band:true` marks the ones that need a mini/loop band. The last recorded
-// state of the kit was "no band" (2026-07-15, which is why band pull-aparts and
-// the banded distraction drills were removed), but a physio prescribing monster
-// walks and defensive slides implies one now — so they are in, labelled, with a
-// bandless fallback wherever the movement survives without it.
+// NO BANDED WORK (2026-11-14, Sam: bands "not readily available"). Seated and
+// Kinky Leg Spreads, Monster Walks and Banded Defensive Slides were removed;
+// don't re-add band or sandbag drills anywhere in the app.
 const PT_HIP_POOL=[
-  {n:'Clamshells',d:'12 reps/side · side-lying, hips stacked and knees bent ~45°, heels together — open the top knee without letting the pelvis roll back. Pause 1s at the top. Band above the knees if you have one',f:['hip','glute'],band:false},
+  {n:'Clamshells',d:'12 reps/side · side-lying, hips stacked and knees bent ~45°, heels together — open the top knee without letting the pelvis roll back. Pause 1s at the top.',f:['hip','glute']},
   // Fire Hydrants, Side Plank with Clam and Single Leg Bridge moved OUT of this
   // casual rotation 2026-09-09, to PT_PRESCRIBED below — the physio's sheet
   // gives each an explicit weekly FREQUENCY (3x/week), and a fixed quota
@@ -8308,15 +8304,11 @@ const PT_HIP_POOL=[
   // work that was, in fact, already performed.
   {n:'Donkey Kickbacks',d:'12 reps/side · quadruped, drive one heel straight back and up with the knee bent 90°, squeezing the glute at the top — ribs down, no lower-back arch. The range comes from the hip, not the spine',f:['glute','hip']},
   {n:'Hip Thrust Kicks',d:'10 reps/side · shoulders on a bench or floor, drive to a full glute bridge and HOLD it there, then extend one knee out straight and back without letting that hip drop. The held bridge is the exercise; the kick is the test',f:['glute','hip']},
-  {n:'Seated Leg Spreads',d:'15 reps · seated tall, knees bent, band above the knees (or press your own hands against the outside of both knees) — spread the knees apart, pause 1s, return slowly. Sit UP; if the front of the left hip pinches, lean the torso back a few degrees',f:['hip','glute'],band:true},
-  {n:'Kinky Leg Spreads',d:'15 reps · the same seated spread with the torso HINGED FORWARD ~45° over the thighs — the forward lean shifts the work from glute med onto the upper glute max fibres. Keep a flat back and stop short of any hip pinch',f:['hip','glute'],band:true},
   {n:'Medicine Ball Rollout (3 directions)',d:'5 reps per direction/side · stand on one leg with the other foot resting on a med ball, hands free. Roll the ball out and back — straight FORWARD, out at 45°, then straight OUT TO THE SIDE — while the stance hip stays level and the stance knee tracks over the toes. The reaching leg is light; the stance hip is doing all the work',f:['hip','glute']},
   {n:'360 Lunges (circle stepping)',d:'1 circle/side · step out into a lunge and return to standing at each hour of a clock face — 12, 1:30, 3, 4:30, 6 — then reverse back around. Every step lands, sinks, and returns under control. This is the multi-directional hip loading in its cheapest form',f:['hip','adductor','glute']},
   {n:'Wall Kicks',d:'12 reps/side · stand facing a wall, hands on it at chest height, weight on one leg. Drive the other knee up to hip height and snap the foot down again, fast but quiet — the stance glute holds the pelvis dead level the whole time',f:['hip','glute']},
   {n:'Balance Lunges',eq:['bosu'],d:'8 reps/side · front foot on a Bosu ball · reverse lunge, then stand back up WITHOUT the back foot touching down — drive through the front heel and pause 1s on one leg at the top before the next rep',f:['hip','glute']},
   {n:'Balance Side Lunges',d:'8 reps/side · step out into a lateral lunge, sit into that hip with the other leg straight, then push back to a one-legged stand without the stepping foot touching down. Hold 1s at the top',f:['hip','adductor','glute']},
-  {n:'Monster Walks',d:'10 steps each way · band above the knees, sink to a quarter-squat and walk forward with wide, deliberate steps pushing the knees OUT against the band — then walk it back. Feet never come closer than shoulder width',f:['glute','hip'],band:true},
-  {n:'Banded Defensive Slides',d:'10 steps each way · band above the knees, athletic stance — chest up, hips back, hands ready — and shuffle sideways without the feet clicking together. Push off the trailing leg, land wide, stay low the whole way',f:['glute','hip','adductor'],band:true},
 ];
 
 // ── PT PRESCRIBED PROGRAM (2026-09-09) ──
@@ -8444,8 +8436,8 @@ function ptMinsToday(){
 // too much UI) from three banded distraction drills to one bandless self-traction
 // rockback. Self-traction pulls down the bone rather than truly laterally, so it
 // clears the rim less completely than a banded lateral distraction did — but it
-// still meaningfully unloads the joint before range work. Restore the banded
-// versions (git history) now that a band is back in the kit, if it helps.
+// still meaningfully unloads the joint before range work. Bands are out of
+// the kit (2026-11-14) — do not restore the banded versions.
 const HIP_DECOMPRESSION=[
   {n:'Hip Flexor Rockback (self-traction)',d:'30–45 sec/side, left first · half-kneeling, both hands wrapped high around the FRONT thigh just under the hip crease. Gently pull the thigh bone down and away from the hip to unload the joint, and — holding that traction — rock the hips back into flexion through the range that normally pinches. No band needed; your hands do the distracting. Ease off the instant you feel the left-hip pinch — that\'s the joint\'s bony limit, not a stretch to push through.',hold:45,f:['hip']},
 ];
@@ -8585,7 +8577,10 @@ const UPPER_MOBILITY_POOL=[
 function stretchRot(pool,n){
   if(!pool||!pool.length)return[];
   const off=Math.floor(Date.now()/864e5)%pool.length;
-  return Array.from({length:Math.min(n,pool.length)},(_,i)=>(off+i)%pool.length).sort((a,b)=>a-b).map(i=>pool[i]);
+  // Picks start AT the offset (no re-sort): the budget trims from the end, so a
+  // sorted wrap always let index 0 win and starved the pool's tail (found
+  // 2026-11-14 when the banded drills left and Balance Lunges never surfaced).
+  return Array.from({length:Math.min(n,pool.length)},(_,i)=>pool[(off+i)%pool.length]);
 }
 
 // How many minutes prep is ALLOWED. Lunch is a hard 40-minute box with a
@@ -8627,7 +8622,7 @@ const ISO_DYNAMIC_POOL=[
 // One hold a session (n:1): the evening budget is already full, so a second pick
 // never landed — and with n:1 every hold is a first pick on its day.
 const BOUNCE_ISO_POOL=[
-  {n:'Tib Raise Hold',d:'45 sec · back against a wall, heels about a foot out. Pull the toes up toward the shins as high as they go and hold them there; only the heels touch. Add a band or a plate on the toes once it\x27s easy',f:['achilles']},
+  {n:'Tib Raise Hold',d:'45 sec · back against a wall, heels about a foot out. Pull the toes up toward the shins as high as they go and hold them there; only the heels touch. Add a plate on the toes once it\x27s easy',f:['achilles']},
   {n:'RFE Split Squat Hold',d:'30 sec/side · rear foot on a bench, drop until the front thigh is just above parallel and stop. Drive the front foot into the floor like you are about to stand up, but don\x27t. Front knee over the toes, torso tall. Add DBs once 30 sec is easy',f:['adductor','hip']},
   {n:'Hamstring Hold',d:'30 sec/side · on your back, one heel on a bench, knee bent ~20°, other leg in the air. Bridge the hips up and dig the heel down and back toward you as hard as you can. Hips stay level; stop if the hamstring cramps',f:['hamstring']},
   {n:'Single-Leg Glute Bridge Hold',d:'45 sec/side · one foot planted, other knee hugged to the chest so the lower back can\x27t arch. Hips up to a straight line and squeeze the glute the whole time. Drive through the heel; pelvis stays square',f:['glute','hamstring']},
@@ -8941,7 +8936,7 @@ function centuryHTML(){
       :`<div style='font-size:13px;font-weight:700'>Sets of ${plan.setSize} · rest ${plan.restSecs}s</div>
       <div style='font-size:11px;color:var(--mut);margin-top:4px;line-height:1.6'>${plan.sets} sets at that size gets you to ${T} in about <strong style='color:var(--txt)'>${plan.mins} min</strong>${st.best?` — sized at half your best set of ${st.best}, so every set starts ~${Math.max(1,st.best-plan.setSize)} reps clear of failure`:''}. Half-max sets don't need long rests; the 2–3 min figure comes from research on sets taken NEAR failure, which this deliberately isn't. If you're resting much past ${plan.restSecs}s, cut the set size rather than the rest — that's what keeps this inside a lunch.</div>`}
     </div>
-    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>${plan.test?'After the opener, end':'End'} every set <strong style='color:var(--txt)'>2+ reps short of failure</strong>, and keep them the SAME SIZE — a set count that falls away as you go means set one was too close to failure. Reps don't creep up within a session; they step up on test day. That's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Bands, feet on a box, or slow negatives all count too.</div>
+    <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>${plan.test?'After the opener, end':'End'} every set <strong style='color:var(--txt)'>2+ reps short of failure</strong>, and keep them the SAME SIZE — a set count that falls away as you go means set one was too close to failure. Reps don't creep up within a session; they step up on test day. That's what lets 100 reps run three times a week for months instead of frying your elbows. Grip fails before the lats do; switch grips freely (overhand, neutral, chin-up) and any of them count. Can't hit the number strict? Feet on a box or slow negatives count too.</div>
     <div style='font-size:11px;color:var(--mut);margin-top:8px;line-height:1.6'>📊 <strong style='color:var(--txt)'>This is booked against your week.</strong> A full century bills ${CENTURY_MRV_SETS} back sets and ${(CENTURY_MRV_SETS*0.5).toFixed(1)} biceps against weekly MRV (a partial bills its share), so the generator plans less rowing and fewer curls on the days around it — you don't have to hold back on purpose.</div>
     ${trend}
   </div>`;
@@ -10483,7 +10478,7 @@ function renderWorkout(){
       ${b.items.map(wuRow).join('')}
       ${b.note?`<div class='wu-note' style='margin-top:2px'>${b.note}</div>`:''}
     </div>`).join('')}
-    <div class='wu-note'>Rotates daily — a different subset each session so prep stays inside its budget; the full pools cycle across the week. Anything marked with a band needs the mini/loop band; skip it if it isn't with you.</div>
+    <div class='wu-note'>Rotates daily — a different subset each session so prep stays inside its budget; the full pools cycle across the week.</div>
   </div>`:'';
 
   // "Machine Mode" prehab: on a heavy, low-rep compound press (chest/shoulders/
@@ -10569,7 +10564,7 @@ function renderWorkout(){
 
   const isNoWeight=ex.noWeight===true;
   const isTimed=ex.isTimed===true;
-  // Loaded timed movements (e.g. Sandbag Carry) show BOTH a weight box and seconds.
+  // Loaded timed movements (e.g. a loaded carry) show BOTH a weight box and seconds.
   const isLoadedTimed=timedLoaded(ex);
   const hideWeight=(isNoWeight&&!scaleDef)||(isTimed&&!isLoadedTimed);
   // Power/ballistic/plyometric work is trained by SPEED, not proximity to
