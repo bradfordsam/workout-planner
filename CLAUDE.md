@@ -2651,3 +2651,18 @@ inside a template literal is invisible to the syntax check.
 - Lunch time-box calibration (2026-07-14, ran ~7 min long): lead lift 3
   working sets, every later exercise 2 sets (enforced at generation AND at
   startWorkout for preserved sessions), warm-up ramp cut to 2 sets at lunch.
+
+- **Barbell Burpee Deadlift (2026-11-16)** — `burpee_deadlift` added as a pool
+  entry (legs, `eq:['barbell']`, `tags:['conditioning']`, `highSweat`, no
+  `noWeight` so bar weight logs). Kept out of leg slots on purpose (no
+  `LEG_EMPHASIS_TAGS` tag, so `legAutoOK` excludes it); it reaches
+  auto-generation as the `Burpee Deadlift EMOM` conditioning finisher
+  (`needsEquip:'barbell'`, not `lunchOK`, no `plyo` since there is no jump,
+  dropped in shin-care week by the `burpee` name match). Cue tells Sam to
+  raise the bar on plates if the left hip pinches, rather than `hipRisk`.
+- **Dumbbell Core Circuit (2026-11-16)** — Sam's 3-round routine: Dumbbell
+  Press-ups, Kick-through Switches, Elevated Plank Hold, Bicycle Crunch, Hollow
+  Hold Pulses (V Sit-ups dropped same day to shorten it). New pool entries `db_press_up`, `kick_through`,
+  `elevated_plank_hold`, `hollow_hold_pulses`, `v_sit_up` (`bicycle_crunch`
+  already existed). Reaches auto-generation as one `lunchOK` finisher
+  (`needsEquip:'dumbbells'`, 12 min) next to Brace Circuit.

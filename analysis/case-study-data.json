@@ -41,21 +41,21 @@
         }
       },
       "totals": {
-        "sessions": 50,
+        "sessions": 30,
         "skipped": 0,
-        "restDays": 20,
-        "relabeled": 0,
+        "restDays": 40,
+        "relabeled": 18,
         "sessPerWeek": [
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
         ]
       },
       "volume": {
@@ -66,18 +66,18 @@
           },
           "weekly": [
             5,
-            3,
-            5,
-            5,
-            3,
-            5,
-            5,
+            2,
+            2,
+            2,
             2,
             5,
-            5
+            2,
+            2,
+            2,
+            2
           ],
           "week0": 5,
-          "mean": 4.2,
+          "mean": 2.3,
           "min": 2,
           "max": 5,
           "inBandPct": 0,
@@ -90,21 +90,21 @@
             "max": 22
           },
           "weekly": [
-            5,
-            5,
-            6,
             3,
-            6,
-            6,
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            6,
-            3
+            0,
+            0,
+            0,
+            0
           ],
-          "week0": 5,
-          "mean": 4.9,
-          "min": 3,
-          "max": 6,
+          "week0": 3,
+          "mean": 0.3,
+          "min": 0,
+          "max": 3,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
@@ -115,179 +115,179 @@
             "max": 20
           },
           "weekly": [
-            6,
-            6,
+            4,
+            12,
+            12,
+            12,
+            0,
+            4,
+            12,
+            12,
+            12,
+            0
+          ],
+          "week0": 4,
+          "mean": 8.4,
+          "min": 0,
+          "max": 12,
+          "inBandPct": 67,
+          "underPct": 33,
+          "overPct": 0
+        },
+        "shoulders": {
+          "band": {
+            "min": 8,
+            "max": 18
+          },
+          "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            6,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          "week0": 0,
+          "mean": 0.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
+          "overPct": 0
+        },
+        "biceps": {
+          "band": {
+            "min": 6,
+            "max": 16
+          },
+          "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            6,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          "week0": 0,
+          "mean": 0.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
+          "overPct": 0
+        },
+        "triceps": {
+          "band": {
+            "min": 6,
+            "max": 16
+          },
+          "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          "week0": 0,
+          "mean": 0.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
+          "overPct": 0
+        },
+        "core": {
+          "band": {
+            "min": 8,
+            "max": 18
+          },
+          "weekly": [
+            4,
+            4,
+            4,
+            4,
+            6,
+            4,
+            4,
+            4,
+            4,
             6
           ],
-          "week0": 6,
-          "mean": 5,
-          "min": 3,
+          "week0": 4,
+          "mean": 4.4,
+          "min": 4,
           "max": 6,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
-        },
-        "shoulders": {
-          "band": {
-            "min": 8,
-            "max": 18
-          },
-          "weekly": [
-            4,
-            2,
-            5,
-            5,
-            2,
-            5,
-            5,
-            3,
-            5,
-            5
-          ],
-          "week0": 4,
-          "mean": 4.1,
-          "min": 2,
-          "max": 5,
-          "inBandPct": 0,
-          "underPct": 100,
-          "overPct": 0
-        },
-        "biceps": {
-          "band": {
-            "min": 6,
-            "max": 16
-          },
-          "weekly": [
-            3,
-            5,
-            4,
-            2,
-            4,
-            4,
-            2,
-            4,
-            4,
-            2
-          ],
-          "week0": 3,
-          "mean": 3.4,
-          "min": 2,
-          "max": 5,
-          "inBandPct": 0,
-          "underPct": 100,
-          "overPct": 0
-        },
-        "triceps": {
-          "band": {
-            "min": 6,
-            "max": 16
-          },
-          "weekly": [
-            2,
-            4,
-            2,
-            4,
-            4,
-            2,
-            4,
-            4,
-            2,
-            4
-          ],
-          "week0": 2,
-          "mean": 3.3,
-          "min": 2,
-          "max": 4,
-          "inBandPct": 0,
-          "underPct": 100,
-          "overPct": 0
-        },
-        "core": {
-          "band": {
-            "min": 8,
-            "max": 18
-          },
-          "weekly": [
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10
-          ],
-          "week0": 10,
-          "mean": 10,
-          "min": 10,
-          "max": 10,
-          "inBandPct": 100,
-          "underPct": 0,
-          "overPct": 0
         }
       },
       "headline": {
-        "inBandCells": 9,
+        "inBandCells": 6,
         "cells": 63,
-        "inBandPct": 14
+        "inBandPct": 10
       },
       "lockout": {
         "legs": {
           "limitHrs": 72,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "back": {
           "limitHrs": 48,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "chest": {
           "limitHrs": 48,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 20,
+          "minGap": 48,
+          "medianGap": 48,
           "violations": 0
         },
         "shoulders": {
           "limitHrs": 48,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "biceps": {
           "limitHrs": 24,
-          "trainingDays": 16,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "triceps": {
           "limitHrs": 24,
-          "trainingDays": 16,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "core": {
           "limitHrs": 24,
-          "trainingDays": 50,
-          "minGap": 24,
-          "medianGap": 24,
+          "trainingDays": 22,
+          "minGap": 48,
+          "medianGap": 48,
           "violations": 0
         }
       },
@@ -298,23 +298,23 @@
           "downgraded": 0
         },
         "hinge": {
-          "slots": 9,
-          "fulfilled": 9,
+          "slots": 2,
+          "fulfilled": 2,
           "downgraded": 0
         },
         "hamstring": {
-          "slots": 8,
-          "fulfilled": 8,
+          "slots": 0,
+          "fulfilled": 0,
           "downgraded": 0
         },
         "horizontal": {
-          "slots": 8,
-          "fulfilled": 8,
-          "downgraded": 0
+          "slots": 2,
+          "fulfilled": 0,
+          "downgraded": 2
         },
         "rear_delt": {
-          "slots": 9,
-          "fulfilled": 9,
+          "slots": 0,
+          "fulfilled": 0,
           "downgraded": 0
         }
       },
@@ -329,16 +329,16 @@
           0
         ],
         "lunchLegWithHinge": [
-          14,
-          17
+          2,
+          10
         ],
         "twoLegWithHamstring": [
-          0,
-          0
+          2,
+          2
         ],
         "backWithHorizontal": [
-          8,
-          17
+          0,
+          2
         ],
         "twoBackWithRearDelt": [
           0,
@@ -353,46 +353,46 @@
         },
         "accentByMuscle": {},
         "coreDist": {
-          "anti-rotation": 10,
-          "rotation": 10,
-          "flexion": 10,
-          "anti-extension": 10,
-          "lateral": 10
+          "anti-rotation": 3,
+          "rotation": 6,
+          "flexion": 3,
+          "anti-extension": 5,
+          "lateral": 5
         },
-        "coreExCount": 50,
-        "sessionsWithCore": 50
+        "coreExCount": 22,
+        "sessionsWithCore": 22
       },
       "variety": {
-        "uniqueExercises": 29,
-        "instances": 150,
+        "uniqueExercises": 15,
+        "instances": 62,
         "top5": [
           {
-            "id": "tricep_dips",
-            "name": "Tricep Dips",
-            "times": 12
+            "id": "floor_press",
+            "name": "DB Floor Press",
+            "times": 20
           },
           {
-            "id": "bench",
-            "name": "Barbell Bench Press",
-            "times": 7
+            "id": "calf_raise",
+            "name": "Calf Raises",
+            "times": 5
           },
           {
-            "id": "ohp",
-            "name": "Overhead Press",
-            "times": 7
+            "id": "side_plank_dip",
+            "name": "Side Plank Hip Dips",
+            "times": 5
           },
           {
-            "id": "russian_twist",
-            "name": "Russian Twists",
-            "times": 7
+            "id": "single_leg_calf_raise",
+            "name": "Single-Leg Calf Raise",
+            "times": 5
           },
           {
-            "id": "pallof",
-            "name": "Pallof Press",
-            "times": 6
+            "id": "ab_rollout",
+            "name": "Ab Rollout (Barbell/Wheel)",
+            "times": 5
           }
         ],
-        "capViolations": 0
+        "capViolations": 16
       },
       "goal": {
         "heavyStrengthWeeks": [
@@ -400,8 +400,8 @@
           10
         ],
         "lunchSetRule": [
-          50,
-          50
+          30,
+          30
         ],
         "lunchHighSweat": 0,
         "hipRiskPicks": 0,
@@ -450,7 +450,7 @@
         "sessions": 80,
         "skipped": 0,
         "restDays": 10,
-        "relabeled": 0,
+        "relabeled": 26,
         "sessPerWeek": [
           8,
           8,
@@ -471,21 +471,21 @@
             "max": 24
           },
           "weekly": [
-            5,
-            6,
-            5,
-            6,
-            6,
-            5,
-            6,
-            5,
-            6,
-            5
+            11,
+            11,
+            11,
+            8,
+            8,
+            11,
+            8,
+            8,
+            8,
+            8
           ],
-          "week0": 5,
-          "mean": 5.6,
-          "min": 5,
-          "max": 6,
+          "week0": 11,
+          "mean": 9,
+          "min": 8,
+          "max": 11,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
@@ -496,21 +496,21 @@
             "max": 22
           },
           "weekly": [
-            9,
-            7,
-            9,
-            7,
-            7,
-            9,
-            7,
-            9,
-            7,
-            9
+            6,
+            3,
+            3,
+            3,
+            6,
+            3,
+            3,
+            3,
+            3,
+            6
           ],
-          "week0": 9,
-          "mean": 7.9,
-          "min": 7,
-          "max": 9,
+          "week0": 6,
+          "mean": 3.7,
+          "min": 3,
+          "max": 6,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
@@ -521,23 +521,23 @@
             "max": 20
           },
           "weekly": [
-            12,
-            11,
-            12,
-            12,
-            12,
-            12,
-            12,
-            12,
-            12,
-            12
+            14,
+            8,
+            14,
+            20,
+            3,
+            14,
+            20,
+            20,
+            20,
+            3
           ],
-          "week0": 12,
-          "mean": 11.9,
-          "min": 11,
-          "max": 12,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 14,
+          "mean": 13.6,
+          "min": 3,
+          "max": 20,
+          "inBandPct": 67,
+          "underPct": 33,
           "overPct": 0
         },
         "shoulders": {
@@ -546,23 +546,23 @@
             "max": 18
           },
           "weekly": [
-            7,
-            8,
-            7,
-            7,
-            7,
-            7,
-            7,
-            7,
-            7,
-            7
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3
           ],
-          "week0": 7,
-          "mean": 7.1,
-          "min": 7,
-          "max": 8,
-          "inBandPct": 11,
-          "underPct": 89,
+          "week0": 3,
+          "mean": 3,
+          "min": 3,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
           "overPct": 0
         },
         "biceps": {
@@ -571,23 +571,23 @@
             "max": 16
           },
           "weekly": [
-            10,
-            12,
-            10,
-            12,
-            12,
-            10,
-            12,
-            10,
-            12,
-            10
+            0,
+            3,
+            0,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            3
           ],
-          "week0": 10,
-          "mean": 11.1,
-          "min": 10,
-          "max": 12,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 0,
+          "mean": 1,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
           "overPct": 0
         },
         "triceps": {
@@ -596,23 +596,23 @@
             "max": 16
           },
           "weekly": [
-            12,
-            11,
-            12,
-            11,
-            11,
-            12,
-            11,
-            12,
-            11,
-            12
+            0,
+            3,
+            3,
+            2,
+            3,
+            2,
+            2,
+            3,
+            3,
+            3
           ],
-          "week0": 12,
-          "mean": 11.4,
-          "min": 11,
-          "max": 12,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 0,
+          "mean": 2.7,
+          "min": 2,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
           "overPct": 0
         },
         "core": {
@@ -621,77 +621,77 @@
             "max": 18
           },
           "weekly": [
-            16,
-            16,
-            16,
-            16,
-            16,
-            16,
-            16,
-            16,
-            16,
-            16
+            8,
+            8,
+            8,
+            9,
+            10,
+            9,
+            9,
+            8,
+            8,
+            10
           ],
-          "week0": 16,
-          "mean": 16,
-          "min": 16,
-          "max": 16,
+          "week0": 8,
+          "mean": 8.8,
+          "min": 8,
+          "max": 10,
           "inBandPct": 100,
           "underPct": 0,
           "overPct": 0
         }
       },
       "headline": {
-        "inBandCells": 37,
+        "inBandCells": 15,
         "cells": 63,
-        "inBandPct": 59
+        "inBandPct": 24
       },
       "lockout": {
         "legs": {
           "limitHrs": 72,
-          "trainingDays": 20,
-          "minGap": 72,
-          "medianGap": 72,
+          "trainingDays": 10,
+          "minGap": 168,
+          "medianGap": 168,
           "violations": 0
         },
         "back": {
           "limitHrs": 48,
-          "trainingDays": 30,
+          "trainingDays": 13,
           "minGap": 48,
-          "medianGap": 48,
+          "medianGap": 144,
           "violations": 0
         },
         "chest": {
           "limitHrs": 48,
-          "trainingDays": 30,
+          "trainingDays": 25,
           "minGap": 48,
           "medianGap": 48,
           "violations": 0
         },
         "shoulders": {
           "limitHrs": 48,
-          "trainingDays": 30,
-          "minGap": 48,
-          "medianGap": 48,
+          "trainingDays": 10,
+          "minGap": 120,
+          "medianGap": 168,
           "violations": 0
         },
         "biceps": {
           "limitHrs": 24,
-          "trainingDays": 35,
-          "minGap": 24,
-          "medianGap": 24,
+          "trainingDays": 3,
+          "minGap": 552,
+          "medianGap": 840,
           "violations": 0
         },
         "triceps": {
           "limitHrs": 24,
-          "trainingDays": 35,
-          "minGap": 24,
-          "medianGap": 48,
+          "trainingDays": 9,
+          "minGap": 144,
+          "medianGap": 168,
           "violations": 0
         },
         "core": {
           "limitHrs": 24,
-          "trainingDays": 60,
+          "trainingDays": 42,
           "minGap": 24,
           "medianGap": 24,
           "violations": 0
@@ -704,47 +704,47 @@
           "downgraded": 0
         },
         "hinge": {
-          "slots": 5,
-          "fulfilled": 5,
-          "downgraded": 0
+          "slots": 3,
+          "fulfilled": 0,
+          "downgraded": 3
         },
         "hamstring": {
-          "slots": 5,
-          "fulfilled": 5,
-          "downgraded": 0
+          "slots": 2,
+          "fulfilled": 0,
+          "downgraded": 2
         },
         "horizontal": {
-          "slots": 15,
-          "fulfilled": 15,
-          "downgraded": 0
+          "slots": 4,
+          "fulfilled": 2,
+          "downgraded": 2
         },
         "rear_delt": {
-          "slots": 15,
-          "fulfilled": 15,
-          "downgraded": 0
+          "slots": 9,
+          "fulfilled": 1,
+          "downgraded": 8
         }
       },
       "mandateDrops": {},
       "outcomes": {
         "eveLegWithStrength": [
           10,
-          10
+          11
         ],
         "eveLegWithStrengthOrHinge": [
           10,
-          10
+          11
         ],
         "lunchLegWithHinge": [
-          10,
-          10
+          0,
+          15
         ],
         "twoLegWithHamstring": [
           0,
           0
         ],
         "backWithHorizontal": [
-          15,
-          30
+          2,
+          13
         ],
         "twoBackWithRearDelt": [
           0,
@@ -759,46 +759,46 @@
         },
         "accentByMuscle": {},
         "coreDist": {
-          "anti-rotation": 14,
-          "rotation": 13,
-          "flexion": 15,
-          "anti-extension": 14,
-          "lateral": 14
+          "anti-rotation": 9,
+          "rotation": 8,
+          "flexion": 8,
+          "anti-extension": 9,
+          "lateral": 8
         },
-        "coreExCount": 70,
-        "sessionsWithCore": 70
+        "coreExCount": 42,
+        "sessionsWithCore": 42
       },
       "variety": {
-        "uniqueExercises": 46,
-        "instances": 270,
+        "uniqueExercises": 23,
+        "instances": 132,
         "top5": [
           {
-            "id": "db_curl",
-            "name": "DB Curl",
-            "times": 13
+            "id": "floor_press",
+            "name": "DB Floor Press",
+            "times": 27
+          },
+          {
+            "id": "weighted_pullups",
+            "name": "Weighted Pull-ups",
+            "times": 10
+          },
+          {
+            "id": "ab_rollout",
+            "name": "Ab Rollout (Barbell/Wheel)",
+            "times": 9
           },
           {
             "id": "tricep_dips",
             "name": "Tricep Dips",
-            "times": 12
+            "times": 9
           },
           {
-            "id": "cable_curl",
-            "name": "Cable Curl",
-            "times": 10
-          },
-          {
-            "id": "hammer_curl",
-            "name": "Hammer Curl",
-            "times": 10
-          },
-          {
-            "id": "bench",
-            "name": "Barbell Bench Press",
+            "id": "heavy_trap_bar",
+            "name": "Heavy Trap Bar Deadlift",
             "times": 8
           }
         ],
-        "capViolations": 0
+        "capViolations": 36
       },
       "goal": {
         "heavyStrengthWeeks": [
@@ -856,7 +856,7 @@
         "sessions": 30,
         "skipped": 0,
         "restDays": 40,
-        "relabeled": 0,
+        "relabeled": 13,
         "sessPerWeek": [
           3,
           3,
@@ -877,21 +877,21 @@
             "max": 10
           },
           "weekly": [
-            6,
-            6,
-            6,
-            6,
-            6,
-            6,
-            6,
-            6,
-            6,
-            3
+            8,
+            8,
+            8,
+            8,
+            5,
+            8,
+            8,
+            8,
+            8,
+            5
           ],
-          "week0": 6,
-          "mean": 5.7,
-          "min": 3,
-          "max": 6,
+          "week0": 8,
+          "mean": 7.3,
+          "min": 5,
+          "max": 8,
           "inBandPct": 100,
           "underPct": 0,
           "overPct": 0
@@ -902,23 +902,23 @@
             "max": 10
           },
           "weekly": [
-            6,
             3,
-            6,
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            3,
-            6,
-            3,
-            6,
-            3
+            0,
+            0,
+            0,
+            0
           ],
-          "week0": 6,
-          "mean": 4.3,
-          "min": 3,
-          "max": 6,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 3,
+          "mean": 0.3,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 11,
+          "underPct": 89,
           "overPct": 0
         },
         "chest": {
@@ -928,23 +928,23 @@
           },
           "weekly": [
             6,
-            3,
+            12,
+            12,
+            12,
+            0,
             6,
-            3,
-            6,
-            3,
-            6,
-            3,
-            6,
-            3
+            12,
+            12,
+            12,
+            0
           ],
           "week0": 6,
-          "mean": 4.3,
-          "min": 3,
-          "max": 6,
-          "inBandPct": 100,
-          "underPct": 0,
-          "overPct": 0
+          "mean": 8.7,
+          "min": 0,
+          "max": 12,
+          "inBandPct": 11,
+          "underPct": 22,
+          "overPct": 67
         },
         "shoulders": {
           "band": {
@@ -952,23 +952,23 @@
             "max": 10
           },
           "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            3,
-            6,
-            3,
-            6,
-            3,
-            6,
-            3,
-            6
+            0,
+            0,
+            0,
+            0,
+            3
           ],
-          "week0": 3,
-          "mean": 4.7,
-          "min": 3,
-          "max": 6,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 0,
+          "mean": 0.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 22,
+          "underPct": 78,
           "overPct": 0
         },
         "biceps": {
@@ -977,23 +977,23 @@
             "max": 10
           },
           "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            3,
-            6,
-            3,
-            6,
-            3,
-            6,
-            3,
-            6
+            0,
+            0,
+            0,
+            0,
+            0
           ],
-          "week0": 3,
-          "mean": 4.7,
-          "min": 3,
-          "max": 6,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 0,
+          "mean": 0.3,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 11,
+          "underPct": 89,
           "overPct": 0
         },
         "triceps": {
@@ -1002,23 +1002,23 @@
             "max": 10
           },
           "weekly": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            6
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3
           ],
-          "week0": 3,
-          "mean": 3.3,
-          "min": 3,
-          "max": 6,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 0,
+          "mean": 0.3,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 11,
+          "underPct": 89,
           "overPct": 0
         },
         "core": {
@@ -1027,86 +1027,86 @@
             "max": 10
           },
           "weekly": [
-            9,
-            9,
-            9,
-            9,
-            9,
-            9,
-            9,
-            9,
-            9,
-            9
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3
           ],
-          "week0": 9,
-          "mean": 9,
-          "min": 9,
-          "max": 9,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 0,
+          "mean": 0.3,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 11,
+          "underPct": 89,
           "overPct": 0
         }
       },
       "headline": {
-        "inBandCells": 63,
+        "inBandCells": 16,
         "cells": 63,
-        "inBandPct": 100
+        "inBandPct": 25
       },
       "lockout": {
         "legs": {
           "limitHrs": 72,
-          "trainingDays": 14,
-          "minGap": 72,
-          "medianGap": 96,
+          "trainingDays": 10,
+          "minGap": 168,
+          "medianGap": 168,
           "violations": 0
         },
         "back": {
           "limitHrs": 48,
-          "trainingDays": 15,
-          "minGap": 96,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 888,
+          "medianGap": 888,
           "violations": 0
         },
         "chest": {
           "limitHrs": 48,
-          "trainingDays": 15,
-          "minGap": 96,
+          "trainingDays": 14,
+          "minGap": 48,
           "medianGap": 120,
           "violations": 0
         },
         "shoulders": {
           "limitHrs": 48,
-          "trainingDays": 15,
-          "minGap": 96,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 888,
+          "medianGap": 888,
           "violations": 0
         },
         "biceps": {
           "limitHrs": 24,
-          "trainingDays": 15,
-          "minGap": 96,
-          "medianGap": 120,
+          "trainingDays": 1,
+          "minGap": null,
+          "medianGap": null,
           "violations": 0
         },
         "triceps": {
           "limitHrs": 24,
-          "trainingDays": 11,
-          "minGap": 96,
-          "medianGap": 168,
+          "trainingDays": 1,
+          "minGap": null,
+          "medianGap": null,
           "violations": 0
         },
         "core": {
           "limitHrs": 24,
-          "trainingDays": 30,
-          "minGap": 48,
-          "medianGap": 48,
+          "trainingDays": 1,
+          "minGap": null,
+          "medianGap": null,
           "violations": 0
         }
       },
       "mandates": {
         "strength": {
-          "slots": 10,
-          "fulfilled": 10,
+          "slots": 6,
+          "fulfilled": 6,
           "downgraded": 0
         },
         "hinge": {
@@ -1120,25 +1120,25 @@
           "downgraded": 0
         },
         "horizontal": {
-          "slots": 7,
-          "fulfilled": 7,
-          "downgraded": 0
+          "slots": 1,
+          "fulfilled": 0,
+          "downgraded": 1
         },
         "rear_delt": {
-          "slots": 8,
-          "fulfilled": 8,
-          "downgraded": 0
+          "slots": 1,
+          "fulfilled": 0,
+          "downgraded": 1
         }
       },
       "mandateDrops": {},
       "outcomes": {
         "eveLegWithStrength": [
           10,
-          19
+          10
         ],
         "eveLegWithStrengthOrHinge": [
           10,
-          19
+          10
         ],
         "lunchLegWithHinge": [
           0,
@@ -1146,11 +1146,11 @@
         ],
         "twoLegWithHamstring": [
           0,
-          0
+          10
         ],
         "backWithHorizontal": [
-          7,
-          15
+          0,
+          2
         ],
         "twoBackWithRearDelt": [
           0,
@@ -1159,52 +1159,49 @@
       },
       "rotation": {
         "legAccentDist": {
-          "power": 5,
-          "eccentric": 2,
-          "decel": 2
+          "power": 0,
+          "eccentric": 0,
+          "decel": 0
         },
-        "accentByMuscle": {
-          "chest": 10,
-          "legs": 9
-        },
+        "accentByMuscle": {},
         "coreDist": {
-          "anti-rotation": 4,
-          "rotation": 8,
-          "flexion": 5,
-          "anti-extension": 6,
-          "lateral": 7
+          "anti-rotation": 0,
+          "rotation": 0,
+          "flexion": 0,
+          "anti-extension": 1,
+          "lateral": 0
         },
-        "coreExCount": 30,
-        "sessionsWithCore": 30
+        "coreExCount": 1,
+        "sessionsWithCore": 1
       },
       "variety": {
-        "uniqueExercises": 31,
-        "instances": 120,
+        "uniqueExercises": 10,
+        "instances": 41,
         "top5": [
           {
-            "id": "tricep_dips",
-            "name": "Tricep Dips",
-            "times": 10
+            "id": "floor_press",
+            "name": "DB Floor Press",
+            "times": 14
           },
           {
-            "id": "heavy_box_squat",
-            "name": "Heavy Box Squat",
+            "id": "heavy_trap_bar",
+            "name": "Heavy Trap Bar Deadlift",
+            "times": 8
+          },
+          {
+            "id": "calf_raise",
+            "name": "Calf Raises",
             "times": 5
           },
           {
-            "id": "bb_row",
-            "name": "Barbell Row",
+            "id": "single_leg_calf_raise",
+            "name": "Single-Leg Calf Raise",
             "times": 5
           },
           {
-            "id": "med_ball_chest_pass",
-            "name": "Med Ball Chest Pass",
-            "times": 5
-          },
-          {
-            "id": "ohp",
-            "name": "Overhead Press",
-            "times": 5
+            "id": "weighted_pullups",
+            "name": "Weighted Pull-ups",
+            "times": 2
           }
         ],
         "capViolations": 0
@@ -1262,21 +1259,21 @@
         }
       },
       "totals": {
-        "sessions": 50,
+        "sessions": 30,
         "skipped": 0,
-        "restDays": 20,
-        "relabeled": 0,
+        "restDays": 40,
+        "relabeled": 18,
         "sessPerWeek": [
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
         ]
       },
       "volume": {
@@ -1287,18 +1284,18 @@
           },
           "weekly": [
             5,
-            3,
-            5,
-            5,
-            3,
-            5,
-            5,
+            2,
+            2,
+            2,
             2,
             5,
-            5
+            2,
+            2,
+            2,
+            2
           ],
           "week0": 5,
-          "mean": 4.2,
+          "mean": 2.3,
           "min": 2,
           "max": 5,
           "inBandPct": 0,
@@ -1311,21 +1308,21 @@
             "max": 22
           },
           "weekly": [
-            5,
-            5,
-            6,
             3,
-            6,
-            6,
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            6,
-            3
+            0,
+            0,
+            0,
+            0
           ],
-          "week0": 5,
-          "mean": 4.9,
-          "min": 3,
-          "max": 6,
+          "week0": 3,
+          "mean": 0.3,
+          "min": 0,
+          "max": 3,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
@@ -1336,179 +1333,179 @@
             "max": 20
           },
           "weekly": [
-            6,
-            6,
+            4,
+            12,
+            12,
+            12,
+            0,
+            4,
+            12,
+            12,
+            12,
+            0
+          ],
+          "week0": 4,
+          "mean": 8.4,
+          "min": 0,
+          "max": 12,
+          "inBandPct": 67,
+          "underPct": 33,
+          "overPct": 0
+        },
+        "shoulders": {
+          "band": {
+            "min": 8,
+            "max": 18
+          },
+          "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            6,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          "week0": 0,
+          "mean": 0.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
+          "overPct": 0
+        },
+        "biceps": {
+          "band": {
+            "min": 6,
+            "max": 16
+          },
+          "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            6,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          "week0": 0,
+          "mean": 0.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
+          "overPct": 0
+        },
+        "triceps": {
+          "band": {
+            "min": 6,
+            "max": 16
+          },
+          "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          "week0": 0,
+          "mean": 0.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
+          "overPct": 0
+        },
+        "core": {
+          "band": {
+            "min": 8,
+            "max": 18
+          },
+          "weekly": [
+            4,
+            4,
+            4,
+            4,
+            6,
+            4,
+            4,
+            4,
+            4,
             6
           ],
-          "week0": 6,
-          "mean": 5,
-          "min": 3,
+          "week0": 4,
+          "mean": 4.4,
+          "min": 4,
           "max": 6,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
-        },
-        "shoulders": {
-          "band": {
-            "min": 8,
-            "max": 18
-          },
-          "weekly": [
-            4,
-            2,
-            5,
-            5,
-            2,
-            5,
-            5,
-            3,
-            5,
-            5
-          ],
-          "week0": 4,
-          "mean": 4.1,
-          "min": 2,
-          "max": 5,
-          "inBandPct": 0,
-          "underPct": 100,
-          "overPct": 0
-        },
-        "biceps": {
-          "band": {
-            "min": 6,
-            "max": 16
-          },
-          "weekly": [
-            3,
-            5,
-            4,
-            2,
-            4,
-            4,
-            2,
-            4,
-            4,
-            2
-          ],
-          "week0": 3,
-          "mean": 3.4,
-          "min": 2,
-          "max": 5,
-          "inBandPct": 0,
-          "underPct": 100,
-          "overPct": 0
-        },
-        "triceps": {
-          "band": {
-            "min": 6,
-            "max": 16
-          },
-          "weekly": [
-            2,
-            4,
-            2,
-            4,
-            4,
-            2,
-            4,
-            4,
-            2,
-            4
-          ],
-          "week0": 2,
-          "mean": 3.3,
-          "min": 2,
-          "max": 4,
-          "inBandPct": 0,
-          "underPct": 100,
-          "overPct": 0
-        },
-        "core": {
-          "band": {
-            "min": 8,
-            "max": 18
-          },
-          "weekly": [
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10
-          ],
-          "week0": 10,
-          "mean": 10,
-          "min": 10,
-          "max": 10,
-          "inBandPct": 100,
-          "underPct": 0,
-          "overPct": 0
         }
       },
       "headline": {
-        "inBandCells": 9,
+        "inBandCells": 6,
         "cells": 63,
-        "inBandPct": 14
+        "inBandPct": 10
       },
       "lockout": {
         "legs": {
           "limitHrs": 72,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "back": {
           "limitHrs": 48,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "chest": {
           "limitHrs": 48,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 20,
+          "minGap": 48,
+          "medianGap": 48,
           "violations": 0
         },
         "shoulders": {
           "limitHrs": 48,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "biceps": {
           "limitHrs": 24,
-          "trainingDays": 16,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "triceps": {
           "limitHrs": 24,
-          "trainingDays": 16,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "core": {
           "limitHrs": 24,
-          "trainingDays": 50,
-          "minGap": 24,
-          "medianGap": 24,
+          "trainingDays": 22,
+          "minGap": 48,
+          "medianGap": 48,
           "violations": 0
         }
       },
@@ -1519,23 +1516,23 @@
           "downgraded": 0
         },
         "hinge": {
-          "slots": 9,
-          "fulfilled": 9,
+          "slots": 2,
+          "fulfilled": 2,
           "downgraded": 0
         },
         "hamstring": {
-          "slots": 8,
-          "fulfilled": 8,
+          "slots": 0,
+          "fulfilled": 0,
           "downgraded": 0
         },
         "horizontal": {
-          "slots": 8,
-          "fulfilled": 8,
-          "downgraded": 0
+          "slots": 2,
+          "fulfilled": 0,
+          "downgraded": 2
         },
         "rear_delt": {
-          "slots": 9,
-          "fulfilled": 9,
+          "slots": 0,
+          "fulfilled": 0,
           "downgraded": 0
         }
       },
@@ -1550,16 +1547,16 @@
           0
         ],
         "lunchLegWithHinge": [
-          14,
-          17
+          2,
+          10
         ],
         "twoLegWithHamstring": [
-          0,
-          0
+          2,
+          2
         ],
         "backWithHorizontal": [
-          8,
-          17
+          0,
+          2
         ],
         "twoBackWithRearDelt": [
           0,
@@ -1574,46 +1571,46 @@
         },
         "accentByMuscle": {},
         "coreDist": {
-          "anti-rotation": 10,
-          "rotation": 10,
-          "flexion": 10,
-          "anti-extension": 10,
-          "lateral": 10
+          "anti-rotation": 3,
+          "rotation": 6,
+          "flexion": 3,
+          "anti-extension": 5,
+          "lateral": 5
         },
-        "coreExCount": 50,
-        "sessionsWithCore": 50
+        "coreExCount": 22,
+        "sessionsWithCore": 22
       },
       "variety": {
-        "uniqueExercises": 29,
-        "instances": 150,
+        "uniqueExercises": 15,
+        "instances": 62,
         "top5": [
           {
-            "id": "tricep_dips",
-            "name": "Tricep Dips",
-            "times": 12
+            "id": "floor_press",
+            "name": "DB Floor Press",
+            "times": 20
           },
           {
-            "id": "bench",
-            "name": "Barbell Bench Press",
-            "times": 7
+            "id": "calf_raise",
+            "name": "Calf Raises",
+            "times": 5
           },
           {
-            "id": "ohp",
-            "name": "Overhead Press",
-            "times": 7
+            "id": "side_plank_dip",
+            "name": "Side Plank Hip Dips",
+            "times": 5
           },
           {
-            "id": "russian_twist",
-            "name": "Russian Twists",
-            "times": 7
+            "id": "single_leg_calf_raise",
+            "name": "Single-Leg Calf Raise",
+            "times": 5
           },
           {
-            "id": "pallof",
-            "name": "Pallof Press",
-            "times": 6
+            "id": "ab_rollout",
+            "name": "Ab Rollout (Barbell/Wheel)",
+            "times": 5
           }
         ],
-        "capViolations": 0
+        "capViolations": 16
       },
       "goal": {
         "heavyStrengthWeeks": [
@@ -1621,8 +1618,8 @@
           10
         ],
         "lunchSetRule": [
-          50,
-          50
+          30,
+          30
         ],
         "lunchHighSweat": 0,
         "hipRiskPicks": 0,
@@ -1668,21 +1665,21 @@
         }
       },
       "totals": {
-        "sessions": 50,
+        "sessions": 30,
         "skipped": 0,
-        "restDays": 20,
-        "relabeled": 0,
+        "restDays": 40,
+        "relabeled": 18,
         "sessPerWeek": [
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5,
-          5
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
         ]
       },
       "volume": {
@@ -1693,18 +1690,18 @@
           },
           "weekly": [
             5,
-            3,
-            5,
-            5,
-            3,
-            5,
-            5,
+            2,
+            2,
+            2,
             2,
             5,
-            5
+            2,
+            2,
+            2,
+            2
           ],
           "week0": 5,
-          "mean": 4.2,
+          "mean": 2.3,
           "min": 2,
           "max": 5,
           "inBandPct": 0,
@@ -1717,21 +1714,21 @@
             "max": 22
           },
           "weekly": [
-            5,
-            5,
-            6,
             3,
-            6,
-            6,
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            6,
-            3
+            0,
+            0,
+            0,
+            0
           ],
-          "week0": 5,
-          "mean": 4.9,
-          "min": 3,
-          "max": 6,
+          "week0": 3,
+          "mean": 0.3,
+          "min": 0,
+          "max": 3,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
@@ -1742,179 +1739,179 @@
             "max": 20
           },
           "weekly": [
-            6,
-            6,
+            4,
+            12,
+            12,
+            12,
+            0,
+            4,
+            12,
+            12,
+            12,
+            0
+          ],
+          "week0": 4,
+          "mean": 8.4,
+          "min": 0,
+          "max": 12,
+          "inBandPct": 67,
+          "underPct": 33,
+          "overPct": 0
+        },
+        "shoulders": {
+          "band": {
+            "min": 8,
+            "max": 18
+          },
+          "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            6,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          "week0": 0,
+          "mean": 0.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
+          "overPct": 0
+        },
+        "biceps": {
+          "band": {
+            "min": 6,
+            "max": 16
+          },
+          "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
-            6,
-            6,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          "week0": 0,
+          "mean": 0.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
+          "overPct": 0
+        },
+        "triceps": {
+          "band": {
+            "min": 6,
+            "max": 16
+          },
+          "weekly": [
+            0,
+            0,
+            0,
+            0,
             3,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          "week0": 0,
+          "mean": 0.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
+          "overPct": 0
+        },
+        "core": {
+          "band": {
+            "min": 8,
+            "max": 18
+          },
+          "weekly": [
+            4,
+            4,
+            4,
+            4,
+            6,
+            4,
+            4,
+            4,
+            4,
             6
           ],
-          "week0": 6,
-          "mean": 5,
-          "min": 3,
+          "week0": 4,
+          "mean": 4.4,
+          "min": 4,
           "max": 6,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
-        },
-        "shoulders": {
-          "band": {
-            "min": 8,
-            "max": 18
-          },
-          "weekly": [
-            4,
-            2,
-            5,
-            5,
-            2,
-            5,
-            5,
-            3,
-            5,
-            5
-          ],
-          "week0": 4,
-          "mean": 4.1,
-          "min": 2,
-          "max": 5,
-          "inBandPct": 0,
-          "underPct": 100,
-          "overPct": 0
-        },
-        "biceps": {
-          "band": {
-            "min": 6,
-            "max": 16
-          },
-          "weekly": [
-            3,
-            5,
-            4,
-            2,
-            4,
-            4,
-            2,
-            4,
-            4,
-            2
-          ],
-          "week0": 3,
-          "mean": 3.4,
-          "min": 2,
-          "max": 5,
-          "inBandPct": 0,
-          "underPct": 100,
-          "overPct": 0
-        },
-        "triceps": {
-          "band": {
-            "min": 6,
-            "max": 16
-          },
-          "weekly": [
-            2,
-            4,
-            2,
-            4,
-            4,
-            2,
-            4,
-            4,
-            2,
-            4
-          ],
-          "week0": 2,
-          "mean": 3.3,
-          "min": 2,
-          "max": 4,
-          "inBandPct": 0,
-          "underPct": 100,
-          "overPct": 0
-        },
-        "core": {
-          "band": {
-            "min": 8,
-            "max": 18
-          },
-          "weekly": [
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10
-          ],
-          "week0": 10,
-          "mean": 10,
-          "min": 10,
-          "max": 10,
-          "inBandPct": 100,
-          "underPct": 0,
-          "overPct": 0
         }
       },
       "headline": {
-        "inBandCells": 9,
+        "inBandCells": 6,
         "cells": 63,
-        "inBandPct": 14
+        "inBandPct": 10
       },
       "lockout": {
         "legs": {
           "limitHrs": 72,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "back": {
           "limitHrs": 48,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "chest": {
           "limitHrs": 48,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 20,
+          "minGap": 48,
+          "medianGap": 48,
           "violations": 0
         },
         "shoulders": {
           "limitHrs": 48,
-          "trainingDays": 17,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "biceps": {
           "limitHrs": 24,
-          "trainingDays": 16,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "triceps": {
           "limitHrs": 24,
-          "trainingDays": 16,
-          "minGap": 72,
-          "medianGap": 120,
+          "trainingDays": 2,
+          "minGap": 840,
+          "medianGap": 840,
           "violations": 0
         },
         "core": {
           "limitHrs": 24,
-          "trainingDays": 50,
-          "minGap": 24,
-          "medianGap": 24,
+          "trainingDays": 22,
+          "minGap": 48,
+          "medianGap": 48,
           "violations": 0
         }
       },
@@ -1925,23 +1922,23 @@
           "downgraded": 0
         },
         "hinge": {
-          "slots": 9,
-          "fulfilled": 9,
+          "slots": 2,
+          "fulfilled": 2,
           "downgraded": 0
         },
         "hamstring": {
-          "slots": 8,
-          "fulfilled": 8,
+          "slots": 0,
+          "fulfilled": 0,
           "downgraded": 0
         },
         "horizontal": {
-          "slots": 8,
-          "fulfilled": 8,
-          "downgraded": 0
+          "slots": 2,
+          "fulfilled": 0,
+          "downgraded": 2
         },
         "rear_delt": {
-          "slots": 9,
-          "fulfilled": 9,
+          "slots": 0,
+          "fulfilled": 0,
           "downgraded": 0
         }
       },
@@ -1956,16 +1953,16 @@
           0
         ],
         "lunchLegWithHinge": [
-          14,
-          17
+          2,
+          10
         ],
         "twoLegWithHamstring": [
-          0,
-          0
+          2,
+          2
         ],
         "backWithHorizontal": [
-          8,
-          17
+          0,
+          2
         ],
         "twoBackWithRearDelt": [
           0,
@@ -1980,46 +1977,46 @@
         },
         "accentByMuscle": {},
         "coreDist": {
-          "anti-rotation": 10,
-          "rotation": 10,
-          "flexion": 10,
-          "anti-extension": 10,
-          "lateral": 10
+          "anti-rotation": 3,
+          "rotation": 6,
+          "flexion": 3,
+          "anti-extension": 5,
+          "lateral": 5
         },
-        "coreExCount": 50,
-        "sessionsWithCore": 50
+        "coreExCount": 22,
+        "sessionsWithCore": 22
       },
       "variety": {
-        "uniqueExercises": 29,
-        "instances": 150,
+        "uniqueExercises": 15,
+        "instances": 62,
         "top5": [
           {
-            "id": "tricep_dips",
-            "name": "Tricep Dips",
-            "times": 12
+            "id": "floor_press",
+            "name": "DB Floor Press",
+            "times": 20
           },
           {
-            "id": "bench",
-            "name": "Barbell Bench Press",
-            "times": 7
+            "id": "calf_raise",
+            "name": "Calf Raises",
+            "times": 5
           },
           {
-            "id": "ohp",
-            "name": "Overhead Press",
-            "times": 7
+            "id": "side_plank_dip",
+            "name": "Side Plank Hip Dips",
+            "times": 5
           },
           {
-            "id": "russian_twist",
-            "name": "Russian Twists",
-            "times": 7
+            "id": "single_leg_calf_raise",
+            "name": "Single-Leg Calf Raise",
+            "times": 5
           },
           {
-            "id": "pallof",
-            "name": "Pallof Press",
-            "times": 6
+            "id": "ab_rollout",
+            "name": "Ab Rollout (Barbell/Wheel)",
+            "times": 5
           }
         ],
-        "capViolations": 0
+        "capViolations": 16
       },
       "goal": {
         "heavyStrengthWeeks": [
@@ -2027,8 +2024,8 @@
           10
         ],
         "lunchSetRule": [
-          50,
-          50
+          30,
+          30
         ],
         "lunchHighSweat": 0,
         "hipRiskPicks": 0,
@@ -2077,7 +2074,7 @@
         "sessions": 61,
         "skipped": 19,
         "restDays": 10,
-        "relabeled": 0,
+        "relabeled": 18,
         "sessPerWeek": [
           7,
           7,
@@ -2098,21 +2095,21 @@
             "max": 24
           },
           "weekly": [
+            8,
+            11,
+            2,
+            8,
             5,
-            3,
-            0,
-            3,
-            6,
-            5,
-            0,
-            6,
-            0,
-            3
+            8,
+            2,
+            8,
+            2,
+            5
           ],
-          "week0": 5,
-          "mean": 2.9,
-          "min": 0,
-          "max": 6,
+          "week0": 8,
+          "mean": 5.7,
+          "min": 2,
+          "max": 11,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
@@ -2123,23 +2120,23 @@
             "max": 22
           },
           "weekly": [
-            9,
-            5,
             6,
-            8,
-            6,
-            12,
-            6,
-            6,
-            5,
-            9
+            3,
+            0,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3
           ],
-          "week0": 9,
-          "mean": 7,
-          "min": 5,
-          "max": 12,
-          "inBandPct": 11,
-          "underPct": 89,
+          "week0": 6,
+          "mean": 2.7,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
           "overPct": 0
         },
         "chest": {
@@ -2148,23 +2145,23 @@
             "max": 20
           },
           "weekly": [
-            9,
+            10,
+            14,
             12,
-            6,
-            6,
-            5,
-            9,
             8,
-            6,
-            9,
-            12
+            3,
+            20,
+            14,
+            4,
+            8,
+            6
           ],
-          "week0": 9,
-          "mean": 8.1,
-          "min": 5,
-          "max": 12,
-          "inBandPct": 22,
-          "underPct": 78,
+          "week0": 10,
+          "mean": 9.9,
+          "min": 3,
+          "max": 20,
+          "inBandPct": 44,
+          "underPct": 56,
           "overPct": 0
         },
         "shoulders": {
@@ -2173,23 +2170,23 @@
             "max": 18
           },
           "weekly": [
-            5,
-            7,
-            5,
+            3,
+            3,
             0,
-            9,
-            12,
-            5,
+            0,
             6,
-            6,
-            6
+            3,
+            3,
+            3,
+            3,
+            3
           ],
-          "week0": 5,
-          "mean": 6.2,
+          "week0": 3,
+          "mean": 2.7,
           "min": 0,
-          "max": 12,
-          "inBandPct": 22,
-          "underPct": 78,
+          "max": 6,
+          "inBandPct": 0,
+          "underPct": 100,
           "overPct": 0
         },
         "biceps": {
@@ -2198,23 +2195,23 @@
             "max": 16
           },
           "weekly": [
-            10,
-            12,
-            4,
-            4,
-            5,
-            7,
-            11,
-            5,
-            7,
-            6
+            0,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3,
+            3
           ],
-          "week0": 10,
-          "mean": 6.8,
-          "min": 4,
-          "max": 12,
-          "inBandPct": 56,
-          "underPct": 44,
+          "week0": 0,
+          "mean": 1,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
           "overPct": 0
         },
         "triceps": {
@@ -2223,23 +2220,23 @@
             "max": 16
           },
           "weekly": [
-            12,
-            11,
-            4,
             3,
-            7,
-            10,
-            4,
-            4,
-            7,
-            7
+            0,
+            3,
+            0,
+            3,
+            2,
+            2,
+            3,
+            3,
+            3
           ],
-          "week0": 12,
-          "mean": 6.3,
-          "min": 3,
-          "max": 11,
-          "inBandPct": 56,
-          "underPct": 44,
+          "week0": 3,
+          "mean": 2.1,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
           "overPct": 0
         },
         "core": {
@@ -2248,77 +2245,77 @@
             "max": 18
           },
           "weekly": [
-            14,
-            14,
-            10,
+            6,
+            6,
+            8,
+            4,
+            8,
             9,
-            14,
-            16,
-            13,
-            12,
-            13,
-            16
+            9,
+            4,
+            8,
+            10
           ],
-          "week0": 14,
-          "mean": 13,
-          "min": 9,
-          "max": 16,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 6,
+          "mean": 7.3,
+          "min": 4,
+          "max": 10,
+          "inBandPct": 67,
+          "underPct": 33,
           "overPct": 0
         }
       },
       "headline": {
-        "inBandCells": 24,
+        "inBandCells": 10,
         "cells": 63,
-        "inBandPct": 38
+        "inBandPct": 16
       },
       "lockout": {
         "legs": {
           "limitHrs": 72,
-          "trainingDays": 11,
+          "trainingDays": 7,
           "minGap": 72,
-          "medianGap": 96,
+          "medianGap": 336,
           "violations": 0
         },
         "back": {
           "limitHrs": 48,
-          "trainingDays": 24,
-          "minGap": 48,
-          "medianGap": 72,
+          "trainingDays": 10,
+          "minGap": 72,
+          "medianGap": 168,
           "violations": 0
         },
         "chest": {
           "limitHrs": 48,
-          "trainingDays": 25,
+          "trainingDays": 20,
           "minGap": 48,
-          "medianGap": 48,
+          "medianGap": 72,
           "violations": 0
         },
         "shoulders": {
           "limitHrs": 48,
-          "trainingDays": 21,
-          "minGap": 48,
-          "medianGap": 72,
+          "trainingDays": 9,
+          "minGap": 96,
+          "medianGap": 168,
           "violations": 0
         },
         "biceps": {
           "limitHrs": 24,
-          "trainingDays": 26,
-          "minGap": 24,
-          "medianGap": 72,
+          "trainingDays": 3,
+          "minGap": 168,
+          "medianGap": 1008,
           "violations": 0
         },
         "triceps": {
           "limitHrs": 24,
-          "trainingDays": 27,
-          "minGap": 24,
-          "medianGap": 48,
+          "trainingDays": 8,
+          "minGap": 144,
+          "medianGap": 168,
           "violations": 0
         },
         "core": {
           "limitHrs": 24,
-          "trainingDays": 50,
+          "trainingDays": 35,
           "minGap": 24,
           "medianGap": 24,
           "violations": 0
@@ -2331,47 +2328,47 @@
           "downgraded": 0
         },
         "hinge": {
-          "slots": 1,
-          "fulfilled": 1,
+          "slots": 0,
+          "fulfilled": 0,
           "downgraded": 0
         },
         "hamstring": {
-          "slots": 3,
-          "fulfilled": 3,
+          "slots": 0,
+          "fulfilled": 0,
           "downgraded": 0
         },
         "horizontal": {
-          "slots": 13,
-          "fulfilled": 13,
-          "downgraded": 0
+          "slots": 4,
+          "fulfilled": 0,
+          "downgraded": 4
         },
         "rear_delt": {
-          "slots": 11,
-          "fulfilled": 11,
-          "downgraded": 0
+          "slots": 6,
+          "fulfilled": 1,
+          "downgraded": 5
         }
       },
       "mandateDrops": {},
       "outcomes": {
         "eveLegWithStrength": [
           7,
-          7
+          8
         ],
         "eveLegWithStrengthOrHinge": [
           7,
-          7
+          8
         ],
         "lunchLegWithHinge": [
-          4,
-          4
+          0,
+          10
         ],
         "twoLegWithHamstring": [
           0,
           0
         ],
         "backWithHorizontal": [
-          13,
-          25
+          0,
+          10
         ],
         "twoBackWithRearDelt": [
           0,
@@ -2384,50 +2381,48 @@
           "eccentric": 0,
           "decel": 0
         },
-        "accentByMuscle": {
-          "chest": 5
-        },
+        "accentByMuscle": {},
         "coreDist": {
-          "anti-rotation": 10,
-          "rotation": 10,
-          "flexion": 12,
-          "anti-extension": 12,
-          "lateral": 14
+          "anti-rotation": 6,
+          "rotation": 6,
+          "flexion": 7,
+          "anti-extension": 8,
+          "lateral": 8
         },
-        "coreExCount": 58,
-        "sessionsWithCore": 58
+        "coreExCount": 35,
+        "sessionsWithCore": 35
       },
       "variety": {
-        "uniqueExercises": 49,
-        "instances": 201,
+        "uniqueExercises": 24,
+        "instances": 106,
         "top5": [
           {
-            "id": "tricep_dips",
-            "name": "Tricep Dips",
-            "times": 12
+            "id": "floor_press",
+            "name": "DB Floor Press",
+            "times": 22
           },
           {
-            "id": "db_curl",
-            "name": "DB Curl",
+            "id": "weighted_pullups",
+            "name": "Weighted Pull-ups",
             "times": 9
           },
           {
-            "id": "cable_curl",
-            "name": "Cable Curl",
+            "id": "tricep_dips",
+            "name": "Tricep Dips",
             "times": 8
           },
           {
-            "id": "suitcase_carry",
-            "name": "Suitcase Carry",
+            "id": "side_plank_dip",
+            "name": "Side Plank Hip Dips",
             "times": 8
           },
           {
-            "id": "hammer_curl",
-            "name": "Hammer Curl",
-            "times": 7
+            "id": "ab_rollout",
+            "name": "Ab Rollout (Barbell/Wheel)",
+            "times": 8
           }
         ],
-        "capViolations": 0
+        "capViolations": 19
       },
       "goal": {
         "heavyStrengthWeeks": [
@@ -2485,7 +2480,7 @@
         "sessions": 80,
         "skipped": 0,
         "restDays": 10,
-        "relabeled": 0,
+        "relabeled": 26,
         "sessPerWeek": [
           8,
           8,
@@ -2506,21 +2501,21 @@
             "max": 24
           },
           "weekly": [
-            5,
-            6,
-            5,
-            6,
-            6,
-            5,
-            6,
-            5,
-            6,
-            5
+            11,
+            11,
+            11,
+            8,
+            8,
+            11,
+            8,
+            8,
+            8,
+            8
           ],
-          "week0": 5,
-          "mean": 5.6,
-          "min": 5,
-          "max": 6,
+          "week0": 11,
+          "mean": 9,
+          "min": 8,
+          "max": 11,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
@@ -2531,21 +2526,21 @@
             "max": 22
           },
           "weekly": [
-            9,
-            7,
-            9,
-            7,
-            7,
-            9,
-            7,
-            9,
-            7,
-            9
+            6,
+            3,
+            3,
+            3,
+            6,
+            3,
+            3,
+            3,
+            3,
+            6
           ],
-          "week0": 9,
-          "mean": 7.9,
-          "min": 7,
-          "max": 9,
+          "week0": 6,
+          "mean": 3.7,
+          "min": 3,
+          "max": 6,
           "inBandPct": 0,
           "underPct": 100,
           "overPct": 0
@@ -2556,23 +2551,23 @@
             "max": 20
           },
           "weekly": [
-            12,
-            11,
-            12,
-            12,
-            12,
-            12,
-            12,
-            12,
-            12,
-            12
+            14,
+            8,
+            14,
+            20,
+            3,
+            14,
+            20,
+            20,
+            20,
+            3
           ],
-          "week0": 12,
-          "mean": 11.9,
-          "min": 11,
-          "max": 12,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 14,
+          "mean": 13.6,
+          "min": 3,
+          "max": 20,
+          "inBandPct": 67,
+          "underPct": 33,
           "overPct": 0
         },
         "shoulders": {
@@ -2581,23 +2576,23 @@
             "max": 18
           },
           "weekly": [
-            7,
-            8,
-            7,
-            7,
-            7,
-            7,
-            7,
-            7,
-            7,
-            7
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3
           ],
-          "week0": 7,
-          "mean": 7.1,
-          "min": 7,
-          "max": 8,
-          "inBandPct": 11,
-          "underPct": 89,
+          "week0": 3,
+          "mean": 3,
+          "min": 3,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
           "overPct": 0
         },
         "biceps": {
@@ -2606,23 +2601,23 @@
             "max": 16
           },
           "weekly": [
-            10,
-            12,
-            10,
-            12,
-            12,
-            10,
-            12,
-            10,
-            12,
-            10
+            0,
+            3,
+            0,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            3
           ],
-          "week0": 10,
-          "mean": 11.1,
-          "min": 10,
-          "max": 12,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 0,
+          "mean": 1,
+          "min": 0,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
           "overPct": 0
         },
         "triceps": {
@@ -2631,23 +2626,23 @@
             "max": 16
           },
           "weekly": [
-            12,
-            11,
-            12,
-            11,
-            11,
-            12,
-            11,
-            12,
-            11,
-            12
+            0,
+            3,
+            3,
+            2,
+            3,
+            2,
+            2,
+            3,
+            3,
+            3
           ],
-          "week0": 12,
-          "mean": 11.4,
-          "min": 11,
-          "max": 12,
-          "inBandPct": 100,
-          "underPct": 0,
+          "week0": 0,
+          "mean": 2.7,
+          "min": 2,
+          "max": 3,
+          "inBandPct": 0,
+          "underPct": 100,
           "overPct": 0
         },
         "core": {
@@ -2656,77 +2651,77 @@
             "max": 18
           },
           "weekly": [
-            16,
-            16,
-            16,
-            16,
-            16,
-            16,
-            16,
-            16,
-            16,
-            16
+            8,
+            8,
+            8,
+            9,
+            10,
+            9,
+            9,
+            8,
+            8,
+            10
           ],
-          "week0": 16,
-          "mean": 16,
-          "min": 16,
-          "max": 16,
+          "week0": 8,
+          "mean": 8.8,
+          "min": 8,
+          "max": 10,
           "inBandPct": 100,
           "underPct": 0,
           "overPct": 0
         }
       },
       "headline": {
-        "inBandCells": 37,
+        "inBandCells": 15,
         "cells": 63,
-        "inBandPct": 59
+        "inBandPct": 24
       },
       "lockout": {
         "legs": {
           "limitHrs": 72,
-          "trainingDays": 20,
-          "minGap": 72,
-          "medianGap": 72,
+          "trainingDays": 10,
+          "minGap": 168,
+          "medianGap": 168,
           "violations": 0
         },
         "back": {
           "limitHrs": 48,
-          "trainingDays": 30,
+          "trainingDays": 13,
           "minGap": 48,
-          "medianGap": 48,
+          "medianGap": 144,
           "violations": 0
         },
         "chest": {
           "limitHrs": 48,
-          "trainingDays": 30,
+          "trainingDays": 25,
           "minGap": 48,
           "medianGap": 48,
           "violations": 0
         },
         "shoulders": {
           "limitHrs": 48,
-          "trainingDays": 30,
-          "minGap": 48,
-          "medianGap": 48,
+          "trainingDays": 10,
+          "minGap": 120,
+          "medianGap": 168,
           "violations": 0
         },
         "biceps": {
           "limitHrs": 24,
-          "trainingDays": 35,
-          "minGap": 24,
-          "medianGap": 24,
+          "trainingDays": 3,
+          "minGap": 552,
+          "medianGap": 840,
           "violations": 0
         },
         "triceps": {
           "limitHrs": 24,
-          "trainingDays": 35,
-          "minGap": 24,
-          "medianGap": 48,
+          "trainingDays": 9,
+          "minGap": 144,
+          "medianGap": 168,
           "violations": 0
         },
         "core": {
           "limitHrs": 24,
-          "trainingDays": 60,
+          "trainingDays": 42,
           "minGap": 24,
           "medianGap": 24,
           "violations": 0
@@ -2739,47 +2734,47 @@
           "downgraded": 0
         },
         "hinge": {
-          "slots": 5,
-          "fulfilled": 5,
-          "downgraded": 0
+          "slots": 3,
+          "fulfilled": 0,
+          "downgraded": 3
         },
         "hamstring": {
-          "slots": 5,
-          "fulfilled": 5,
-          "downgraded": 0
+          "slots": 2,
+          "fulfilled": 0,
+          "downgraded": 2
         },
         "horizontal": {
-          "slots": 15,
-          "fulfilled": 15,
-          "downgraded": 0
+          "slots": 4,
+          "fulfilled": 2,
+          "downgraded": 2
         },
         "rear_delt": {
-          "slots": 15,
-          "fulfilled": 15,
-          "downgraded": 0
+          "slots": 9,
+          "fulfilled": 1,
+          "downgraded": 8
         }
       },
       "mandateDrops": {},
       "outcomes": {
         "eveLegWithStrength": [
           10,
-          10
+          11
         ],
         "eveLegWithStrengthOrHinge": [
           10,
-          10
+          11
         ],
         "lunchLegWithHinge": [
-          10,
-          10
+          0,
+          15
         ],
         "twoLegWithHamstring": [
           0,
           0
         ],
         "backWithHorizontal": [
-          15,
-          30
+          2,
+          13
         ],
         "twoBackWithRearDelt": [
           0,
@@ -2794,46 +2789,46 @@
         },
         "accentByMuscle": {},
         "coreDist": {
-          "anti-rotation": 14,
-          "rotation": 13,
-          "flexion": 15,
-          "anti-extension": 14,
-          "lateral": 14
+          "anti-rotation": 9,
+          "rotation": 8,
+          "flexion": 8,
+          "anti-extension": 9,
+          "lateral": 8
         },
-        "coreExCount": 70,
-        "sessionsWithCore": 70
+        "coreExCount": 42,
+        "sessionsWithCore": 42
       },
       "variety": {
-        "uniqueExercises": 46,
-        "instances": 270,
+        "uniqueExercises": 23,
+        "instances": 132,
         "top5": [
           {
-            "id": "db_curl",
-            "name": "DB Curl",
-            "times": 13
+            "id": "floor_press",
+            "name": "DB Floor Press",
+            "times": 27
+          },
+          {
+            "id": "weighted_pullups",
+            "name": "Weighted Pull-ups",
+            "times": 10
+          },
+          {
+            "id": "ab_rollout",
+            "name": "Ab Rollout (Barbell/Wheel)",
+            "times": 9
           },
           {
             "id": "tricep_dips",
             "name": "Tricep Dips",
-            "times": 12
+            "times": 9
           },
           {
-            "id": "cable_curl",
-            "name": "Cable Curl",
-            "times": 10
-          },
-          {
-            "id": "hammer_curl",
-            "name": "Hammer Curl",
-            "times": 10
-          },
-          {
-            "id": "bench",
-            "name": "Barbell Bench Press",
+            "id": "heavy_trap_bar",
+            "name": "Heavy Trap Bar Deadlift",
             "times": 8
           }
         ],
-        "capViolations": 0
+        "capViolations": 36
       },
       "goal": {
         "heavyStrengthWeeks": [
