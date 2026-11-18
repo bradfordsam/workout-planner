@@ -608,6 +608,11 @@ const EX = [
   // is exactly what the first attempt at inverted_row did (0 picks in 6
   // simulated weeks on BOTH availability profiles).
   //
+  // cs_cable_row leads (2026-11-18, Sam's call): chest support takes the lower
+  // back out of rowing entirely. Needs cables, so wherever there is no cable
+  // stack the inverted row below still takes the slot.
+  {id:'cs_cable_row',name:'Chest-Supported Cable Row',muscle:'back',type:'compound',eq:['cables'],rMin:8,rMax:12,rest:120,cue:'SETUP: pull an incline bench up to the low cable and lie chest-down on it, with the handle that fits the grip you want (V-handle for neutral, straight bar for wide). Keep the chest glued to the pad the whole set; if it lifts, the load is too heavy. Hands are HOOKS. Drive the elbows back past your sides, squeeze the shoulder blades for a beat, then let them travel all the way forward on a slow negative.',tags:['horizontal']},
+  //
   // Inverted row leads deliberately:
   //  - It is the only BODYWEIGHT horizontal pull in the pool. Every other
   //    option needs a loaded implement, so hotel/parents'/apartment sessions
