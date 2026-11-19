@@ -1415,6 +1415,14 @@ the harness can act on an EVENT — see `.claude/settings.json` +
   recovery/MRV crowd-out even with the protections. Sam chose same-muscle: 13/80 pyramids
   (full schedule), Foundation/mandates unchanged, 0 lockout violations. Lunch-only gets ~2 in 10 wks.
   Stamping it through the Foundation queue was tried first: row/press 2 of 10 weeks.
+  **Revised same day (Sam: "make the DB press land more often than dips", "that cable row i
+  added yesterday"):** order is now `flat_db_press` (weight 2, may also take a triceps slot) →
+  `cs_cable_row` → `bb_row` (`fallbackFor` the cable row, i.e. only at gyms with no stack) →
+  `tricep_dips`. The press is still blocked most days by chest's 48h lockout after the Daily Max
+  floor press, and that lockout is NOT relaxed, so the only lever was holding dips back: a dip
+  pyramid only once the press has out-landed dips that week. Measured, full schedule 10 wks:
+  pyramids 13 → 5 (press 3, dips 1, row 1); lunch-only press 2 / dips 1; 0 lockout violations.
+  Sam accepted the lower total ("dips and press is fine for now").
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at

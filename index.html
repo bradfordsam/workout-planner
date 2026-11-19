@@ -2378,8 +2378,14 @@ function weeklyGuaranteed(){
 // slot already rotates it and a second heavy leg lift would break the 72h
 // window), and a barbell curl (isolation; none in EX). Dips keep the 90° cap.
 const ARNOLD_CORE=[
-  {id:'bb_row',name:'Barbell Row',muscle:'back'},
-  {id:'flat_db_press',name:'Flat DB Press',muscle:'chest'},
+  // Order is priority on ties. The press may also take a TRICEPS slot (a DB press
+  // trains triceps as a secondary); without that it almost never landed, because
+  // the Daily Max floor press holds the chest slot most days (Sam, 2026-11-19:
+  // "make the DB press land more often than dips").
+  {id:'flat_db_press',name:'Flat DB Press',muscle:'chest',also:['triceps'],weight:2},
+  {id:'cs_cable_row',name:'Chest-Supported Cable Row',muscle:'back'},
+  // Only where there's no cable stack (Westminster, Mom and Dad's) — Sam: barbell row is fine there.
+  {id:'bb_row',name:'Barbell Row',muscle:'back',fallbackFor:'cs_cable_row'},
   {id:'tricep_dips',name:'Dips',muscle:'triceps'},
 ];
 const ARNOLD_PYRAMID=[15,12,10,8,6];
@@ -2409,23 +2415,32 @@ function applyArnold(exs,{isLunch,equip,budget,lockedMuscles}){
   const ok=d=>!!d&&(d.eq||[]).some(q=>eq.has(q))&&!userAvoids(d)&&!(S.cfg.hipCaution&&d.hipRisk)
     &&!(S.cfg.shoulderCaution&&d.shoulderRisk)&&!kneeCautionBlocks(d)&&!(isLunch&&d.highSweat)&&!locked(d.muscle);
   const fixed=e=>e.dailyMax||e.calfTopUp||e.muscle==='core'||FOUNDATION_IDS.has(e.id)||(e.tags||[]).some(t=>ARNOLD_PROTECT_TAGS.has(t));
-  let i=exs.findIndex(e=>ARNOLD_IDS.has(e.id)&&!fixed(e)&&ok(EX.find(x=>x.id===e.id)));
-  if(i<0){
-    const done=arnoldDoneThisWeek();
-    const order=ARNOLD_CORE.map((f,k)=>({d:EX.find(e=>e.id===f.id),k})).filter(o=>ok(o.d))
-      .sort((a,b)=>(done[a.d.id]||0)-(done[b.d.id]||0)||a.k-b.k);
-    for(const {d} of order){
-      if(exs.some(e=>e.id===d.id))continue;
-      let j=exs.findIndex(e=>e.muscle===d.muscle&&!fixed(e));
-      if(j<0&&!ARNOLD_SAME_MUSCLE_ONLY)for(let k=exs.length-1;k>=0;k--){if(!fixed(exs[k])){j=k;break;}}
-      if(j<0)continue;
-      creditVolume(budget.vol,exs[j],-(exs[j].sets||3));
-      exs[j]={...d,sets:3,sessionMins:exs[j].sessionMins};
-      creditVolume(budget.vol,exs[j],3);
-      i=j;break;
-    }
-    if(i<0)return;
+  // One pass in priority order. A lift may convert ITSELF if the generator
+  // already picked it, but only after every higher-priority lift has had its
+  // chance — converting a generator-picked dip first is what kept the press out.
+  const done=arnoldDoneThisWeek();
+  // Dips are gated BEHIND the press (Sam: press more often than dips). The press
+  // is usually blocked by chest's 48h lockout after a Daily Max floor press, which
+  // this must not break, so the only way to make it win is to hold dips back:
+  // a dip pyramid only once the press has out-landed dips this week.
+  const dipsOK=(done.flat_db_press||0)>(done.tricep_dips||0);
+  const order=ARNOLD_CORE.map((f,k)=>({d:EX.find(e=>e.id===f.id),f,k})).filter(o=>ok(o.d)&&(o.d.id!=='tricep_dips'||dipsOK)&&!(o.f.fallbackFor&&ok(EX.find(e=>e.id===o.f.fallbackFor))))
+    .sort((a,b)=>(done[a.d.id]||0)/(a.f.weight||1)-(done[b.d.id]||0)/(b.f.weight||1)||a.k-b.k); // weight 2 = wanted twice as often
+  let i=-1;
+  for(const {d,f} of order){
+    let j=exs.findIndex(e=>e.id===d.id&&!fixed(e));
+    if(j>=0){i=j;break;}
+    if(exs.some(e=>e.id===d.id))continue;
+    j=exs.findIndex(e=>e.muscle===d.muscle&&!fixed(e));
+    if(j<0)j=exs.findIndex(e=>(f.also||[]).includes(e.muscle)&&!fixed(e));
+    if(j<0&&!ARNOLD_SAME_MUSCLE_ONLY)for(let k=exs.length-1;k>=0;k--){if(!fixed(exs[k])){j=k;break;}}
+    if(j<0)continue;
+    creditVolume(budget.vol,exs[j],-(exs[j].sets||3));
+    exs[j]={...d,sets:3,sessionMins:exs[j].sessionMins};
+    creditVolume(budget.vol,exs[j],3);
+    i=j;break;
   }
+  if(i<0)return;
   const e=exs[i],n=ARNOLD_PYRAMID.length;
   creditVolume(budget.vol,e,n-(e.sets||3));
   exs[i]={...e,sets:n,rMin:ARNOLD_PYRAMID[n-1],rMax:ARNOLD_PYRAMID[0],arnold:true};
