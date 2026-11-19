@@ -2366,6 +2366,70 @@ function weeklyGuaranteed(){
   // only once they are covered or unplaceable.
   return FOUNDATION_SLOTTED.concat(jumpDurabilitySlotted());
 }
+// ─── ARNOLD CORE (2026-11-19, opt-in via S.cfg.arnoldCore) ───
+// Arnold's compound base, mapped onto what this file already allows. ALWAYS ON
+// (Sam, 2026-11-19): every session gets its own Arnold slot, sequenced right
+// after the Daily Max, run as a 15-12-10-8-6 ascending pyramid. Its own slot
+// rather than the Foundation stamp because that queue places one lift per
+// session and weighted pull-ups win it (measured: row/press 2 of 10 weeks).
+// It REPLACES a lift rather than adding one, so the ledger's lift count holds.
+// Deliberately NOT in the list: bench + ohp (avoidExercises, left shoulder),
+// floor_press (already the Daily Max press), the squat (the heavy 1–5 strength
+// slot already rotates it and a second heavy leg lift would break the 72h
+// window), and a barbell curl (isolation; none in EX). Dips keep the 90° cap.
+const ARNOLD_CORE=[
+  {id:'bb_row',name:'Barbell Row',muscle:'back'},
+  {id:'flat_db_press',name:'Flat DB Press',muscle:'chest'},
+  {id:'tricep_dips',name:'Dips',muscle:'triceps'},
+];
+const ARNOLD_PYRAMID=[15,12,10,8,6];
+// Lifts the Arnold slot may never displace: the heavy 1–5 and the pattern
+// mandates (measured: without this, hinge and rear-delt work went to zero).
+const ARNOLD_PROTECT_TAGS=new Set(['strength','hinge','hamstring','rear_delt']);
+const ARNOLD_SAME_MUSCLE_ONLY=true;
+const ARNOLD_IDS=new Set(ARNOLD_CORE.map(f=>f.id));
+function arnoldOn(){return true;}
+function arnoldDoneThisWeek(){
+  const mon=thisMonday(),end=addDays(mon,7),out={};
+  (S.logs||[]).forEach(l=>{
+    if(!l||logDay(l.date)<mon||logDay(l.date)>=end)return;
+    (l.exercises||[]).forEach(e=>{if(e&&ARNOLD_IDS.has(e.id))out[e.id]=(out[e.id]||0)+1;});
+  });
+  return out;
+}
+// Runs after applyDailyMax. Same safety gates as the Foundation short-circuit,
+// plus the muscle's own lockout. Prefers the Arnold lift least done this week.
+// A lift already in the session is converted in place; otherwise it replaces a
+// same-muscle lift, else the last lift that isn't the Daily Max, the heavy 1–5,
+// core, or the calf top-up. Nothing safe to place → session is left alone.
+function applyArnold(exs,{isLunch,equip,budget,lockedMuscles}){
+  if(!arnoldOn()||!exs.length)return;
+  const locked=m=>!!lockedMuscles&&(lockedMuscles.has?lockedMuscles.has(m):lockedMuscles.includes(m));
+  const eq=new Set([...(equip||[]),'bodyweight']);
+  const ok=d=>!!d&&(d.eq||[]).some(q=>eq.has(q))&&!userAvoids(d)&&!(S.cfg.hipCaution&&d.hipRisk)
+    &&!(S.cfg.shoulderCaution&&d.shoulderRisk)&&!kneeCautionBlocks(d)&&!(isLunch&&d.highSweat)&&!locked(d.muscle);
+  const fixed=e=>e.dailyMax||e.calfTopUp||e.muscle==='core'||FOUNDATION_IDS.has(e.id)||(e.tags||[]).some(t=>ARNOLD_PROTECT_TAGS.has(t));
+  let i=exs.findIndex(e=>ARNOLD_IDS.has(e.id)&&!fixed(e)&&ok(EX.find(x=>x.id===e.id)));
+  if(i<0){
+    const done=arnoldDoneThisWeek();
+    const order=ARNOLD_CORE.map((f,k)=>({d:EX.find(e=>e.id===f.id),k})).filter(o=>ok(o.d))
+      .sort((a,b)=>(done[a.d.id]||0)-(done[b.d.id]||0)||a.k-b.k);
+    for(const {d} of order){
+      if(exs.some(e=>e.id===d.id))continue;
+      let j=exs.findIndex(e=>e.muscle===d.muscle&&!fixed(e));
+      if(j<0&&!ARNOLD_SAME_MUSCLE_ONLY)for(let k=exs.length-1;k>=0;k--){if(!fixed(exs[k])){j=k;break;}}
+      if(j<0)continue;
+      creditVolume(budget.vol,exs[j],-(exs[j].sets||3));
+      exs[j]={...d,sets:3,sessionMins:exs[j].sessionMins};
+      creditVolume(budget.vol,exs[j],3);
+      i=j;break;
+    }
+    if(i<0)return;
+  }
+  const e=exs[i],n=ARNOLD_PYRAMID.length;
+  creditVolume(budget.vol,e,n-(e.sets||3));
+  exs[i]={...e,sets:n,rMin:ARNOLD_PYRAMID[n-1],rMax:ARNOLD_PYRAMID[0],arnold:true};
+}
 const FOUNDATION_IDS=new Set(FOUNDATION_SLOTTED.concat(JUMP_DURABILITY).map(f=>f.id));
 // Weekly coverage state, read from the log — no persisted flags to drift.
 function foundationCoveredThisWeek(){
@@ -4446,7 +4510,7 @@ function flagFirstWorkingSet(exs){
   // The heavy 1–5 @ 85–95% tier goes first among compounds when a session has
   // one. It is the single most systemically demanding thing in the program and
   // the one lift whose quality a couple of prior working sets genuinely ruins.
-  const heavyRank=(e)=>(e.dailyMax?-1:(e.tags||[]).includes('strength')?0:1);
+  const heavyRank=(e)=>(e.dailyMax?-2:e.arnold?-1:(e.tags||[]).includes('strength')?0:1);
   const prehabRank=(e)=>(PREHAB_FINISH_IDS.has(e.id)?1:0);
   const compounds=exs.filter(e=>e.type==='compound')
     .sort((a,b)=>heavyRank(a)-heavyRank(b)||oi(a)-oi(b));
@@ -5251,6 +5315,7 @@ function genProgram(cfg,av,workoutHistoryLog){
     Object.entries(lockedLimits).forEach(([m,lim])=>{budget.limits[m]=lim;});
 
     applyDailyMax(exs,{dateStr,isLunch:slot.isLunch,equip,budget,lockedMuscles}); // see DAILY MAX
+    applyArnold(exs,{isLunch:slot.isLunch,equip,budget,lockedMuscles}); // see ARNOLD CORE
     flagFirstWorkingSet(exs); // compounds first; warm-up flag on first loaded lift
     // AFTER the flag, never before: pairSession reorders, and the lift carrying
     // the warm-up ramp has to stay at index 0 (it just becomes A1).
@@ -5266,7 +5331,7 @@ function genProgram(cfg,av,workoutHistoryLog){
         // Hand the trimmed sets back through the SAME ledger that booked them,
         // so the secondary credit is refunded with them — a plain subtraction on
         // e.muscle would leave phantom biceps/triceps volume behind.
-        if(i>0&&e.sets>2){creditVolume(budget.vol,e,-(e.sets-2));e.sets=2;}
+        if(i>0&&e.sets>2&&!e.arnold){creditVolume(budget.vol,e,-(e.sets-2));e.sets=2;}
       });
     }
 
@@ -10692,6 +10757,7 @@ function renderWorkout(){
       ?`${scaleDef.label.toLowerCase()} ${prog?prog.suggest:''} × ${ex.rMin}–${ex.rMax} to 1–2 reps shy of failure`
       :isPowerEx
       ?`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} explosive reps — max intent, stop the set when speed visibly drops`
+      :ex.arnold?`🏆 Arnold pyramid ${ARNOLD_PYRAMID.join('-')} · open light (~55–60% of your max), add weight every set, last set of 6 is the heavy one`
       :`${prog?prog.suggest:est?est.weight:''} ${wUnit} × ${ex.rMin}–${ex.rMax} to 1–2 reps shy of failure`;
     const backoffTarget=useBackoff&&(backoffW||(est&&rs(est.weight*0.85)))?` · then back-off ${backoffW||rs(est.weight*0.85)} ${wUnit} × ${backoffRepLo}–${backoffRepHi}`:'';
     progHTML=prog?`<div class='last-info'>Last session: <strong>${prog.summary}</strong></div>

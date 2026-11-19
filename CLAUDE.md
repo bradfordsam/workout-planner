@@ -1403,6 +1403,18 @@ the harness can act on an EVENT — see `.claude/settings.json` +
     Those profiles were already under-band everywhere.
 - **Left groin + dynamic warm-ups (2026-10-16)** — Sam: *"Low Cossack squats pull hard on my left groin. Warmups should be more dynamic than static."* `cossack_squat` and `kb_weight_shift` (the same deep lateral shift) are on `avoidExercises` (default cfg + `load()` migration); `Low Cossack Squat` and `Kettlebell Weight Shift` are out of the prep pools. The ROTATING prep pools (HIP/SHOULDER/LOWER/UPPER) are now movement only: held stretches went (Knee-to-Chest x2, Kneeling Diamond Sit, Z-Sit, Behind-the-Back, Overhead Reach, Glute Bridge Hold, Horse Stance — all but the last two still live in `COOLDOWN_POOL`, which is where static work belongs) and three were converted (90/90 Switches, Half-Kneeling Hip Flexor Rocks, Wall Slides). Deliberately left as holds: the PT blocks (IT band, decompression — physio's prescription), Dead Hang (decompression before pulling), Copenhagen short side plank (isometric adductor LOADING, not a stretch). Don't add new held stretches to the prep pools — put them in the cool-down. Case study byte-identical; render smoke passes.
 - **Exact dumbbell racks reach the warm-up and back-off too (2026-10-16)** — Sam: *"if I'm working out at mom and dads house remember the weight that are available."* `moms_and_dads.dumbbellWeights` (5/10/15/25/35) already snapped the WORKING weight, but the 50/75/90% warm-up ramp, the back-off set and `updateWarmup`'s live recalculation used plain `r5`, so a 35 lb lift asked for a 30 lb warm-up that isn't there. All now go through `roundToAvailable` (rounding DOWN) for dumbbell lifts at a preset with a rack. Verified: 35 lb floor press at Mom and Dad's shows only 15/25/35.
+- ** — always on, same-muscle only (2026-11-19, )** — Sam asked for
+  Arnold's compound base with a 15-12-10-8-6 pyramid. Mapped to what the shoulder rules allow:
+  , ,  (bench/ohp are on avoidExercises; floor_press is the
+  Daily Max press; squat already rotates through the strength slot; no barbell curl in EX).
+  Runs after , ranks right after it in , keeps its 5 sets at lunch.
+  It only CONVERTS a same-muscle lift already in the session; never displaces another muscle,
+  a Foundation lift, or a strength/hinge/hamstring/rear_delt lift ().
+  **Measured, 10 wks:** the every-session version () landed 44/80
+  pyramids but took weighted pull-ups 10→1 wk, pistols 6→0, shoulders and biceps to 0 sets, via
+  recovery/MRV crowd-out even with the protections. Sam chose same-muscle: 13/80 pyramids
+  (full schedule), Foundation/mandates unchanged, 0 lockout violations. Lunch-only gets ~2 in 10 wks.
+  Stamping it through the Foundation queue was tried first: row/press 2 of 10 weeks.
 - `SETUP` map + `setupFor`/`SETUP_ROW` (near `HANDLES`): "what do I do this ON"
   notes (bar height, rig). Separate from `HANDLES` because the Attachment row is
   gated on the gym having `cables` — a rack note in `HANDLES` would be hidden at
