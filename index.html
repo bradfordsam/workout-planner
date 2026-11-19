@@ -170,6 +170,13 @@ body{
 .cr-body{flex:1;min-width:0}
 .cr-name{font-size:13px;font-weight:700}
 .cr-note{font-size:11px;color:var(--mut);margin-top:1px}
+.pchk-wrap{margin-top:8px}
+.pchk-rule{font-size:12px;color:var(--mut);line-height:1.5}
+.pchk-grp{font-size:13px;font-weight:700;margin:10px 0 4px}
+.pchk{display:flex;gap:10px;align-items:center;font-size:13px;padding:8px 4px;border-bottom:1px solid var(--bdr);cursor:pointer}
+.pchk-box{width:20px;height:20px;flex:none;border:2px solid var(--bdr);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.pchk.on{color:var(--mut);text-decoration:line-through}
+.pchk.on .pchk-box{background:var(--acc);border-color:var(--acc);color:#fff;text-decoration:none}
 .cr-busy-tag{font-size:10px;color:var(--warn);font-weight:600;margin-left:5px;vertical-align:middle}
 .cr-right{text-align:right;flex-shrink:0}
 .cr-dur{font-size:16px;font-weight:800;color:var(--acc)}
@@ -1860,12 +1867,34 @@ const VO2_PROTOCOLS=[
   // it to COURT_LOCATIONS; it also shows up as a manual swap on the card.
   {key:'hoops',name:'Hoops Conditioning',icon:'🏀',base:5,maxW:5,needsCourt:true,
    desc:w=>`Two workouts, 3 sets × ${w} MAKES each, jogging at ~50% between every rep (never stand still). 30–60s rest between sets, 1–2 min between workouts. ① LAYUPS — jump with intent every rep; beginners keep it basic, otherwise work creative finishes, footwork and crafty gathers off the dribble. ② MIDRANGE — Set 1: 1–2 dribble pull-up · Set 2: snatch counter (downhill → uphill decel into the shot) · Set 3: lateral counter (lateral change of direction into the shot). One side, starting at the top of the key. No threes.`,
+   // Rendered as a tappable checklist (Sam, 2026-11-19: "more like a checklist
+   // than a long, hard to read paragraph"). desc stays for logs/history.
+   rules:['Jog ~50% between every rep — never stand still','30–60s rest between sets · 1–2 min between workouts','Count MAKES, not attempts · no threes'],
+   steps:w=>[
+     {grp:'① Layups — jump with intent every rep',items:[`Set 1 · ${w} makes`,`Set 2 · ${w} makes`,`Set 3 · ${w} makes — creative finishes, footwork, crafty gathers`]},
+     {grp:'② Midrange — one side, start at top of the key',items:[`Set 1 · ${w} makes · 1–2 dribble pull-up`,`Set 2 · ${w} makes · snatch counter (downhill → uphill decel)`,`Set 3 · ${w} makes · lateral counter (change of direction)`]},
+   ],
    mins:()=>40},
 ];
 // Gyms with a usable hoop (Sam, 2026-10-26). An unknown location is allowed —
 // rest-day evenings often have no planned gym, and the swap is manual anyway.
 const COURT_LOCATIONS=new Set(['ymca','westminster_gym','moms_and_dads']);
 const NO_COURT_LOCATIONS=new Set(['apartment_gym','hotel_gym','bodyweight']);
+// Per-day tick state for checklist protocols. A per-viewer convenience only:
+// it never feeds logging, so losing it (private window, cleared storage) just
+// unticks the boxes.
+function protoChecks(date){
+  try{const d=JSON.parse(localStorage.getItem('wpProtoChk')||'null');if(d&&d.date===date)return d.st||{};}catch(e){}
+  return{};
+}
+function protoChecklistHTML(proto,date){
+  const st=protoChecks(date);
+  const row=(k,txt)=>`<div class='pchk${st[k]?' on':''}' data-action='proto-chk' data-date='${date}' data-k='${k}'><span class='pchk-box'>${st[k]?'✓':''}</span><span>${txt}</span></div>`;
+  return`<div class='pchk-wrap'>
+    ${(proto.rules||[]).map(r=>`<div class='pchk-rule'>• ${r}</div>`).join('')}
+    ${proto.steps(proto.work).map((g,gi)=>`<div class='pchk-grp'>${g.grp}</div>${g.items.map((t,i)=>row(proto.key+gi+'_'+i,t)).join('')}`).join('')}
+  </div>`;
+}
 function courtOK(equipKey){return !equipKey||!NO_COURT_LOCATIONS.has(equipKey);}
 // The day's planned evening (or weekend) venue. Lunch is ignored on purpose:
 // lunches are low-sweat and never get an engine session, hoops included.
@@ -10158,9 +10187,10 @@ function renderDash(){
         <div class='sec-lbl' style='margin-bottom:6px'>Aerobic Engine · ${isBackdate?`Log for ${DOW[viewDow2]}`:'Evening Protocol'}${proto.lvl?` · Session ${proto.lvl+1}`:''}</div>
         <div class='cardio-row'>
           <div class='cr-icon'>${proto.icon}</div>
-          <div class='cr-body'><div class='cr-name'>${proto.name}</div><div class='cr-note'>${proto.desc}</div></div>
+          <div class='cr-body'><div class='cr-name'>${proto.name}</div>${proto.steps?'':`<div class='cr-note'>${proto.desc}</div>`}</div>
           <div class='cr-right'><div class='cr-dur'>${proto.mins} min</div><div class='cr-dist'>aerobic</div></div>
         </div>
+        ${proto.steps?protoChecklistHTML(proto,targetDateStr):''}
         ${legsTomorrow?`<div style='font-size:11px;color:var(--warn);margin-top:6px'>${proto.benchmark?`⚠️ Legs are programmed tomorrow — the max row test hits like a heavy session. Shift the test to another evening.`:`⚠️ Legs are programmed tomorrow — keep the easy portions truly easy, or shift this to another evening.`}</div>`:''}
         ${doneThatDay
           ?`<div class='prog-hint' style='margin-top:8px'>✅ VO2 session logged ${isBackdate?DOW[viewDow2]:'today'}</div>`
@@ -13782,6 +13812,12 @@ document.addEventListener('click',e=>{
     S.logs.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     S.pyramid=null;S.pyramidOpen=false;
     save();render();return;
+  }
+  if(a==='proto-chk'){
+    const st=protoChecks(btn.dataset.date),k=btn.dataset.k;
+    st[k]=!st[k];
+    try{localStorage.setItem('wpProtoChk',JSON.stringify({date:btn.dataset.date,st}));}catch(e){}
+    render();return;
   }
   if(a==='vo2-pick'){
     S.vo2Pick=btn.dataset.key?{date:btn.dataset.date,key:btn.dataset.key}:null;
