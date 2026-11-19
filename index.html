@@ -2223,7 +2223,14 @@ const plyoHidden=(e)=>(shinCareOn()&&((e.tags||[]).includes('plyometric')||SHIN_
 // regardless of the broader hip/knee/shoulder caution flags (e.g. Push Press
 // on the lower back). A flat id blacklist, not a tag rule, since these are
 // one-off "this specific movement doesn't work for me" reports.
-const userAvoids=(e)=>(S.cfg.avoidExercises||[]).includes(e.id);
+// LAT CARE (2026-11-19): lats and shoulders still sore two days after Tuesday's
+// century (first one in a while). Same fixed-window shape as SHIN_CARE so it
+// lapses on its own. Thu-Fri: no century, no upper-body lifting (legs + core
+// only), and a light blood-flow pull primer card. Century returns Saturday.
+const LAT_CARE={from:'2026-11-19',to:'2026-11-20'};
+function latCareOn(d){const t=d||todayStr();return t>=LAT_CARE.from&&t<=LAT_CARE.to;}
+const LAT_CARE_MUSCLES=['back','biceps','shoulders','chest','triceps'];
+const userAvoids=(e)=>(S.cfg.avoidExercises||[]).includes(e.id)||(latCareOn()&&LAT_CARE_MUSCLES.includes(e.muscle));
 
 // ─────────────────────────────────────────────
 // THE FOUNDATION FIVE
@@ -2643,6 +2650,7 @@ function equipForDow(equipmentKey,dow){
 }
 function centuryEligibleDow(av,dow){
   if(noBarToday(dow))return false;
+  if(latCareOn(weekDateForDow(dow)))return false;
   const d=av[dow]||{};
   return(dow===0||dow===6)?!!d.on:(d.lunch!==false||!!d.eve?.on);
 }
@@ -8186,6 +8194,20 @@ function shinCareHTML(){
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>No jumps, hops, sprints or calf top-up through Sunday. Bike or rower for conditioning. If one spot on the bone hurts to press, or walking hurts, get it checked: that can be a stress reaction, not soreness.</div>
   </div>`;
 }
+const LAT_CARE_ITEMS=[
+  {n:'Band pull-aparts or arm circles',d:'2×15. Easy.'},
+  {n:'Scap pulls on the bar',d:'2×8. Shrug the shoulders down only, no full pull-up.'},
+  {n:'Light pull-ups',d:'2 sets of about half your max. Nowhere near failure.'},
+  {n:'Dead hang',d:'2×20–30s.'},
+];
+function latCareHTML(){
+  if(!latCareOn())return'';
+  return`<div style='margin-top:10px;padding:14px;background:rgba(251,146,60,.06);border:1px solid rgba(251,146,60,.25);border-radius:12px;text-align:left'>
+    <div style='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fb923c;margin-bottom:6px'>🩹 Lat Care · through Friday · ~8 min</div>
+    ${LAT_CARE_ITEMS.map(it=>`<div style='font-size:12px;color:var(--mut);line-height:1.7'>• <strong style='color:var(--txt)'>${it.n}</strong> — ${it.d}</div>`).join('')}
+    <div style='font-size:11px;color:var(--mut);margin-top:6px'>Blood flow, not training. Then legs and core only: no century, pulling or pressing through Friday. Sharp pain at the front of the shoulder or the elbow is not soreness; rest longer if you feel it.</div>
+  </div>`;
+}
 function shoulderRehabHTML(){
   if(!S.cfg||!S.cfg.shoulderCaution)return'';
   return`<div style='margin-top:10px;padding:14px;background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.25);border-radius:12px;text-align:left'>
@@ -8201,6 +8223,7 @@ function dailySpineHTML(){
     <div style='font-size:11px;color:var(--mut);margin-top:6px'>Fixed daily doses — these never rotate. A few minutes every day keeps the spine decompressed, the core protective, and posture honest. Evening training days fold them into the cool-down; otherwise do them any time.</div>
   </div>
   ${shinCareHTML()}
+  ${latCareHTML()}
   ${shoulderRehabHTML()}
   ${ptPrescribedHTML()}`;
 }
