@@ -5175,7 +5175,12 @@ function genProgram(cfg,av,workoutHistoryLog){
       slots[backSlotIdx[1]].tag=other;
       if(other==='rear_delt')slots[backSlotIdx[1]].type='isolation';
     }
-    const names=top.map(t=>MNAME[t.m]||t.m);
+    // F-08: build session names from the muscles actually present in `slots`,
+    // not from `top` — `top` can hold up to 3 muscles while lunch sessions
+    // only have 2 muscle slots, so the old name advertised a muscle with
+    // no exercise in the session. Core is excluded: it is a forced slot
+    // in every session, not a named muscle. `tk` stays top-based.
+    const names=[...new Set(slots.filter(s=>s.muscle!=='core').map(s=>MNAME[s.muscle]))];
     // The foundation stamp is part of the template KEY: without it, a day whose
     // muscle set is unchanged matches the previously-generated plan and takes
     // the "preserve, don't rebuild" path in buildSession — which on the first
