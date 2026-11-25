@@ -8871,6 +8871,17 @@ const HIP_MOB_POOL=[
   {n:'Hip Around the Worlds',d:'3 × 10 reps each way · standing, hands on hips or a wall, lift one knee and draw the biggest slow circle the hip controls, 10 one direction then 10 the other, both legs. Left hip: smaller circle, no pinch',f:['hip']},
   {n:'Kneeling Hip CAR',d:'3 × 5 reps/side · on all fours, lift one knee out to the side, sweep it back and around, then forward under the body in one slow controlled circle. Hips square, no low-back twist. Left side: keep the inward part of the circle short of the pinch',f:['hip','glute']},
 ];
+// ── FLOW & STRETCH (2026-11-25) ──
+// Sam: six more mobility moves. Own block, every session, n:1 (leadRot), so all
+// six cycle in six sessions instead of diluting MOBILITY_PICKS_POOL further.
+const FLOW_STRETCH_POOL=[
+  {n:'Overhead Squat → Up Dog → Down Dog',d:'45–60 sec · arms straight overhead, squat as deep as the chest stays up, stand, then hands down and walk out to upward dog (hips low, chest through the arms), push back to down dog, walk the hands back and repeat. Slow and continuous. Squat only as deep as the left hip stays quiet; left shoulder: stop short of any pinch overhead',f:['hip','spine','achilles']},
+  {n:'Lunge + Thoracic Twist',d:'5 reps/side · step into a forward lunge, back knee down if needed, then rotate the chest and arms toward the front knee, return to center, step back. The upper back turns; hips stay square',f:['hip','spine']},
+  {n:'Neck Rotations',d:'5 slow circles each way · sit or stand tall, shoulders down. Chin to chest, roll one ear toward the shoulder, back gently, other ear. Keep the backward part small; no cranking',f:['spine']},
+  {n:'Camel',d:'5 reps · tall-kneeling, hands on the low back. Push the hips forward, lift the chest and lean back into a backbend, hold 2 sec, return. Hands to heels only if the low back stays comfortable; left shoulder: stay on the low back if it pinches',f:['spine','hip']},
+  {n:'Scorpion',d:'6 reps/side · lying face down, arms out in a T. Swing one heel up and across toward the opposite hand, letting the hips turn while the chest stays down, return. Slow; stop short of any low-back pinch',f:['spine','hip']},
+  {n:'Couch Stretch',d:'30 sec/side · back knee on a pad with the shin up a bench or wall, front foot planted. Tuck the pelvis and squeeze the back glute, then rock the hips forward and back in small pulses. Torso only as upright as you can hold the tuck',f:['hip']},
+];
 // ── SPRINT HIPS (2026-11-02) ──
 // Sam: "more hip moves to help my sprint speed". Six he named. Leg days only, one
 // a session. Made room by raising the EVENING prep cap 12 → 15 (Sam's call, over
@@ -8882,7 +8893,7 @@ const HIP_MOB_POOL=[
 const SPRINT_HIP_POOL=[
   {n:'Hand-Supported RDL to Hip Gate',d:'6 reps/side · one hand on a wall, hinge into a single-leg RDL with the free leg reaching back. As you stand, drive that knee forward to mid-thigh height, swing it out and around (open the gate), then reach it back into the next RDL. Stance hip stays level. Left side: smaller arc, stop short of any pinch',f:['hamstring','hip']},
   {n:'Rotating 90/90s',d:'6 reps/side · seated 90/90. Rotate the knees over to the other side, then turn the chest to face the new front shin and hinge over it with a tall back, then turn to face the back knee and lift tall. Hands behind you if you need them. Left side: stop short of any pinch at the front of the hip',f:['hip']},
-  {n:'Olympic Wall Squat',d:'8 reps · face a wall with the toes 6–12 in away, arms straight overhead. Squat as deep as you can without touching the wall: chest up, knees out, ankles bending. Start further from the wall and creep closer over the weeks. Stop above any pinch at the front of the left hip',f:['hip','achilles']},
+  // Olympic Wall Squat removed 2026-11-25: Sam said it hurt his low back and shins badly.
   {n:'Fire Hydrant with Internal Rotation',d:'8 reps/side · on all fours, lift one bent knee out to the side (hydrant), then keep the knee up and swing the foot up and out so the thigh turns inward, and back. Slow. Small range on the left: inward rotation with the hip bent is the pinch position, so stop well before it',f:['glute','hip']},
   {n:'90/90 Lift with DB Hold',d:'6 reps/side · seated 90/90, light dumbbell held at the chest, torso tall. Lift the BACK knee and foot off the floor together, hold 2 sec, lower slowly. No leaning away to cheat it up. Left back leg: lift only as high as the hip stays quiet',f:['hip','glute'],eq:['dumbbells']},
   {n:'Bird Dog to Hip Gate',d:'6 reps/side · bird dog with the opposite arm and leg long. Bring that knee forward, swing it out to the side and around (open the gate) at hip height or lower, then kick it back long again. Hips stay square to the floor, no low-back sag',f:['glute','hip','spine']},
@@ -8954,6 +8965,7 @@ function prepPlan(o){
     isLegDay?{key:'bounceiso',title:'🦘 Bounce Isos',color:'var(--warn)',pool:BOUNCE_ISO_POOL,n:1}:null,
     isLegDay?{key:'sprinthips',title:'⚡ Sprint Hips',color:'var(--warn)',pool:SPRINT_HIP_POOL.filter(hasKit),n:1}:null,
     {key:'mobpicks',title:'🌀 Mobility',color:'var(--ok)',pool:MOBILITY_PICKS_POOL.filter(hasKit),n:1},
+    isLunch?null:{key:'flowstretch',title:'🧘 Flow &amp; Stretch',color:'var(--ok)',pool:FLOW_STRETCH_POOL,n:1,leadRot:true},
     isLunch?null:{key:'hipmob',title:'🦴 Hip Mobility',color:'var(--ok)',pool:HIP_MOB_POOL,n:1,leadRot:true},
     {key:'deskreset',title:'🧍 Hip &amp; Spine Reset',color:'var(--ok)',pool:deskPool,n:want(isLegDay?2:4,isLegDay?1:3)},
     // PT done for the week → the shoulder rehab takes the PT slot (same place in

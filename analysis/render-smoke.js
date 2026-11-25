@@ -382,7 +382,7 @@ ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_
 // Sprint hips: leg days only; all six cycle through the 15-min evening.
 (function(){
   const r=call(`(function(){const real=Date.now;try{const seen=new Set();let days=0;for(let d=0;d<14;d++){Date.now=()=>real()+d*864e5;const p=prepPlan({isLunch:false,isLegDay:true,hipCaution:true,shoulderCaution:true,equip:EQUIPMENT_PRESETS.ymca.equipment});const b=p.blocks.find(b=>b.key==='sprinthips');if(b){days++;b.items.forEach(it=>seen.add(it.n));}}return{days,missing:SPRINT_HIP_POOL.map(i=>i.n).filter(n=>!seen.has(n)).join(', ')};}finally{Date.now=real;}})()`,'sprint');
-  console.log('    evening sprint hips: on',r.days,'of 14 leg days',r.missing?'(never: '+r.missing+')':'(all 6 dealt)');
+  console.log('    evening sprint hips: on',r.days,'of 14 leg days',r.missing?'(never: '+r.missing+')':'(all dealt)');
   ok(r.days===14&&!r.missing,'every sprint-hip move lands in the evening leg warm-up');
   ok(!JSON.stringify(call(`prepPlan({isLunch:false,isLegDay:false,equip:EQUIPMENT_PRESETS.ymca.equipment})`,'sprint desk')).includes('sprinthips'),'sprint hips stay off non-leg days');
   ok(call('PREP_BUDGET_MINS.evening','cap')===15,'evening prep cap is 15');
